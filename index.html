@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Productos observados</title>
+<title>Pedidos y productos observados</title>
 <style>
   :root { --verde:#1b7a4b; --verde2:#e7f4ec; --gris:#5f6b66; --borde:#d5dcd8; --fondo:#f4f6f5; --rojo:#b3261e; }
   * { box-sizing: border-box; }
@@ -12,12 +12,15 @@
   button { font:inherit; cursor:pointer; border-radius:8px; border:1px solid var(--borde); background:#fff; padding:9px 14px; color:inherit; }
   button.pri { background:var(--verde); color:#fff; border-color:var(--verde); font-weight:600; }
   button.pel { color:var(--rojo); border-color:var(--rojo); }
+  button.mini { padding:4px 10px; font-size:13px; }
   button:disabled { opacity:.6; cursor:wait; }
   input, select, textarea { font:inherit; width:100%; padding:9px 10px; border:1px solid var(--borde); border-radius:8px; background:#fff; color:inherit; }
-  textarea { min-height:70px; resize:vertical; }
+  input[type=checkbox] { width:auto; }
+  textarea { min-height:60px; resize:vertical; }
   label { display:block; font-size:13px; color:var(--gris); margin-bottom:4px; font-weight:600; }
+  h2.sec { font-size:16px; margin:0 0 12px; color:var(--verde); }
   .campo { margin-bottom:12px; }
-  .caja { background:#fff; border:1px solid var(--borde); border-radius:12px; padding:18px; }
+  .caja { background:#fff; border:1px solid var(--borde); border-radius:12px; padding:18px; margin-bottom:14px; }
   .msg { padding:10px 12px; border-radius:8px; margin-bottom:12px; font-size:14px; }
   .msg.err { background:#fdecea; color:var(--rojo); }
   .msg.ok { background:var(--verde2); color:var(--verde); }
@@ -33,9 +36,10 @@
   nav { display:flex; gap:4px; padding:10px 16px 0; border-bottom:1px solid var(--borde); background:#fff; overflow-x:auto; }
   nav button { border:none; border-bottom:3px solid transparent; border-radius:0; background:none; color:var(--gris); font-weight:600; white-space:nowrap; }
   nav button.act { color:var(--verde); border-bottom-color:var(--verde); }
-  main { padding:16px; max-width:1200px; margin:0 auto; }
+  nav .cuenta { background:var(--rojo); color:#fff; border-radius:99px; font-size:11px; padding:1px 7px; margin-left:4px; }
+  main { padding:16px; max-width:1280px; margin:0 auto; }
 
-  .rejilla { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:0 14px; }
+  .rejilla { display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:0 14px; }
   .ancho { grid-column:1 / -1; }
   .filtros { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin-bottom:12px; }
   .resumen { color:var(--gris); margin:0 0 10px; font-size:14px; }
@@ -44,15 +48,24 @@
   th, td { padding:9px 10px; text-align:left; border-bottom:1px solid #edf0ee; white-space:nowrap; }
   th { background:#fafbfa; color:var(--gris); font-size:12px; text-transform:uppercase; letter-spacing:.03em; }
   td.larga { white-space:normal; min-width:180px; }
-  tbody tr { cursor:pointer; }
-  tbody tr:hover { background:var(--verde2); }
+  td.num, th.num { text-align:right; }
+  tbody tr[data-id] { cursor:pointer; }
+  tbody tr[data-id]:hover { background:var(--verde2); }
+  tr.grupo td { background:#eef3f0; font-size:14px; border-top:2px solid var(--borde); white-space:normal; }
+  tr.grupo .gtit { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  tr.grupo .gtit { position:sticky; left:10px; width:max-content; max-width:calc(100vw - 60px); }
+  .vacio { text-align:center; color:#888; padding:24px; }
   .est { display:inline-block; padding:2px 9px; border-radius:99px; font-size:12px; font-weight:600; background:#eee; }
   .e0 { background:#fde9c8; color:#8a5300; } .e1 { background:#dbe8fb; color:#1f4e96; }
-  .e2 { background:#ead9f7; color:#5b2a8c; } .e3 { background:var(--verde2); color:var(--verde); } .e4 { background:#eee; color:#666; }
+  .e2 { background:var(--verde2); color:var(--verde); } .e3 { background:#eee; color:#666; }
 
-  dialog { border:none; border-radius:14px; padding:0; width:min(640px, 94vw); max-height:90vh; color:inherit; }
+  .linea { border:1px solid var(--borde); border-radius:10px; padding:12px 12px 0; margin-bottom:10px; background:#fafbfa; }
+  .linea .cab { display:flex; align-items:center; margin-bottom:8px; font-weight:600; color:var(--gris); font-size:13px; }
+  .linea .cab span { flex:1; }
+
+  dialog { border:none; border-radius:14px; padding:0; width:min(760px, 94vw); max-height:90vh; color:inherit; }
   dialog::backdrop { background:rgba(0,0,0,.45); }
-  .dcab { display:flex; align-items:center; padding:14px 18px; border-bottom:1px solid var(--borde); }
+  .dcab { display:flex; align-items:center; padding:14px 18px; border-bottom:1px solid var(--borde); gap:10px; }
   .dcab h2 { margin:0; font-size:17px; flex:1; }
   .dcuerpo { padding:16px 18px; overflow-y:auto; }
   .datos { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:10px 16px; margin-bottom:14px; }
@@ -61,14 +74,13 @@
   .bloque h3 { margin:0 0 8px; font-size:14px; color:var(--verde); }
   .quien { font-size:12px; color:var(--gris); }
   .fila-bot { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .gtabla input { min-width:90px; padding:6px 8px; }
 </style>
 </head>
 <body>
 
-<!-- ============ CARGANDO / AVISOS ============ -->
-<section id="aviso" class="centro"><div class="caja"><h1>Productos observados</h1><p id="avisoTxt">Cargando…</p></div></section>
+<section id="aviso" class="centro"><div class="caja"><h1>Pedidos y observados</h1><p id="avisoTxt">Cargando…</p></div></section>
 
-<!-- ============ PRIMERA VEZ: CREAR ADMINISTRADOR ============ -->
 <section id="inicio" class="centro oculto">
   <div class="caja">
     <h1>Configuración inicial</h1>
@@ -83,10 +95,9 @@
   </div>
 </section>
 
-<!-- ============ LOGIN ============ -->
 <section id="login" class="centro oculto">
   <div class="caja">
-    <h1>Productos observados</h1>
+    <h1>Pedidos y observados</h1>
     <p>Ingresa con tu usuario</p>
     <div id="loginMsg"></div>
     <form id="fLogin">
@@ -97,64 +108,117 @@
   </div>
 </section>
 
-<!-- ============ APLICACIÓN ============ -->
 <section id="app" class="oculto">
   <header>
-    <h1>Productos observados</h1>
+    <h1>Pedidos y productos observados</h1>
     <span id="quien"></span>
     <button id="bClave">Cambiar contraseña</button>
     <button id="bSalir">Salir</button>
   </header>
   <nav>
-    <button data-v="vNuevo" id="tabNuevo">Nuevo reporte</button>
-    <button data-v="vLista" id="tabLista">Reportes</button>
+    <button data-v="vPedidos">Ingreso de pedidos<span class="cuenta oculto" id="nPed"></span></button>
+    <button data-v="vNuevo" id="tabNuevo">Observar productos</button>
+    <button data-v="vPend">Por devolver<span class="cuenta oculto" id="nPend"></span></button>
+    <button data-v="vDev">Devueltos y NC<span class="cuenta oculto" id="nDev"></span></button>
     <button data-v="vUsuarios" id="tabUsuarios">Usuarios</button>
     <button data-v="vListas" id="tabListas">Listas</button>
   </nav>
   <main>
 
+    <!-- ===== 1. INGRESO DE PEDIDOS ===== -->
+    <div id="vPedidos" class="oculto">
+      <div class="caja" id="cajaPedido">
+        <h2 class="sec">Registrar pedido recibido</h2>
+        <div id="pedMsg"></div>
+        <form id="fPedido">
+          <div class="rejilla">
+            <div class="campo"><label for="peFecha">Fecha de recepción *</label><input id="peFecha" type="date" required></div>
+            <div class="campo"><label for="peFac">N° de factura *</label><input id="peFac" maxlength="40" placeholder="F140-354" required></div>
+            <div class="campo"><label for="peProv">Proveedor *</label><select id="peProv" required></select></div>
+            <div class="campo"><label for="peBultos">Cantidad de bultos *</label><input id="peBultos" type="number" min="1" step="1" required></div>
+          </div>
+          <div class="fila-bot">
+            <button class="pri" type="submit">Registrar pedido</button>
+            <span class="quien" id="peQuien"></span>
+          </div>
+        </form>
+      </div>
+      <div class="filtros">
+        <select id="fpEst" aria-label="Conformidad">
+          <option value="P">Pendientes de entregar a Compras</option>
+          <option value="C">Con conformidad de Compras</option>
+          <option value="">Todos</option>
+        </select>
+        <select id="fpProv" aria-label="Proveedor"></select>
+        <input id="fpTxt" placeholder="Buscar factura…" aria-label="Buscar">
+        <button id="bExpPed">Exportar a Excel</button>
+      </div>
+      <p class="resumen" id="resPed"></p>
+      <div class="tabla"><table>
+        <thead><tr><th>Fecha recepción</th><th>Factura</th><th>Proveedor</th><th class="num">Bultos</th><th>Recepcionó</th><th>Conformidad de Compras</th><th></th></tr></thead>
+        <tbody id="cuerpoPed"></tbody>
+      </table></div>
+    </div>
+
+    <!-- ===== 2. OBSERVAR PRODUCTOS ===== -->
     <div id="vNuevo" class="oculto">
       <div class="caja">
         <div id="nuevoMsg"></div>
         <form id="fNuevo">
+          <h2 class="sec">Factura</h2>
           <div class="rejilla">
+            <div class="campo"><label for="nFac">N° de factura *</label><input id="nFac" list="dlFac" maxlength="40" placeholder="F140-354" required><datalist id="dlFac"></datalist></div>
             <div class="campo"><label for="nProv">Proveedor *</label><select id="nProv" required></select></div>
-            <div class="campo"><label for="nFac">N° de factura</label><input id="nFac" maxlength="40"></div>
-            <div class="campo"><label for="nLab">Laboratorio</label><input id="nLab" list="dlLab" maxlength="80"><datalist id="dlLab"></datalist></div>
-            <div class="campo ancho"><label for="nProd">Producto / insumo *</label><input id="nProd" maxlength="150" required></div>
-            <div class="campo"><label for="nLote">Lote</label><input id="nLote" maxlength="40"></div>
-            <div class="campo"><label for="nVence">Vencimiento</label><input id="nVence" type="date"></div>
-            <div class="campo"><label for="nCant">Cantidad *</label><input id="nCant" type="number" min="0.01" step="any" required></div>
-            <div class="campo"><label for="nMot">Motivo *</label><select id="nMot" required></select></div>
-            <div class="campo ancho"><label for="nObs">Observación</label><textarea id="nObs" maxlength="500"></textarea></div>
           </div>
+          <h2 class="sec" style="margin-top:6px">Productos observados de esta factura</h2>
+          <div id="lineas"></div>
+          <datalist id="dlLab"></datalist>
           <div class="fila-bot">
-            <button class="pri" type="submit">Guardar reporte</button>
-            <span class="quien">Proveedor y factura se mantienen para registrar el siguiente producto.</span>
+            <button type="button" id="bAddLinea">+ Agregar otro producto</button>
+            <button class="pri" type="submit">Guardar observaciones de la factura</button>
           </div>
         </form>
       </div>
     </div>
 
-    <div id="vLista" class="oculto">
+    <!-- ===== 3. POR DEVOLVER ===== -->
+    <div id="vPend" class="oculto">
       <div class="filtros">
-        <select id="fProv" aria-label="Proveedor"></select>
-        <select id="fLab" aria-label="Laboratorio"></select>
-        <select id="fEst" aria-label="Estado"></select>
-        <input id="fTxt" placeholder="Buscar producto, factura, lote…" aria-label="Buscar">
-        <button id="bExportar">Exportar a Excel</button>
+        <select id="pProv" aria-label="Proveedor"></select>
+        <select id="pLab" aria-label="Laboratorio"></select>
+        <input id="pTxt" placeholder="Buscar producto, factura, lote…" aria-label="Buscar">
+        <button id="bExpPend">Exportar a Excel</button>
       </div>
-      <p class="resumen" id="resumen"></p>
-      <div class="tabla">
-        <table>
-          <thead><tr><th>ID</th><th>Fecha</th><th>Proveedor</th><th>Factura</th><th>Laboratorio</th><th>Producto</th><th>Cant.</th><th>Motivo</th><th>Estado</th><th>N° NC</th></tr></thead>
-          <tbody id="cuerpo"></tbody>
-        </table>
-      </div>
+      <p class="resumen" id="resPend"></p>
+      <div class="tabla"><table>
+        <thead><tr><th>ID</th><th>Fecha</th><th>Producto</th><th>Laboratorio</th><th>Lote</th><th>Vence</th><th class="num">Cant. observada</th><th>Motivo</th><th>Observó</th></tr></thead>
+        <tbody id="cuerpoPend"></tbody>
+      </table></div>
     </div>
 
+    <!-- ===== 4. DEVUELTOS Y NC ===== -->
+    <div id="vDev" class="oculto">
+      <div class="filtros">
+        <select id="dEst" aria-label="Nota de crédito">
+          <option value="Devuelto">Pendientes de NC</option>
+          <option value="NC recibida">Con NC recibida</option>
+          <option value="">Todos</option>
+        </select>
+        <select id="dProv" aria-label="Proveedor"></select>
+        <select id="dLab" aria-label="Laboratorio"></select>
+        <input id="dTxt" placeholder="Buscar producto, factura, guía, NC…" aria-label="Buscar">
+        <button id="bExpDev">Exportar a Excel</button>
+      </div>
+      <p class="resumen" id="resDev"></p>
+      <div class="tabla"><table>
+        <thead><tr><th>ID</th><th>Producto</th><th>Laboratorio</th><th class="num">Observado</th><th class="num">Devuelto</th><th>Guía</th><th>Devolvió</th><th class="num">Precio unit.</th><th class="num">Monto</th><th>N° NC</th><th>Estado</th></tr></thead>
+        <tbody id="cuerpoDev"></tbody>
+      </table></div>
+    </div>
+
+    <!-- ===== USUARIOS ===== -->
     <div id="vUsuarios" class="oculto">
-      <div class="caja" style="margin-bottom:14px">
+      <div class="caja">
         <div id="usrMsg"></div>
         <form id="fUsr">
           <div class="rejilla">
@@ -178,6 +242,7 @@
       </table></div>
     </div>
 
+    <!-- ===== LISTAS ===== -->
     <div id="vListas" class="oculto">
       <div class="caja">
         <div id="listasMsg"></div>
@@ -212,10 +277,7 @@
 </dialog>
 
 <script type="module">
-  /* =====================================================================
-     1) PEGA AQUÍ LA CONFIGURACIÓN DE TU PROYECTO DE FIREBASE
-        (Consola de Firebase → Configuración del proyecto → Tus apps → Web)
-     ===================================================================== */
+  /* ===================== CONFIGURACIÓN DE FIREBASE ===================== */
   const firebaseConfig = {
     apiKey: "AIzaSyBpWaXWJ1S7AEd9H44v6BYxz3nJLw0MoaA",
     authDomain: "socorro-19056.firebaseapp.com",
@@ -233,17 +295,21 @@
     updatePassword, EmailAuthProvider, reauthenticateWithCredential
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
   import {
-    getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, orderBy, limit,
+    getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, collection, query, orderBy, limit,
     onSnapshot, runTransaction, writeBatch, serverTimestamp
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
-  // Los usuarios escriben solo su nombre de usuario; por dentro se completa con este dominio
-  // reservado (no existe ni recibe correos).
-  const DOMINIO = '@observados.example.com';
-  const MAX_REPORTES = 1000; // se muestran los más recientes
+  const DOMINIO = '@observados.example.com'; // dominio reservado: los usuarios solo escriben su nombre de usuario
+  const MAX_REPORTES = 1500, MAX_PEDIDOS = 800, MAX_LINEAS = 40;
   const AREAS = ['RECEPCION', 'COMPRAS', 'GERENCIA', 'ADMIN'];
-  const REGISTRAN = ['RECEPCION', 'COMPRAS', 'ADMIN'];
-  const ESTADOS = ['Reportado', 'Revisado por compras', 'Devuelto al proveedor', 'NC recibida', 'Anulado'];
+  // Qué puede hacer cada área
+  const INGRESAN = ['RECEPCION', 'ADMIN'];            // registrar pedidos recibidos
+  const CONFORMAN = ['COMPRAS', 'ADMIN'];             // dar conformidad de factura recibida
+  const OBSERVAN = ['RECEPCION', 'COMPRAS', 'ADMIN']; // observar productos
+  const DEVUELVEN = ['RECEPCION', 'ADMIN'];           // confirmar devolución al proveedor
+  const VALORIZAN = ['COMPRAS', 'ADMIN'];             // poner precios y nota de crédito
+  const ESTADOS = ['Por devolver', 'Devuelto', 'NC recibida', 'Anulado'];
+  const ESTADO_ANTIGUO = { 'Reportado': 'Por devolver', 'Revisado por compras': 'Por devolver', 'Devuelto al proveedor': 'Devuelto' };
   const LISTAS_INI = {
     proveedores: ['DIMEXA', 'ALFARO', 'FARMINDUSTRIA', 'FP MAYORISTA'],
     laboratorios: [],
@@ -255,19 +321,26 @@
   const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   const txt = (v, max = 300) => String(v ?? '').trim().slice(0, max);
+  const may = (v, max) => txt(v, max).toUpperCase();
   const msg = (id, texto, tipo = 'err') => {
-    $(id).innerHTML = texto ? `<div class="msg ${tipo}">${esc(texto)}</div>` : '';
+    const el = $(id);
+    if (el) el.innerHTML = texto ? `<div class="msg ${tipo}">${esc(texto)}</div>` : '';
   };
-  const ocupado = (form, si) => form.querySelectorAll('button').forEach((b) => { b.disabled = si; });
+  const ocupado = (cont, si) => cont.querySelectorAll('button').forEach((b) => { b.disabled = si; });
   const opciones = (sel, arr, primero) => {
+    const v = sel.value;
     sel.innerHTML = (primero !== undefined ? `<option value="">${esc(primero)}</option>` : '') +
       arr.map((x) => `<option>${esc(x)}</option>`).join('');
+    sel.value = v;
+    if (sel.value !== v) sel.value = '';
   };
   const unicos = (arr) => [...new Set(arr.filter(Boolean))].sort();
-  const fecha = (ts) => {
-    if (!ts || !ts.toDate) return '';
-    return ts.toDate().toLocaleString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-  };
+  const fecha = (ts) => (!ts || !ts.toDate) ? '' :
+    ts.toDate().toLocaleString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const dia = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s || '') ? s.split('-').reverse().join('/') : (s || '');
+  const hoy = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  const soles = (n) => (n === null || n === undefined || n === '') ? '' : 'S/ ' + Number(n).toFixed(2);
+  const firma = () => `${yo.nombre} (${yo.usuario})`;
   const usuarioValido = (u) => /^[a-z0-9._-]{3,30}$/.test(u);
   const errorTexto = (e) => {
     const c = e && e.code ? e.code : '';
@@ -278,24 +351,18 @@
     if (c === 'auth/email-already-in-use') return 'Ese usuario ya existe en Firebase. Si quieres recrearlo, primero bórralo en la consola de Firebase (Authentication).';
     if (c === 'auth/operation-not-allowed') return 'Falta activar "Correo electrónico/contraseña" en Firebase Authentication.';
     if (c === 'auth/network-request-failed' || c === 'unavailable') return 'Sin conexión a internet.';
-    if (c === 'permission-denied') return 'No tienes permiso para hacer esto.';
+    if (c === 'permission-denied') return 'No tienes permiso para hacer esto. Si acabas de actualizar la página, revisa que las reglas nuevas de Firestore estén publicadas.';
     return (e && e.message) || String(e);
   };
   const pantalla = (id) => ['aviso', 'inicio', 'login', 'app'].forEach((x) => $(x).classList.toggle('oculto', x !== id));
 
-  if (firebaseConfig.apiKey.startsWith('PEGA')) {
-    $('avisoTxt').textContent = 'Falta pegar la configuración de Firebase en index.html (el bloque firebaseConfig).';
-    throw new Error('Sin configuración de Firebase');
-  }
-
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
-  await setPersistence(auth, browserSessionPersistence); // al cerrar el navegador se cierra la sesión
+  await setPersistence(auth, browserSessionPersistence);
 
-  let yo = null, listas = LISTAS_INI, filas = [], usuarios = [], abierto = null;
-  let bajas = [];           // funciones para cortar las escuchas en vivo
-  let sinConfigurar = false, arranque = false;
+  let yo = null, listas = LISTAS_INI, filas = [], pedidos = [], usuarios = [], abierto = null;
+  let bajas = [], sinConfigurar = false, arranque = false;
 
   /* ---------- Arranque ---------- */
   try {
@@ -323,13 +390,12 @@
 
   function salirLocal() {
     bajas.forEach((f) => f()); bajas = [];
-    yo = null; filas = []; usuarios = [];
+    yo = null; filas = []; pedidos = []; usuarios = [];
     if ($('dlg').open) $('dlg').close();
     if ($('dlgClave').open) $('dlgClave').close();
     pantalla(sinConfigurar ? 'inicio' : 'login');
   }
 
-  /* ---------- Primera vez ---------- */
   $('fInicio').addEventListener('submit', async (e) => {
     e.preventDefault();
     const f = e.currentTarget;
@@ -387,18 +453,21 @@
 
   function errorEscucha(e) {
     if (e.code === 'permission-denied' && auth.currentUser) {
-      signOut(auth).then(() => msg('loginMsg', 'Tu usuario ya no tiene acceso. Consulta con el administrador.'));
+      signOut(auth).then(() => msg('loginMsg', 'No se pudieron leer los datos. Revisa que las reglas de Firestore estén publicadas o consulta con el administrador.'));
     } else console.error(e);
   }
 
   function iniciar() {
     pantalla('app');
     $('quien').textContent = `${yo.nombre} · ${yo.area}`;
-    $('tabNuevo').classList.toggle('oculto', !REGISTRAN.includes(yo.area));
+    $('tabNuevo').classList.toggle('oculto', !OBSERVAN.includes(yo.area));
     $('tabUsuarios').classList.toggle('oculto', yo.area !== 'ADMIN');
     $('tabListas').classList.toggle('oculto', yo.area !== 'ADMIN');
+    $('cajaPedido').classList.toggle('oculto', !INGRESAN.includes(yo.area));
+    $('peQuien').textContent = 'Recepciona: ' + firma();
+    $('peFecha').value = hoy();
     opciones($('uArea'), AREAS);
-    opciones($('fEst'), ESTADOS, 'Todos los estados');
+    $('lineas').innerHTML = ''; agregarLinea();
     pintarListas();
 
     bajas.push(onSnapshot(doc(db, 'config', 'listas'), (s) => {
@@ -406,34 +475,44 @@
       pintarListas(); pintarFiltros();
     }, errorEscucha));
 
+    bajas.push(onSnapshot(query(collection(db, 'pedidos'), orderBy('creado', 'desc'), limit(MAX_PEDIDOS)), (snap) => {
+      pedidos = snap.docs.map((d) => ({ _id: d.id, ...d.data({ serverTimestamps: 'estimate' }) }));
+      pintarFiltros(); pintarPedidos();
+    }, errorEscucha));
+
     bajas.push(onSnapshot(query(collection(db, 'observaciones'), orderBy('creado', 'desc'), limit(MAX_REPORTES)), (snap) => {
-      filas = snap.docs.map((d) => ({ _id: d.id, ...d.data({ serverTimestamps: 'estimate' }) }));
-      pintarFiltros(); pintar();
+      filas = snap.docs.map((d) => {
+        const f = { _id: d.id, ...d.data({ serverTimestamps: 'estimate' }) };
+        f.estado = ESTADO_ANTIGUO[f.estado] || f.estado;
+        return f;
+      });
+      pintarFiltros(); pintarPend(); pintarDev();
     }, errorEscucha));
 
     if (yo.area === 'ADMIN') {
       bajas.push(onSnapshot(collection(db, 'usuarios'), (snap) => {
         usuarios = snap.docs.map((d) => ({ uid: d.id, ...d.data() })).sort((a, b) => a.usuario.localeCompare(b.usuario));
         $('cuerpoUsr').innerHTML = usuarios.map((u) =>
-          `<tr data-u="${esc(u.uid)}"><td>${esc(u.usuario)}</td><td>${esc(u.nombre)}</td><td>${esc(u.area)}</td><td>${u.activo ? 'Sí' : 'No'}</td></tr>`).join('');
+          `<tr data-id="${esc(u.uid)}"><td>${esc(u.usuario)}</td><td>${esc(u.nombre)}</td><td>${esc(u.area)}</td><td>${u.activo ? 'Sí' : 'No'}</td></tr>`).join('');
       }, errorEscucha));
     }
-    ver(yo.area === 'RECEPCION' ? 'vNuevo' : 'vLista');
+    ver('vPedidos');
   }
 
   /* ---------- Navegación ---------- */
+  const VISTAS = ['vPedidos', 'vNuevo', 'vPend', 'vDev', 'vUsuarios', 'vListas'];
   document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => ver(b.dataset.v)));
   function ver(v) {
-    ['vNuevo', 'vLista', 'vUsuarios', 'vListas'].forEach((x) => $(x).classList.toggle('oculto', x !== v));
+    VISTAS.forEach((x) => $(x).classList.toggle('oculto', x !== v));
     document.querySelectorAll('nav button').forEach((b) => b.classList.toggle('act', b.dataset.v === v));
   }
+  const contador = (id, n) => { $(id).textContent = n; $(id).classList.toggle('oculto', !n); };
 
   /* ---------- Listas y filtros ---------- */
   function pintarListas() {
-    const p = $('nProv').value, m = $('nMot').value;
     opciones($('nProv'), listas.proveedores, 'Elige…');
-    opciones($('nMot'), listas.motivos, 'Elige…');
-    $('nProv').value = p; $('nMot').value = m;
+    opciones($('peProv'), listas.proveedores, 'Elige…');
+    document.querySelectorAll('#lineas .lMot').forEach((s) => opciones(s, listas.motivos, 'Elige…'));
     if (document.activeElement.tagName !== 'TEXTAREA') {
       $('tProv').value = listas.proveedores.join('\n');
       $('tLab').value = listas.laboratorios.join('\n');
@@ -441,17 +520,17 @@
     }
   }
   function pintarFiltros() {
-    const p = $('fProv').value, l = $('fLab').value;
+    const provs = unicos(listas.proveedores.concat(filas.map((f) => f.proveedor), pedidos.map((p) => p.proveedor)));
     const labs = unicos(listas.laboratorios.concat(filas.map((f) => f.laboratorio)));
-    opciones($('fProv'), unicos(listas.proveedores.concat(filas.map((f) => f.proveedor))), 'Todos los proveedores');
-    opciones($('fLab'), labs, 'Todos los laboratorios');
-    $('fProv').value = p; $('fLab').value = l;
+    ['fpProv', 'pProv', 'dProv'].forEach((id) => opciones($(id), provs, 'Todos los proveedores'));
+    ['pLab', 'dLab'].forEach((id) => opciones($(id), labs, 'Todos los laboratorios'));
     $('dlLab').innerHTML = labs.map((x) => `<option value="${esc(x)}">`).join('');
+    $('dlFac').innerHTML = unicos(pedidos.map((p) => p.factura)).map((x) => `<option value="${esc(x)}">`).join('');
   }
   $('fListas').addEventListener('submit', async (e) => {
     e.preventDefault();
     const f = e.currentTarget;
-    const lineas = (id, mayus) => unicos($(id).value.split('\n').map((x) => (mayus ? txt(x, 80).toUpperCase() : txt(x, 80))));
+    const lineas = (id, mayus) => unicos($(id).value.split('\n').map((x) => (mayus ? may(x, 80) : txt(x, 80))));
     msg('listasMsg', ''); ocupado(f, true);
     try {
       await setDoc(doc(db, 'config', 'listas'), {
@@ -462,104 +541,407 @@
     ocupado(f, false);
   });
 
-  /* ---------- Reportes ---------- */
-  const claseEstado = (e) => { const i = ESTADOS.indexOf(e); return 'est e' + (i < 0 ? 4 : i); };
+  /* ---------- Exportar ---------- */
+  function cargarXlsx() {
+    if (window.XLSX) return Promise.resolve();
+    return new Promise((ok, mal) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      s.onload = ok; s.onerror = mal;
+      document.head.appendChild(s);
+    });
+  }
+  async function exportar(nombre, cols, lista) {
+    const datos = [cols.map((c) => c[0])].concat(
+      lista.map((f) => cols.map((c) => { const v = typeof c[1] === 'function' ? c[1](f) : f[c[1]]; return v ?? ''; })));
+    const archivo = `${nombre}-${hoy()}`;
+    try {
+      await cargarXlsx();
+      const hoja = window.XLSX.utils.aoa_to_sheet(datos);
+      const libro = window.XLSX.utils.book_new();
+      window.XLSX.utils.book_append_sheet(libro, hoja, 'Datos');
+      window.XLSX.writeFile(libro, archivo + '.xlsx');
+    } catch (e) { // sin acceso a la librería: se descarga como CSV
+      const celda = (v) => '"' + String(v).replace(/"/g, '""').replace(/\r?\n/g, ' ') + '"';
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob(['﻿' + datos.map((r) => r.map(celda).join(';')).join('\r\n')], { type: 'text/csv;charset=utf-8' }));
+      a.download = archivo + '.csv';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+  }
+  const COLS_OBS = [
+    ['ID', 'codigo'], ['Fecha observación', (f) => fecha(f.creado)], ['Observó', 'usuario'], ['Área', 'area'],
+    ['Proveedor', 'proveedor'], ['N° Factura', 'factura'], ['Laboratorio', 'laboratorio'], ['Producto', 'producto'],
+    ['Lote', 'lote'], ['Vencimiento', (f) => dia(f.vence)], ['Cant. observada', 'cantidad'], ['Motivo', 'motivo'], ['Observación', 'obs'],
+    ['Estado', 'estado'], ['Cant. devuelta', 'cantDevuelta'], ['N° Guía devolución', 'guia'], ['Devolvió', 'devueltoPor'],
+    ['Fecha devolución', (f) => fecha(f.devueltoFecha)], ['Precio unit.', 'precio'], ['Monto', 'monto'], ['N° NC', 'nc'],
+    ['Fecha NC', (f) => dia(f.fechaNc)], ['Obs. Compras', 'obsCompras'], ['Obs. Gerencia', 'obsGerencia']
+  ];
+  const COLS_PED = [
+    ['Fecha recepción', (p) => dia(p.fechaRecepcion)], ['N° Factura', 'factura'], ['Proveedor', 'proveedor'], ['Bultos', 'bultos'],
+    ['Recepcionó', 'recibidoPor'], ['Registrado', (p) => fecha(p.creado)], ['Conformidad Compras', (p) => (p.conforme ? 'Conforme' : 'Pendiente')],
+    ['Conformidad: usuario', 'conformePor'], ['Conformidad: fecha', (p) => fecha(p.conformeFecha)]
+  ];
 
-  function filtradas() {
-    const p = $('fProv').value, l = $('fLab').value, e = $('fEst').value, t = $('fTxt').value.trim().toLowerCase();
-    return filas.filter((f) => {
-      if (p && f.proveedor !== p) return false;
-      if (l && f.laboratorio !== l) return false;
-      if (e && f.estado !== e) return false;
-      if (t && ![f.codigo, f.producto, f.factura, f.lote, f.nc, f.guia, f.motivo, f.obs].join(' ').toLowerCase().includes(t)) return false;
+  /* =====================================================================
+     1. INGRESO DE PEDIDOS
+     ===================================================================== */
+  $('fPedido').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = e.currentTarget;
+    const factura = may($('peFac').value, 40), proveedor = $('peProv').value, bultos = Number($('peBultos').value);
+    if (!(bultos >= 1) || !Number.isInteger(bultos)) return msg('pedMsg', 'La cantidad de bultos debe ser un número entero mayor que cero.');
+    if (pedidos.some((p) => p.factura === factura && p.proveedor === proveedor) &&
+        !confirm(`La factura ${factura} de ${proveedor} ya está registrada. ¿Registrarla otra vez?`)) return;
+    msg('pedMsg', ''); ocupado(f, true);
+    try {
+      await addDoc(collection(db, 'pedidos'), {
+        creado: serverTimestamp(), uid: yo.uid, recibidoPor: firma(), fechaRecepcion: $('peFecha').value,
+        factura, proveedor, bultos, conforme: false, conformePor: '', conformeFecha: null
+      });
+      msg('pedMsg', `Pedido ${factura} registrado. Queda pendiente de entregar a Compras.`, 'ok');
+      $('peFac').value = ''; $('peBultos').value = ''; $('peFac').focus();
+    } catch (err) { msg('pedMsg', errorTexto(err)); }
+    ocupado(f, false);
+  });
+
+  function pedidosFiltrados() {
+    const e = $('fpEst').value, p = $('fpProv').value, t = $('fpTxt').value.trim().toLowerCase();
+    return pedidos.filter((x) => {
+      if (e === 'P' && x.conforme) return false;
+      if (e === 'C' && !x.conforme) return false;
+      if (p && x.proveedor !== p) return false;
+      if (t && !String(x.factura).toLowerCase().includes(t)) return false;
       return true;
     });
   }
-
-  function pintar() {
-    const lista = filtradas();
-    const pend = lista.filter((f) => f.estado !== 'NC recibida' && f.estado !== 'Anulado').length;
-    const monto = lista.reduce((s, f) => s + (Number(f.monto) || 0), 0);
-    $('resumen').textContent = `${lista.length} reportes · ${pend} pendientes de NC · NC recibidas por S/ ${monto.toFixed(2)}` +
-      (filas.length >= MAX_REPORTES ? ` · se muestran los ${MAX_REPORTES} más recientes` : '');
-    $('cuerpo').innerHTML = lista.length ? lista.map((f) =>
-      `<tr data-id="${esc(f._id)}"><td>${esc(f.codigo)}</td><td>${esc(fecha(f.creado))}</td><td>${esc(f.proveedor)}</td>` +
-      `<td>${esc(f.factura)}</td><td>${esc(f.laboratorio)}</td><td class="larga">${esc(f.producto)}</td><td>${esc(f.cantidad)}</td>` +
-      `<td>${esc(f.motivo)}</td><td><span class="${claseEstado(f.estado)}">${esc(f.estado)}</span></td><td>${esc(f.nc)}</td></tr>`
-    ).join('') : '<tr><td colspan="10" style="text-align:center;color:#888;padding:24px">Sin reportes</td></tr>';
+  function pintarPedidos() {
+    const lista = pedidosFiltrados();
+    const pend = pedidos.filter((x) => !x.conforme);
+    contador('nPed', pend.length);
+    $('resPed').textContent = `${lista.length} factura(s) en la lista · ${pend.length} pendiente(s) de entregar a Compras` +
+      ` (${pend.reduce((s, x) => s + (Number(x.bultos) || 0), 0)} bultos)`;
+    $('cuerpoPed').innerHTML = lista.length ? lista.map((p) => {
+      const conf = p.conforme
+        ? `<span class="est e2">Conforme</span> <span class="quien">${esc(p.conformePor)} · ${esc(fecha(p.conformeFecha))}</span>`
+        : '<span class="est e0">Pendiente</span>';
+      let acc = '';
+      if (!p.conforme && CONFORMAN.includes(yo.area)) acc += `<button class="pri mini" data-conf="${esc(p._id)}">Dar conformidad</button> `;
+      if (yo.area === 'ADMIN') acc += `<button class="pel mini" data-del="${esc(p._id)}">Eliminar</button>`;
+      return `<tr><td>${esc(dia(p.fechaRecepcion))}</td><td><b>${esc(p.factura)}</b></td><td>${esc(p.proveedor)}</td>` +
+        `<td class="num">${esc(p.bultos)}</td><td>${esc(p.recibidoPor)}</td><td>${conf}</td><td>${acc}</td></tr>`;
+    }).join('') : '<tr><td colspan="7" class="vacio">Sin facturas en esta lista</td></tr>';
   }
-  ['fProv', 'fLab', 'fEst'].forEach((id) => $(id).addEventListener('change', pintar));
-  $('fTxt').addEventListener('input', pintar);
-  $('cuerpo').addEventListener('click', (e) => {
-    const tr = e.target.closest('tr[data-id]');
-    if (tr) detalle(tr.dataset.id);
+  ['fpEst', 'fpProv'].forEach((id) => $(id).addEventListener('change', pintarPedidos));
+  $('fpTxt').addEventListener('input', pintarPedidos);
+  $('bExpPed').addEventListener('click', () => exportar($('fpEst').value === 'P' ? 'facturas-pendientes-compras' : 'pedidos', COLS_PED, pedidosFiltrados()));
+  $('cuerpoPed').addEventListener('click', async (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    const id = b.dataset.conf || b.dataset.del;
+    const p = pedidos.find((x) => x._id === id);
+    if (!p) return;
+    try {
+      if (b.dataset.conf) {
+        if (!confirm(`¿Confirmas que la factura ${p.factura} de ${p.proveedor} llegó a Compras?`)) return;
+        b.disabled = true;
+        await updateDoc(doc(db, 'pedidos', id), { conforme: true, conformePor: firma(), conformeFecha: serverTimestamp() });
+      } else {
+        if (!confirm(`¿Eliminar el registro de la factura ${p.factura}?`)) return;
+        b.disabled = true;
+        await deleteDoc(doc(db, 'pedidos', id));
+      }
+    } catch (err) { alert(errorTexto(err)); b.disabled = false; }
   });
 
-  $('bExportar').addEventListener('click', () => {
-    const cols = [
-      ['ID', 'codigo'], ['Fecha registro', (f) => fecha(f.creado)], ['Registrado por', 'usuario'], ['Área', 'area'],
-      ['Proveedor', 'proveedor'], ['N° Factura', 'factura'], ['Laboratorio', 'laboratorio'], ['Producto', 'producto'],
-      ['Lote', 'lote'], ['Vencimiento', 'vence'], ['Cantidad', 'cantidad'], ['Motivo', 'motivo'], ['Observación', 'obs'],
-      ['Obs. Compras', 'obsCompras'], ['Compras: usuario', 'comprasUsuario'], ['Compras: fecha', (f) => fecha(f.comprasFecha)],
-      ['Obs. Gerencia', 'obsGerencia'], ['Gerencia: usuario', 'gerenciaUsuario'], ['Gerencia: fecha', (f) => fecha(f.gerenciaFecha)],
-      ['Estado', 'estado'], ['N° Guía devolución', 'guia'], ['N° NC', 'nc'], ['Monto NC', 'monto'], ['Fecha NC', 'fechaNc']
-    ];
-    const celda = (v) => '"' + String(v ?? '').replace(/"/g, '""').replace(/\r?\n/g, ' ') + '"';
-    const lineas = [cols.map((c) => celda(c[0])).join(';')].concat(
-      filtradas().map((f) => cols.map((c) => celda(typeof c[1] === 'function' ? c[1](f) : f[c[1]])).join(';')));
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob(['﻿' + lineas.join('\r\n')], { type: 'text/csv;charset=utf-8' }));
-    a.download = 'productos-observados-' + new Date().toISOString().slice(0, 10) + '.csv';
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  /* =====================================================================
+     2. OBSERVAR PRODUCTOS (varios por factura)
+     ===================================================================== */
+  function agregarLinea() {
+    const cont = $('lineas');
+    if (cont.children.length >= MAX_LINEAS) return msg('nuevoMsg', `Máximo ${MAX_LINEAS} productos por guardado. Guarda y continúa con los demás.`);
+    const d = document.createElement('div');
+    d.className = 'linea';
+    d.innerHTML =
+      '<div class="cab"><span class="num"></span><button type="button" class="pel mini bQuitar">Quitar</button></div>' +
+      '<div class="rejilla">' +
+      '<div class="campo ancho"><label>Producto / insumo *</label><input class="lProd" maxlength="150"></div>' +
+      '<div class="campo"><label>Laboratorio</label><input class="lLab" list="dlLab" maxlength="80"></div>' +
+      '<div class="campo"><label>Lote</label><input class="lLote" maxlength="40"></div>' +
+      '<div class="campo"><label>Vencimiento</label><input class="lVence" type="date"></div>' +
+      '<div class="campo"><label>Cantidad *</label><input class="lCant" type="number" min="0.01" step="any"></div>' +
+      '<div class="campo"><label>Motivo *</label><select class="lMot"></select></div>' +
+      '<div class="campo ancho"><label>Observación</label><input class="lObs" maxlength="500"></div>' +
+      '</div>';
+    cont.appendChild(d);
+    opciones(d.querySelector('.lMot'), listas.motivos, 'Elige…');
+    numerarLineas();
+    return d;
+  }
+  function numerarLineas() {
+    const ls = $('lineas').children;
+    [...ls].forEach((l, i) => {
+      l.querySelector('.cab .num').textContent = `Producto ${i + 1}`;
+      l.querySelector('.bQuitar').classList.toggle('oculto', ls.length === 1);
+    });
+  }
+  $('bAddLinea').addEventListener('click', () => { const d = agregarLinea(); if (d) d.querySelector('.lProd').focus(); });
+  $('lineas').addEventListener('click', (e) => {
+    if (!e.target.classList.contains('bQuitar')) return;
+    e.target.closest('.linea').remove();
+    numerarLineas();
+  });
+  // Si la factura ya fue ingresada como pedido, se completa el proveedor
+  $('nFac').addEventListener('change', () => {
+    const p = pedidos.find((x) => x.factura === may($('nFac').value, 40));
+    if (p && listas.proveedores.includes(p.proveedor)) $('nProv').value = p.proveedor;
   });
 
-  /* ---------- Nuevo reporte ---------- */
   $('fNuevo').addEventListener('submit', async (e) => {
     e.preventDefault();
     const f = e.currentTarget;
-    const cantidad = Number($('nCant').value);
-    if (!(cantidad > 0)) return msg('nuevoMsg', 'La cantidad debe ser mayor que cero.');
+    const factura = may($('nFac').value, 40), proveedor = $('nProv').value;
+    const lineas = [];
+    let falta = '';
+    [...$('lineas').children].forEach((l, i) => {
+      const v = (c) => l.querySelector(c).value;
+      const producto = may(v('.lProd'), 150), cantidad = Number(v('.lCant')), motivo = v('.lMot');
+      if (!producto && !v('.lCant') && !motivo && !v('.lLote') && !v('.lLab')) return; // línea vacía: se ignora
+      if (!producto || !(cantidad > 0) || !motivo) { falta = falta || `Producto ${i + 1}: completa producto, cantidad y motivo.`; return; }
+      lineas.push({ producto, laboratorio: may(v('.lLab'), 80), lote: may(v('.lLote'), 40), vence: v('.lVence'), cantidad, motivo, obs: txt(v('.lObs'), 500) });
+    });
+    if (falta) return msg('nuevoMsg', falta);
+    if (!lineas.length) return msg('nuevoMsg', 'Agrega al menos un producto observado.');
     msg('nuevoMsg', ''); ocupado(f, true);
-    const datos = {
-      creado: serverTimestamp(), uid: yo.uid, usuario: `${yo.nombre} (${yo.usuario})`, area: yo.area,
-      proveedor: txt($('nProv').value, 80).toUpperCase(), factura: txt($('nFac').value, 40).toUpperCase(),
-      laboratorio: txt($('nLab').value, 80).toUpperCase(), producto: txt($('nProd').value, 150).toUpperCase(),
-      lote: txt($('nLote').value, 40).toUpperCase(), vence: $('nVence').value, cantidad,
-      motivo: $('nMot').value, obs: txt($('nObs').value, 500), estado: ESTADOS[0],
+    const base = {
+      creado: serverTimestamp(), uid: yo.uid, usuario: firma(), area: yo.area, proveedor, factura, estado: ESTADOS[0],
       obsCompras: '', comprasUsuario: '', comprasFecha: null, obsGerencia: '', gerenciaUsuario: '', gerenciaFecha: null,
-      guia: '', nc: '', monto: null, fechaNc: '', actPor: '', actFecha: null
+      cantDevuelta: null, guia: '', devueltoPor: '', devueltoFecha: null,
+      precio: null, monto: null, nc: '', fechaNc: '', actPor: '', actFecha: null
     };
     try {
-      const codigo = await runTransaction(db, async (tx) => {
+      const cods = await runTransaction(db, async (tx) => {
         const ref = doc(db, 'config', 'contador');
         const s = await tx.get(ref);
-        const n = (s.exists() ? s.data().n : 0) + 1;
-        const cod = 'OBS-' + String(n).padStart(4, '0');
+        let n = s.exists() ? s.data().n : 0;
+        const lista = [];
+        lineas.forEach((l) => {
+          n += 1;
+          const codigo = 'OBS-' + String(n).padStart(4, '0');
+          tx.set(doc(collection(db, 'observaciones')), { ...base, ...l, codigo });
+          lista.push(codigo);
+        });
         tx.set(ref, { n });
-        tx.set(doc(collection(db, 'observaciones')), { ...datos, codigo: cod });
-        return cod;
+        return lista;
       });
-      msg('nuevoMsg', `Reporte ${codigo} guardado.`, 'ok');
-      ['nLab', 'nProd', 'nLote', 'nVence', 'nCant', 'nObs', 'nMot'].forEach((x) => { $(x).value = ''; });
-      $('nLab').focus();
+      msg('nuevoMsg', cods.length === 1
+        ? `Se guardó 1 producto observado (${cods[0]}) de la factura ${factura}.`
+        : `Se guardaron ${cods.length} productos observados (${cods[0]} a ${cods[cods.length - 1]}) de la factura ${factura}.`, 'ok');
+      $('nFac').value = ''; $('nProv').value = '';
+      $('lineas').innerHTML = ''; agregarLinea();
+      window.scrollTo(0, 0);
     } catch (err) { msg('nuevoMsg', errorTexto(err)); }
     ocupado(f, false);
   });
 
-  /* ---------- Detalle ---------- */
-  const dato = (t, v) => `<div><b>${esc(t)}</b>${esc(v) || '—'}</div>`;
+  /* =====================================================================
+     3 y 4. POR DEVOLVER / DEVUELTOS Y NC  (agrupados por factura)
+     ===================================================================== */
+  const claseEstado = (e) => { const i = ESTADOS.indexOf(e); return 'est e' + (i < 0 ? 3 : i); };
+  const clave = (f) => `${f.proveedor}|${f.factura}`;
+  function agrupar(lista) {
+    const m = new Map();
+    lista.forEach((f) => { const k = clave(f); if (!m.has(k)) m.set(k, []); m.get(k).push(f); });
+    return m;
+  }
+  function filtrar(lista, prov, lab, t) {
+    t = t.trim().toLowerCase();
+    return lista.filter((f) => {
+      if (prov && f.proveedor !== prov) return false;
+      if (lab && f.laboratorio !== lab) return false;
+      if (t && ![f.codigo, f.producto, f.factura, f.lote, f.nc, f.guia, f.motivo, f.obs].join(' ').toLowerCase().includes(t)) return false;
+      return true;
+    });
+  }
+  const pendFiltradas = () => filtrar(filas.filter((f) => f.estado === 'Por devolver'), $('pProv').value, $('pLab').value, $('pTxt').value);
+  const devFiltradas = () => {
+    const e = $('dEst').value;
+    return filtrar(filas.filter((f) => (e ? f.estado === e : (f.estado === 'Devuelto' || f.estado === 'NC recibida'))),
+      $('dProv').value, $('dLab').value, $('dTxt').value);
+  };
+  const cabGrupo = (k, items, cols, boton) => {
+    const f = items[0];
+    return `<tr class="grupo"><td colspan="${cols}"><div class="gtit"><span><b>${esc(f.proveedor)}</b> · Factura <b>${esc(f.factura) || 's/n'}</b> · ` +
+      `${items.length} producto${items.length === 1 ? '' : 's'}</span>${boton}</div></td></tr>`;
+  };
 
+  function pintarPend() {
+    const lista = pendFiltradas(), grupos = agrupar(lista);
+    contador('nPend', filas.filter((f) => f.estado === 'Por devolver').length);
+    $('resPend').textContent = `${lista.length} producto(s) por devolver en ${grupos.size} factura(s)`;
+    let h = '';
+    grupos.forEach((items, k) => {
+      h += cabGrupo(k, items, 9, DEVUELVEN.includes(yo.area) ? `<button class="pri mini" data-g="${esc(k)}">Registrar devolución</button>` : '');
+      h += items.map((f) =>
+        `<tr data-id="${esc(f._id)}"><td>${esc(f.codigo)}</td><td>${esc(fecha(f.creado))}</td><td class="larga">${esc(f.producto)}</td>` +
+        `<td>${esc(f.laboratorio)}</td><td>${esc(f.lote)}</td><td>${esc(dia(f.vence))}</td><td class="num">${esc(f.cantidad)}</td>` +
+        `<td>${esc(f.motivo)}</td><td>${esc(f.usuario)} · ${esc(f.area)}</td></tr>`).join('');
+    });
+    $('cuerpoPend').innerHTML = h || '<tr><td colspan="9" class="vacio">No hay productos por devolver</td></tr>';
+  }
+  function pintarDev() {
+    const lista = devFiltradas(), grupos = agrupar(lista);
+    const sinNc = filas.filter((f) => f.estado === 'Devuelto');
+    contador('nDev', sinNc.length);
+    const suma = (arr) => arr.reduce((s, f) => s + (Number(f.monto) || 0), 0);
+    $('resDev').textContent = `${lista.length} producto(s) devuelto(s) · pendiente de NC: ${soles(suma(lista.filter((f) => f.estado === 'Devuelto')))}` +
+      ` · NC recibidas: ${soles(suma(lista.filter((f) => f.estado === 'NC recibida')))}` +
+      ` · sin precio: ${lista.filter((f) => f.precio === null || f.precio === undefined).length}`;
+    let h = '';
+    grupos.forEach((items, k) => {
+      h += cabGrupo(k, items, 11, VALORIZAN.includes(yo.area) ? `<button class="pri mini" data-g="${esc(k)}">Precios y nota de crédito</button>` : '');
+      h += items.map((f) =>
+        `<tr data-id="${esc(f._id)}"><td>${esc(f.codigo)}</td><td class="larga">${esc(f.producto)}</td><td>${esc(f.laboratorio)}</td>` +
+        `<td class="num">${esc(f.cantidad)}</td><td class="num">${esc(f.cantDevuelta)}</td><td>${esc(f.guia)}</td>` +
+        `<td>${esc(f.devueltoPor)}<div class="quien">${esc(fecha(f.devueltoFecha))}</div></td>` +
+        `<td class="num">${esc(soles(f.precio))}</td><td class="num">${esc(soles(f.monto))}</td><td>${esc(f.nc) || '<span class="quien">Pendiente</span>'}</td>` +
+        `<td><span class="${claseEstado(f.estado)}">${f.estado === 'Devuelto' ? 'NC pendiente' : esc(f.estado)}</span></td></tr>`).join('');
+    });
+    $('cuerpoDev').innerHTML = h || '<tr><td colspan="11" class="vacio">Sin productos en esta lista</td></tr>';
+  }
+  ['pProv', 'pLab'].forEach((id) => $(id).addEventListener('change', pintarPend));
+  $('pTxt').addEventListener('input', pintarPend);
+  ['dEst', 'dProv', 'dLab'].forEach((id) => $(id).addEventListener('change', pintarDev));
+  $('dTxt').addEventListener('input', pintarDev);
+  $('bExpPend').addEventListener('click', () => exportar('por-devolver', COLS_OBS, pendFiltradas()));
+  $('bExpDev').addEventListener('click', () => exportar('devueltos-nc', COLS_OBS, devFiltradas()));
+
+  $('cuerpoPend').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-g]');
+    if (b) return dlgDevolucion(b.dataset.g);
+    const tr = e.target.closest('tr[data-id]');
+    if (tr) detalle(tr.dataset.id);
+  });
+  $('cuerpoDev').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-g]');
+    if (b) return dlgPrecios(b.dataset.g);
+    const tr = e.target.closest('tr[data-id]');
+    if (tr) detalle(tr.dataset.id);
+  });
+
+  /* ---------- Recepción confirma la devolución de una factura ---------- */
+  let grupoAbierto = null, modo = '';
+  function dlgDevolucion(k) {
+    const items = filas.filter((f) => clave(f) === k && f.estado === 'Por devolver');
+    if (!items.length) return;
+    grupoAbierto = k; modo = 'dev'; abierto = null;
+    $('dTit').textContent = `Devolución · ${items[0].proveedor} · Factura ${items[0].factura || 's/n'}`;
+    $('dCuerpo').innerHTML = '<div id="dMsg"></div>' +
+      '<p class="quien">Marca lo que se devolvió al proveedor y corrige la cantidad si fue distinta a la observada.</p>' +
+      '<div class="tabla"><table class="gtabla"><thead><tr><th>Devuelto</th><th>Producto</th><th class="num">Observado</th><th>Cant. devuelta</th></tr></thead><tbody>' +
+      items.map((f) =>
+        `<tr data-i="${esc(f._id)}"><td><input type="checkbox" class="gSel" checked aria-label="Devuelto ${esc(f.codigo)}"></td>` +
+        `<td class="larga"><b>${esc(f.codigo)}</b> ${esc(f.producto)}<div class="quien">${esc(f.motivo)} · observó ${esc(f.usuario)}</div></td>` +
+        `<td class="num">${esc(f.cantidad)}</td>` +
+        `<td><input type="number" class="gCant" min="0" step="any" value="${esc(f.cantidad)}" aria-label="Cantidad devuelta ${esc(f.codigo)}"></td></tr>`).join('') +
+      '</tbody></table></div>' +
+      '<div class="campo" style="margin-top:14px"><label for="gGuia">N° de guía de devolución *</label><input id="gGuia" maxlength="40"></div>' +
+      '<button class="pri" id="gGuardar">Confirmar devolución</button>';
+    if (!$('dlg').open) $('dlg').showModal();
+  }
+
+  /* ---------- Compras pone precios y nota de crédito de una factura ---------- */
+  function dlgPrecios(k) {
+    const items = filas.filter((f) => clave(f) === k && (f.estado === 'Devuelto' || f.estado === 'NC recibida'));
+    if (!items.length) return;
+    grupoAbierto = k; modo = 'nc'; abierto = null;
+    $('dTit').textContent = `Precios y NC · ${items[0].proveedor} · Factura ${items[0].factura || 's/n'}`;
+    const fnc = (items.find((f) => f.fechaNc) || {}).fechaNc || '';
+    $('dCuerpo').innerHTML = '<div id="dMsg"></div>' +
+      '<div class="rejilla">' +
+      '<div class="campo"><label for="gNcTodos">N° de NC para todos los productos</label><input id="gNcTodos" maxlength="40" placeholder="Vacío = NC pendiente"></div>' +
+      `<div class="campo"><label for="gFechaNc">Fecha de la NC</label><input id="gFechaNc" type="date" value="${esc(fnc)}"></div>` +
+      '</div>' +
+      '<div class="tabla"><table class="gtabla"><thead><tr><th>Producto</th><th class="num">Cant. devuelta</th><th>Precio unit. (S/)</th><th class="num">Monto</th><th>N° NC</th></tr></thead><tbody>' +
+      items.map((f) =>
+        `<tr data-i="${esc(f._id)}" data-c="${esc(f.cantDevuelta ?? 0)}"><td class="larga"><b>${esc(f.codigo)}</b> ${esc(f.producto)}<div class="quien">Guía ${esc(f.guia)}</div></td>` +
+        `<td class="num">${esc(f.cantDevuelta)}</td>` +
+        `<td><input type="number" class="gPrecio" min="0" step="0.0001" value="${esc(f.precio ?? '')}" aria-label="Precio ${esc(f.codigo)}"></td>` +
+        `<td class="num gMonto">${esc(soles(f.monto))}</td>` +
+        `<td><input class="gNc" maxlength="40" value="${esc(f.nc)}" placeholder="Pendiente" aria-label="NC ${esc(f.codigo)}"></td></tr>`).join('') +
+      '</tbody></table></div>' +
+      '<p class="quien" id="gTotal" style="margin:10px 0"></p>' +
+      '<button class="pri" id="gGuardar">Guardar</button>';
+    totalPrecios();
+    if (!$('dlg').open) $('dlg').showModal();
+  }
+  function totalPrecios() {
+    let total = 0;
+    $('dCuerpo').querySelectorAll('tr[data-i]').forEach((tr) => {
+      const p = tr.querySelector('.gPrecio').value;
+      const m = p === '' ? null : Math.round(Number(p) * Number(tr.dataset.c) * 100) / 100;
+      tr.querySelector('.gMonto').textContent = soles(m);
+      total += m || 0;
+    });
+    $('gTotal').textContent = 'Total de la devolución: ' + soles(total);
+  }
+  $('dCuerpo').addEventListener('input', (e) => {
+    if (modo !== 'nc') return;
+    if (e.target.id === 'gNcTodos') $('dCuerpo').querySelectorAll('.gNc').forEach((i) => { i.value = e.target.value; });
+    if (e.target.classList.contains('gPrecio')) totalPrecios();
+  });
+
+  async function guardarGrupo(b) {
+    const filasDlg = [...$('dCuerpo').querySelectorAll('tr[data-i]')];
+    const lote = writeBatch(db);
+    let n = 0;
+    if (modo === 'dev') {
+      const guia = may($('gGuia').value, 40);
+      if (!guia) return msg('dMsg', 'Escribe el número de guía de devolución.');
+      for (const tr of filasDlg) {
+        if (!tr.querySelector('.gSel').checked) continue;
+        const c = Number(tr.querySelector('.gCant').value);
+        if (!(c > 0)) return msg('dMsg', 'La cantidad devuelta debe ser mayor que cero. Si un producto no se devolvió, desmárcalo.');
+        lote.update(doc(db, 'observaciones', tr.dataset.i), {
+          estado: 'Devuelto', cantDevuelta: c, guia, devueltoPor: firma(), devueltoFecha: serverTimestamp(),
+          actPor: firma(), actFecha: serverTimestamp()
+        });
+        n += 1;
+      }
+      if (!n) return msg('dMsg', 'Marca al menos un producto devuelto.');
+    } else {
+      const fnc = $('gFechaNc').value;
+      for (const tr of filasDlg) {
+        const p = tr.querySelector('.gPrecio').value, nc = may(tr.querySelector('.gNc').value, 40);
+        if (p !== '' && !(Number(p) >= 0)) return msg('dMsg', 'Hay un precio no válido.');
+        const precio = p === '' ? null : Number(p);
+        lote.update(doc(db, 'observaciones', tr.dataset.i), {
+          precio, monto: precio === null ? null : Math.round(precio * Number(tr.dataset.c) * 100) / 100,
+          nc, fechaNc: nc ? fnc : '', estado: nc ? 'NC recibida' : 'Devuelto', actPor: firma(), actFecha: serverTimestamp()
+        });
+        n += 1;
+      }
+    }
+    b.disabled = true;
+    try {
+      await lote.commit();
+      $('dlg').close();
+    } catch (err) { msg('dMsg', errorTexto(err)); b.disabled = false; }
+  }
+
+  /* ---------- Detalle de un producto observado ---------- */
+  const dato = (t, v) => `<div><b>${esc(t)}</b>${esc(v) || '—'}</div>`;
   function detalle(id) {
     const f = filas.find((x) => x._id === id);
     if (!f) return;
-    abierto = id;
-    $('dTit').textContent = `${f.codigo} · ${f.proveedor}`;
+    abierto = id; modo = 'det';
+    $('dTit').textContent = `${f.codigo} · ${f.proveedor} · Factura ${f.factura || 's/n'}`;
     let h = '<div id="dMsg"></div><div class="datos">' +
-      dato('Estado', f.estado) + dato('Fecha', fecha(f.creado)) + dato('Registró', `${f.usuario} · ${f.area}`) +
-      dato('Factura', f.factura) + dato('Laboratorio', f.laboratorio) + dato('Producto', f.producto) +
-      dato('Lote', f.lote) + dato('Vencimiento', f.vence) + dato('Cantidad', f.cantidad) + dato('Motivo', f.motivo) +
-      '</div>' + dato('Observación de recepción', f.obs);
+      dato('Estado', f.estado === 'Devuelto' ? 'Devuelto · NC pendiente' : f.estado) + dato('Fecha', fecha(f.creado)) +
+      dato('Observó', `${f.usuario} · ${f.area}`) + dato('Producto', f.producto) + dato('Laboratorio', f.laboratorio) +
+      dato('Lote', f.lote) + dato('Vencimiento', dia(f.vence)) + dato('Cantidad observada', f.cantidad) + dato('Motivo', f.motivo) +
+      '</div>' + dato('Observación', f.obs);
 
     const bloque = (titulo, area, texto, quien, cuando, boton) => {
       let b = `<div class="bloque"><h3>${titulo}</h3>`;
@@ -569,26 +951,27 @@
       if (quien) b += `<div class="quien">${esc(quien)} · ${esc(fecha(cuando))}</div>`;
       return b + '</div>';
     };
-    h += bloque('Compras', 'COMPRAS', f.obsCompras, f.comprasUsuario, f.comprasFecha, 'Guardar observación');
-    h += bloque('Gerencia', 'GERENCIA', f.obsGerencia, f.gerenciaUsuario, f.gerenciaFecha, 'Guardar comentario');
+    h += bloque('Comentario de Compras', 'COMPRAS', f.obsCompras, f.comprasUsuario, f.comprasFecha, 'Guardar comentario');
+    h += bloque('Comentario de Gerencia', 'GERENCIA', f.obsGerencia, f.gerenciaUsuario, f.gerenciaFecha, 'Guardar comentario');
 
     h += '<div class="bloque"><h3>Devolución y nota de crédito</h3>';
     if (yo.area === 'ADMIN') {
       h += '<div class="rejilla">' +
         '<div class="campo"><label for="aEst">Estado</label><select id="aEst">' +
         ESTADOS.map((e) => `<option${e === f.estado ? ' selected' : ''}>${esc(e)}</option>`).join('') + '</select></div>' +
+        `<div class="campo"><label for="aCant">Cant. devuelta</label><input id="aCant" type="number" min="0" step="any" value="${esc(f.cantDevuelta ?? '')}"></div>` +
         `<div class="campo"><label for="aGuia">N° guía de devolución</label><input id="aGuia" maxlength="40" value="${esc(f.guia)}"></div>` +
+        `<div class="campo"><label for="aPrecio">Precio unit. (S/)</label><input id="aPrecio" type="number" min="0" step="0.0001" value="${esc(f.precio ?? '')}"></div>` +
         `<div class="campo"><label for="aNc">N° NC</label><input id="aNc" maxlength="40" value="${esc(f.nc)}"></div>` +
-        `<div class="campo"><label for="aMonto">Monto NC (S/)</label><input id="aMonto" type="number" min="0" step="0.01" value="${esc(f.monto)}"></div>` +
         `<div class="campo"><label for="aFecha">Fecha NC</label><input id="aFecha" type="date" value="${esc(f.fechaNc)}"></div>` +
         '</div><button class="pri" id="dAdmin">Guardar</button>';
     } else {
-      h += '<div class="datos">' + dato('N° guía de devolución', f.guia) + dato('N° NC', f.nc) +
-        dato('Monto NC', f.monto ? 'S/ ' + Number(f.monto).toFixed(2) : '') + dato('Fecha NC', f.fechaNc) + '</div>';
+      h += '<div class="datos">' + dato('Cant. devuelta', f.cantDevuelta) + dato('N° guía de devolución', f.guia) +
+        dato('Devolvió', f.devueltoPor ? `${f.devueltoPor} · ${fecha(f.devueltoFecha)}` : '') +
+        dato('Precio unit.', soles(f.precio)) + dato('Monto', soles(f.monto)) + dato('N° NC', f.nc) + dato('Fecha NC', dia(f.fechaNc)) + '</div>';
     }
     if (f.actPor) h += `<div class="quien">Última actualización: ${esc(f.actPor)} · ${esc(fecha(f.actFecha))}</div>`;
     h += '</div>';
-
     $('dCuerpo').innerHTML = h;
     if (!$('dlg').open) $('dlg').showModal();
   }
@@ -596,31 +979,30 @@
   $('dCerrar').addEventListener('click', () => $('dlg').close());
   $('dCuerpo').addEventListener('click', async (e) => {
     const b = e.target;
+    if (b.id === 'gGuardar') return guardarGrupo(b);
     if (b.id !== 'dGuardar' && b.id !== 'dAdmin') return;
     const f = filas.find((x) => x._id === abierto);
     if (!f) return;
-    const quien = `${yo.nombre} (${yo.usuario})`;
     let cambios;
     if (b.id === 'dGuardar') {
       const texto = txt($('dTexto').value, 500);
-      if (!texto) return msg('dMsg', 'Escribe la observación.');
-      if (yo.area === 'COMPRAS') {
-        cambios = { obsCompras: texto, comprasUsuario: quien, comprasFecha: serverTimestamp() };
-        if (f.estado === ESTADOS[0]) cambios.estado = ESTADOS[1];
-      } else {
-        cambios = { obsGerencia: texto, gerenciaUsuario: quien, gerenciaFecha: serverTimestamp() };
-      }
+      if (!texto) return msg('dMsg', 'Escribe el comentario.');
+      cambios = yo.area === 'COMPRAS'
+        ? { obsCompras: texto, comprasUsuario: firma(), comprasFecha: serverTimestamp() }
+        : { obsGerencia: texto, gerenciaUsuario: firma(), gerenciaFecha: serverTimestamp() };
     } else {
-      const m = $('aMonto').value;
-      if (m !== '' && !(Number(m) >= 0)) return msg('dMsg', 'Monto no válido.');
+      const c = $('aCant').value, p = $('aPrecio').value;
+      if ((c !== '' && !(Number(c) >= 0)) || (p !== '' && !(Number(p) >= 0))) return msg('dMsg', 'Cantidad o precio no válido.');
+      const cant = c === '' ? null : Number(c), precio = p === '' ? null : Number(p);
       cambios = {
-        estado: $('aEst').value, guia: txt($('aGuia').value, 40).toUpperCase(), nc: txt($('aNc').value, 40).toUpperCase(),
-        monto: m === '' ? null : Number(m), fechaNc: $('aFecha').value
+        estado: $('aEst').value, cantDevuelta: cant, guia: may($('aGuia').value, 40), precio,
+        monto: (precio === null || cant === null) ? null : Math.round(precio * cant * 100) / 100,
+        nc: may($('aNc').value, 40), fechaNc: $('aFecha').value
       };
     }
     b.disabled = true;
     try {
-      await updateDoc(doc(db, 'observaciones', abierto), { ...cambios, actPor: quien, actFecha: serverTimestamp() });
+      await updateDoc(doc(db, 'observaciones', abierto), { ...cambios, actPor: firma(), actFecha: serverTimestamp() });
       detalle(abierto);
       msg('dMsg', 'Guardado.', 'ok');
     } catch (err) { msg('dMsg', errorTexto(err)); b.disabled = false; }
@@ -628,8 +1010,8 @@
 
   /* ---------- Usuarios (solo admin) ---------- */
   $('cuerpoUsr').addEventListener('click', (e) => {
-    const tr = e.target.closest('tr[data-u]');
-    const u = tr && usuarios.find((x) => x.uid === tr.dataset.u);
+    const tr = e.target.closest('tr[data-id]');
+    const u = tr && usuarios.find((x) => x.uid === tr.dataset.id);
     if (!u) return;
     $('uUsr').value = u.usuario; $('uNom').value = u.nombre; $('uArea').value = u.area;
     $('uAct').value = u.activo ? '1' : '0'; $('uClave').value = '';
@@ -641,22 +1023,21 @@
     const f = e.currentTarget;
     const usuario = txt($('uUsr').value, 30).toLowerCase();
     const datos = { usuario, nombre: txt($('uNom').value, 80), area: $('uArea').value, activo: $('uAct').value === '1' };
-    const clave = $('uClave').value;
+    const pass = $('uClave').value;
     const existe = usuarios.find((x) => x.usuario === usuario);
     if (!usuarioValido(usuario)) return msg('usrMsg', 'El usuario debe tener de 3 a 30 letras o números, sin espacios.');
     if (!datos.nombre) return msg('usrMsg', 'Falta el nombre.');
     if (existe && existe.uid === yo.uid && (!datos.activo || datos.area !== 'ADMIN')) return msg('usrMsg', 'No puedes desactivarte ni quitarte el rol de administrador.');
-    if (!existe && clave.length < 6) return msg('usrMsg', 'Para un usuario nuevo, escribe una contraseña de al menos 6 caracteres.');
+    if (!existe && pass.length < 6) return msg('usrMsg', 'Para un usuario nuevo, escribe una contraseña de al menos 6 caracteres.');
     msg('usrMsg', ''); ocupado(f, true);
     try {
       if (existe) {
         await updateDoc(doc(db, 'usuarios', existe.uid), datos);
-        msg('usrMsg', clave ? 'Usuario actualizado. La contraseña no se cambió: solo el propio usuario puede cambiarla.' : 'Usuario actualizado.', 'ok');
+        msg('usrMsg', pass ? 'Usuario actualizado. La contraseña no se cambió: solo el propio usuario puede cambiarla.' : 'Usuario actualizado.', 'ok');
       } else {
-        // Se crea con una conexión aparte para no cerrar la sesión del administrador
-        const app2 = initializeApp(firebaseConfig, 'alta-' + Date.now());
+        const app2 = initializeApp(firebaseConfig, 'alta-' + Date.now()); // conexión aparte: no cierra la sesión del administrador
         const auth2 = initializeAuth(app2, { persistence: inMemoryPersistence });
-        const cred = await createUserWithEmailAndPassword(auth2, usuario + DOMINIO, clave);
+        const cred = await createUserWithEmailAndPassword(auth2, usuario + DOMINIO, pass);
         await setDoc(doc(db, 'usuarios', cred.user.uid), datos);
         await signOut(auth2);
         msg('usrMsg', 'Usuario creado.', 'ok');
@@ -670,7 +1051,7 @@
     const u = usuarios.find((x) => x.usuario === txt($('uUsr').value, 30).toLowerCase());
     if (!u) return msg('usrMsg', 'Toca primero la fila del usuario que quieres eliminar.');
     if (u.uid === yo.uid) return msg('usrMsg', 'No puedes eliminarte a ti mismo.');
-    if (!confirm(`¿Eliminar al usuario "${u.usuario}"? Ya no podrá entrar. Sus reportes se conservan.`)) return;
+    if (!confirm(`¿Eliminar al usuario "${u.usuario}"? Ya no podrá entrar. Sus registros se conservan.`)) return;
     try {
       await deleteDoc(doc(db, 'usuarios', u.uid));
       $('fUsr').reset();
