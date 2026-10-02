@@ -75,8 +75,12 @@
   .sug div b { color:var(--pri); margin-right:6px; }
   .sug div small { color:var(--gris); margin-left:6px; }
   .sug .nada { color:var(--gris); cursor:default; background:#fff !important; }
-  .permisos { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:6px 14px; margin-bottom:12px; }
+  .permisos { display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:10px 14px; margin-bottom:12px; }
   .permisos label { display:flex; gap:8px; align-items:center; font-weight:500; font-size:14px; color:inherit; margin:0; }
+  .permisos fieldset { border:1px solid var(--borde); border-radius:10px; padding:6px 12px 10px; margin:0; display:grid; gap:6px; align-content:start; background:#fbfaf8; }
+  .permisos legend { padding:0 6px; }
+  .permisos legend label { font-weight:700; color:var(--pri); }
+  .sinPrecios .cPrecio { display:none; }
 
   dialog { border:none; border-radius:14px; padding:0; width:min(780px, 94vw); max-height:90vh; color:inherit; }
   dialog::backdrop { background:rgba(0,0,0,.45); }
@@ -245,10 +249,12 @@
       </div>
       <p class="resumen" id="resDev"></p>
       <div class="tabla"><table>
-        <thead><tr><th>ID</th><th>Producto</th><th>Laboratorio</th><th class="num">Observado</th><th class="num">Devuelto</th><th>Falta</th><th>Guía</th><th>Devolvió</th><th class="num">Precio unit.</th><th class="num">Monto</th><th>N° NC</th><th>Estado</th></tr></thead>
+        <thead><tr><th>ID</th><th>Producto</th><th>Laboratorio</th><th class="num">Observado</th><th class="num">Devuelto</th><th>Falta</th><th>Guía</th><th>Devolvió</th><th class="num cPrecio">Precio unit.</th><th class="num cPrecio">Monto</th><th>N° NC</th><th>Estado</th></tr></thead>
         <tbody id="cuerpoDev"></tbody>
       </table></div>
     </div>
+
+    <div id="vNada" class="oculto"><div class="caja"><p class="resumen" style="margin:0">Tu usuario aún no tiene interfaces habilitadas. Pídele al administrador que te las active.</p></div></div>
 
     <!-- ===== USUARIOS ===== -->
     <div id="vUsuarios" class="oculto">
@@ -263,13 +269,13 @@
             <div class="campo"><label for="uClave">Contraseña temporal</label><input id="uClave" type="password" autocomplete="new-password" placeholder="Solo para usuario nuevo"></div>
             <div class="campo"><label for="uAct">Activo</label><select id="uAct"><option value="1">Sí</option><option value="0">No</option></select></div>
           </div>
-          <label>Qué puede hacer este usuario</label>
+          <label>Qué interfaces ve este usuario y qué puede hacer en cada una</label>
           <div class="permisos" id="uPerm"></div>
           <div class="fila-bot">
             <button class="pri" type="submit">Guardar usuario</button>
             <button type="button" id="bLimpiarUsr">Limpiar</button>
             <button type="button" class="pel" id="bBorrarUsr">Eliminar</button>
-            <span class="quien">Toca una fila para editar. Un usuario nuevo deberá cambiar su contraseña temporal en su primer ingreso.</span>
+            <span class="quien">Toca una fila para editar. Marca "todo" para dar la interfaz completa, o solo los ítems que quieras. Sin ningún ítem marcado, el usuario no ve esa interfaz.</span>
           </div>
         </form>
       </div>
@@ -350,20 +356,22 @@
   const DOMINIO = '@observados.example.com'; // dominio reservado: los usuarios solo escriben su nombre de usuario
   const MAX_REPORTES = 1500, MAX_PEDIDOS = 800, MAX_LINEAS = 40, TAM_CAT = 1500;
   const AREAS = ['RECEPCION', 'COMPRAS', 'GERENCIA', 'PAGOS', 'ADMIN'];
-  // Permisos que el administrador activa o quita a cada usuario
-  const PERMISOS = [
-    ['pedidos', 'Registrar pedidos recibidos'],
-    ['conformidad', 'Dar conformidad de factura recibida'],
-    ['observar', 'Observar productos'],
-    ['devolver', 'Confirmar devolución al proveedor'],
-    ['decidir', 'Decidir que un producto se queda y aprobar devoluciones parciales'],
-    ['precios', 'Poner precios y nota de crédito']
+  // Permisos por interfaz: el administrador decide qué ve y qué puede hacer cada usuario
+  const GRUPOS = [
+    ['Ingreso de pedidos', [['verPedidos', 'Ver la lista de pedidos'], ['pedidos', 'Registrar pedidos recibidos'], ['conformidad', 'Dar conformidad de factura recibida']]],
+    ['Observar productos', [['observar', 'Registrar productos observados']]],
+    ['Por devolver', [['verPend', 'Ver los productos por devolver'], ['devolver', 'Confirmar devolución al proveedor'], ['decidir', 'Decidir que un producto se queda (no devolver)']]],
+    ['Devueltos y NC', [['verDev', 'Ver los productos devueltos'], ['verPrecios', 'Ver precios y montos'], ['parcial', 'Aprobar devoluciones parciales'], ['precios', 'Poner precios y nota de crédito']]]
   ];
+  const PERMISOS = GRUPOS.flatMap((g) => g[1]);
+  // Para poder hacer algo en una interfaz hay que poder verla
+  const REQUIERE = { pedidos: ['verPedidos'], conformidad: ['verPedidos'], devolver: ['verPend'], decidir: ['verPend'],
+    verPrecios: ['verDev'], parcial: ['verDev'], precios: ['verDev', 'verPrecios'] };
   const POR_AREA = { // lo que viene marcado al elegir el área; el administrador puede cambiarlo
-    RECEPCION: ['pedidos', 'observar', 'devolver'],
-    COMPRAS: ['conformidad', 'observar', 'decidir', 'precios'],
-    GERENCIA: ['decidir'],
-    PAGOS: ['precios'],
+    RECEPCION: ['verPedidos', 'pedidos', 'observar', 'verPend', 'devolver', 'verDev'],
+    COMPRAS: ['verPedidos', 'conformidad', 'observar', 'verPend', 'decidir', 'verDev', 'verPrecios', 'parcial', 'precios'],
+    GERENCIA: ['verPedidos', 'verPend', 'decidir', 'verDev', 'verPrecios', 'parcial'],
+    PAGOS: ['verDev', 'verPrecios', 'precios'],
     ADMIN: PERMISOS.map((p) => p[0])
   };
   const ESTADOS = ['Por devolver', 'Devuelto', 'NC recibida', 'Se queda', 'Anulado'];
@@ -401,8 +409,15 @@
   const num = (n) => Math.round(Number(n) * 1000) / 1000;
   const firma = () => `${yo.nombre} (${yo.usuario})`;
   const usuarioValido = (u) => /^[a-z0-9._-]{3,30}$/.test(u);
-  const permisosDe = (u) => (u.area === 'ADMIN' ? POR_AREA.ADMIN
-    : (u.permisos ? PERMISOS.map((p) => p[0]).filter((k) => u.permisos[k] === true) : (POR_AREA[u.area] || [])));
+  const permisosDe = (u) => {
+    if (u.area === 'ADMIN') return POR_AREA.ADMIN;
+    if (!u.permisos) return POR_AREA[u.area] || [];
+    const p = { ...u.permisos };
+    if (p.verPedidos === undefined) { // permisos guardados con la versión anterior, que no tenía "ver"
+      p.verPedidos = true; p.verPend = true; p.verDev = true; p.verPrecios = true; p.parcial = p.decidir === true;
+    }
+    return PERMISOS.map((x) => x[0]).filter((k) => p[k] === true);
+  };
   const puede = (p) => !!yo && permisosDe(yo).includes(p);
   const errorTexto = (e) => {
     const c = e && e.code ? e.code : '';
@@ -538,13 +553,16 @@
   }
 
   function aplicarPermisos() {
+    const admin = yo.area === 'ADMIN';
+    const tabs = { vPedidos: puede('verPedidos'), vNuevo: puede('observar'), vPend: puede('verPend'), vDev: puede('verDev'),
+      vUsuarios: admin, vCat: admin, vListas: admin };
     $('quien').textContent = `${yo.nombre} · ${yo.area}`;
-    $('tabNuevo').classList.toggle('oculto', !puede('observar'));
-    ['tabUsuarios', 'tabCat', 'tabListas'].forEach((t) => $(t).classList.toggle('oculto', yo.area !== 'ADMIN'));
+    Object.entries(tabs).forEach(([v, ok]) => document.querySelector(`nav button[data-v="${v}"]`).classList.toggle('oculto', !ok));
     $('cajaPedido').classList.toggle('oculto', !puede('pedidos'));
+    $('vDev').classList.toggle('sinPrecios', !puede('verPrecios'));
     $('peQuien').textContent = 'Recepciona: ' + firma();
-    const tab = document.querySelector(`nav button[data-v="${vista}"]`);
-    if (tab.classList.contains('oculto')) ver('vPedidos'); // si me quitaron el permiso de la pestaña en la que estaba
+    // Si no puedo ver la interfaz en la que estoy, paso a la primera que sí tengo habilitada
+    if (!tabs[vista]) ver(VISTAS.find((v) => tabs[v]) || 'vNada');
   }
 
   function iniciar() {
@@ -553,7 +571,9 @@
     $('fpEst').value = 'P'; $('pEst').value = 'Por devolver'; $('dEst').value = 'Devuelto';
     ['fpTxt', 'pTxt', 'dTxt'].forEach((id) => { $(id).value = ''; });
     opciones($('uArea'), AREAS);
-    $('uPerm').innerHTML = PERMISOS.map((p) => `<label><input type="checkbox" value="${p[0]}"> ${esc(p[1])}</label>`).join('');
+    $('uPerm').innerHTML = GRUPOS.map((g, i) =>
+      `<fieldset><legend><label><input type="checkbox" class="gTodo" data-g="${i}"> ${esc(g[0])} · todo</label></legend>` +
+      g[1].map((p) => `<label><input type="checkbox" value="${p[0]}" data-g="${i}"> ${esc(p[1])}</label>`).join('') + '</fieldset>').join('');
     marcarPermisos(POR_AREA[$('uArea').value] || [], $('uArea').value === 'ADMIN');
     $('lineas').innerHTML = ''; agregarLinea();
     pintarListas();
@@ -604,22 +624,23 @@
     if (yo.area === 'ADMIN') {
       bajas.push(onSnapshot(collection(db, 'usuarios'), (snap) => {
         usuarios = snap.docs.map((d) => ({ uid: d.id, ...d.data() })).sort((a, b) => a.usuario.localeCompare(b.usuario));
-        // Usuarios creados antes de que existieran los permisos: se les asignan los de su área
-        usuarios.filter((u) => !u.permisos && u.area !== 'ADMIN').forEach((u) => {
-          const permisos = {}; PERMISOS.forEach((p) => { permisos[p[0]] = (POR_AREA[u.area] || []).includes(p[0]); });
+        // Usuarios de versiones anteriores: se completan sus permisos con el formato actual
+        usuarios.filter((u) => u.area !== 'ADMIN' && (!u.permisos || u.permisos.verPedidos === undefined)).forEach((u) => {
+          const lista = permisosDe(u);
+          const permisos = {}; PERMISOS.forEach((p) => { permisos[p[0]] = lista.includes(p[0]); });
           updateDoc(doc(db, 'usuarios', u.uid), { permisos }).catch(console.error);
         });
         const nombres = Object.fromEntries(PERMISOS.map((p) => [p[0], p[1]]));
         $('cuerpoUsr').innerHTML = usuarios.map((u) =>
           `<tr data-id="${esc(u.uid)}"><td>${esc(u.usuario)}${u.debeCambiar ? ' <span class="est e0">contraseña temporal</span>' : ''}</td>` +
           `<td>${esc(u.nombre)}</td><td>${esc(u.area)}</td><td>${u.activo ? 'Sí' : 'No'}</td>` +
-          `<td class="larga quien">${u.area === 'ADMIN' ? 'Todo (administrador)' : esc(permisosDe(u).map((k) => nombres[k]).join(' · ')) || 'Solo ver'}</td></tr>`).join('');
+          `<td class="larga quien">${u.area === 'ADMIN' ? 'Todo (administrador)' : esc(permisosDe(u).map((k) => nombres[k]).join(' · ')) || 'Ninguna interfaz habilitada'}</td></tr>`).join('');
       }, errorEscucha));
     }
   }
 
   /* ---------- Navegación ---------- */
-  const VISTAS = ['vPedidos', 'vNuevo', 'vPend', 'vDev', 'vUsuarios', 'vCat', 'vListas'];
+  const VISTAS = ['vPedidos', 'vNuevo', 'vPend', 'vDev', 'vUsuarios', 'vCat', 'vListas', 'vNada'];
   document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => ver(b.dataset.v)));
   function ver(v) {
     vista = v;
@@ -702,6 +723,7 @@
     ['Precio unit.', 'precio'], ['Monto', 'monto'], ['N° NC', 'nc'],
     ['Fecha NC', (f) => dia(f.fechaNc)], ['Obs. Compras', 'obsCompras'], ['Obs. Gerencia', 'obsGerencia']
   ];
+  const colsObs = () => (puede('verPrecios') ? COLS_OBS : COLS_OBS.filter((c) => c[0] !== 'Precio unit.' && c[0] !== 'Monto'));
   const COLS_PED = [
     ['Fecha recepción', (p) => dia(p.fechaRecepcion)], ['N° Factura', 'factura'], ['Proveedor', 'proveedor'], ['Bultos', 'bultos'],
     ['Recepcionó', 'recibidoPor'], ['Registrado', (p) => fecha(p.creado)], ['Conformidad Compras', (p) => (p.conforme ? 'Conforme' : 'Pendiente')],
@@ -1044,15 +1066,17 @@
     contador('nDev', filas.filter((f) => f.estado === 'Devuelto').length);
     const suma = (arr) => arr.reduce((s, f) => s + (Number(f.monto) || 0), 0);
     const parc = filas.filter((f) => parcialPend(f) && (f.estado === 'Devuelto' || f.estado === 'NC recibida')).length;
-    $('resDev').textContent = `${lista.length} producto(s) devuelto(s) · pendiente de NC: ${soles(suma(lista.filter((f) => f.estado === 'Devuelto')))}` +
-      ` · NC recibidas: ${soles(suma(lista.filter((f) => f.estado === 'NC recibida')))}` +
-      ` · sin precio: ${lista.filter((f) => f.precio === null || f.precio === undefined).length}` +
+    $('resDev').textContent = `${lista.length} producto(s) devuelto(s)` + (puede('verPrecios')
+      ? ` · pendiente de NC: ${soles(suma(lista.filter((f) => f.estado === 'Devuelto')))}` +
+        ` · NC recibidas: ${soles(suma(lista.filter((f) => f.estado === 'NC recibida')))}` +
+        ` · sin precio: ${lista.filter((f) => f.precio === null || f.precio === undefined).length}`
+      : ` · ${lista.filter((f) => f.estado === 'Devuelto').length} pendiente(s) de NC`) +
       (parc ? ` · ${parc} devolución(es) parcial(es) sin conformidad` : '');
     let h = '';
     grupos.forEach((items, k) => {
       let bot = '';
       if (puede('precios')) bot += `<button class="pri mini" data-g="${esc(k)}" data-m="nc">Precios y nota de crédito</button>`;
-      if (puede('decidir') && items.some(parcialPend)) bot += `<button class="mini" data-g="${esc(k)}" data-m="parcial">Conformidad de devolución parcial</button>`;
+      if (puede('parcial') && items.some(parcialPend)) bot += `<button class="mini" data-g="${esc(k)}" data-m="parcial">Conformidad de devolución parcial</button>`;
       h += cabGrupo(items, 12, bot);
       h += items.map((f) => {
         const falta = !(f.faltante > 0) ? '' : (f.parcialConforme
@@ -1061,7 +1085,7 @@
         return `<tr data-id="${esc(f._id)}"><td>${esc(f.codigo)}</td><td class="larga">${prodTxt(f)}</td><td>${esc(f.laboratorio)}</td>` +
           `<td class="num">${esc(f.cantidad)}</td><td class="num">${esc(f.cantDevuelta)}</td><td>${falta}</td><td>${esc(f.guia)}</td>` +
           `<td>${esc(f.devueltoPor)}<div class="quien">${esc(fecha(f.devueltoFecha))}</div></td>` +
-          `<td class="num">${esc(soles(f.precio))}</td><td class="num">${esc(soles(f.monto))}</td><td>${esc(f.nc) || '<span class="quien">Pendiente</span>'}</td>` +
+          `<td class="num cPrecio">${esc(soles(f.precio))}</td><td class="num cPrecio">${esc(soles(f.monto))}</td><td>${esc(f.nc) || '<span class="quien">Pendiente</span>'}</td>` +
           `<td><span class="${claseEstado(f.estado)}">${f.estado === 'Devuelto' ? 'NC pendiente' : esc(f.estado)}</span></td></tr>`;
       }).join('');
     });
@@ -1071,8 +1095,8 @@
   $('pTxt').addEventListener('input', pintarPend);
   ['dEst', 'dProv', 'dLab'].forEach((id) => $(id).addEventListener('change', pintarDev));
   $('dTxt').addEventListener('input', pintarDev);
-  $('bExpPend').addEventListener('click', () => exportar($('pEst').value === 'Se queda' ? 'se-quedan' : 'por-devolver', COLS_OBS, pendFiltradas()));
-  $('bExpDev').addEventListener('click', () => exportar('devueltos-nc', COLS_OBS, devFiltradas()));
+  $('bExpPend').addEventListener('click', () => exportar($('pEst').value === 'Se queda' ? 'se-quedan' : 'por-devolver', colsObs(), pendFiltradas()));
+  $('bExpDev').addEventListener('click', () => exportar('devueltos-nc', colsObs(), devFiltradas()));
 
   const clicTabla = (e) => {
     const b = e.target.closest('button[data-g]');
@@ -1281,7 +1305,7 @@
     } else {
       h += '<div class="datos">' + dato('Cant. devuelta', f.cantDevuelta) + dato('N° guía de devolución', f.guia) +
         dato('Devolvió', f.devueltoPor ? `${f.devueltoPor} · ${fecha(f.devueltoFecha)}` : '') +
-        dato('Precio unit.', soles(f.precio)) + dato('Monto', soles(f.monto)) + dato('N° NC', f.nc) + dato('Fecha NC', dia(f.fechaNc)) + '</div>';
+        (puede('verPrecios') ? dato('Precio unit.', soles(f.precio)) + dato('Monto', soles(f.monto)) : '') + dato('N° NC', f.nc) + dato('Fecha NC', dia(f.fechaNc)) + '</div>';
     }
     if (f.actPor) h += `<div class="quien">Última actualización: ${esc(f.actPor)} · ${esc(fecha(f.actFecha))}</div>`;
     h += '</div>';
@@ -1326,9 +1350,27 @@
   });
 
   /* ---------- Usuarios y permisos (solo admin) ---------- */
-  function marcarPermisos(lista, bloquear) {
-    $('uPerm').querySelectorAll('input').forEach((c) => { c.checked = lista.includes(c.value); c.disabled = !!bloquear; });
+  function sincronizarTodo() {
+    $('uPerm').querySelectorAll('.gTodo').forEach((t) => {
+      t.checked = [...$('uPerm').querySelectorAll(`input[value][data-g="${t.dataset.g}"]`)].every((c) => c.checked);
+    });
   }
+  function marcarPermisos(lista, bloquear) {
+    $('uPerm').querySelectorAll('input[value]').forEach((c) => { c.checked = lista.includes(c.value); });
+    $('uPerm').querySelectorAll('input').forEach((c) => { c.disabled = !!bloquear; });
+    sincronizarTodo();
+  }
+  $('uPerm').addEventListener('change', (e) => {
+    const c = e.target, caja = (k) => $('uPerm').querySelector(`input[value="${k}"]`);
+    if (c.classList.contains('gTodo')) {
+      $('uPerm').querySelectorAll(`input[value][data-g="${c.dataset.g}"]`).forEach((x) => { x.checked = c.checked; });
+    } else if (c.checked) {
+      (REQUIERE[c.value] || []).forEach((k) => { caja(k).checked = true; });           // hacer algo exige poder verlo
+    } else {
+      Object.keys(REQUIERE).filter((k) => REQUIERE[k].includes(c.value)).forEach((k) => { caja(k).checked = false; }); // sin ver, no se puede hacer
+    }
+    sincronizarTodo();
+  });
   $('uArea').addEventListener('change', () => marcarPermisos(POR_AREA[$('uArea').value] || [], $('uArea').value === 'ADMIN'));
   $('cuerpoUsr').addEventListener('click', (e) => {
     const tr = e.target.closest('tr[data-id]');
@@ -1347,7 +1389,7 @@
     const f = e.currentTarget;
     const usuario = txt($('uUsr').value, 30).toLowerCase();
     const permisos = {};
-    $('uPerm').querySelectorAll('input').forEach((c) => { permisos[c.value] = c.checked || $('uArea').value === 'ADMIN'; });
+    $('uPerm').querySelectorAll('input[value]').forEach((c) => { permisos[c.value] = c.checked || $('uArea').value === 'ADMIN'; });
     const datos = { usuario, nombre: txt($('uNom').value, 80), area: $('uArea').value, activo: $('uAct').value === '1', permisos };
     const pass = $('uClave').value;
     const existe = usuarios.find((x) => x.usuario === usuario);
