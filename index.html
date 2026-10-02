@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Productos observados</title>
+<style>
+  :root { --verde:#1b7a4b; --verde2:#e7f4ec; --gris:#5f6b66; --borde:#d5dcd8; --fondo:#f4f6f5; --rojo:#b3261e; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--fondo); color:#1c2420; font-size:15px; }
+  .oculto { display:none !important; }
+  button { font:inherit; cursor:pointer; border-radius:8px; border:1px solid var(--borde); background:#fff; padding:9px 14px; color:inherit; }
+  button.pri { background:var(--verde); color:#fff; border-color:var(--verde); font-weight:600; }
+  button.pel { color:var(--rojo); border-color:var(--rojo); }
+  button:disabled { opacity:.6; cursor:wait; }
+  input, select, textarea { font:inherit; width:100%; padding:9px 10px; border:1px solid var(--borde); border-radius:8px; background:#fff; color:inherit; }
+  textarea { min-height:70px; resize:vertical; }
+  label { display:block; font-size:13px; color:var(--gris); margin-bottom:4px; font-weight:600; }
+  .campo { margin-bottom:12px; }
+  .caja { background:#fff; border:1px solid var(--borde); border-radius:12px; padding:18px; }
+  .msg { padding:10px 12px; border-radius:8px; margin-bottom:12px; font-size:14px; }
+  .msg.err { background:#fdecea; color:var(--rojo); }
+  .msg.ok { background:var(--verde2); color:var(--verde); }
+
+  .centro { max-width:380px; margin:9vh auto; padding:0 16px; }
+  .centro h1 { font-size:22px; margin:0 0 4px; color:var(--verde); }
+  .centro p { margin:0 0 18px; color:var(--gris); }
+
+  header { background:var(--verde); color:#fff; padding:12px 16px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  header h1 { font-size:17px; margin:0; flex:1; min-width:160px; }
+  header span { font-size:13px; opacity:.9; }
+  header button { background:transparent; color:#fff; border-color:rgba(255,255,255,.5); padding:6px 12px; }
+  nav { display:flex; gap:4px; padding:10px 16px 0; border-bottom:1px solid var(--borde); background:#fff; overflow-x:auto; }
+  nav button { border:none; border-bottom:3px solid transparent; border-radius:0; background:none; color:var(--gris); font-weight:600; white-space:nowrap; }
+  nav button.act { color:var(--verde); border-bottom-color:var(--verde); }
+  main { padding:16px; max-width:1200px; margin:0 auto; }
+
+  .rejilla { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:0 14px; }
+  .ancho { grid-column:1 / -1; }
+  .filtros { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin-bottom:12px; }
+  .resumen { color:var(--gris); margin:0 0 10px; font-size:14px; }
+  .tabla { overflow-x:auto; background:#fff; border:1px solid var(--borde); border-radius:12px; }
+  table { border-collapse:collapse; width:100%; font-size:14px; }
+  th, td { padding:9px 10px; text-align:left; border-bottom:1px solid #edf0ee; white-space:nowrap; }
+  th { background:#fafbfa; color:var(--gris); font-size:12px; text-transform:uppercase; letter-spacing:.03em; }
+  td.larga { white-space:normal; min-width:180px; }
+  tbody tr { cursor:pointer; }
+  tbody tr:hover { background:var(--verde2); }
+  .est { display:inline-block; padding:2px 9px; border-radius:99px; font-size:12px; font-weight:600; background:#eee; }
+  .e0 { background:#fde9c8; color:#8a5300; } .e1 { background:#dbe8fb; color:#1f4e96; }
+  .e2 { background:#ead9f7; color:#5b2a8c; } .e3 { background:var(--verde2); color:var(--verde); } .e4 { background:#eee; color:#666; }
+
+  dialog { border:none; border-radius:14px; padding:0; width:min(640px, 94vw); max-height:90vh; color:inherit; }
+  dialog::backdrop { background:rgba(0,0,0,.45); }
+  .dcab { display:flex; align-items:center; padding:14px 18px; border-bottom:1px solid var(--borde); }
+  .dcab h2 { margin:0; font-size:17px; flex:1; }
+  .dcuerpo { padding:16px 18px; overflow-y:auto; }
+  .datos { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:10px 16px; margin-bottom:14px; }
+  .datos div b { display:block; font-size:12px; color:var(--gris); font-weight:600; }
+  .bloque { border-top:1px solid var(--borde); padding-top:12px; margin-top:12px; }
+  .bloque h3 { margin:0 0 8px; font-size:14px; color:var(--verde); }
+  .quien { font-size:12px; color:var(--gris); }
+  .fila-bot { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+</style>
+</head>
+<body>
+
+<!-- ============ CARGANDO / AVISOS ============ -->
+<section id="aviso" class="centro"><div class="caja"><h1>Productos observados</h1><p id="avisoTxt">Cargando…</p></div></section>
+
+<!-- ============ PRIMERA VEZ: CREAR ADMINISTRADOR ============ -->
+<section id="inicio" class="centro oculto">
+  <div class="caja">
+    <h1>Configuración inicial</h1>
+    <p>Crea el usuario administrador. Solo se hace una vez.</p>
+    <div id="inicioMsg"></div>
+    <form id="fInicio">
+      <div class="campo"><label for="iUsr">Usuario</label><input id="iUsr" value="admin" maxlength="30" required></div>
+      <div class="campo"><label for="iNom">Nombre y apellido</label><input id="iNom" maxlength="80" required></div>
+      <div class="campo"><label for="iClave">Contraseña (mínimo 6 caracteres)</label><input id="iClave" type="password" autocomplete="new-password" minlength="6" required></div>
+      <button class="pri" style="width:100%" type="submit">Crear administrador</button>
+    </form>
+  </div>
+</section>
+
+<!-- ============ LOGIN ============ -->
+<section id="login" class="centro oculto">
+  <div class="caja">
+    <h1>Productos observados</h1>
+    <p>Ingresa con tu usuario</p>
+    <div id="loginMsg"></div>
+    <form id="fLogin">
+      <div class="campo"><label for="lu">Usuario</label><input id="lu" autocomplete="username" required></div>
+      <div class="campo"><label for="lc">Contraseña</label><input id="lc" type="password" autocomplete="current-password" required></div>
+      <button class="pri" style="width:100%" type="submit">Ingresar</button>
+    </form>
+  </div>
+</section>
+
+<!-- ============ APLICACIÓN ============ -->
+<section id="app" class="oculto">
+  <header>
+    <h1>Productos observados</h1>
+    <span id="quien"></span>
+    <button id="bClave">Cambiar contraseña</button>
+    <button id="bSalir">Salir</button>
+  </header>
+  <nav>
+    <button data-v="vNuevo" id="tabNuevo">Nuevo reporte</button>
+    <button data-v="vLista" id="tabLista">Reportes</button>
+    <button data-v="vUsuarios" id="tabUsuarios">Usuarios</button>
+    <button data-v="vListas" id="tabListas">Listas</button>
+  </nav>
+  <main>
+
+    <div id="vNuevo" class="oculto">
+      <div class="caja">
+        <div id="nuevoMsg"></div>
+        <form id="fNuevo">
+          <div class="rejilla">
+            <div class="campo"><label for="nProv">Proveedor *</label><select id="nProv" required></select></div>
+            <div class="campo"><label for="nFac">N° de factura</label><input id="nFac" maxlength="40"></div>
+            <div class="campo"><label for="nLab">Laboratorio</label><input id="nLab" list="dlLab" maxlength="80"><datalist id="dlLab"></datalist></div>
+            <div class="campo ancho"><label for="nProd">Producto / insumo *</label><input id="nProd" maxlength="150" required></div>
+            <div class="campo"><label for="nLote">Lote</label><input id="nLote" maxlength="40"></div>
+            <div class="campo"><label for="nVence">Vencimiento</label><input id="nVence" type="date"></div>
+            <div class="campo"><label for="nCant">Cantidad *</label><input id="nCant" type="number" min="0.01" step="any" required></div>
+            <div class="campo"><label for="nMot">Motivo *</label><select id="nMot" required></select></div>
+            <div class="campo ancho"><label for="nObs">Observación</label><textarea id="nObs" maxlength="500"></textarea></div>
+          </div>
+          <div class="fila-bot">
+            <button class="pri" type="submit">Guardar reporte</button>
+            <span class="quien">Proveedor y factura se mantienen para registrar el siguiente producto.</span>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="vLista" class="oculto">
+      <div class="filtros">
+        <select id="fProv" aria-label="Proveedor"></select>
+        <select id="fLab" aria-label="Laboratorio"></select>
+        <select id="fEst" aria-label="Estado"></select>
+        <input id="fTxt" placeholder="Buscar producto, factura, lote…" aria-label="Buscar">
+        <button id="bExportar">Exportar a Excel</button>
+      </div>
+      <p class="resumen" id="resumen"></p>
+      <div class="tabla">
+        <table>
+          <thead><tr><th>ID</th><th>Fecha</th><th>Proveedor</th><th>Factura</th><th>Laboratorio</th><th>Producto</th><th>Cant.</th><th>Motivo</th><th>Estado</th><th>N° NC</th></tr></thead>
+          <tbody id="cuerpo"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="vUsuarios" class="oculto">
+      <div class="caja" style="margin-bottom:14px">
+        <div id="usrMsg"></div>
+        <form id="fUsr">
+          <div class="rejilla">
+            <div class="campo"><label for="uUsr">Usuario *</label><input id="uUsr" maxlength="30" required></div>
+            <div class="campo"><label for="uNom">Nombre y apellido *</label><input id="uNom" maxlength="80" required></div>
+            <div class="campo"><label for="uArea">Área *</label><select id="uArea" required></select></div>
+            <div class="campo"><label for="uClave">Contraseña</label><input id="uClave" type="password" autocomplete="new-password" placeholder="Solo para usuario nuevo"></div>
+            <div class="campo"><label for="uAct">Activo</label><select id="uAct"><option value="1">Sí</option><option value="0">No</option></select></div>
+          </div>
+          <div class="fila-bot">
+            <button class="pri" type="submit">Guardar usuario</button>
+            <button type="button" id="bLimpiarUsr">Limpiar</button>
+            <button type="button" class="pel" id="bBorrarUsr">Eliminar</button>
+            <span class="quien">Toca una fila para editarla. La contraseña de un usuario existente solo la cambia él mismo.</span>
+          </div>
+        </form>
+      </div>
+      <div class="tabla"><table>
+        <thead><tr><th>Usuario</th><th>Nombre</th><th>Área</th><th>Activo</th></tr></thead>
+        <tbody id="cuerpoUsr"></tbody>
+      </table></div>
+    </div>
+
+    <div id="vListas" class="oculto">
+      <div class="caja">
+        <div id="listasMsg"></div>
+        <form id="fListas">
+          <div class="rejilla">
+            <div class="campo"><label for="tProv">Proveedores (uno por línea)</label><textarea id="tProv" rows="10"></textarea></div>
+            <div class="campo"><label for="tLab">Laboratorios (uno por línea)</label><textarea id="tLab" rows="10"></textarea></div>
+            <div class="campo"><label for="tMot">Motivos (uno por línea)</label><textarea id="tMot" rows="10"></textarea></div>
+          </div>
+          <button class="pri" type="submit">Guardar listas</button>
+        </form>
+      </div>
+    </div>
+  </main>
+</section>
+
+<dialog id="dlg">
+  <div class="dcab"><h2 id="dTit"></h2><button id="dCerrar">Cerrar</button></div>
+  <div class="dcuerpo" id="dCuerpo"></div>
+</dialog>
+
+<dialog id="dlgClave">
+  <div class="dcab"><h2>Cambiar contraseña</h2><button id="cCerrar">Cerrar</button></div>
+  <div class="dcuerpo">
+    <div id="claveMsg"></div>
+    <form id="fClave">
+      <div class="campo"><label for="cAct">Contraseña actual</label><input id="cAct" type="password" autocomplete="current-password" required></div>
+      <div class="campo"><label for="cNue">Contraseña nueva (mínimo 6 caracteres)</label><input id="cNue" type="password" autocomplete="new-password" minlength="6" required></div>
+      <button class="pri" type="submit">Cambiar</button>
+    </form>
+  </div>
+</dialog>
+
+<script type="module">
+  /* =====================================================================
+     1) PEGA AQUÍ LA CONFIGURACIÓN DE TU PROYECTO DE FIREBASE
+        (Consola de Firebase → Configuración del proyecto → Tus apps → Web)
+     ===================================================================== */
+  const firebaseConfig = {
+    apiKey: "AIzaSyBpWaXWJ1S7AEd9H44v6BYxz3nJLw0MoaA",
+    authDomain: "socorro-19056.firebaseapp.com",
+    projectId: "socorro-19056",
+    storageBucket: "socorro-19056.firebasestorage.app",
+    messagingSenderId: "20439347200",
+    appId: "1:20439347200:web:601fc69db543cb4d02e8e5"
+  };
+  /* ===================================================================== */
+
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+  import {
+    getAuth, initializeAuth, inMemoryPersistence, browserSessionPersistence, setPersistence,
+    onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut,
+    updatePassword, EmailAuthProvider, reauthenticateWithCredential
+  } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+  import {
+    getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, orderBy, limit,
+    onSnapshot, runTransaction, writeBatch, serverTimestamp
+  } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+  // Los usuarios escriben solo su nombre de usuario; por dentro se completa con este dominio
+  // reservado (no existe ni recibe correos).
+  const DOMINIO = '@observados.example.com';
+  const MAX_REPORTES = 1000; // se muestran los más recientes
+  const AREAS = ['RECEPCION', 'COMPRAS', 'GERENCIA', 'ADMIN'];
+  const REGISTRAN = ['RECEPCION', 'COMPRAS', 'ADMIN'];
+  const ESTADOS = ['Reportado', 'Revisado por compras', 'Devuelto al proveedor', 'NC recibida', 'Anulado'];
+  const LISTAS_INI = {
+    proveedores: ['DIMEXA', 'ALFARO', 'FARMINDUSTRIA', 'FP MAYORISTA'],
+    laboratorios: [],
+    motivos: ['Vencimiento corto', 'Envase dañado', 'Producto roto', 'Faltante', 'Sobrante',
+      'No solicitado', 'Lote o vencimiento no coincide', 'Precio distinto', 'Otro']
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  const txt = (v, max = 300) => String(v ?? '').trim().slice(0, max);
+  const msg = (id, texto, tipo = 'err') => {
+    $(id).innerHTML = texto ? `<div class="msg ${tipo}">${esc(texto)}</div>` : '';
+  };
+  const ocupado = (form, si) => form.querySelectorAll('button').forEach((b) => { b.disabled = si; });
+  const opciones = (sel, arr, primero) => {
+    sel.innerHTML = (primero !== undefined ? `<option value="">${esc(primero)}</option>` : '') +
+      arr.map((x) => `<option>${esc(x)}</option>`).join('');
+  };
+  const unicos = (arr) => [...new Set(arr.filter(Boolean))].sort();
+  const fecha = (ts) => {
+    if (!ts || !ts.toDate) return '';
+    return ts.toDate().toLocaleString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
+  const usuarioValido = (u) => /^[a-z0-9._-]{3,30}$/.test(u);
+  const errorTexto = (e) => {
+    const c = e && e.code ? e.code : '';
+    if (['auth/invalid-credential', 'auth/wrong-password', 'auth/user-not-found', 'auth/invalid-email'].includes(c)) return 'Usuario o contraseña incorrectos.';
+    if (c === 'auth/user-disabled') return 'Este usuario está desactivado.';
+    if (c === 'auth/too-many-requests') return 'Demasiados intentos. Espera unos minutos.';
+    if (c === 'auth/weak-password') return 'La contraseña debe tener al menos 6 caracteres.';
+    if (c === 'auth/email-already-in-use') return 'Ese usuario ya existe en Firebase. Si quieres recrearlo, primero bórralo en la consola de Firebase (Authentication).';
+    if (c === 'auth/operation-not-allowed') return 'Falta activar "Correo electrónico/contraseña" en Firebase Authentication.';
+    if (c === 'auth/network-request-failed' || c === 'unavailable') return 'Sin conexión a internet.';
+    if (c === 'permission-denied') return 'No tienes permiso para hacer esto.';
+    return (e && e.message) || String(e);
+  };
+  const pantalla = (id) => ['aviso', 'inicio', 'login', 'app'].forEach((x) => $(x).classList.toggle('oculto', x !== id));
+
+  if (firebaseConfig.apiKey.startsWith('PEGA')) {
+    $('avisoTxt').textContent = 'Falta pegar la configuración de Firebase en index.html (el bloque firebaseConfig).';
+    throw new Error('Sin configuración de Firebase');
+  }
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  await setPersistence(auth, browserSessionPersistence); // al cerrar el navegador se cierra la sesión
+
+  let yo = null, listas = LISTAS_INI, filas = [], usuarios = [], abierto = null;
+  let bajas = [];           // funciones para cortar las escuchas en vivo
+  let sinConfigurar = false, arranque = false;
+
+  /* ---------- Arranque ---------- */
+  try {
+    sinConfigurar = !(await getDoc(doc(db, 'config', 'inicio'))).exists();
+  } catch (e) {
+    $('avisoTxt').textContent = e.code === 'permission-denied'
+      ? 'Falta publicar las reglas de Firestore (archivo firestore.rules).'
+      : 'No se pudo conectar con Firebase: ' + errorTexto(e);
+    throw e;
+  }
+
+  onAuthStateChanged(auth, async (user) => {
+    if (arranque) return;
+    if (!user) { salirLocal(); return; }
+    try {
+      const s = await getDoc(doc(db, 'usuarios', user.uid));
+      if (!s.exists() || s.data().activo !== true) throw new Error('Tu usuario no está activo. Consulta con el administrador.');
+      yo = { uid: user.uid, ...s.data() };
+      iniciar();
+    } catch (e) {
+      await signOut(auth);
+      msg('loginMsg', errorTexto(e));
+    }
+  });
+
+  function salirLocal() {
+    bajas.forEach((f) => f()); bajas = [];
+    yo = null; filas = []; usuarios = [];
+    if ($('dlg').open) $('dlg').close();
+    if ($('dlgClave').open) $('dlgClave').close();
+    pantalla(sinConfigurar ? 'inicio' : 'login');
+  }
+
+  /* ---------- Primera vez ---------- */
+  $('fInicio').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = e.currentTarget;
+    const usuario = txt($('iUsr').value, 30).toLowerCase();
+    const nombre = txt($('iNom').value, 80);
+    if (!usuarioValido(usuario)) return msg('inicioMsg', 'El usuario debe tener de 3 a 30 letras o números, sin espacios.');
+    msg('inicioMsg', ''); ocupado(f, true); arranque = true;
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, usuario + DOMINIO, $('iClave').value);
+      const lote = writeBatch(db);
+      lote.set(doc(db, 'usuarios', cred.user.uid), { usuario, nombre, area: 'ADMIN', activo: true });
+      lote.set(doc(db, 'config', 'inicio'), { creado: serverTimestamp(), uid: cred.user.uid });
+      await lote.commit();
+      await setDoc(doc(db, 'config', 'listas'), LISTAS_INI);
+      sinConfigurar = false; arranque = false;
+      yo = { uid: cred.user.uid, usuario, nombre, area: 'ADMIN', activo: true };
+      iniciar();
+    } catch (err) {
+      arranque = false;
+      if (auth.currentUser) await signOut(auth);
+      msg('inicioMsg', errorTexto(err));
+    }
+    ocupado(f, false);
+  });
+
+  /* ---------- Sesión ---------- */
+  $('fLogin').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = e.currentTarget;
+    msg('loginMsg', ''); ocupado(f, true);
+    try {
+      await signInWithEmailAndPassword(auth, txt($('lu').value, 30).toLowerCase() + DOMINIO, $('lc').value);
+      $('lc').value = '';
+    } catch (err) { msg('loginMsg', errorTexto(err)); }
+    ocupado(f, false);
+  });
+  $('bSalir').addEventListener('click', () => signOut(auth));
+
+  $('bClave').addEventListener('click', () => { msg('claveMsg', ''); $('fClave').reset(); $('dlgClave').showModal(); });
+  $('cCerrar').addEventListener('click', () => $('dlgClave').close());
+  $('fClave').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = e.currentTarget;
+    msg('claveMsg', ''); ocupado(f, true);
+    try {
+      await reauthenticateWithCredential(auth.currentUser, EmailAuthProvider.credential(auth.currentUser.email, $('cAct').value));
+      await updatePassword(auth.currentUser, $('cNue').value);
+      f.reset();
+      msg('claveMsg', 'Contraseña cambiada.', 'ok');
+    } catch (err) {
+      msg('claveMsg', ['auth/invalid-credential', 'auth/wrong-password'].includes(err.code) ? 'La contraseña actual no es correcta.' : errorTexto(err));
+    }
+    ocupado(f, false);
+  });
+
+  function errorEscucha(e) {
+    if (e.code === 'permission-denied' && auth.currentUser) {
+      signOut(auth).then(() => msg('loginMsg', 'Tu usuario ya no tiene acceso. Consulta con el administrador.'));
+    } else console.error(e);
+  }
+
+  function iniciar() {
+    pantalla('app');
+    $('quien').textContent = `${yo.nombre} · ${yo.area}`;
+    $('tabNuevo').classList.toggle('oculto', !REGISTRAN.includes(yo.area));
+    $('tabUsuarios').classList.toggle('oculto', yo.area !== 'ADMIN');
+    $('tabListas').classList.toggle('oculto', yo.area !== 'ADMIN');
+    opciones($('uArea'), AREAS);
+    opciones($('fEst'), ESTADOS, 'Todos los estados');
+    pintarListas();
+
+    bajas.push(onSnapshot(doc(db, 'config', 'listas'), (s) => {
+      listas = { ...LISTAS_INI, ...(s.exists() ? s.data() : {}) };
+      pintarListas(); pintarFiltros();
+    }, errorEscucha));
+
+    bajas.push(onSnapshot(query(collection(db, 'observaciones'), orderBy('creado', 'desc'), limit(MAX_REPORTES)), (snap) => {
+      filas = snap.docs.map((d) => ({ _id: d.id, ...d.data({ serverTimestamps: 'estimate' }) }));
+      pintarFiltros(); pintar();
+    }, errorEscucha));
+
+    if (yo.area === 'ADMIN') {
+      bajas.push(onSnapshot(collection(db, 'usuarios'), (snap) => {
+        usuarios = snap.docs.map((d) => ({ uid: d.id, ...d.data() })).sort((a, b) => a.usuario.localeCompare(b.usuario));
+        $('cuerpoUsr').innerHTML = usuarios.map((u) =>
+          `<tr data-u="${esc(u.uid)}"><td>${esc(u.usuario)}</td><td>${esc(u.nombre)}</td><td>${esc(u.area)}</td><td>${u.activo ? 'Sí' : 'No'}</td></tr>`).join('');
+      }, errorEscucha));
+    }
+    ver(yo.area === 'RECEPCION' ? 'vNuevo' : 'vLista');
+  }
+
+  /* ---------- Navegación ---------- */
+  document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => ver(b.dataset.v)));
+  function ver(v) {
+    ['vNuevo', 'vLista', 'vUsuarios', 'vListas'].forEach((x) => $(x).classList.toggle('oculto', x !== v));
+    document.querySelectorAll('nav button').forEach((b) => b.classList.toggle('act', b.dataset.v === v));
+  }
+
+  /* ---------- Listas y filtros ---------- */
+  function pintarListas() {
+    const p = $('nProv').value, m = $('nMot').value;
+    opciones($('nProv'), listas.proveedores, 'Elige…');
+    opciones($('nMot'), listas.motivos, 'Elige…');
+    $('nProv').value = p; $('nMot').value = m;
+    if (document.activeElement.tagName !== 'TEXTAREA') {
+      $('tProv').value = listas.proveedores.join('\n');
+      $('tLab').value = listas.laboratorios.join('\n');
+      $('tMot').value = listas.motivos.join('\n');
+    }
+  }
+  function pintarFiltros() {
+    const p = $('fProv').value, l = $('fLab').value;
+    const labs = unicos(listas.laboratorios.concat(filas.map((f) => f.laboratorio)));
+    opciones($('fProv'), unicos(listas.proveedores.concat(filas.map((f) => f.proveedor))), 'Todos los proveedores');
+    opciones($('fLab'), labs, 'Todos los laboratorios');
+    $('fProv').value = p; $('fLab').value = l;
+    $('dlLab').innerHTML = labs.map((x) => `<option value="${esc(x)}">`).join('');
+  }
+  $('fListas').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = e.currentTarget;
+    const lineas = (id, mayus) => unicos($(id).value.split('\n').map((x) => (mayus ? txt(x, 80).toUpperCase() : txt(x, 80))));
+    msg('listasMsg', ''); ocupado(f, true);
+    try {
+      await setDoc(doc(db, 'config', 'listas'), {
+        proveedores: lineas('tProv', true), laboratorios: lineas('tLab', true), motivos: lineas('tMot', false)
+      });
+      msg('listasMsg', 'Listas guardadas.', 'ok');
+    } catch (err) { msg('listasMsg', errorTexto(err)); }
+    ocupado(f, false);
+  });
+
+  /* ---------- Reportes ---------- */
+  const claseEstado = (e) => { const i = ESTADOS.indexOf(e); return 'est e' + (i < 0 ? 4 : i); };
+
+  function filtradas() {
+    const p = $('fProv').value, l = $('fLab').value, e = $('fEst').value, t = $('fTxt').value.trim().toLowerCase();
+    return filas.filter((f) => {
+      if (p && f.proveedor !== p) return false;
+      if (l && f.laboratorio !== l) return false;
+      if (e && f.estado !== e) return false;
+      if (t && ![f.codigo, f.producto, f.factura, f.lote, f.nc, f.guia, f.motivo, f.obs].join(' ').toLowerCase().includes(t)) return false;
+      return true;
+    });
+  }
+
+  function pintar() {
+    const lista = filtradas();
+    const pend = lista.filter((f) => f.estado !== 'NC recibida' && f.estado !== 'Anulado').length;
+    const monto = lista.reduce((s, f) => s + (Number(f.monto) || 0), 0);
+    $('resumen').textContent = `${lista.length} reportes · ${pend} pendientes de NC · NC recibidas por S/ ${monto.toFixed(2)}` +
+      (filas.length >= MAX_REPORTES ? ` · se muestran los ${MAX_REPORTES} más recientes` : '');
+    $('cuerpo').innerHTML = lista.length ? lista.map((f) =>
+      `<tr data-id="${esc(f._id)}"><td>${esc(f.codigo)}</td><td>${esc(fecha(f.creado))}</td><td>${esc(f.proveedor)}</td>` +
+      `<td>${esc(f.factura)}</td><td>${esc(f.laboratorio)}</td><td class="larga">${esc(f.producto)}</td><td>${esc(f.cantidad)}</td>` +
+      `<td>${esc(f.motivo)}</td><td><span class="${claseEstado(f.estado)}">${esc(f.estado)}</span></td><td>${esc(f.nc)}</td></tr>`
+    ).join('') : '<tr><td colspan="10" style="text-align:center;color:#888;padding:24px">Sin reportes</td></tr>';
+  }
+  ['fProv', 'fLab', 'fEst'].forEach((id) => $(id).addEventListener('change', pintar));
+  $('fTxt').addEventListener('input', pintar);
+  $('cuerpo').addEventListener('click', (e) => {
+    const tr = e.target.closest('tr[data-id]');
+    if (tr) detalle(tr.dataset.id);
+  });
+
+  $('bExportar').addEventListener('click', () => {
+    const cols = [
+      ['ID', 'codigo'], ['Fecha registro', (f) => fecha(f.creado)], ['Registrado por', 'usuario'], ['Área', 'area'],
+      ['Proveedor', 'proveedor'], ['N° Factura', 'factura'], ['Laboratorio', 'laboratorio'], ['Producto', 'producto'],
+      ['Lote', 'lote'], ['Vencimiento', 'vence'], ['Cantidad', 'cantidad'], ['Motivo', 'motivo'], ['Observación', 'obs'],
+      ['Obs. Compras', 'obsCompras'], ['Compras: usuario', 'comprasUsuario'], ['Compras: fecha', (f) => fecha(f.comprasFecha)],
+      ['Obs. Gerencia', 'obsGerencia'], ['Gerencia: usuario', 'gerenciaUsuario'], ['Gerencia: fecha', (f) => fecha(f.gerenciaFecha)],
+      ['Estado', 'estado'], ['N° Guía devolución', 'guia'], ['N° NC', 'nc'], ['Monto NC', 'monto'], ['Fecha NC', 'fechaNc']
+    ];
+    const celda = (v) => '"' + String(v ?? '').replace(/"/g, '""').replace(/\r?\n/g, ' ') + '"';
+    const lineas = [cols.map((c) => celda(c[0])).join(';')].concat(
+      filtradas().map((f) => cols.map((c) => celda(typeof c[1] === 'function' ? c[1](f) : f[c[1]])).join(';')));
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob(['﻿' + lineas.join('\r\n')], { type: 'text/csv;charset=utf-8' }));
+    a.download = 'productos-observados-' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+
+  /* ---------- Nuevo reporte ---------- */
+  $('fNuevo').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = e.currentTarget;
+    const cantidad = Number($('nCant').value);
+    if (!(cantidad > 0)) return msg('nuevoMsg', 'La cantidad debe ser mayor que cero.');
+    msg('nuevoMsg', ''); ocupado(f, true);
+    const datos = {
+      creado: serverTimestamp(), uid: yo.uid, usuario: `${yo.nombre} (${yo.usuario})`, area: yo.area,
+      proveedor: txt($('nProv').value, 80).toUpperCase(), factura: txt($('nFac').value, 40).toUpperCase(),
+      laboratorio: txt($('nLab').value, 80).toUpperCase(), producto: txt($('nProd').value, 150).toUpperCase(),
+      lote: txt($('nLote').value, 40).toUpperCase(), vence: $('nVence').value, cantidad,
+      motivo: $('nMot').value, obs: txt($('nObs').value, 500), estado: ESTADOS[0],
+      obsCompras: '', comprasUsuario: '', comprasFecha: null, obsGerencia: '', gerenciaUsuario: '', gerenciaFecha: null,
+      guia: '', nc: '', monto: null, fechaNc: '', actPor: '', actFecha: null
+    };
+    try {
+      const codigo = await runTransaction(db, async (tx) => {
+        const ref = doc(db, 'config', 'contador');
+        const s = await tx.get(ref);
+        const n = (s.exists() ? s.data().n : 0) + 1;
+        const cod = 'OBS-' + String(n).padStart(4, '0');
+        tx.set(ref, { n });
+        tx.set(doc(collection(db, 'observaciones')), { ...datos, codigo: cod });
+        return cod;
+      });
+      msg('nuevoMsg', `Reporte ${codigo} guardado.`, 'ok');
+      ['nLab', 'nProd', 'nLote', 'nVence', 'nCant', 'nObs', 'nMot'].forEach((x) => { $(x).value = ''; });
+      $('nLab').focus();
+    } catch (err) { msg('nuevoMsg', errorTexto(err)); }
+    ocupado(f, false);
+  });
+
+  /* ---------- Detalle ---------- */
+  const dato = (t, v) => `<div><b>${esc(t)}</b>${esc(v) || '—'}</div>`;
+
+  function detalle(id) {
+    const f = filas.find((x) => x._id === id);
+    if (!f) return;
+    abierto = id;
+    $('dTit').textContent = `${f.codigo} · ${f.proveedor}`;
+    let h = '<div id="dMsg"></div><div class="datos">' +
+      dato('Estado', f.estado) + dato('Fecha', fecha(f.creado)) + dato('Registró', `${f.usuario} · ${f.area}`) +
+      dato('Factura', f.factura) + dato('Laboratorio', f.laboratorio) + dato('Producto', f.producto) +
+      dato('Lote', f.lote) + dato('Vencimiento', f.vence) + dato('Cantidad', f.cantidad) + dato('Motivo', f.motivo) +
+      '</div>' + dato('Observación de recepción', f.obs);
+
+    const bloque = (titulo, area, texto, quien, cuando, boton) => {
+      let b = `<div class="bloque"><h3>${titulo}</h3>`;
+      b += yo.area === area
+        ? `<textarea id="dTexto" maxlength="500">${esc(texto)}</textarea><p><button class="pri" id="dGuardar">${boton}</button></p>`
+        : `<div>${esc(texto) || '—'}</div>`;
+      if (quien) b += `<div class="quien">${esc(quien)} · ${esc(fecha(cuando))}</div>`;
+      return b + '</div>';
+    };
+    h += bloque('Compras', 'COMPRAS', f.obsCompras, f.comprasUsuario, f.comprasFecha, 'Guardar observación');
+    h += bloque('Gerencia', 'GERENCIA', f.obsGerencia, f.gerenciaUsuario, f.gerenciaFecha, 'Guardar comentario');
+
+    h += '<div class="bloque"><h3>Devolución y nota de crédito</h3>';
+    if (yo.area === 'ADMIN') {
+      h += '<div class="rejilla">' +
+        '<div class="campo"><label for="aEst">Estado</label><select id="aEst">' +
+        ESTADOS.map((e) => `<option${e === f.estado ? ' selected' : ''}>${esc(e)}</option>`).join('') + '</select></div>' +
+        `<div class="campo"><label for="aGuia">N° guía de devolución</label><input id="aGuia" maxlength="40" value="${esc(f.guia)}"></div>` +
+        `<div class="campo"><label for="aNc">N° NC</label><input id="aNc" maxlength="40" value="${esc(f.nc)}"></div>` +
+        `<div class="campo"><label for="aMonto">Monto NC (S/)</label><input id="aMonto" type="number" min="0" step="0.01" value="${esc(f.monto)}"></div>` +
+        `<div class="campo"><label for="aFecha">Fecha NC</label><input id="aFecha" type="date" value="${esc(f.fechaNc)}"></div>` +
+        '</div><button class="pri" id="dAdmin">Guardar</button>';
+    } else {
+      h += '<div class="datos">' + dato('N° guía de devolución', f.guia) + dato('N° NC', f.nc) +
+        dato('Monto NC', f.monto ? 'S/ ' + Number(f.monto).toFixed(2) : '') + dato('Fecha NC', f.fechaNc) + '</div>';
+    }
+    if (f.actPor) h += `<div class="quien">Última actualización: ${esc(f.actPor)} · ${esc(fecha(f.actFecha))}</div>`;
+    h += '</div>';
+
+    $('dCuerpo').innerHTML = h;
+    if (!$('dlg').open) $('dlg').showModal();
+  }
+
+  $('dCerrar').addEventListener('click', () => $('dlg').close());
+  $('dCuerpo').addEventListener('click', async (e) => {
+    const b = e.target;
+    if (b.id !== 'dGuardar' && b.id !== 'dAdmin') return;
+    const f = filas.find((x) => x._id === abierto);
+    if (!f) return;
+    const quien = `${yo.nombre} (${yo.usuario})`;
+    let cambios;
+    if (b.id === 'dGuardar') {
+      const texto = txt($('dTexto').value, 500);
+      if (!texto) return msg('dMsg', 'Escribe la observación.');
+      if (yo.area === 'COMPRAS') {
+        cambios = { obsCompras: texto, comprasUsuario: quien, comprasFecha: serverTimestamp() };
+        if (f.estado === ESTADOS[0]) cambios.estado = ESTADOS[1];
+      } else {
+        cambios = { obsGerencia: texto, gerenciaUsuario: quien, gerenciaFecha: serverTimestamp() };
+      }
+    } else {
+      const m = $('aMonto').value;
+      if (m !== '' && !(Number(m) >= 0)) return msg('dMsg', 'Monto no válido.');
+      cambios = {
+        estado: $('aEst').value, guia: txt($('aGuia').value, 40).toUpperCase(), nc: txt($('aNc').value, 40).toUpperCase(),
+        monto: m === '' ? null : Number(m), fechaNc: $('aFecha').value
+      };
+    }
+    b.disabled = true;
+    try {
+      await updateDoc(doc(db, 'observaciones', abierto), { ...cambios, actPor: quien, actFecha: serverTimestamp() });
+      detalle(abierto);
+      msg('dMsg', 'Guardado.', 'ok');
+    } catch (err) { msg('dMsg', errorTexto(err)); b.disabled = false; }
+  });
+
+  /* ---------- Usuarios (solo admin) ---------- */
+  $('cuerpoUsr').addEventListener('click', (e) => {
+    const tr = e.target.closest('tr[data-u]');
+    const u = tr && usuarios.find((x) => x.uid === tr.dataset.u);
+    if (!u) return;
+    $('uUsr').value = u.usuario; $('uNom').value = u.nombre; $('uArea').value = u.area;
+    $('uAct').value = u.activo ? '1' : '0'; $('uClave').value = '';
+  });
+  $('bLimpiarUsr').addEventListener('click', () => { $('fUsr').reset(); msg('usrMsg', ''); });
+
+  $('fUsr').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = e.currentTarget;
+    const usuario = txt($('uUsr').value, 30).toLowerCase();
+    const datos = { usuario, nombre: txt($('uNom').value, 80), area: $('uArea').value, activo: $('uAct').value === '1' };
+    const clave = $('uClave').value;
+    const existe = usuarios.find((x) => x.usuario === usuario);
+    if (!usuarioValido(usuario)) return msg('usrMsg', 'El usuario debe tener de 3 a 30 letras o números, sin espacios.');
+    if (!datos.nombre) return msg('usrMsg', 'Falta el nombre.');
+    if (existe && existe.uid === yo.uid && (!datos.activo || datos.area !== 'ADMIN')) return msg('usrMsg', 'No puedes desactivarte ni quitarte el rol de administrador.');
+    if (!existe && clave.length < 6) return msg('usrMsg', 'Para un usuario nuevo, escribe una contraseña de al menos 6 caracteres.');
+    msg('usrMsg', ''); ocupado(f, true);
+    try {
+      if (existe) {
+        await updateDoc(doc(db, 'usuarios', existe.uid), datos);
+        msg('usrMsg', clave ? 'Usuario actualizado. La contraseña no se cambió: solo el propio usuario puede cambiarla.' : 'Usuario actualizado.', 'ok');
+      } else {
+        // Se crea con una conexión aparte para no cerrar la sesión del administrador
+        const app2 = initializeApp(firebaseConfig, 'alta-' + Date.now());
+        const auth2 = initializeAuth(app2, { persistence: inMemoryPersistence });
+        const cred = await createUserWithEmailAndPassword(auth2, usuario + DOMINIO, clave);
+        await setDoc(doc(db, 'usuarios', cred.user.uid), datos);
+        await signOut(auth2);
+        msg('usrMsg', 'Usuario creado.', 'ok');
+      }
+      f.reset();
+    } catch (err) { msg('usrMsg', errorTexto(err)); }
+    ocupado(f, false);
+  });
+
+  $('bBorrarUsr').addEventListener('click', async () => {
+    const u = usuarios.find((x) => x.usuario === txt($('uUsr').value, 30).toLowerCase());
+    if (!u) return msg('usrMsg', 'Toca primero la fila del usuario que quieres eliminar.');
+    if (u.uid === yo.uid) return msg('usrMsg', 'No puedes eliminarte a ti mismo.');
+    if (!confirm(`¿Eliminar al usuario "${u.usuario}"? Ya no podrá entrar. Sus reportes se conservan.`)) return;
+    try {
+      await deleteDoc(doc(db, 'usuarios', u.uid));
+      $('fUsr').reset();
+      msg('usrMsg', 'Usuario eliminado.', 'ok');
+    } catch (err) { msg('usrMsg', errorTexto(err)); }
+  });
+</script>
+</body>
+</html>
