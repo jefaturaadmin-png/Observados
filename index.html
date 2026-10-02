@@ -3,39 +3,45 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pedidos y productos observados</title>
+<title>Farmacia Socorro · Pedidos y observados</title>
 <style>
-  :root { --verde:#1b7a4b; --verde2:#e7f4ec; --gris:#5f6b66; --borde:#d5dcd8; --fondo:#f4f6f5; --rojo:#b3261e; }
+  :root { --pri:#c2570a; --marca:#e8710a; --suave:#fff0e0; --gris:#5f6b66; --borde:#dcd8d3; --fondo:#f7f5f2; --rojo:#b3261e; --ok:#1b7a4b; --ok2:#e7f4ec; }
   * { box-sizing: border-box; }
-  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--fondo); color:#1c2420; font-size:15px; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--fondo); color:#231d17; font-size:15px; }
   .oculto { display:none !important; }
   button { font:inherit; cursor:pointer; border-radius:8px; border:1px solid var(--borde); background:#fff; padding:9px 14px; color:inherit; }
-  button.pri { background:var(--verde); color:#fff; border-color:var(--verde); font-weight:600; }
+  button.pri { background:var(--pri); color:#fff; border-color:var(--pri); font-weight:600; }
   button.pel { color:var(--rojo); border-color:var(--rojo); }
   button.mini { padding:4px 10px; font-size:13px; }
   button:disabled { opacity:.6; cursor:wait; }
   input, select, textarea { font:inherit; width:100%; padding:9px 10px; border:1px solid var(--borde); border-radius:8px; background:#fff; color:inherit; }
-  input[type=checkbox] { width:auto; }
+  input:focus, select:focus, textarea:focus, button:focus-visible { outline:2px solid var(--marca); outline-offset:1px; }
+  input[type=checkbox] { width:auto; accent-color:var(--pri); }
   textarea { min-height:60px; resize:vertical; }
   label { display:block; font-size:13px; color:var(--gris); margin-bottom:4px; font-weight:600; }
-  h2.sec { font-size:16px; margin:0 0 12px; color:var(--verde); }
+  h2.sec { font-size:16px; margin:0 0 12px; color:var(--pri); }
   .campo { margin-bottom:12px; }
   .caja { background:#fff; border:1px solid var(--borde); border-radius:12px; padding:18px; margin-bottom:14px; }
   .msg { padding:10px 12px; border-radius:8px; margin-bottom:12px; font-size:14px; }
   .msg.err { background:#fdecea; color:var(--rojo); }
-  .msg.ok { background:var(--verde2); color:var(--verde); }
+  .msg.ok { background:var(--ok2); color:var(--ok); }
 
-  .centro { max-width:380px; margin:9vh auto; padding:0 16px; }
-  .centro h1 { font-size:22px; margin:0 0 4px; color:var(--verde); }
+  .centro { max-width:380px; margin:7vh auto; padding:0 16px; }
   .centro p { margin:0 0 18px; color:var(--gris); }
+  .marca { text-align:center; margin-bottom:14px; }
+  .marca img { max-width:220px; max-height:110px; }
+  .marca .nombre { font-size:26px; font-weight:800; color:var(--marca); letter-spacing:-.01em; }
+  .marca img + .nombre { display:none; }
+  .marca .sub { font-size:13px; color:var(--gris); margin-top:4px; }
+  .centro .caja { border-top:4px solid var(--marca); }
 
-  header { background:var(--verde); color:#fff; padding:12px 16px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  header { background:var(--marca); color:#fff; padding:12px 16px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
   header h1 { font-size:17px; margin:0; flex:1; min-width:160px; }
-  header span { font-size:13px; opacity:.9; }
-  header button { background:transparent; color:#fff; border-color:rgba(255,255,255,.5); padding:6px 12px; }
+  header span { font-size:13px; font-weight:600; }
+  header button { background:transparent; color:#fff; border-color:rgba(255,255,255,.7); padding:6px 12px; }
   nav { display:flex; gap:4px; padding:10px 16px 0; border-bottom:1px solid var(--borde); background:#fff; overflow-x:auto; }
   nav button { border:none; border-bottom:3px solid transparent; border-radius:0; background:none; color:var(--gris); font-weight:600; white-space:nowrap; }
-  nav button.act { color:var(--verde); border-bottom-color:var(--verde); }
+  nav button.act { color:var(--pri); border-bottom-color:var(--marca); }
   nav .cuenta { background:var(--rojo); color:#fff; border-radius:99px; font-size:11px; padding:1px 7px; margin-left:4px; }
   main { padding:16px; max-width:1280px; margin:0 auto; }
 
@@ -45,25 +51,34 @@
   .resumen { color:var(--gris); margin:0 0 10px; font-size:14px; }
   .tabla { overflow-x:auto; background:#fff; border:1px solid var(--borde); border-radius:12px; }
   table { border-collapse:collapse; width:100%; font-size:14px; }
-  th, td { padding:9px 10px; text-align:left; border-bottom:1px solid #edf0ee; white-space:nowrap; }
-  th { background:#fafbfa; color:var(--gris); font-size:12px; text-transform:uppercase; letter-spacing:.03em; }
+  th, td { padding:9px 10px; text-align:left; border-bottom:1px solid #efece8; white-space:nowrap; }
+  th { background:#fbfaf8; color:var(--gris); font-size:12px; text-transform:uppercase; letter-spacing:.03em; }
   td.larga { white-space:normal; min-width:180px; }
   td.num, th.num { text-align:right; }
   tbody tr[data-id] { cursor:pointer; }
-  tbody tr[data-id]:hover { background:var(--verde2); }
-  tr.grupo td { background:#eef3f0; font-size:14px; border-top:2px solid var(--borde); white-space:normal; }
-  tr.grupo .gtit { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-  tr.grupo .gtit { position:sticky; left:10px; width:max-content; max-width:calc(100vw - 60px); }
+  tbody tr[data-id]:hover { background:var(--suave); }
+  tr.grupo td { background:#f6efe7; font-size:14px; border-top:2px solid var(--borde); white-space:normal; }
+  tr.grupo .gtit { display:flex; align-items:center; gap:10px; flex-wrap:wrap; position:sticky; left:10px; width:max-content; max-width:calc(100vw - 60px); }
   .vacio { text-align:center; color:#888; padding:24px; }
   .est { display:inline-block; padding:2px 9px; border-radius:99px; font-size:12px; font-weight:600; background:#eee; }
   .e0 { background:#fde9c8; color:#8a5300; } .e1 { background:#dbe8fb; color:#1f4e96; }
-  .e2 { background:var(--verde2); color:var(--verde); } .e3 { background:#eee; color:#666; }
+  .e2 { background:var(--ok2); color:var(--ok); } .e3 { background:#ead9f7; color:#5b2a8c; } .e4 { background:#eee; color:#666; }
+  .alerta { background:#fdecea; color:var(--rojo); }
 
-  .linea { border:1px solid var(--borde); border-radius:10px; padding:12px 12px 0; margin-bottom:10px; background:#fafbfa; }
+  .linea { border:1px solid var(--borde); border-radius:10px; padding:12px 12px 0; margin-bottom:10px; background:#fbfaf8; }
   .linea .cab { display:flex; align-items:center; margin-bottom:8px; font-weight:600; color:var(--gris); font-size:13px; }
   .linea .cab span { flex:1; }
+  .buscador { position:relative; }
+  .sug { position:absolute; z-index:5; left:0; right:0; top:100%; background:#fff; border:1px solid var(--borde); border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.14); max-height:300px; overflow-y:auto; margin-top:2px; }
+  .sug div { padding:8px 10px; cursor:pointer; border-bottom:1px solid #f3f0ec; font-size:14px; }
+  .sug div.sel, .sug div:hover { background:var(--suave); }
+  .sug div b { color:var(--pri); margin-right:6px; }
+  .sug div small { color:var(--gris); margin-left:6px; }
+  .sug .nada { color:var(--gris); cursor:default; background:#fff !important; }
+  .permisos { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:6px 14px; margin-bottom:12px; }
+  .permisos label { display:flex; gap:8px; align-items:center; font-weight:500; font-size:14px; color:inherit; margin:0; }
 
-  dialog { border:none; border-radius:14px; padding:0; width:min(760px, 94vw); max-height:90vh; color:inherit; }
+  dialog { border:none; border-radius:14px; padding:0; width:min(780px, 94vw); max-height:90vh; color:inherit; }
   dialog::backdrop { background:rgba(0,0,0,.45); }
   .dcab { display:flex; align-items:center; padding:14px 18px; border-bottom:1px solid var(--borde); gap:10px; }
   .dcab h2 { margin:0; font-size:17px; flex:1; }
@@ -71,19 +86,19 @@
   .datos { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:10px 16px; margin-bottom:14px; }
   .datos div b { display:block; font-size:12px; color:var(--gris); font-weight:600; }
   .bloque { border-top:1px solid var(--borde); padding-top:12px; margin-top:12px; }
-  .bloque h3 { margin:0 0 8px; font-size:14px; color:var(--verde); }
+  .bloque h3 { margin:0 0 8px; font-size:14px; color:var(--pri); }
   .quien { font-size:12px; color:var(--gris); }
   .fila-bot { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-  .gtabla input { min-width:90px; padding:6px 8px; }
+  .gtabla input[type=number], .gtabla input:not([type]) { min-width:90px; padding:6px 8px; }
 </style>
 </head>
 <body>
 
-<section id="aviso" class="centro"><div class="caja"><h1>Pedidos y observados</h1><p id="avisoTxt">Cargando…</p></div></section>
+<section id="aviso" class="centro"><div class="caja"><div class="marca"><div class="nombre">Farmacia Socorro</div></div><p id="avisoTxt" style="text-align:center">Cargando…</p></div></section>
 
 <section id="inicio" class="centro oculto">
   <div class="caja">
-    <h1>Configuración inicial</h1>
+    <div class="marca"><div class="nombre">Farmacia Socorro</div><div class="sub">Configuración inicial</div></div>
     <p>Crea el usuario administrador. Solo se hace una vez.</p>
     <div id="inicioMsg"></div>
     <form id="fInicio">
@@ -97,8 +112,8 @@
 
 <section id="login" class="centro oculto">
   <div class="caja">
-    <h1>Pedidos y observados</h1>
-    <p>Ingresa con tu usuario</p>
+    <!-- El logo se toma del archivo logo.png que esté junto a esta página. Si no existe, se muestra el nombre. -->
+    <div class="marca"><img src="logo.png" alt="Farmacia Socorro" onerror="this.remove()"><div class="nombre">Farmacia Socorro</div><div class="sub">Pedidos y productos observados</div></div>
     <div id="loginMsg"></div>
     <form id="fLogin">
       <div class="campo"><label for="lu">Usuario</label><input id="lu" autocomplete="username" required></div>
@@ -108,9 +123,22 @@
   </div>
 </section>
 
+<section id="cambio" class="centro oculto">
+  <div class="caja">
+    <div class="marca"><div class="nombre">Crea tu contraseña</div></div>
+    <p>Es tu primer ingreso. Cambia la contraseña que te dio el administrador por una que solo tú conozcas.</p>
+    <div id="cambioMsg"></div>
+    <form id="fCambio">
+      <div class="campo"><label for="kNue">Contraseña nueva (mínimo 6 caracteres)</label><input id="kNue" type="password" autocomplete="new-password" minlength="6" required></div>
+      <div class="campo"><label for="kRep">Repite la contraseña</label><input id="kRep" type="password" autocomplete="new-password" minlength="6" required></div>
+      <div class="fila-bot"><button class="pri" type="submit">Guardar y entrar</button><button type="button" id="kSalir">Salir</button></div>
+    </form>
+  </div>
+</section>
+
 <section id="app" class="oculto">
   <header>
-    <h1>Pedidos y productos observados</h1>
+    <h1>Farmacia Socorro · Pedidos y observados</h1>
     <span id="quien"></span>
     <button id="bClave">Cambiar contraseña</button>
     <button id="bSalir">Salir</button>
@@ -121,6 +149,7 @@
     <button data-v="vPend">Por devolver<span class="cuenta oculto" id="nPend"></span></button>
     <button data-v="vDev">Devueltos y NC<span class="cuenta oculto" id="nDev"></span></button>
     <button data-v="vUsuarios" id="tabUsuarios">Usuarios</button>
+    <button data-v="vCat" id="tabCat">Productos</button>
     <button data-v="vListas" id="tabListas">Listas</button>
   </nav>
   <main>
@@ -164,7 +193,7 @@
     <div id="vNuevo" class="oculto">
       <div class="caja">
         <div id="nuevoMsg"></div>
-        <form id="fNuevo">
+        <form id="fNuevo" autocomplete="off">
           <h2 class="sec">Factura</h2>
           <div class="rejilla">
             <div class="campo"><label for="nFac">N° de factura *</label><input id="nFac" list="dlFac" maxlength="40" placeholder="F140-354" required><datalist id="dlFac"></datalist></div>
@@ -184,9 +213,13 @@
     <!-- ===== 3. POR DEVOLVER ===== -->
     <div id="vPend" class="oculto">
       <div class="filtros">
+        <select id="pEst" aria-label="Situación">
+          <option value="Por devolver">Por devolver</option>
+          <option value="Se queda">Se quedan (no se devuelven)</option>
+        </select>
         <select id="pProv" aria-label="Proveedor"></select>
         <select id="pLab" aria-label="Laboratorio"></select>
-        <input id="pTxt" placeholder="Buscar producto, factura, lote…" aria-label="Buscar">
+        <input id="pTxt" placeholder="Buscar código, producto, factura, lote…" aria-label="Buscar">
         <button id="bExpPend">Exportar a Excel</button>
       </div>
       <p class="resumen" id="resPend"></p>
@@ -199,19 +232,20 @@
     <!-- ===== 4. DEVUELTOS Y NC ===== -->
     <div id="vDev" class="oculto">
       <div class="filtros">
-        <select id="dEst" aria-label="Nota de crédito">
+        <select id="dEst" aria-label="Situación">
           <option value="Devuelto">Pendientes de NC</option>
           <option value="NC recibida">Con NC recibida</option>
+          <option value="PARCIAL">Devolución parcial sin conformidad</option>
           <option value="">Todos</option>
         </select>
         <select id="dProv" aria-label="Proveedor"></select>
         <select id="dLab" aria-label="Laboratorio"></select>
-        <input id="dTxt" placeholder="Buscar producto, factura, guía, NC…" aria-label="Buscar">
+        <input id="dTxt" placeholder="Buscar código, producto, factura, guía, NC…" aria-label="Buscar">
         <button id="bExpDev">Exportar a Excel</button>
       </div>
       <p class="resumen" id="resDev"></p>
       <div class="tabla"><table>
-        <thead><tr><th>ID</th><th>Producto</th><th>Laboratorio</th><th class="num">Observado</th><th class="num">Devuelto</th><th>Guía</th><th>Devolvió</th><th class="num">Precio unit.</th><th class="num">Monto</th><th>N° NC</th><th>Estado</th></tr></thead>
+        <thead><tr><th>ID</th><th>Producto</th><th>Laboratorio</th><th class="num">Observado</th><th class="num">Devuelto</th><th>Falta</th><th>Guía</th><th>Devolvió</th><th class="num">Precio unit.</th><th class="num">Monto</th><th>N° NC</th><th>Estado</th></tr></thead>
         <tbody id="cuerpoDev"></tbody>
       </table></div>
     </div>
@@ -219,27 +253,41 @@
     <!-- ===== USUARIOS ===== -->
     <div id="vUsuarios" class="oculto">
       <div class="caja">
+        <h2 class="sec">Crear o editar usuario</h2>
         <div id="usrMsg"></div>
-        <form id="fUsr">
+        <form id="fUsr" autocomplete="off">
           <div class="rejilla">
             <div class="campo"><label for="uUsr">Usuario *</label><input id="uUsr" maxlength="30" required></div>
             <div class="campo"><label for="uNom">Nombre y apellido *</label><input id="uNom" maxlength="80" required></div>
             <div class="campo"><label for="uArea">Área *</label><select id="uArea" required></select></div>
-            <div class="campo"><label for="uClave">Contraseña</label><input id="uClave" type="password" autocomplete="new-password" placeholder="Solo para usuario nuevo"></div>
+            <div class="campo"><label for="uClave">Contraseña temporal</label><input id="uClave" type="password" autocomplete="new-password" placeholder="Solo para usuario nuevo"></div>
             <div class="campo"><label for="uAct">Activo</label><select id="uAct"><option value="1">Sí</option><option value="0">No</option></select></div>
           </div>
+          <label>Qué puede hacer este usuario</label>
+          <div class="permisos" id="uPerm"></div>
           <div class="fila-bot">
             <button class="pri" type="submit">Guardar usuario</button>
             <button type="button" id="bLimpiarUsr">Limpiar</button>
             <button type="button" class="pel" id="bBorrarUsr">Eliminar</button>
-            <span class="quien">Toca una fila para editarla. La contraseña de un usuario existente solo la cambia él mismo.</span>
+            <span class="quien">Toca una fila para editar. Un usuario nuevo deberá cambiar su contraseña temporal en su primer ingreso.</span>
           </div>
         </form>
       </div>
       <div class="tabla"><table>
-        <thead><tr><th>Usuario</th><th>Nombre</th><th>Área</th><th>Activo</th></tr></thead>
+        <thead><tr><th>Usuario</th><th>Nombre</th><th>Área</th><th>Activo</th><th>Puede</th></tr></thead>
         <tbody id="cuerpoUsr"></tbody>
       </table></div>
+    </div>
+
+    <!-- ===== CATÁLOGO DE PRODUCTOS ===== -->
+    <div id="vCat" class="oculto">
+      <div class="caja">
+        <h2 class="sec">Catálogo de productos</h2>
+        <p class="resumen" id="catInfo"></p>
+        <div id="catMsg"></div>
+        <div class="campo"><label for="catArchivo">Cargar o actualizar catálogo (productos.json o el Excel "Stock Productos por Laboratorio")</label><input id="catArchivo" type="file" accept=".json,.xls,.xlsx"></div>
+        <div class="fila-bot"><button class="pri" id="bCat">Cargar catálogo</button><span class="quien">Reemplaza el catálogo completo. No afecta a lo ya registrado.</span></div>
+      </div>
     </div>
 
     <!-- ===== LISTAS ===== -->
@@ -249,7 +297,7 @@
         <form id="fListas">
           <div class="rejilla">
             <div class="campo"><label for="tProv">Proveedores (uno por línea)</label><textarea id="tProv" rows="10"></textarea></div>
-            <div class="campo"><label for="tLab">Laboratorios (uno por línea)</label><textarea id="tLab" rows="10"></textarea></div>
+            <div class="campo"><label for="tLab">Laboratorios adicionales (uno por línea)</label><textarea id="tLab" rows="10"></textarea></div>
             <div class="campo"><label for="tMot">Motivos (uno por línea)</label><textarea id="tMot" rows="10"></textarea></div>
           </div>
           <button class="pri" type="submit">Guardar listas</button>
@@ -300,15 +348,25 @@
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
   const DOMINIO = '@observados.example.com'; // dominio reservado: los usuarios solo escriben su nombre de usuario
-  const MAX_REPORTES = 1500, MAX_PEDIDOS = 800, MAX_LINEAS = 40;
-  const AREAS = ['RECEPCION', 'COMPRAS', 'GERENCIA', 'ADMIN'];
-  // Qué puede hacer cada área
-  const INGRESAN = ['RECEPCION', 'ADMIN'];            // registrar pedidos recibidos
-  const CONFORMAN = ['COMPRAS', 'ADMIN'];             // dar conformidad de factura recibida
-  const OBSERVAN = ['RECEPCION', 'COMPRAS', 'ADMIN']; // observar productos
-  const DEVUELVEN = ['RECEPCION', 'ADMIN'];           // confirmar devolución al proveedor
-  const VALORIZAN = ['COMPRAS', 'ADMIN'];             // poner precios y nota de crédito
-  const ESTADOS = ['Por devolver', 'Devuelto', 'NC recibida', 'Anulado'];
+  const MAX_REPORTES = 1500, MAX_PEDIDOS = 800, MAX_LINEAS = 40, TAM_CAT = 1500;
+  const AREAS = ['RECEPCION', 'COMPRAS', 'GERENCIA', 'PAGOS', 'ADMIN'];
+  // Permisos que el administrador activa o quita a cada usuario
+  const PERMISOS = [
+    ['pedidos', 'Registrar pedidos recibidos'],
+    ['conformidad', 'Dar conformidad de factura recibida'],
+    ['observar', 'Observar productos'],
+    ['devolver', 'Confirmar devolución al proveedor'],
+    ['decidir', 'Decidir que un producto se queda y aprobar devoluciones parciales'],
+    ['precios', 'Poner precios y nota de crédito']
+  ];
+  const POR_AREA = { // lo que viene marcado al elegir el área; el administrador puede cambiarlo
+    RECEPCION: ['pedidos', 'observar', 'devolver'],
+    COMPRAS: ['conformidad', 'observar', 'decidir', 'precios'],
+    GERENCIA: ['decidir'],
+    PAGOS: ['precios'],
+    ADMIN: PERMISOS.map((p) => p[0])
+  };
+  const ESTADOS = ['Por devolver', 'Devuelto', 'NC recibida', 'Se queda', 'Anulado'];
   const ESTADO_ANTIGUO = { 'Reportado': 'Por devolver', 'Revisado por compras': 'Por devolver', 'Devuelto al proveedor': 'Devuelto' };
   const LISTAS_INI = {
     proveedores: ['DIMEXA', 'ALFARO', 'FARMINDUSTRIA', 'FP MAYORISTA'],
@@ -332,7 +390,7 @@
     sel.innerHTML = (primero !== undefined ? `<option value="">${esc(primero)}</option>` : '') +
       arr.map((x) => `<option>${esc(x)}</option>`).join('');
     sel.value = v;
-    if (sel.value !== v) sel.value = '';
+    if (sel.value !== v) sel.selectedIndex = 0;
   };
   const unicos = (arr) => [...new Set(arr.filter(Boolean))].sort();
   const fecha = (ts) => (!ts || !ts.toDate) ? '' :
@@ -340,36 +398,41 @@
   const dia = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s || '') ? s.split('-').reverse().join('/') : (s || '');
   const hoy = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   const soles = (n) => (n === null || n === undefined || n === '') ? '' : 'S/ ' + Number(n).toFixed(2);
+  const num = (n) => Math.round(Number(n) * 1000) / 1000;
   const firma = () => `${yo.nombre} (${yo.usuario})`;
   const usuarioValido = (u) => /^[a-z0-9._-]{3,30}$/.test(u);
+  const permisosDe = (u) => (u.area === 'ADMIN' ? POR_AREA.ADMIN
+    : (u.permisos ? PERMISOS.map((p) => p[0]).filter((k) => u.permisos[k] === true) : (POR_AREA[u.area] || [])));
+  const puede = (p) => !!yo && permisosDe(yo).includes(p);
   const errorTexto = (e) => {
     const c = e && e.code ? e.code : '';
     if (['auth/invalid-credential', 'auth/wrong-password', 'auth/user-not-found', 'auth/invalid-email'].includes(c)) return 'Usuario o contraseña incorrectos.';
     if (c === 'auth/user-disabled') return 'Este usuario está desactivado.';
     if (c === 'auth/too-many-requests') return 'Demasiados intentos. Espera unos minutos.';
     if (c === 'auth/weak-password') return 'La contraseña debe tener al menos 6 caracteres.';
+    if (c === 'auth/requires-recent-login') return 'Por seguridad, sal y vuelve a ingresar antes de cambiar la contraseña.';
     if (c === 'auth/email-already-in-use') return 'Ese usuario ya existe en Firebase. Si quieres recrearlo, primero bórralo en la consola de Firebase (Authentication).';
     if (c === 'auth/operation-not-allowed') return 'Falta activar "Correo electrónico/contraseña" en Firebase Authentication.';
     if (c === 'auth/network-request-failed' || c === 'unavailable') return 'Sin conexión a internet.';
-    if (c === 'permission-denied') return 'No tienes permiso para hacer esto. Si acabas de actualizar la página, revisa que las reglas nuevas de Firestore estén publicadas.';
+    if (c === 'permission-denied') return 'No tienes permiso para hacer esto. Si la página se acaba de actualizar, revisa que las reglas nuevas de Firestore estén publicadas y que el administrador haya ingresado una vez.';
     return (e && e.message) || String(e);
   };
-  const pantalla = (id) => ['aviso', 'inicio', 'login', 'app'].forEach((x) => $(x).classList.toggle('oculto', x !== id));
+  const pantalla = (id) => ['aviso', 'inicio', 'login', 'cambio', 'app'].forEach((x) => $(x).classList.toggle('oculto', x !== id));
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
   await setPersistence(auth, browserSessionPersistence);
 
-  let yo = null, listas = LISTAS_INI, filas = [], pedidos = [], usuarios = [], abierto = null;
-  let bajas = [], sinConfigurar = false, arranque = false;
+  let yo = null, listas = LISTAS_INI, filas = [], pedidos = [], usuarios = [], catalogo = [], catDocs = [], abierto = null;
+  let bajas = [], sinConfigurar = false, arranque = false, vista = 'vPedidos';
 
   /* ---------- Arranque ---------- */
   try {
     sinConfigurar = !(await getDoc(doc(db, 'config', 'inicio'))).exists();
   } catch (e) {
     $('avisoTxt').textContent = e.code === 'permission-denied'
-      ? 'Falta publicar las reglas de Firestore (archivo firestore.rules).'
+      ? 'Falta publicar las reglas de Firestore.'
       : 'No se pudo conectar con Firebase: ' + errorTexto(e);
     throw e;
   }
@@ -381,7 +444,7 @@
       const s = await getDoc(doc(db, 'usuarios', user.uid));
       if (!s.exists() || s.data().activo !== true) throw new Error('Tu usuario no está activo. Consulta con el administrador.');
       yo = { uid: user.uid, ...s.data() };
-      iniciar();
+      if (yo.debeCambiar === true) { $('fCambio').reset(); msg('cambioMsg', ''); pantalla('cambio'); } else iniciar();
     } catch (e) {
       await signOut(auth);
       msg('loginMsg', errorTexto(e));
@@ -390,7 +453,7 @@
 
   function salirLocal() {
     bajas.forEach((f) => f()); bajas = [];
-    yo = null; filas = []; pedidos = []; usuarios = [];
+    yo = null; filas = []; pedidos = []; usuarios = []; catalogo = [];
     if ($('dlg').open) $('dlg').close();
     if ($('dlgClave').open) $('dlgClave').close();
     pantalla(sinConfigurar ? 'inicio' : 'login');
@@ -433,6 +496,23 @@
     ocupado(f, false);
   });
   $('bSalir').addEventListener('click', () => signOut(auth));
+  $('kSalir').addEventListener('click', () => signOut(auth));
+
+  // Primer ingreso: el usuario reemplaza la contraseña temporal que le dio el administrador
+  $('fCambio').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = e.currentTarget;
+    if ($('kNue').value !== $('kRep').value) return msg('cambioMsg', 'Las dos contraseñas no coinciden.');
+    msg('cambioMsg', ''); ocupado(f, true);
+    try {
+      await updatePassword(auth.currentUser, $('kNue').value);
+      await updateDoc(doc(db, 'usuarios', yo.uid), { debeCambiar: false });
+      yo.debeCambiar = false;
+      f.reset();
+      iniciar();
+    } catch (err) { msg('cambioMsg', errorTexto(err)); }
+    ocupado(f, false);
+  });
 
   $('bClave').addEventListener('click', () => { msg('claveMsg', ''); $('fClave').reset(); $('dlgClave').showModal(); });
   $('cCerrar').addEventListener('click', () => $('dlgClave').close());
@@ -457,22 +537,54 @@
     } else console.error(e);
   }
 
+  function aplicarPermisos() {
+    $('quien').textContent = `${yo.nombre} · ${yo.area}`;
+    $('tabNuevo').classList.toggle('oculto', !puede('observar'));
+    ['tabUsuarios', 'tabCat', 'tabListas'].forEach((t) => $(t).classList.toggle('oculto', yo.area !== 'ADMIN'));
+    $('cajaPedido').classList.toggle('oculto', !puede('pedidos'));
+    $('peQuien').textContent = 'Recepciona: ' + firma();
+    const tab = document.querySelector(`nav button[data-v="${vista}"]`);
+    if (tab.classList.contains('oculto')) ver('vPedidos'); // si me quitaron el permiso de la pestaña en la que estaba
+  }
+
   function iniciar() {
     pantalla('app');
-    $('quien').textContent = `${yo.nombre} · ${yo.area}`;
-    $('tabNuevo').classList.toggle('oculto', !OBSERVAN.includes(yo.area));
-    $('tabUsuarios').classList.toggle('oculto', yo.area !== 'ADMIN');
-    $('tabListas').classList.toggle('oculto', yo.area !== 'ADMIN');
-    $('cajaPedido').classList.toggle('oculto', !INGRESAN.includes(yo.area));
-    $('peQuien').textContent = 'Recepciona: ' + firma();
     $('peFecha').value = hoy();
+    $('fpEst').value = 'P'; $('pEst').value = 'Por devolver'; $('dEst').value = 'Devuelto';
+    ['fpTxt', 'pTxt', 'dTxt'].forEach((id) => { $(id).value = ''; });
     opciones($('uArea'), AREAS);
+    $('uPerm').innerHTML = PERMISOS.map((p) => `<label><input type="checkbox" value="${p[0]}"> ${esc(p[1])}</label>`).join('');
+    marcarPermisos(POR_AREA[$('uArea').value] || [], $('uArea').value === 'ADMIN');
     $('lineas').innerHTML = ''; agregarLinea();
     pintarListas();
+    ver('vPedidos');
+    aplicarPermisos();
+
+    // Mis propios datos: si el administrador cambia mis permisos, se aplican al momento
+    bajas.push(onSnapshot(doc(db, 'usuarios', yo.uid), (s) => {
+      if (!yo) return;
+      if (!s.exists() || s.data().activo !== true) { signOut(auth).then(() => msg('loginMsg', 'Tu usuario ya no está activo.')); return; }
+      yo = { uid: yo.uid, ...s.data() };
+      aplicarPermisos(); pintarPedidos(); pintarPend(); pintarDev();
+    }, errorEscucha));
 
     bajas.push(onSnapshot(doc(db, 'config', 'listas'), (s) => {
       listas = { ...LISTAS_INI, ...(s.exists() ? s.data() : {}) };
       pintarListas(); pintarFiltros();
+    }, errorEscucha));
+
+    bajas.push(onSnapshot(collection(db, 'catalogo'), (snap) => {
+      catDocs = snap.docs.map((d) => d.id);
+      catalogo = [];
+      [...snap.docs].sort((a, b) => a.id.localeCompare(b.id)).forEach((d) => (d.data().items || []).forEach((linea) => {
+        const [c, n, l] = String(linea).split('\t');
+        catalogo.push({ c, n, l: l || '', b: `${c} ${n}`.toLowerCase() });
+      }));
+      const d0 = snap.docs[0] ? snap.docs[0].data({ serverTimestamps: 'estimate' }) : null;
+      $('catInfo').textContent = catalogo.length
+        ? `${catalogo.length} productos de ${unicos(catalogo.map((p) => p.l)).length} laboratorios` + (d0 && d0.actualizado ? ` · actualizado el ${fecha(d0.actualizado)} por ${d0.por || ''}` : '')
+        : 'Aún no hay catálogo cargado. Sin catálogo, los productos se escriben a mano.';
+      pintarFiltros();
     }, errorEscucha));
 
     bajas.push(onSnapshot(query(collection(db, 'pedidos'), orderBy('creado', 'desc'), limit(MAX_PEDIDOS)), (snap) => {
@@ -492,17 +604,25 @@
     if (yo.area === 'ADMIN') {
       bajas.push(onSnapshot(collection(db, 'usuarios'), (snap) => {
         usuarios = snap.docs.map((d) => ({ uid: d.id, ...d.data() })).sort((a, b) => a.usuario.localeCompare(b.usuario));
+        // Usuarios creados antes de que existieran los permisos: se les asignan los de su área
+        usuarios.filter((u) => !u.permisos && u.area !== 'ADMIN').forEach((u) => {
+          const permisos = {}; PERMISOS.forEach((p) => { permisos[p[0]] = (POR_AREA[u.area] || []).includes(p[0]); });
+          updateDoc(doc(db, 'usuarios', u.uid), { permisos }).catch(console.error);
+        });
+        const nombres = Object.fromEntries(PERMISOS.map((p) => [p[0], p[1]]));
         $('cuerpoUsr').innerHTML = usuarios.map((u) =>
-          `<tr data-id="${esc(u.uid)}"><td>${esc(u.usuario)}</td><td>${esc(u.nombre)}</td><td>${esc(u.area)}</td><td>${u.activo ? 'Sí' : 'No'}</td></tr>`).join('');
+          `<tr data-id="${esc(u.uid)}"><td>${esc(u.usuario)}${u.debeCambiar ? ' <span class="est e0">contraseña temporal</span>' : ''}</td>` +
+          `<td>${esc(u.nombre)}</td><td>${esc(u.area)}</td><td>${u.activo ? 'Sí' : 'No'}</td>` +
+          `<td class="larga quien">${u.area === 'ADMIN' ? 'Todo (administrador)' : esc(permisosDe(u).map((k) => nombres[k]).join(' · ')) || 'Solo ver'}</td></tr>`).join('');
       }, errorEscucha));
     }
-    ver('vPedidos');
   }
 
   /* ---------- Navegación ---------- */
-  const VISTAS = ['vPedidos', 'vNuevo', 'vPend', 'vDev', 'vUsuarios', 'vListas'];
+  const VISTAS = ['vPedidos', 'vNuevo', 'vPend', 'vDev', 'vUsuarios', 'vCat', 'vListas'];
   document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => ver(b.dataset.v)));
   function ver(v) {
+    vista = v;
     VISTAS.forEach((x) => $(x).classList.toggle('oculto', x !== v));
     document.querySelectorAll('nav button').forEach((b) => b.classList.toggle('act', b.dataset.v === v));
   }
@@ -521,9 +641,10 @@
   }
   function pintarFiltros() {
     const provs = unicos(listas.proveedores.concat(filas.map((f) => f.proveedor), pedidos.map((p) => p.proveedor)));
-    const labs = unicos(listas.laboratorios.concat(filas.map((f) => f.laboratorio)));
+    const labsUso = unicos(filas.map((f) => f.laboratorio));
+    const labs = unicos(listas.laboratorios.concat(labsUso, catalogo.map((p) => p.l)));
     ['fpProv', 'pProv', 'dProv'].forEach((id) => opciones($(id), provs, 'Todos los proveedores'));
-    ['pLab', 'dLab'].forEach((id) => opciones($(id), labs, 'Todos los laboratorios'));
+    ['pLab', 'dLab'].forEach((id) => opciones($(id), labsUso, 'Todos los laboratorios'));
     $('dlLab').innerHTML = labs.map((x) => `<option value="${esc(x)}">`).join('');
     $('dlFac').innerHTML = unicos(pedidos.map((p) => p.factura)).map((x) => `<option value="${esc(x)}">`).join('');
   }
@@ -541,13 +662,13 @@
     ocupado(f, false);
   });
 
-  /* ---------- Exportar ---------- */
+  /* ---------- Excel: exportar y leer ---------- */
   function cargarXlsx() {
     if (window.XLSX) return Promise.resolve();
     return new Promise((ok, mal) => {
       const s = document.createElement('script');
       s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-      s.onload = ok; s.onerror = mal;
+      s.onload = ok; s.onerror = () => mal(new Error('No se pudo cargar el lector de Excel.'));
       document.head.appendChild(s);
     });
   }
@@ -570,12 +691,15 @@
       setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     }
   }
+  const sitParcial = (f) => !(f.faltante > 0) ? '' : (f.parcialConforme ? 'Conforme' : 'Sin conformidad');
   const COLS_OBS = [
     ['ID', 'codigo'], ['Fecha observación', (f) => fecha(f.creado)], ['Observó', 'usuario'], ['Área', 'area'],
-    ['Proveedor', 'proveedor'], ['N° Factura', 'factura'], ['Laboratorio', 'laboratorio'], ['Producto', 'producto'],
+    ['Proveedor', 'proveedor'], ['N° Factura', 'factura'], ['Cód. producto', 'codProd'], ['Producto', 'producto'], ['Laboratorio', 'laboratorio'],
     ['Lote', 'lote'], ['Vencimiento', (f) => dia(f.vence)], ['Cant. observada', 'cantidad'], ['Motivo', 'motivo'], ['Observación', 'obs'],
-    ['Estado', 'estado'], ['Cant. devuelta', 'cantDevuelta'], ['N° Guía devolución', 'guia'], ['Devolvió', 'devueltoPor'],
-    ['Fecha devolución', (f) => fecha(f.devueltoFecha)], ['Precio unit.', 'precio'], ['Monto', 'monto'], ['N° NC', 'nc'],
+    ['Estado', 'estado'], ['Cant. devuelta', 'cantDevuelta'], ['Falta devolver', (f) => (f.faltante > 0 ? f.faltante : '')],
+    ['Devolución parcial', sitParcial], ['Parcial: aprobó', 'parcialPor'], ['N° Guía devolución', 'guia'], ['Devolvió', 'devueltoPor'],
+    ['Fecha devolución', (f) => fecha(f.devueltoFecha)], ['Se queda: motivo', 'quedaMotivo'], ['Se queda: decidió', 'quedaPor'],
+    ['Precio unit.', 'precio'], ['Monto', 'monto'], ['N° NC', 'nc'],
     ['Fecha NC', (f) => dia(f.fechaNc)], ['Obs. Compras', 'obsCompras'], ['Obs. Gerencia', 'obsGerencia']
   ];
   const COLS_PED = [
@@ -583,6 +707,62 @@
     ['Recepcionó', 'recibidoPor'], ['Registrado', (p) => fecha(p.creado)], ['Conformidad Compras', (p) => (p.conforme ? 'Conforme' : 'Pendiente')],
     ['Conformidad: usuario', 'conformePor'], ['Conformidad: fecha', (p) => fecha(p.conformeFecha)]
   ];
+
+  /* =====================================================================
+     CATÁLOGO DE PRODUCTOS (código, producto, laboratorio)
+     ===================================================================== */
+  // Lee el reporte "Stock Productos por Laboratorio": filas "Laboratorio : X" seguidas de filas código + descripción
+  function filasACatalogo(filasXls) {
+    let lab = ''; const out = [];
+    filasXls.forEach((r) => {
+      const c0 = String(r[0] ?? '').trim();
+      const m = c0.match(/^Laboratorio\s*:\s*(.+)$/i);
+      if (m) { lab = m[1].replace(/\s+/g, ' ').trim().toUpperCase(); return; }
+      if (!/^\d{3,}$/.test(c0)) return;
+      const nombre = r.slice(1).map((v) => String(v ?? '').replace(/\s+/g, ' ').trim()).find((v) => v && !/^[\d.,-]+$/.test(v));
+      if (nombre) out.push([c0, nombre.toUpperCase(), lab]);
+    });
+    return out;
+  }
+  $('bCat').addEventListener('click', async (e) => {
+    const b = e.currentTarget, archivo = $('catArchivo').files[0];
+    if (!archivo) return msg('catMsg', 'Elige primero el archivo.');
+    msg('catMsg', ''); b.disabled = true;
+    try {
+      let items;
+      if (/\.json$/i.test(archivo.name)) {
+        items = JSON.parse(await archivo.text());
+      } else {
+        await cargarXlsx();
+        const libro = window.XLSX.read(await archivo.arrayBuffer(), { type: 'array' });
+        items = filasACatalogo(window.XLSX.utils.sheet_to_json(libro.Sheets[libro.SheetNames[0]], { header: 1, defval: '', raw: false }));
+      }
+      items = (Array.isArray(items) ? items : []).filter((x) => Array.isArray(x) && x[0] && x[1])
+        .map((x) => [String(x[0]).trim(), String(x[1]).replace(/\t/g, ' ').trim(), String(x[2] || '').replace(/\t/g, ' ').trim()]);
+      if (!items.length) throw new Error('No se encontraron productos en el archivo. Revisa que sea el reporte correcto.');
+      if (!confirm(`Se cargarán ${items.length} productos y reemplazarán al catálogo actual. ¿Continuar?`)) { b.disabled = false; return; }
+      const lote = writeBatch(db);
+      let partes = 0;
+      for (let i = 0; i < items.length; i += TAM_CAT, partes += 1) {
+        lote.set(doc(db, 'catalogo', String(partes).padStart(3, '0')), {
+          items: items.slice(i, i + TAM_CAT).map((x) => x.join('\t')), total: items.length, actualizado: serverTimestamp(), por: firma()
+        });
+      }
+      catDocs.filter((id) => Number(id) >= partes).forEach((id) => lote.delete(doc(db, 'catalogo', id)));
+      await lote.commit();
+      $('catArchivo').value = '';
+      msg('catMsg', `Catálogo cargado: ${items.length} productos.`, 'ok');
+    } catch (err) { msg('catMsg', errorTexto(err)); }
+    b.disabled = false;
+  });
+
+  function buscarCatalogo(q) {
+    const ts = q.toLowerCase().split(/\s+/).filter(Boolean);
+    if (!ts.length || q.trim().length < 2) return [];
+    const q0 = ts[0];
+    const orden = (p) => (p.c.startsWith(q0) ? 0 : (p.n.toLowerCase().startsWith(q0) ? 1 : 2));
+    return catalogo.filter((p) => ts.every((t) => p.b.includes(t))).sort((a, b) => orden(a) - orden(b)).slice(0, 30);
+  }
 
   /* =====================================================================
      1. INGRESO DE PEDIDOS
@@ -617,6 +797,7 @@
     });
   }
   function pintarPedidos() {
+    if (!yo) return;
     const lista = pedidosFiltrados();
     const pend = pedidos.filter((x) => !x.conforme);
     contador('nPed', pend.length);
@@ -627,7 +808,7 @@
         ? `<span class="est e2">Conforme</span> <span class="quien">${esc(p.conformePor)} · ${esc(fecha(p.conformeFecha))}</span>`
         : '<span class="est e0">Pendiente</span>';
       let acc = '';
-      if (!p.conforme && CONFORMAN.includes(yo.area)) acc += `<button class="pri mini" data-conf="${esc(p._id)}">Dar conformidad</button> `;
+      if (!p.conforme && puede('conformidad')) acc += `<button class="pri mini" data-conf="${esc(p._id)}">Dar conformidad</button> `;
       if (yo.area === 'ADMIN') acc += `<button class="pel mini" data-del="${esc(p._id)}">Eliminar</button>`;
       return `<tr><td>${esc(dia(p.fechaRecepcion))}</td><td><b>${esc(p.factura)}</b></td><td>${esc(p.proveedor)}</td>` +
         `<td class="num">${esc(p.bultos)}</td><td>${esc(p.recibidoPor)}</td><td>${conf}</td><td>${acc}</td></tr>`;
@@ -656,7 +837,7 @@
   });
 
   /* =====================================================================
-     2. OBSERVAR PRODUCTOS (varios por factura)
+     2. OBSERVAR PRODUCTOS (varios por factura, con buscador de catálogo)
      ===================================================================== */
   function agregarLinea() {
     const cont = $('lineas');
@@ -666,7 +847,9 @@
     d.innerHTML =
       '<div class="cab"><span class="num"></span><button type="button" class="pel mini bQuitar">Quitar</button></div>' +
       '<div class="rejilla">' +
-      '<div class="campo ancho"><label>Producto / insumo *</label><input class="lProd" maxlength="150"></div>' +
+      '<div class="campo ancho"><label>Producto * · busca por código o por nombre</label>' +
+      '<div class="buscador"><input class="lProd" maxlength="150" placeholder="Escribe el código o parte del nombre…" autocomplete="off">' +
+      '<div class="sug oculto"></div></div><div class="quien lCodTxt" style="margin-top:4px"></div></div>' +
       '<div class="campo"><label>Laboratorio</label><input class="lLab" list="dlLab" maxlength="80"></div>' +
       '<div class="campo"><label>Lote</label><input class="lLote" maxlength="40"></div>' +
       '<div class="campo"><label>Vencimiento</label><input class="lVence" type="date"></div>' +
@@ -674,6 +857,7 @@
       '<div class="campo"><label>Motivo *</label><select class="lMot"></select></div>' +
       '<div class="campo ancho"><label>Observación</label><input class="lObs" maxlength="500"></div>' +
       '</div>';
+    d.dataset.cod = '';
     cont.appendChild(d);
     opciones(d.querySelector('.lMot'), listas.motivos, 'Elige…');
     numerarLineas();
@@ -692,6 +876,58 @@
     e.target.closest('.linea').remove();
     numerarLineas();
   });
+
+  // --- Buscador: al escribir aparecen solo las coincidencias ---
+  let sugeridos = [], sel = -1;
+  const cerrarSug = (linea) => { const s = linea.querySelector('.sug'); s.classList.add('oculto'); s.innerHTML = ''; sugeridos = []; sel = -1; };
+  function pintarSug(linea) {
+    const s = linea.querySelector('.sug');
+    s.innerHTML = sugeridos.length
+      ? sugeridos.map((p, i) => `<div data-i="${i}"${i === sel ? ' class="sel"' : ''}><b>${esc(p.c)}</b>${esc(p.n)}<small>${esc(p.l)}</small></div>`).join('')
+      : '<div class="nada">Sin coincidencias en el catálogo. Puedes escribirlo a mano.</div>';
+    s.classList.remove('oculto');
+    const act = s.querySelector('.sel'); if (act) act.scrollIntoView({ block: 'nearest' });
+  }
+  function elegir(linea, p) {
+    linea.querySelector('.lProd').value = p.n;
+    linea.querySelector('.lLab').value = p.l;
+    linea.dataset.cod = p.c;
+    linea.querySelector('.lCodTxt').textContent = `Código ${p.c} · ${p.l}`;
+    cerrarSug(linea);
+    linea.querySelector('.lLote').focus();
+  }
+  $('lineas').addEventListener('input', (e) => {
+    if (!e.target.classList.contains('lProd')) return;
+    const linea = e.target.closest('.linea');
+    linea.dataset.cod = ''; linea.querySelector('.lCodTxt').textContent = '';
+    if (!catalogo.length || e.target.value.trim().length < 2) return cerrarSug(linea);
+    sugeridos = buscarCatalogo(e.target.value); sel = sugeridos.length ? 0 : -1;
+    pintarSug(linea);
+  });
+  $('lineas').addEventListener('keydown', (e) => {
+    if (!e.target.classList.contains('lProd')) return;
+    const linea = e.target.closest('.linea');
+    if (linea.querySelector('.sug').classList.contains('oculto')) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!sugeridos.length) return;
+      sel = (sel + (e.key === 'ArrowDown' ? 1 : -1) + sugeridos.length) % sugeridos.length;
+      pintarSug(linea);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (sugeridos[sel]) elegir(linea, sugeridos[sel]); else cerrarSug(linea);
+    } else if (e.key === 'Escape') cerrarSug(linea);
+  });
+  $('lineas').addEventListener('mousedown', (e) => {
+    const op = e.target.closest('.sug div[data-i]');
+    if (!op) return;
+    e.preventDefault();
+    elegir(op.closest('.linea'), sugeridos[Number(op.dataset.i)]);
+  });
+  $('lineas').addEventListener('focusout', (e) => {
+    if (e.target.classList.contains('lProd')) cerrarSug(e.target.closest('.linea'));
+  });
+
   // Si la factura ya fue ingresada como pedido, se completa el proveedor
   $('nFac').addEventListener('change', () => {
     const p = pedidos.find((x) => x.factura === may($('nFac').value, 40));
@@ -707,9 +943,9 @@
     [...$('lineas').children].forEach((l, i) => {
       const v = (c) => l.querySelector(c).value;
       const producto = may(v('.lProd'), 150), cantidad = Number(v('.lCant')), motivo = v('.lMot');
-      if (!producto && !v('.lCant') && !motivo && !v('.lLote') && !v('.lLab')) return; // línea vacía: se ignora
+      if (!producto && !v('.lCant') && !motivo && !v('.lLote')) return; // línea vacía: se ignora
       if (!producto || !(cantidad > 0) || !motivo) { falta = falta || `Producto ${i + 1}: completa producto, cantidad y motivo.`; return; }
-      lineas.push({ producto, laboratorio: may(v('.lLab'), 80), lote: may(v('.lLote'), 40), vence: v('.lVence'), cantidad, motivo, obs: txt(v('.lObs'), 500) });
+      lineas.push({ codProd: l.dataset.cod || '', producto, laboratorio: may(v('.lLab'), 80), lote: may(v('.lLote'), 40), vence: v('.lVence'), cantidad, motivo, obs: txt(v('.lObs'), 500) });
     });
     if (falta) return msg('nuevoMsg', falta);
     if (!lineas.length) return msg('nuevoMsg', 'Agrega al menos un producto observado.');
@@ -717,7 +953,8 @@
     const base = {
       creado: serverTimestamp(), uid: yo.uid, usuario: firma(), area: yo.area, proveedor, factura, estado: ESTADOS[0],
       obsCompras: '', comprasUsuario: '', comprasFecha: null, obsGerencia: '', gerenciaUsuario: '', gerenciaFecha: null,
-      cantDevuelta: null, guia: '', devueltoPor: '', devueltoFecha: null,
+      cantDevuelta: null, faltante: null, parcialConforme: null, parcialPor: '', parcialFecha: null,
+      guia: '', devueltoPor: '', devueltoFecha: null, quedaMotivo: '', quedaPor: '', quedaFecha: null,
       precio: null, monto: null, nc: '', fechaNc: '', actPor: '', actFecha: null
     };
     try {
@@ -748,8 +985,10 @@
   /* =====================================================================
      3 y 4. POR DEVOLVER / DEVUELTOS Y NC  (agrupados por factura)
      ===================================================================== */
-  const claseEstado = (e) => { const i = ESTADOS.indexOf(e); return 'est e' + (i < 0 ? 3 : i); };
+  const claseEstado = (e) => { const i = ESTADOS.indexOf(e); return 'est e' + (i < 0 ? 4 : i); };
   const clave = (f) => `${f.proveedor}|${f.factura}`;
+  const parcialPend = (f) => f.estado !== 'Anulado' && f.faltante > 0 && f.parcialConforme !== true;
+  const prodTxt = (f) => `${esc(f.producto)}${f.codProd ? `<div class="quien">Cód. ${esc(f.codProd)}</div>` : ''}`;
   function agrupar(lista) {
     const m = new Map();
     lista.forEach((f) => { const k = clave(f); if (!m.has(k)) m.set(k, []); m.get(k).push(f); });
@@ -760,167 +999,231 @@
     return lista.filter((f) => {
       if (prov && f.proveedor !== prov) return false;
       if (lab && f.laboratorio !== lab) return false;
-      if (t && ![f.codigo, f.producto, f.factura, f.lote, f.nc, f.guia, f.motivo, f.obs].join(' ').toLowerCase().includes(t)) return false;
+      if (t && ![f.codigo, f.codProd, f.producto, f.factura, f.lote, f.nc, f.guia, f.motivo, f.obs].join(' ').toLowerCase().includes(t)) return false;
       return true;
     });
   }
-  const pendFiltradas = () => filtrar(filas.filter((f) => f.estado === 'Por devolver'), $('pProv').value, $('pLab').value, $('pTxt').value);
+  const pendFiltradas = () => filtrar(filas.filter((f) => f.estado === $('pEst').value), $('pProv').value, $('pLab').value, $('pTxt').value);
   const devFiltradas = () => {
     const e = $('dEst').value;
-    return filtrar(filas.filter((f) => (e ? f.estado === e : (f.estado === 'Devuelto' || f.estado === 'NC recibida'))),
-      $('dProv').value, $('dLab').value, $('dTxt').value);
+    const base = filas.filter((f) => (e === 'PARCIAL' ? (parcialPend(f) && (f.estado === 'Devuelto' || f.estado === 'NC recibida'))
+      : (e ? f.estado === e : (f.estado === 'Devuelto' || f.estado === 'NC recibida'))));
+    return filtrar(base, $('dProv').value, $('dLab').value, $('dTxt').value);
   };
-  const cabGrupo = (k, items, cols, boton) => {
+  const cabGrupo = (items, cols, botones) => {
     const f = items[0];
     return `<tr class="grupo"><td colspan="${cols}"><div class="gtit"><span><b>${esc(f.proveedor)}</b> · Factura <b>${esc(f.factura) || 's/n'}</b> · ` +
-      `${items.length} producto${items.length === 1 ? '' : 's'}</span>${boton}</div></td></tr>`;
+      `${items.length} producto${items.length === 1 ? '' : 's'}</span>${botones}</div></td></tr>`;
   };
 
   function pintarPend() {
+    if (!yo) return;
+    const quedan = $('pEst').value === 'Se queda';
     const lista = pendFiltradas(), grupos = agrupar(lista);
     contador('nPend', filas.filter((f) => f.estado === 'Por devolver').length);
-    $('resPend').textContent = `${lista.length} producto(s) por devolver en ${grupos.size} factura(s)`;
+    $('resPend').textContent = quedan
+      ? `${lista.length} producto(s) que se quedan por decisión de Compras o Gerencia`
+      : `${lista.length} producto(s) por devolver en ${grupos.size} factura(s)`;
     let h = '';
     grupos.forEach((items, k) => {
-      h += cabGrupo(k, items, 9, DEVUELVEN.includes(yo.area) ? `<button class="pri mini" data-g="${esc(k)}">Registrar devolución</button>` : '');
+      let bot = '';
+      if (!quedan && puede('devolver')) bot += `<button class="pri mini" data-g="${esc(k)}" data-m="dev">Registrar devolución</button>`;
+      if (!quedan && puede('decidir')) bot += `<button class="mini" data-g="${esc(k)}" data-m="queda">Se queda (no devolver)</button>`;
+      h += cabGrupo(items, 9, bot);
       h += items.map((f) =>
-        `<tr data-id="${esc(f._id)}"><td>${esc(f.codigo)}</td><td>${esc(fecha(f.creado))}</td><td class="larga">${esc(f.producto)}</td>` +
+        `<tr data-id="${esc(f._id)}"><td>${esc(f.codigo)}</td><td>${esc(fecha(f.creado))}</td><td class="larga">${prodTxt(f)}` +
+        (quedan ? `<div class="quien"><span class="est e3">Se queda</span> ${esc(f.quedaMotivo)} · ${esc(f.quedaPor)}</div>` : '') + '</td>' +
         `<td>${esc(f.laboratorio)}</td><td>${esc(f.lote)}</td><td>${esc(dia(f.vence))}</td><td class="num">${esc(f.cantidad)}</td>` +
         `<td>${esc(f.motivo)}</td><td>${esc(f.usuario)} · ${esc(f.area)}</td></tr>`).join('');
     });
-    $('cuerpoPend').innerHTML = h || '<tr><td colspan="9" class="vacio">No hay productos por devolver</td></tr>';
+    $('cuerpoPend').innerHTML = h || `<tr><td colspan="9" class="vacio">${quedan ? 'Ningún producto se ha quedado' : 'No hay productos por devolver'}</td></tr>`;
   }
   function pintarDev() {
+    if (!yo) return;
     const lista = devFiltradas(), grupos = agrupar(lista);
-    const sinNc = filas.filter((f) => f.estado === 'Devuelto');
-    contador('nDev', sinNc.length);
+    contador('nDev', filas.filter((f) => f.estado === 'Devuelto').length);
     const suma = (arr) => arr.reduce((s, f) => s + (Number(f.monto) || 0), 0);
+    const parc = filas.filter((f) => parcialPend(f) && (f.estado === 'Devuelto' || f.estado === 'NC recibida')).length;
     $('resDev').textContent = `${lista.length} producto(s) devuelto(s) · pendiente de NC: ${soles(suma(lista.filter((f) => f.estado === 'Devuelto')))}` +
       ` · NC recibidas: ${soles(suma(lista.filter((f) => f.estado === 'NC recibida')))}` +
-      ` · sin precio: ${lista.filter((f) => f.precio === null || f.precio === undefined).length}`;
+      ` · sin precio: ${lista.filter((f) => f.precio === null || f.precio === undefined).length}` +
+      (parc ? ` · ${parc} devolución(es) parcial(es) sin conformidad` : '');
     let h = '';
     grupos.forEach((items, k) => {
-      h += cabGrupo(k, items, 11, VALORIZAN.includes(yo.area) ? `<button class="pri mini" data-g="${esc(k)}">Precios y nota de crédito</button>` : '');
-      h += items.map((f) =>
-        `<tr data-id="${esc(f._id)}"><td>${esc(f.codigo)}</td><td class="larga">${esc(f.producto)}</td><td>${esc(f.laboratorio)}</td>` +
-        `<td class="num">${esc(f.cantidad)}</td><td class="num">${esc(f.cantDevuelta)}</td><td>${esc(f.guia)}</td>` +
-        `<td>${esc(f.devueltoPor)}<div class="quien">${esc(fecha(f.devueltoFecha))}</div></td>` +
-        `<td class="num">${esc(soles(f.precio))}</td><td class="num">${esc(soles(f.monto))}</td><td>${esc(f.nc) || '<span class="quien">Pendiente</span>'}</td>` +
-        `<td><span class="${claseEstado(f.estado)}">${f.estado === 'Devuelto' ? 'NC pendiente' : esc(f.estado)}</span></td></tr>`).join('');
+      let bot = '';
+      if (puede('precios')) bot += `<button class="pri mini" data-g="${esc(k)}" data-m="nc">Precios y nota de crédito</button>`;
+      if (puede('decidir') && items.some(parcialPend)) bot += `<button class="mini" data-g="${esc(k)}" data-m="parcial">Conformidad de devolución parcial</button>`;
+      h += cabGrupo(items, 12, bot);
+      h += items.map((f) => {
+        const falta = !(f.faltante > 0) ? '' : (f.parcialConforme
+          ? `<b>${esc(f.faltante)}</b> <span class="est e2">conforme</span><div class="quien">${esc(f.parcialPor)}</div>`
+          : `<b>${esc(f.faltante)}</b> <span class="est alerta">sin conformidad</span>`);
+        return `<tr data-id="${esc(f._id)}"><td>${esc(f.codigo)}</td><td class="larga">${prodTxt(f)}</td><td>${esc(f.laboratorio)}</td>` +
+          `<td class="num">${esc(f.cantidad)}</td><td class="num">${esc(f.cantDevuelta)}</td><td>${falta}</td><td>${esc(f.guia)}</td>` +
+          `<td>${esc(f.devueltoPor)}<div class="quien">${esc(fecha(f.devueltoFecha))}</div></td>` +
+          `<td class="num">${esc(soles(f.precio))}</td><td class="num">${esc(soles(f.monto))}</td><td>${esc(f.nc) || '<span class="quien">Pendiente</span>'}</td>` +
+          `<td><span class="${claseEstado(f.estado)}">${f.estado === 'Devuelto' ? 'NC pendiente' : esc(f.estado)}</span></td></tr>`;
+      }).join('');
     });
-    $('cuerpoDev').innerHTML = h || '<tr><td colspan="11" class="vacio">Sin productos en esta lista</td></tr>';
+    $('cuerpoDev').innerHTML = h || '<tr><td colspan="12" class="vacio">Sin productos en esta lista</td></tr>';
   }
-  ['pProv', 'pLab'].forEach((id) => $(id).addEventListener('change', pintarPend));
+  ['pEst', 'pProv', 'pLab'].forEach((id) => $(id).addEventListener('change', pintarPend));
   $('pTxt').addEventListener('input', pintarPend);
   ['dEst', 'dProv', 'dLab'].forEach((id) => $(id).addEventListener('change', pintarDev));
   $('dTxt').addEventListener('input', pintarDev);
-  $('bExpPend').addEventListener('click', () => exportar('por-devolver', COLS_OBS, pendFiltradas()));
+  $('bExpPend').addEventListener('click', () => exportar($('pEst').value === 'Se queda' ? 'se-quedan' : 'por-devolver', COLS_OBS, pendFiltradas()));
   $('bExpDev').addEventListener('click', () => exportar('devueltos-nc', COLS_OBS, devFiltradas()));
 
-  $('cuerpoPend').addEventListener('click', (e) => {
+  const clicTabla = (e) => {
     const b = e.target.closest('button[data-g]');
-    if (b) return dlgDevolucion(b.dataset.g);
+    if (b) return dlgGrupo(b.dataset.g, b.dataset.m);
     const tr = e.target.closest('tr[data-id]');
     if (tr) detalle(tr.dataset.id);
-  });
-  $('cuerpoDev').addEventListener('click', (e) => {
-    const b = e.target.closest('button[data-g]');
-    if (b) return dlgPrecios(b.dataset.g);
-    const tr = e.target.closest('tr[data-id]');
-    if (tr) detalle(tr.dataset.id);
-  });
+  };
+  $('cuerpoPend').addEventListener('click', clicTabla);
+  $('cuerpoDev').addEventListener('click', clicTabla);
 
-  /* ---------- Recepción confirma la devolución de una factura ---------- */
-  let grupoAbierto = null, modo = '';
-  function dlgDevolucion(k) {
-    const items = filas.filter((f) => clave(f) === k && f.estado === 'Por devolver');
-    if (!items.length) return;
-    grupoAbierto = k; modo = 'dev'; abierto = null;
-    $('dTit').textContent = `Devolución · ${items[0].proveedor} · Factura ${items[0].factura || 's/n'}`;
-    $('dCuerpo').innerHTML = '<div id="dMsg"></div>' +
-      '<p class="quien">Marca lo que se devolvió al proveedor y corrige la cantidad si fue distinta a la observada.</p>' +
-      '<div class="tabla"><table class="gtabla"><thead><tr><th>Devuelto</th><th>Producto</th><th class="num">Observado</th><th>Cant. devuelta</th></tr></thead><tbody>' +
-      items.map((f) =>
-        `<tr data-i="${esc(f._id)}"><td><input type="checkbox" class="gSel" checked aria-label="Devuelto ${esc(f.codigo)}"></td>` +
-        `<td class="larga"><b>${esc(f.codigo)}</b> ${esc(f.producto)}<div class="quien">${esc(f.motivo)} · observó ${esc(f.usuario)}</div></td>` +
-        `<td class="num">${esc(f.cantidad)}</td>` +
-        `<td><input type="number" class="gCant" min="0" step="any" value="${esc(f.cantidad)}" aria-label="Cantidad devuelta ${esc(f.codigo)}"></td></tr>`).join('') +
-      '</tbody></table></div>' +
-      '<div class="campo" style="margin-top:14px"><label for="gGuia">N° de guía de devolución *</label><input id="gGuia" maxlength="40"></div>' +
-      '<button class="pri" id="gGuardar">Confirmar devolución</button>';
+  /* ---------- Acciones por factura ---------- */
+  let modo = '';
+  function dlgGrupo(k, m) {
+    const deFactura = filas.filter((f) => clave(f) === k);
+    const pendientes = deFactura.filter((f) => f.estado === 'Por devolver');
+    const devueltos = deFactura.filter((f) => f.estado === 'Devuelto' || f.estado === 'NC recibida');
+    const f0 = deFactura[0];
+    if (!f0) return;
+    const tit = `${f0.proveedor} · Factura ${f0.factura || 's/n'}`;
+    let h = '<div id="dMsg"></div>';
+
+    if (m === 'dev') { // Recepción confirma lo devuelto
+      if (!pendientes.length) return;
+      $('dTit').textContent = 'Devolución · ' + tit;
+      h += '<p class="quien">Marca lo que se devolvió al proveedor. Si devolviste menos de lo observado, corrige la cantidad: quedará como devolución parcial hasta que Compras o Gerencia den su conformidad.</p>' +
+        '<div class="tabla"><table class="gtabla"><thead><tr><th>Devuelto</th><th>Producto</th><th class="num">Observado</th><th>Cant. devuelta</th><th>Falta</th></tr></thead><tbody>' +
+        pendientes.map((f) =>
+          `<tr data-i="${esc(f._id)}" data-c="${esc(f.cantidad)}"><td><input type="checkbox" class="gSel" checked aria-label="Devuelto ${esc(f.codigo)}"></td>` +
+          `<td class="larga"><b>${esc(f.codigo)}</b> ${esc(f.producto)}<div class="quien">${f.codProd ? 'Cód. ' + esc(f.codProd) + ' · ' : ''}${esc(f.motivo)} · observó ${esc(f.usuario)}</div></td>` +
+          `<td class="num">${esc(f.cantidad)}</td>` +
+          `<td><input type="number" class="gCant" min="0" step="any" value="${esc(f.cantidad)}" aria-label="Cantidad devuelta ${esc(f.codigo)}"></td><td class="gFalta"></td></tr>`).join('') +
+        '</tbody></table></div>' +
+        '<div class="campo" style="margin-top:14px"><label for="gGuia">N° de guía de devolución *</label><input id="gGuia" maxlength="40"></div>' +
+        '<button class="pri" id="gGuardar">Confirmar devolución</button>';
+    } else if (m === 'queda') { // Compras o Gerencia deciden que no se devuelve
+      if (!pendientes.length) return;
+      $('dTit').textContent = 'Se queda · ' + tit;
+      h += '<p class="quien">Marca los productos que NO se devolverán. Salen de la lista de Recepción y quedan registrados con tu nombre.</p>' +
+        '<div class="tabla"><table class="gtabla"><thead><tr><th>Se queda</th><th>Producto</th><th class="num">Observado</th><th>Motivo de la observación</th></tr></thead><tbody>' +
+        pendientes.map((f) =>
+          `<tr data-i="${esc(f._id)}"><td><input type="checkbox" class="gSel" aria-label="Se queda ${esc(f.codigo)}"></td>` +
+          `<td class="larga"><b>${esc(f.codigo)}</b> ${esc(f.producto)}</td><td class="num">${esc(f.cantidad)}</td><td>${esc(f.motivo)}</td></tr>`).join('') +
+        '</tbody></table></div>' +
+        '<div class="campo" style="margin-top:14px"><label for="gMotivo">Motivo por el que se queda *</label><input id="gMotivo" maxlength="300" placeholder="Ej.: Gerencia autoriza quedarse con el producto"></div>' +
+        '<button class="pri" id="gGuardar">Confirmar que se queda</button>';
+    } else if (m === 'parcial') { // conformidad de que solo se devolvió una parte
+      const parc = devueltos.filter(parcialPend);
+      if (!parc.length) return;
+      $('dTit').textContent = 'Devolución parcial · ' + tit;
+      h += '<p class="quien">Estos productos se devolvieron en menor cantidad que la observada. Marca los que apruebas: confirmas que es correcto que solo se devolvió esa parte.</p>' +
+        '<div class="tabla"><table class="gtabla"><thead><tr><th>Conforme</th><th>Producto</th><th class="num">Observado</th><th class="num">Devuelto</th><th class="num">Falta</th><th>Devolvió</th></tr></thead><tbody>' +
+        parc.map((f) =>
+          `<tr data-i="${esc(f._id)}"><td><input type="checkbox" class="gSel" checked aria-label="Conforme ${esc(f.codigo)}"></td>` +
+          `<td class="larga"><b>${esc(f.codigo)}</b> ${esc(f.producto)}</td><td class="num">${esc(f.cantidad)}</td><td class="num">${esc(f.cantDevuelta)}</td>` +
+          `<td class="num"><b>${esc(f.faltante)}</b></td><td>${esc(f.devueltoPor)}</td></tr>`).join('') +
+        '</tbody></table></div>' +
+        '<div class="campo" style="margin-top:14px"><label for="gMotivo">Comentario (opcional)</label><input id="gMotivo" maxlength="300"></div>' +
+        '<button class="pri" id="gGuardar">Dar conformidad</button>';
+    } else { // precios y nota de crédito
+      if (!devueltos.length) return;
+      $('dTit').textContent = 'Precios y NC · ' + tit;
+      const fnc = (devueltos.find((f) => f.fechaNc) || {}).fechaNc || '';
+      h += '<div class="rejilla">' +
+        '<div class="campo"><label for="gNcTodos">N° de NC para todos los productos</label><input id="gNcTodos" maxlength="40" placeholder="Vacío = NC pendiente"></div>' +
+        `<div class="campo"><label for="gFechaNc">Fecha de la NC</label><input id="gFechaNc" type="date" value="${esc(fnc)}"></div>` +
+        '</div>' +
+        '<div class="tabla"><table class="gtabla"><thead><tr><th>Producto</th><th class="num">Cant. devuelta</th><th>Precio unit. (S/)</th><th class="num">Monto</th><th>N° NC</th></tr></thead><tbody>' +
+        devueltos.map((f) =>
+          `<tr data-i="${esc(f._id)}" data-c="${esc(f.cantDevuelta ?? 0)}"><td class="larga"><b>${esc(f.codigo)}</b> ${esc(f.producto)}<div class="quien">${f.codProd ? 'Cód. ' + esc(f.codProd) + ' · ' : ''}Guía ${esc(f.guia)}</div></td>` +
+          `<td class="num">${esc(f.cantDevuelta)}</td>` +
+          `<td><input type="number" class="gPrecio" min="0" step="0.0001" value="${esc(f.precio ?? '')}" aria-label="Precio ${esc(f.codigo)}"></td>` +
+          `<td class="num gMonto">${esc(soles(f.monto))}</td>` +
+          `<td><input class="gNc" maxlength="40" value="${esc(f.nc)}" placeholder="Pendiente" aria-label="NC ${esc(f.codigo)}"></td></tr>`).join('') +
+        '</tbody></table></div>' +
+        '<p class="quien" id="gTotal" style="margin:10px 0"></p>' +
+        '<button class="pri" id="gGuardar">Guardar</button>';
+    }
+    modo = m; abierto = null;
+    $('dCuerpo').innerHTML = h;
+    recalcular();
     if (!$('dlg').open) $('dlg').showModal();
   }
-
-  /* ---------- Compras pone precios y nota de crédito de una factura ---------- */
-  function dlgPrecios(k) {
-    const items = filas.filter((f) => clave(f) === k && (f.estado === 'Devuelto' || f.estado === 'NC recibida'));
-    if (!items.length) return;
-    grupoAbierto = k; modo = 'nc'; abierto = null;
-    $('dTit').textContent = `Precios y NC · ${items[0].proveedor} · Factura ${items[0].factura || 's/n'}`;
-    const fnc = (items.find((f) => f.fechaNc) || {}).fechaNc || '';
-    $('dCuerpo').innerHTML = '<div id="dMsg"></div>' +
-      '<div class="rejilla">' +
-      '<div class="campo"><label for="gNcTodos">N° de NC para todos los productos</label><input id="gNcTodos" maxlength="40" placeholder="Vacío = NC pendiente"></div>' +
-      `<div class="campo"><label for="gFechaNc">Fecha de la NC</label><input id="gFechaNc" type="date" value="${esc(fnc)}"></div>` +
-      '</div>' +
-      '<div class="tabla"><table class="gtabla"><thead><tr><th>Producto</th><th class="num">Cant. devuelta</th><th>Precio unit. (S/)</th><th class="num">Monto</th><th>N° NC</th></tr></thead><tbody>' +
-      items.map((f) =>
-        `<tr data-i="${esc(f._id)}" data-c="${esc(f.cantDevuelta ?? 0)}"><td class="larga"><b>${esc(f.codigo)}</b> ${esc(f.producto)}<div class="quien">Guía ${esc(f.guia)}</div></td>` +
-        `<td class="num">${esc(f.cantDevuelta)}</td>` +
-        `<td><input type="number" class="gPrecio" min="0" step="0.0001" value="${esc(f.precio ?? '')}" aria-label="Precio ${esc(f.codigo)}"></td>` +
-        `<td class="num gMonto">${esc(soles(f.monto))}</td>` +
-        `<td><input class="gNc" maxlength="40" value="${esc(f.nc)}" placeholder="Pendiente" aria-label="NC ${esc(f.codigo)}"></td></tr>`).join('') +
-      '</tbody></table></div>' +
-      '<p class="quien" id="gTotal" style="margin:10px 0"></p>' +
-      '<button class="pri" id="gGuardar">Guardar</button>';
-    totalPrecios();
-    if (!$('dlg').open) $('dlg').showModal();
-  }
-  function totalPrecios() {
-    let total = 0;
-    $('dCuerpo').querySelectorAll('tr[data-i]').forEach((tr) => {
-      const p = tr.querySelector('.gPrecio').value;
-      const m = p === '' ? null : Math.round(Number(p) * Number(tr.dataset.c) * 100) / 100;
-      tr.querySelector('.gMonto').textContent = soles(m);
-      total += m || 0;
-    });
-    $('gTotal').textContent = 'Total de la devolución: ' + soles(total);
+  function recalcular() {
+    if (modo === 'dev') {
+      $('dCuerpo').querySelectorAll('tr[data-i]').forEach((tr) => {
+        const falta = num(Number(tr.dataset.c) - Number(tr.querySelector('.gCant').value));
+        tr.querySelector('.gFalta').innerHTML = (tr.querySelector('.gSel').checked && falta > 0) ? `<span class="est alerta">Falta ${falta}</span>` : '';
+      });
+    } else if (modo === 'nc') {
+      let total = 0;
+      $('dCuerpo').querySelectorAll('tr[data-i]').forEach((tr) => {
+        const p = tr.querySelector('.gPrecio').value;
+        const m = p === '' ? null : Math.round(Number(p) * Number(tr.dataset.c) * 100) / 100;
+        tr.querySelector('.gMonto').textContent = soles(m);
+        total += m || 0;
+      });
+      $('gTotal').textContent = 'Total de la devolución: ' + soles(total);
+    }
   }
   $('dCuerpo').addEventListener('input', (e) => {
-    if (modo !== 'nc') return;
     if (e.target.id === 'gNcTodos') $('dCuerpo').querySelectorAll('.gNc').forEach((i) => { i.value = e.target.value; });
-    if (e.target.classList.contains('gPrecio')) totalPrecios();
+    if (e.target.matches('.gPrecio, .gCant, .gSel')) recalcular();
   });
 
   async function guardarGrupo(b) {
-    const filasDlg = [...$('dCuerpo').querySelectorAll('tr[data-i]')];
+    const trs = [...$('dCuerpo').querySelectorAll('tr[data-i]')];
     const lote = writeBatch(db);
+    const pie = { actPor: firma(), actFecha: serverTimestamp() };
     let n = 0;
     if (modo === 'dev') {
       const guia = may($('gGuia').value, 40);
       if (!guia) return msg('dMsg', 'Escribe el número de guía de devolución.');
-      for (const tr of filasDlg) {
+      for (const tr of trs) {
         if (!tr.querySelector('.gSel').checked) continue;
         const c = Number(tr.querySelector('.gCant').value);
         if (!(c > 0)) return msg('dMsg', 'La cantidad devuelta debe ser mayor que cero. Si un producto no se devolvió, desmárcalo.');
+        const falta = num(Number(tr.dataset.c) - c);
         lote.update(doc(db, 'observaciones', tr.dataset.i), {
-          estado: 'Devuelto', cantDevuelta: c, guia, devueltoPor: firma(), devueltoFecha: serverTimestamp(),
-          actPor: firma(), actFecha: serverTimestamp()
+          estado: 'Devuelto', cantDevuelta: c, faltante: falta > 0 ? falta : 0, parcialConforme: falta > 0 ? false : null,
+          guia, devueltoPor: firma(), devueltoFecha: serverTimestamp(), ...pie
         });
         n += 1;
       }
       if (!n) return msg('dMsg', 'Marca al menos un producto devuelto.');
+    } else if (modo === 'queda') {
+      const motivo = txt($('gMotivo').value, 300);
+      if (!motivo) return msg('dMsg', 'Escribe el motivo por el que se queda.');
+      for (const tr of trs) {
+        if (!tr.querySelector('.gSel').checked) continue;
+        lote.update(doc(db, 'observaciones', tr.dataset.i), { estado: 'Se queda', quedaMotivo: motivo, quedaPor: firma(), quedaFecha: serverTimestamp(), ...pie });
+        n += 1;
+      }
+      if (!n) return msg('dMsg', 'Marca al menos un producto.');
+    } else if (modo === 'parcial') {
+      const nota = txt($('gMotivo').value, 300);
+      for (const tr of trs) {
+        if (!tr.querySelector('.gSel').checked) continue;
+        lote.update(doc(db, 'observaciones', tr.dataset.i), { parcialConforme: true, parcialPor: firma() + (nota ? ' — ' + nota : ''), parcialFecha: serverTimestamp(), ...pie });
+        n += 1;
+      }
+      if (!n) return msg('dMsg', 'Marca al menos un producto.');
     } else {
       const fnc = $('gFechaNc').value;
-      for (const tr of filasDlg) {
+      for (const tr of trs) {
         const p = tr.querySelector('.gPrecio').value, nc = may(tr.querySelector('.gNc').value, 40);
         if (p !== '' && !(Number(p) >= 0)) return msg('dMsg', 'Hay un precio no válido.');
         const precio = p === '' ? null : Number(p);
         lote.update(doc(db, 'observaciones', tr.dataset.i), {
           precio, monto: precio === null ? null : Math.round(precio * Number(tr.dataset.c) * 100) / 100,
-          nc, fechaNc: nc ? fnc : '', estado: nc ? 'NC recibida' : 'Devuelto', actPor: firma(), actFecha: serverTimestamp()
+          nc, fechaNc: nc ? fnc : '', estado: nc ? 'NC recibida' : 'Devuelto', ...pie
         });
-        n += 1;
       }
     }
     b.disabled = true;
@@ -939,9 +1242,15 @@
     $('dTit').textContent = `${f.codigo} · ${f.proveedor} · Factura ${f.factura || 's/n'}`;
     let h = '<div id="dMsg"></div><div class="datos">' +
       dato('Estado', f.estado === 'Devuelto' ? 'Devuelto · NC pendiente' : f.estado) + dato('Fecha', fecha(f.creado)) +
-      dato('Observó', `${f.usuario} · ${f.area}`) + dato('Producto', f.producto) + dato('Laboratorio', f.laboratorio) +
+      dato('Observó', `${f.usuario} · ${f.area}`) + dato('Código', f.codProd) + dato('Producto', f.producto) + dato('Laboratorio', f.laboratorio) +
       dato('Lote', f.lote) + dato('Vencimiento', dia(f.vence)) + dato('Cantidad observada', f.cantidad) + dato('Motivo', f.motivo) +
       '</div>' + dato('Observación', f.obs);
+
+    if (f.estado === 'Se queda') {
+      h += '<div class="bloque"><h3>Se queda (no se devuelve)</h3><div class="datos">' + dato('Motivo', f.quedaMotivo) +
+        dato('Decidió', f.quedaPor ? `${f.quedaPor} · ${fecha(f.quedaFecha)}` : '') + '</div>' +
+        (puede('decidir') ? '<button id="dVolver">Volver a "Por devolver"</button>' : '') + '</div>';
+    }
 
     const bloque = (titulo, area, texto, quien, cuando, boton) => {
       let b = `<div class="bloque"><h3>${titulo}</h3>`;
@@ -955,6 +1264,10 @@
     h += bloque('Comentario de Gerencia', 'GERENCIA', f.obsGerencia, f.gerenciaUsuario, f.gerenciaFecha, 'Guardar comentario');
 
     h += '<div class="bloque"><h3>Devolución y nota de crédito</h3>';
+    if (f.faltante > 0) {
+      h += `<div class="msg ${f.parcialConforme ? 'ok' : 'err'}">Devolución parcial: se devolvieron ${esc(f.cantDevuelta)} de ${esc(f.cantidad)}, faltan ${esc(f.faltante)}. ` +
+        (f.parcialConforme ? `Conforme: ${esc(f.parcialPor)} · ${esc(fecha(f.parcialFecha))}` : 'Pendiente de conformidad de Compras o Gerencia.') + '</div>';
+    }
     if (yo.area === 'ADMIN') {
       h += '<div class="rejilla">' +
         '<div class="campo"><label for="aEst">Estado</label><select id="aEst">' +
@@ -980,11 +1293,13 @@
   $('dCuerpo').addEventListener('click', async (e) => {
     const b = e.target;
     if (b.id === 'gGuardar') return guardarGrupo(b);
-    if (b.id !== 'dGuardar' && b.id !== 'dAdmin') return;
+    if (!['dGuardar', 'dAdmin', 'dVolver'].includes(b.id)) return;
     const f = filas.find((x) => x._id === abierto);
     if (!f) return;
     let cambios;
-    if (b.id === 'dGuardar') {
+    if (b.id === 'dVolver') {
+      cambios = { estado: 'Por devolver', quedaMotivo: '', quedaPor: '', quedaFecha: null };
+    } else if (b.id === 'dGuardar') {
       const texto = txt($('dTexto').value, 500);
       if (!texto) return msg('dMsg', 'Escribe el comentario.');
       cambios = yo.area === 'COMPRAS'
@@ -994,11 +1309,13 @@
       const c = $('aCant').value, p = $('aPrecio').value;
       if ((c !== '' && !(Number(c) >= 0)) || (p !== '' && !(Number(p) >= 0))) return msg('dMsg', 'Cantidad o precio no válido.');
       const cant = c === '' ? null : Number(c), precio = p === '' ? null : Number(p);
+      const falta = cant === null ? null : Math.max(0, num(Number(f.cantidad) - cant));
       cambios = {
-        estado: $('aEst').value, cantDevuelta: cant, guia: may($('aGuia').value, 40), precio,
+        estado: $('aEst').value, cantDevuelta: cant, faltante: falta, guia: may($('aGuia').value, 40), precio,
         monto: (precio === null || cant === null) ? null : Math.round(precio * cant * 100) / 100,
         nc: may($('aNc').value, 40), fechaNc: $('aFecha').value
       };
+      if (falta !== (f.faltante ?? null)) cambios.parcialConforme = falta > 0 ? false : null;
     }
     b.disabled = true;
     try {
@@ -1008,41 +1325,50 @@
     } catch (err) { msg('dMsg', errorTexto(err)); b.disabled = false; }
   });
 
-  /* ---------- Usuarios (solo admin) ---------- */
+  /* ---------- Usuarios y permisos (solo admin) ---------- */
+  function marcarPermisos(lista, bloquear) {
+    $('uPerm').querySelectorAll('input').forEach((c) => { c.checked = lista.includes(c.value); c.disabled = !!bloquear; });
+  }
+  $('uArea').addEventListener('change', () => marcarPermisos(POR_AREA[$('uArea').value] || [], $('uArea').value === 'ADMIN'));
   $('cuerpoUsr').addEventListener('click', (e) => {
     const tr = e.target.closest('tr[data-id]');
     const u = tr && usuarios.find((x) => x.uid === tr.dataset.id);
     if (!u) return;
     $('uUsr').value = u.usuario; $('uNom').value = u.nombre; $('uArea').value = u.area;
     $('uAct').value = u.activo ? '1' : '0'; $('uClave').value = '';
+    marcarPermisos(permisosDe(u), u.area === 'ADMIN');
+    msg('usrMsg', ''); window.scrollTo(0, 0);
   });
-  $('bLimpiarUsr').addEventListener('click', () => { $('fUsr').reset(); msg('usrMsg', ''); });
+  function limpiarUsr() { $('fUsr').reset(); marcarPermisos(POR_AREA[$('uArea').value] || [], $('uArea').value === 'ADMIN'); }
+  $('bLimpiarUsr').addEventListener('click', () => { limpiarUsr(); msg('usrMsg', ''); });
 
   $('fUsr').addEventListener('submit', async (e) => {
     e.preventDefault();
     const f = e.currentTarget;
     const usuario = txt($('uUsr').value, 30).toLowerCase();
-    const datos = { usuario, nombre: txt($('uNom').value, 80), area: $('uArea').value, activo: $('uAct').value === '1' };
+    const permisos = {};
+    $('uPerm').querySelectorAll('input').forEach((c) => { permisos[c.value] = c.checked || $('uArea').value === 'ADMIN'; });
+    const datos = { usuario, nombre: txt($('uNom').value, 80), area: $('uArea').value, activo: $('uAct').value === '1', permisos };
     const pass = $('uClave').value;
     const existe = usuarios.find((x) => x.usuario === usuario);
     if (!usuarioValido(usuario)) return msg('usrMsg', 'El usuario debe tener de 3 a 30 letras o números, sin espacios.');
     if (!datos.nombre) return msg('usrMsg', 'Falta el nombre.');
     if (existe && existe.uid === yo.uid && (!datos.activo || datos.area !== 'ADMIN')) return msg('usrMsg', 'No puedes desactivarte ni quitarte el rol de administrador.');
-    if (!existe && pass.length < 6) return msg('usrMsg', 'Para un usuario nuevo, escribe una contraseña de al menos 6 caracteres.');
+    if (!existe && pass.length < 6) return msg('usrMsg', 'Para un usuario nuevo, escribe una contraseña temporal de al menos 6 caracteres.');
     msg('usrMsg', ''); ocupado(f, true);
     try {
       if (existe) {
         await updateDoc(doc(db, 'usuarios', existe.uid), datos);
-        msg('usrMsg', pass ? 'Usuario actualizado. La contraseña no se cambió: solo el propio usuario puede cambiarla.' : 'Usuario actualizado.', 'ok');
+        msg('usrMsg', pass ? 'Usuario actualizado. La contraseña no se cambió: solo el propio usuario puede cambiarla.' : 'Usuario actualizado. Sus permisos se aplican al momento.', 'ok');
       } else {
         const app2 = initializeApp(firebaseConfig, 'alta-' + Date.now()); // conexión aparte: no cierra la sesión del administrador
         const auth2 = initializeAuth(app2, { persistence: inMemoryPersistence });
         const cred = await createUserWithEmailAndPassword(auth2, usuario + DOMINIO, pass);
-        await setDoc(doc(db, 'usuarios', cred.user.uid), datos);
+        await setDoc(doc(db, 'usuarios', cred.user.uid), { ...datos, debeCambiar: true });
         await signOut(auth2);
-        msg('usrMsg', 'Usuario creado.', 'ok');
+        msg('usrMsg', `Usuario "${usuario}" creado. Entrégale su usuario y la contraseña temporal: al ingresar se le pedirá crear la suya.`, 'ok');
       }
-      f.reset();
+      limpiarUsr();
     } catch (err) { msg('usrMsg', errorTexto(err)); }
     ocupado(f, false);
   });
@@ -1054,7 +1380,7 @@
     if (!confirm(`¿Eliminar al usuario "${u.usuario}"? Ya no podrá entrar. Sus registros se conservan.`)) return;
     try {
       await deleteDoc(doc(db, 'usuarios', u.uid));
-      $('fUsr').reset();
+      limpiarUsr();
       msg('usrMsg', 'Usuario eliminado.', 'ok');
     } catch (err) { msg('usrMsg', errorTexto(err)); }
   });
