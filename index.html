@@ -75,6 +75,7 @@
   .sug div b { color:var(--pri); margin-right:6px; }
   .sug div small { color:var(--gris); margin-left:6px; }
   .sug .nada { color:var(--gris); cursor:default; background:#fff !important; }
+  .sug .nuevo { color:var(--pri); font-weight:600; }
   .permisos { display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:10px 14px; margin-bottom:12px; }
   .permisos label { display:flex; gap:8px; align-items:center; font-weight:500; font-size:14px; color:inherit; margin:0; }
   .permisos fieldset { border:1px solid var(--borde); border-radius:10px; padding:6px 12px 10px; margin:0; display:grid; gap:6px; align-content:start; background:#fbfaf8; }
@@ -163,11 +164,11 @@
       <div class="caja" id="cajaPedido">
         <h2 class="sec">Registrar pedido recibido</h2>
         <div id="pedMsg"></div>
-        <form id="fPedido">
+        <form id="fPedido" autocomplete="off">
           <div class="rejilla">
             <div class="campo"><label for="peFecha">Fecha de recepción *</label><input id="peFecha" type="date" required></div>
             <div class="campo"><label for="peFac">N° de factura *</label><input id="peFac" maxlength="40" placeholder="F140-354" required></div>
-            <div class="campo"><label for="peProv">Proveedor *</label><select id="peProv" required></select></div>
+            <div class="campo"><label for="peProv">Proveedor *</label><div class="buscador"><input id="peProv" maxlength="80" placeholder="Escribe para buscar…" autocomplete="off" required><div class="sug oculto"></div></div></div>
             <div class="campo"><label for="peBultos">Cantidad de bultos *</label><input id="peBultos" type="number" min="1" step="1" required></div>
           </div>
           <div class="fila-bot">
@@ -201,7 +202,7 @@
           <h2 class="sec">Factura</h2>
           <div class="rejilla">
             <div class="campo"><label for="nFac">N° de factura *</label><input id="nFac" list="dlFac" maxlength="40" placeholder="F140-354" required><datalist id="dlFac"></datalist></div>
-            <div class="campo"><label for="nProv">Proveedor *</label><select id="nProv" required></select></div>
+            <div class="campo"><label for="nProv">Proveedor *</label><div class="buscador"><input id="nProv" maxlength="80" placeholder="Escribe para buscar…" autocomplete="off" required><div class="sug oculto"></div></div></div>
           </div>
           <h2 class="sec" style="margin-top:6px">Productos observados de esta factura</h2>
           <div id="lineas"></div>
@@ -651,8 +652,6 @@
 
   /* ---------- Listas y filtros ---------- */
   function pintarListas() {
-    opciones($('nProv'), listas.proveedores, 'Elige…');
-    opciones($('peProv'), listas.proveedores, 'Elige…');
     document.querySelectorAll('#lineas .lMot').forEach((s) => opciones(s, listas.motivos, 'Elige…'));
     if (document.activeElement.tagName !== 'TEXTAREA') {
       $('tProv').value = listas.proveedores.join('\n');
@@ -661,7 +660,7 @@
     }
   }
   function pintarFiltros() {
-    const provs = unicos(listas.proveedores.concat(filas.map((f) => f.proveedor), pedidos.map((p) => p.proveedor)));
+    const provs = unicos(filas.map((f) => f.proveedor).concat(pedidos.map((p) => p.proveedor))); // en los filtros, solo los que tienen registros
     const labsUso = unicos(filas.map((f) => f.laboratorio));
     const labs = unicos(listas.laboratorios.concat(labsUso, catalogo.map((p) => p.l)));
     ['fpProv', 'pProv', 'dProv'].forEach((id) => opciones($(id), provs, 'Todos los proveedores'));
@@ -682,6 +681,53 @@
     } catch (err) { msg('listasMsg', errorTexto(err)); }
     ocupado(f, false);
   });
+
+  /* ---------- Buscador de proveedor: escribes y aparecen las coincidencias; si no existe, se registra como nuevo ---------- */
+  const proveedoresConocidos = () => unicos(listas.proveedores.concat(pedidos.map((p) => p.proveedor), filas.map((f) => f.proveedor)));
+  function buscadorProveedor(id) {
+    const inp = $(id), caja = inp.parentElement.querySelector('.sug');
+    let ops = [], i = -1;
+    const cerrar = () => { caja.classList.add('oculto'); caja.innerHTML = ''; ops = []; i = -1; };
+    const pintar = () => {
+      const q = may(inp.value, 80), ts = q.split(/\s+/).filter(Boolean);
+      const todos = proveedoresConocidos();
+      ops = todos.filter((x) => ts.every((t) => x.includes(t)))
+        .sort((a, b) => (a.startsWith(q) ? 0 : 1) - (b.startsWith(q) ? 0 : 1)).slice(0, 30);
+      const nuevo = q && !ops.length;
+      i = ops.length ? 0 : -1;
+      caja.innerHTML = ops.map((x, n) => `<div data-i="${n}"${n === i ? ' class="sel"' : ''}>${esc(x)}</div>`).join('') +
+        (nuevo ? `<div class="nada nuevo">"${esc(q)}" no está en la lista: se registrará como proveedor nuevo.</div>` : '') +
+        (!ops.length && !nuevo ? '<div class="nada">Escribe el nombre del proveedor.</div>' : '');
+      caja.classList.remove('oculto');
+    };
+    const elegir = (x) => { inp.value = x; cerrar(); inp.dispatchEvent(new Event('change', { bubbles: true })); };
+    inp.addEventListener('input', pintar);
+    inp.addEventListener('focus', pintar);
+    inp.addEventListener('blur', cerrar);
+    inp.addEventListener('keydown', (e) => {
+      if (caja.classList.contains('oculto')) return;
+      if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && ops.length) {
+        e.preventDefault();
+        i = (i + (e.key === 'ArrowDown' ? 1 : -1) + ops.length) % ops.length;
+        caja.querySelectorAll('div[data-i]').forEach((d, n) => d.classList.toggle('sel', n === i));
+        const act = caja.querySelector('.sel'); if (act) act.scrollIntoView({ block: 'nearest' });
+      } else if (e.key === 'Enter' && ops[i] && ops[i] !== may(inp.value, 80)) { e.preventDefault(); elegir(ops[i]); }
+      else if (e.key === 'Escape') cerrar();
+    });
+    caja.addEventListener('mousedown', (e) => {
+      const d = e.target.closest('div[data-i]');
+      if (!d) return;
+      e.preventDefault(); elegir(ops[Number(d.dataset.i)]);
+    });
+  }
+  buscadorProveedor('peProv'); buscadorProveedor('nProv');
+  // Devuelve el proveedor escrito; si es nuevo, pide confirmar para evitar duplicados por errores de escritura
+  function proveedorDe(id) {
+    const v = may($(id).value, 80);
+    if (!v) return '';
+    if (!proveedoresConocidos().includes(v) && !confirm(`"${v}" no está en la lista de proveedores.\n¿Registrarlo como proveedor nuevo?`)) return '';
+    return v;
+  }
 
   /* ---------- Excel: exportar y leer ---------- */
   function cargarXlsx() {
@@ -792,8 +838,10 @@
   $('fPedido').addEventListener('submit', async (e) => {
     e.preventDefault();
     const f = e.currentTarget;
-    const factura = may($('peFac').value, 40), proveedor = $('peProv').value, bultos = Number($('peBultos').value);
+    const factura = may($('peFac').value, 40), bultos = Number($('peBultos').value);
     if (!(bultos >= 1) || !Number.isInteger(bultos)) return msg('pedMsg', 'La cantidad de bultos debe ser un número entero mayor que cero.');
+    const proveedor = proveedorDe('peProv');
+    if (!proveedor) return;
     if (pedidos.some((p) => p.factura === factura && p.proveedor === proveedor) &&
         !confirm(`La factura ${factura} de ${proveedor} ya está registrada. ¿Registrarla otra vez?`)) return;
     msg('pedMsg', ''); ocupado(f, true);
@@ -953,13 +1001,13 @@
   // Si la factura ya fue ingresada como pedido, se completa el proveedor
   $('nFac').addEventListener('change', () => {
     const p = pedidos.find((x) => x.factura === may($('nFac').value, 40));
-    if (p && listas.proveedores.includes(p.proveedor)) $('nProv').value = p.proveedor;
+    if (p) $('nProv').value = p.proveedor;
   });
 
   $('fNuevo').addEventListener('submit', async (e) => {
     e.preventDefault();
     const f = e.currentTarget;
-    const factura = may($('nFac').value, 40), proveedor = $('nProv').value;
+    const factura = may($('nFac').value, 40);
     const lineas = [];
     let falta = '';
     [...$('lineas').children].forEach((l, i) => {
@@ -971,6 +1019,8 @@
     });
     if (falta) return msg('nuevoMsg', falta);
     if (!lineas.length) return msg('nuevoMsg', 'Agrega al menos un producto observado.');
+    const proveedor = proveedorDe('nProv');
+    if (!proveedor) return;
     msg('nuevoMsg', ''); ocupado(f, true);
     const base = {
       creado: serverTimestamp(), uid: yo.uid, usuario: firma(), area: yo.area, proveedor, factura, estado: ESTADOS[0],
