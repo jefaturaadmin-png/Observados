@@ -1875,7 +1875,9 @@
   const ncSinAsignar = (f) => f.t === 'NC' && !f.rb && !f.dt && pgCruce && !pgCruce.usadas.has(pgCruce.ncs.get(`${f.s}-${f.n}`));
   // Devolución total: la factura completa se cancela con su NC. Solo cuenta si la NC aplicada cubre toda la factura;
   // si la NC es menor, es una devolución parcial aunque el monto observado sea el total.
-  const esDevTotal = (f, c) => f.t === 'FA' && (f.dt === 1 || (c && c.obs > 0 && Math.abs(c.obs - Number(f.m)) <= TOL_NC && Math.abs(c.aplicada - Number(f.m)) <= TOL_NC));
+  // "pg" = el usuario decidió que igual va en el listado de pago (la NC aún no se emite, o el proveedor no la anuló de su cronograma).
+  const esDevTotal = (f, c) => !f.pg && devTotalBase(f, c);
+  const devTotalBase = (f, c) => f.t === 'FA' && (f.dt === 1 || (c && c.obs > 0 && Math.abs(c.obs - Number(f.m)) <= TOL_NC && Math.abs(c.aplicada - Number(f.m)) <= TOL_NC));
 
   /* ---------- Pintar: reparte según la sub-pestaña ---------- */
   function pintarPagos(forzar) {
@@ -1946,7 +1948,7 @@
           ? `<td class="n abre" data-ab="1">${c.lineas.length ? `<span class="tri">${abierta ? '▾' : '▸'}</span>${esc(mil(c.obs))}${deRec ? ' <span class="est e1" title="Observado en Recepción">R</span>' : ''}` : (deRec ? `<span class="tri">${abierta ? '▾' : '▸'}</span><span class="est e1">Recepción</span>` : (edita ? '<span class="mas">+ observar</span>' : ''))}</td>`
           : '<td></td>') +
         `<td data-c="${f.t === 'NC' ? 'r' : 'nc'}"${ed}>${colNc}</td>` +
-        `<td>${est ? `<span class="est ${claseEst(est)}">${esc(est)}</span>` : ''}${esDevTotal(f, c) ? ' <span class="quien">Dev. total</span>' : ''}</td>` +
+        `<td>${est ? `<span class="est ${claseEst(est)}">${esc(est)}</span>` : ''}${botonPago(f, c, edita)}</td>` +
         `<td data-c="x" class="${edita ? 'ed ' : ''}nota">${esc(f.x || '')}</td></tr>`;
       if (abierta && f.t === 'FA') h += filaDetalle(f, c, edita);
     });
@@ -1975,6 +1977,13 @@
     $('gDel').textContent = `Eliminar seleccionadas (${pgSel.size})`;
   }
 
+  // Devoluciones totales: van aparte en el resumen, salvo que se marque que igual entran al listado de pago
+  function botonPago(f, c, edita) {
+    const dev = f.t === 'FA' ? devTotalBase(f, c) : (f.t === 'NC' && f.dt === 1);
+    if (!dev && !f.pg) return '';
+    if (f.pg) return ` <span class="est e1" title="Se cuenta arriba, en el listado de pago">Va en el pago</span>${edita ? ' <button class="mini gPg" title="Volver a ponerla aparte, como devolución total">Quitar</button>' : ''}`;
+    return ` <span class="quien">Dev. total</span>${edita ? ' <button class="mini gPg" title="Contarla arriba, en el listado de pago">Incluir en el pago</button>' : ''}`;
+  }
   function filaDetalle(f, c, edita) {
     const manual = (f.o || []).map((x, k) => (edita
       ? `<tr><td><input class="gIn oProd" data-k="${k}" value="${esc(x.p)}" aria-label="Producto observado"></td><td><input class="gIn oMonto n" data-k="${k}" value="${esc(x.m ?? '')}" aria-label="Monto"></td><td class="n"><button class="mini pel oQuitar" data-k="${k}" aria-label="Quitar">✕</button></td></tr>`
@@ -2111,6 +2120,12 @@
     if (!tr) return;
     if (t.classList.contains('gCk')) { if (t.checked) pgSel.add(tr.dataset.i); else pgSel.delete(tr.dataset.i); tr.classList.toggle('sel', t.checked); $('gDel').textContent = `Eliminar seleccionadas (${pgSel.size})`; return; }
     if (t.classList.contains('aOk')) return agregarFila();
+    if (t.classList.contains('gPg')) { // incluir o no una devolución total en el listado de pago, junto con sus NC
+      const f = pgFila(tr.dataset.i), pone = !f.pg, per = pgPer();
+      const suyas = f.t === 'FA' ? cruceDe(per, f).det.map((x) => x.k) : [];
+      return pgGuardar(per, (lista) => { lista.forEach((x) => { if (x.i === f.i || (x.t === 'NC' && suyas.includes(`${x.s}-${x.n}`))) { if (pone) x.pg = 1; else delete x.pg; } }); },
+        'Devolución total', `${f.t} ${f.s}-${f.n}: ${pone ? 'se incluye en el listado de pago' : 'vuelve a ir aparte'}`).then(() => pintarPagos(true)).catch(pgError);
+    }
     if (t.classList.contains('oMas')) {
       const f = pgFila(t.closest('tr.det').dataset.d);
       pgAbiertas.add(f.i);
@@ -2409,7 +2424,7 @@
     dev.forEach((f) => cruceDe(d.per, f).det.forEach((x) => ncDev.add(x.k)));
     const normales = fa.filter((f) => !dev.includes(f));
     const ncTodas = fs.filter((f) => f.t === 'NC').sort(orden);
-    const ncs = ncTodas.filter((f) => !ncDev.has(`${f.s}-${f.n}`) && !(f.dt === 1 && dev.length));
+    const ncs = ncTodas.filter((f) => f.pg || (!ncDev.has(`${f.s}-${f.n}`) && !(f.dt === 1 && dev.length)));
     const ncDeDev = ncTodas.filter((f) => !ncs.includes(f));
     // A qué factura se aplicó cada NC, mirando todo el distribuidor
     const usoNc = new Map();
