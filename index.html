@@ -1873,8 +1873,9 @@
   $('gMes').addEventListener('change', () => { if (pgVista === 'cxp') cxSuscribir(); else pintarGeneral(); });
 
   const ncSinAsignar = (f) => f.t === 'NC' && !f.rb && !f.dt && pgCruce && !pgCruce.usadas.has(pgCruce.ncs.get(`${f.s}-${f.n}`));
-  // Devolución total: la factura completa se cancela con su NC
-  const esDevTotal = (f, c) => f.t === 'FA' && (f.dt === 1 || (c && c.obs > 0 && Math.abs(c.obs - Number(f.m)) <= TOL_NC));
+  // Devolución total: la factura completa se cancela con su NC. Solo cuenta si la NC aplicada cubre toda la factura;
+  // si la NC es menor, es una devolución parcial aunque el monto observado sea el total.
+  const esDevTotal = (f, c) => f.t === 'FA' && (f.dt === 1 || (c && c.obs > 0 && Math.abs(c.obs - Number(f.m)) <= TOL_NC && Math.abs(c.aplicada - Number(f.m)) <= TOL_NC));
 
   /* ---------- Pintar: reparte según la sub-pestaña ---------- */
   function pintarPagos(forzar) {
