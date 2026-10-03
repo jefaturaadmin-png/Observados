@@ -2117,18 +2117,45 @@
   // Editor de celda genérico: clic, escribir, Enter. Escape cancela.
   function editarEn(td, crudo, alGuardar, alTerminar) {
     if (td.querySelector('input')) return;
+    const cuerpo = td.closest('tbody');
     td.innerHTML = `<input class="gIn${td.classList.contains('n') ? ' n' : ''}" value="${esc(crudo)}" aria-label="Editar celda">`;
     const inp = td.firstChild;
     inp.focus(); inp.select();
-    let listo = false, cancelar = false;
+    let listo = false, cancelar = false, ir = null;
+    // Como en Excel: Enter y flecha abajo bajan, flecha arriba sube, Tab y las flechas a los lados cambian de columna. Todo guarda antes de moverse.
+    const destino = (df, dc) => {
+      const tr = td.closest('tr'), filas2 = [...cuerpo.querySelectorAll('tr[data-i]')], celdas = [...tr.querySelectorAll('td.ed')];
+      const fila = filas2[filas2.indexOf(tr) + df], col = celdas.indexOf(td) + dc;
+      return (fila && col >= 0) ? { id: fila.dataset.i, col } : null;
+    };
     inp.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); inp.blur(); } else if (e.key === 'Escape') { cancelar = true; inp.blur(); }
+      const todo = inp.selectionStart === 0 && inp.selectionEnd === inp.value.length;
+      let d = null;
+      if (e.key === 'Escape') { cancelar = true; inp.blur(); return; }
+      if (e.key === 'Enter' || e.key === 'ArrowDown') d = [1, 0];
+      else if (e.key === 'ArrowUp') d = [-1, 0];
+      else if (e.key === 'Tab') d = [0, e.shiftKey ? -1 : 1];
+      else if (e.key === 'ArrowLeft' && (todo || (inp.selectionStart === 0 && inp.selectionEnd === 0))) d = [0, -1];
+      else if (e.key === 'ArrowRight' && (todo || inp.selectionStart === inp.value.length)) d = [0, 1];
+      if (!d) return;
+      e.preventDefault();
+      ir = destino(d[0], d[1]);
+      inp.blur();
     });
     inp.addEventListener('blur', () => {
       if (listo) return;
       listo = true;
       const v = inp.value;
-      if (!cancelar && v.trim() !== String(crudo).trim()) Promise.resolve(alGuardar(v)).then(alTerminar, alTerminar); else alTerminar();
+      td.textContent = cancelar ? String(crudo) : v; // la celda queda con lo escrito mientras se guarda
+      const hacer = () => {
+        if (!ir && cuerpo.querySelector('td.ed input')) return; // ya se abrió otra celda con un clic: no se redibuja debajo de ella
+        alTerminar();
+        if (!ir) return;
+        const tr = [...cuerpo.querySelectorAll('tr[data-i]')].find((x) => x.dataset.i === ir.id), celda = tr && tr.querySelectorAll('td.ed')[ir.col];
+        if (celda) { celda.scrollIntoView({ block: 'nearest' }); celda.click(); }
+      };
+      const fin = () => (pgPulsando ? setTimeout(fin, 30) : hacer()); // si se salió con un clic, se espera a que el clic termine
+      if (!cancelar && v.trim() !== String(crudo).trim()) Promise.resolve().then(() => alGuardar(v)).catch((e) => console.error(e)).then(fin); else fin();
     });
   }
 
@@ -2150,10 +2177,20 @@
     if (['t', 's', 'n'].includes(c)) { const p = repetida(nuevo, id); if (p) return msg('gMsg', `Ya existe ${nuevo.t} ${nuevo.s}-${nuevo.n} por S/ ${mil(p.m)} en ${perTxt(p.per)}. No se guardó el cambio.`); }
     msg('gMsg', '');
     const antes = c === 'nc' ? (f.nc || []).join(', ') : f[c], ahora = c === 'nc' ? nuevo.nc.join(', ') : nuevo[c];
+    // Se ve al instante y se guarda por detrás, para poder seguir a la celda siguiente sin esperar
+    const d = pgDoc(), per = d.per, pos = (d.filas || []).findIndex((x) => x.i === id);
+    if (pos >= 0) d.filas[pos] = nuevo;
+    pgGuardarCelda(per, id, f, nuevo, c, antes, ahora);
+  }
+  async function pgGuardarCelda(per, id, f, nuevo, c, antes, ahora) {
     try {
-      await pgGuardar(pgPer(), (lista) => { const k = lista.findIndex((x) => x.i === id); if (k < 0) throw new Error('La fila ya no existe.'); lista[k] = nuevo; },
+      await pgGuardar(per, (lista) => { const k = lista.findIndex((x) => x.i === id); if (k < 0) throw new Error('La fila ya no existe.'); lista[k] = nuevo; },
         'Corrigió', `${f.t} ${f.s}-${f.n}: ${{ f: 'fecha', t: 'tipo', s: 'serie', n: 'número', m: 'total', l: 'laboratorio', nc: 'NC anotadas', r: 'ref. factura', x: 'nota' }[c]} "${antes ?? ''}" → "${ahora ?? ''}"`);
-    } catch (e) { pgError(e); }
+    } catch (e) { // no se guardó: vuelve el valor anterior
+      const d = pgDocs.find((y) => y.per === per), pos = d ? (d.filas || []).findIndex((x) => x.i === id) : -1;
+      if (pos >= 0) d.filas[pos] = f;
+      pgError(e); pintarPagos();
+    }
   }
 
   async function agregarFila() {
