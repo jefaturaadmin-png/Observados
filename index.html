@@ -43,7 +43,7 @@
   nav button { border:none; border-bottom:3px solid transparent; border-radius:0; background:none; color:var(--gris); font-weight:600; white-space:nowrap; }
   nav button.act { color:var(--pri); border-bottom-color:var(--marca); }
   nav .cuenta { background:var(--rojo); color:#fff; border-radius:99px; font-size:11px; padding:1px 7px; margin-left:4px; }
-  main { padding:16px; max-width:1280px; margin:0 auto; }
+  main { padding:16px; max-width:1480px; margin:0 auto; }
 
   .rejilla { display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:0 14px; }
   .ancho { grid-column:1 / -1; }
@@ -82,6 +82,55 @@
   .permisos legend { padding:0 6px; }
   .permisos legend label { font-weight:700; color:var(--pri); }
   .sinPrecios .cPrecio { display:none; }
+  /* Pagos a proveedores: grilla tipo Excel */
+  .herr { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
+  .herr select, .herr input { width:auto; padding:7px 10px; }
+  .grid table { font-size:13.5px; }
+  .grid th, .grid td { border:1px solid #e3dfd9; padding:5px 8px; height:29px; }
+  .grid th { background:#f1eee9; }
+  .grid td.nf { width:36px; text-align:center; background:#f1eee9; color:#9a938b; font-size:11px; }
+  .grid td.ck { width:30px; text-align:center; }
+  .grid td.ed { cursor:cell; }
+  .grid td.ed:hover { box-shadow:inset 0 0 0 1px var(--marca); }
+  .grid td.nota { white-space:normal; min-width:140px; max-width:260px; font-size:12px; color:#8a5300; }
+  .grid td.neg, .grid .neg { color:var(--rojo); }
+  .grid td.abre { cursor:pointer; }
+  .grid .tri { color:var(--pri); font-weight:700; margin-right:5px; }
+  .grid .mas { color:var(--pri); font-size:12px; font-weight:600; }
+  .grid tr.sel td { background:#fff6ec; }
+  .grid tr.esnc td { background:#fcfbf9; }
+  .grid tr.sel td.nf, .grid tr.esnc td.nf { background:#f1eee9; }
+  .grid tr.nueva td { background:#f1f9f4; } .grid tr.dup td { background:#fdecea; }
+  .grid tr.nuevaFila td { background:#fbf6ef; }
+  .grid .gIn { width:100%; min-width:70px; padding:3px 6px; border:1px solid var(--marca); border-radius:4px; font-size:13.5px; }
+  .grid .gIn.n { text-align:right; }
+  .grid td.n, .grid th.n { text-align:right; }
+  .grid tr.det > td { background:#fbf6ef; padding:12px 14px 14px 46px; white-space:normal; }
+  .detg { display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:16px; }
+  .detg h4 { margin:0 0 6px; font-size:12px; color:var(--pri); text-transform:uppercase; letter-spacing:.03em; }
+  .detg table { background:#fff; margin-bottom:8px; }
+  .detg tr.tot td { font-weight:700; background:#fbfaf8; }
+  .subnav { display:flex; gap:4px; flex-wrap:wrap; border-bottom:2px solid var(--borde); margin:6px 0 14px; }
+  .subnav button { border:none; border-radius:8px 8px 0 0; background:none; color:var(--gris); font-weight:600; padding:8px 14px; }
+  .subnav button.act { background:var(--marca); color:#fff; }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:10px; margin-bottom:12px; }
+  .kpi { background:#fff; border:1px solid var(--borde); border-radius:12px; padding:12px 14px; }
+  .kpi b { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:var(--gris); margin-bottom:4px; }
+  .kpi strong { display:block; font-size:20px; }
+  .kpi small { color:var(--gris); font-size:12px; }
+  .sube { color:var(--ok); } .baja { color:var(--rojo); }
+  .dos { display:grid; grid-template-columns:repeat(auto-fit, minmax(420px, 1fr)); gap:16px; align-items:start; }
+  h3.sub { font-size:14px; color:var(--pri); margin:14px 0 8px; }
+  .barra { height:12px; border-radius:6px; background:var(--marca); }
+  tr.tot td { font-weight:700; background:#fbfaf8; }
+  tr.hoy td { background:var(--suave); font-weight:600; }
+  .grid tr.subt td { background:#f6efe7; font-weight:700; }
+  .hoja table { font-size:13px; } .hoja td { padding:4px 10px; border-bottom:1px solid #f1eee9; }
+  .hoja tr.r_tit td { font-weight:800; font-size:14px; border:none; }
+  .hoja tr.r_cab td { background:#f1eee9; font-weight:700; font-size:12px; }
+  .hoja tr.r_tot td { font-weight:700; background:#fbfaf8; }
+  .hoja tr.r_txt td { white-space:normal; font-weight:600; border:none; }
+  .par { display:grid; grid-template-columns:minmax(70px, 1fr) minmax(90px, 1.6fr); gap:6px; }
 
   dialog { border:none; border-radius:14px; padding:0; width:min(780px, 94vw); max-height:90vh; color:inherit; }
   dialog::backdrop { background:rgba(0,0,0,.45); }
@@ -153,6 +202,7 @@
     <button data-v="vNuevo" id="tabNuevo">Observar productos</button>
     <button data-v="vPend">Por devolver<span class="cuenta oculto" id="nPend"></span></button>
     <button data-v="vDev">Devueltos y NC<span class="cuenta oculto" id="nDev"></span></button>
+    <button data-v="vPagos" id="tabPagos">Pagos a proveedores</button>
     <button data-v="vUsuarios" id="tabUsuarios">Usuarios</button>
     <button data-v="vCat" id="tabCat">Productos</button>
     <button data-v="vListas" id="tabListas">Listas</button>
@@ -167,7 +217,7 @@
         <form id="fPedido" autocomplete="off">
           <div class="rejilla">
             <div class="campo"><label for="peFecha">Fecha de recepción *</label><input id="peFecha" type="date" required></div>
-            <div class="campo"><label for="peFac">N° de factura *</label><input id="peFac" maxlength="40" placeholder="F140-354" required></div>
+            <div class="campo"><label for="peSer">Factura: serie y número *</label><div class="par"><input id="peSer" maxlength="20" placeholder="F140" aria-label="Serie" required><input id="peNum" maxlength="12" inputmode="numeric" placeholder="9187" aria-label="Número" required></div></div>
             <div class="campo"><label for="peProv">Proveedor *</label><div class="buscador"><input id="peProv" maxlength="80" placeholder="Escribe para buscar…" autocomplete="off" required><div class="sug oculto"></div></div></div>
             <div class="campo"><label for="peBultos">Cantidad de bultos *</label><input id="peBultos" type="number" min="1" step="1" required></div>
           </div>
@@ -201,7 +251,7 @@
         <form id="fNuevo" autocomplete="off">
           <h2 class="sec">Factura</h2>
           <div class="rejilla">
-            <div class="campo"><label for="nFac">N° de factura *</label><input id="nFac" list="dlFac" maxlength="40" placeholder="F140-354" required><datalist id="dlFac"></datalist></div>
+            <div class="campo"><label for="nSer">Factura: serie y número *</label><div class="par"><input id="nSer" maxlength="20" placeholder="F140" aria-label="Serie" required><input id="nNum" maxlength="12" inputmode="numeric" placeholder="9187" aria-label="Número" required></div></div>
             <div class="campo"><label for="nProv">Proveedor *</label><div class="buscador"><input id="nProv" maxlength="80" placeholder="Escribe para buscar…" autocomplete="off" required><div class="sug oculto"></div></div></div>
           </div>
           <h2 class="sec" style="margin-top:6px">Productos observados de esta factura</h2>
@@ -253,6 +303,71 @@
         <thead><tr><th>ID</th><th>Producto</th><th>Laboratorio</th><th class="num">Observado</th><th class="num">Devuelto</th><th>Falta</th><th>Guía</th><th>Devolvió</th><th class="num cPrecio">Precio unit.</th><th class="num cPrecio">Monto</th><th>N° NC</th><th>Estado</th></tr></thead>
         <tbody id="cuerpoDev"></tbody>
       </table></div>
+    </div>
+
+    <!-- ===== 5. PAGOS A PROVEEDORES ===== -->
+    <div id="vPagos" class="oculto">
+      <div class="herr">
+        <select id="gEmp" aria-label="Empresa"></select>
+        <select id="gDist" aria-label="Distribuidor"></select>
+        <select id="gPer" aria-label="Mes a pagar"></select>
+        <button id="gNuevoPer">+ Nuevo mes a pagar</button>
+        <input type="month" id="gMes" aria-label="Mes a pagar" class="oculto">
+      </div>
+      <div class="subnav" id="gSub">
+        <button data-gv="grid">Facturas y NC</button><button data-gv="dash">Dashboard compras</button><button data-gv="res">Resumen de pago</button>
+        <button data-gv="cruce">Cruce observaciones</button><button data-gv="ncp">NC pendientes</button>
+        <button data-gv="cxp">Facturas por pagar (otros proveedores)</button><button data-gv="gen">Resumen general</button>
+      </div>
+      <div id="gv_grid">
+        <div class="herr" id="gHerr">
+          <button class="pri" id="gAdd">+ Fila</button>
+          <button id="gPegar">Pegar desde Excel</button>
+          <button class="pel" id="gDel">Eliminar seleccionadas (0)</button>
+          <select id="gMover" aria-label="Mover seleccionadas a otro mes"></select>
+          <button id="gImp">Importar datos</button><input type="file" id="gImpArch" accept=".json" class="oculto">
+        </div>
+        <div class="herr">
+          <select id="gFiltro" aria-label="Qué mostrar">
+            <option value="">Todo</option><option value="FA">Solo facturas</option><option value="NC">Solo NC</option>
+            <option value="OBS">Facturas observadas</option><option value="PEN">Observadas sin conciliar</option>
+            <option value="SIN">NC sin asignar a factura</option><option value="REV">Por revisar</option>
+          </select>
+          <input id="gTxt" placeholder="Buscar número, laboratorio, producto…" aria-label="Buscar" style="flex:1;min-width:200px">
+          <button id="gHist">Historial de cambios</button>
+          <button id="gExp">Exportar a Excel</button>
+        </div>
+        <div id="gMsg"></div>
+        <p class="resumen" id="gRes"></p>
+        <div class="tabla grid"><table>
+          <thead><tr><th class="nf"></th><th></th><th>Fecha</th><th>Tipo</th><th>Serie</th><th>Número</th><th class="n">Total</th><th>Laboratorio</th><th class="n">Observado</th><th>NC anotadas</th><th>Estado</th><th>Nota</th></tr></thead>
+          <tbody id="gCuerpo"></tbody>
+        </table></div>
+        <p class="resumen" id="gPie" style="margin-top:10px"></p>
+      </div>
+      <div id="gv_dash" class="oculto"></div>
+      <div id="gv_res" class="oculto"></div>
+      <div id="gv_cruce" class="oculto"></div>
+      <div id="gv_cxp" class="oculto">
+        <div class="herr" id="xHerr">
+          <button class="pri" id="xAdd">+ Documento</button>
+          <button id="xPegar">Pegar desde Excel</button>
+          <button id="xRet">Retención 3% a las marcadas</button>
+          <button class="pel" id="xDel">Eliminar seleccionadas (0)</button>
+        </div>
+        <div class="herr">
+          <input id="xTxt" placeholder="Buscar proveedor, documento, estado…" aria-label="Buscar" style="flex:1;min-width:200px">
+          <button id="xExp">Exportar a Excel</button>
+        </div>
+        <div id="xMsg"></div>
+        <p class="resumen" id="xRes"></p>
+        <div class="tabla grid"><table>
+          <thead><tr><th class="nf"></th><th></th><th>Proveedor</th><th>Plazo</th><th>Fecha</th><th>Documento</th><th>Vence / referencia</th><th class="n">Total</th><th>Estado</th><th>Nota</th></tr></thead>
+          <tbody id="xCuerpo"></tbody>
+        </table></div>
+        <datalist id="dlProv"></datalist>
+      </div>
+      <div id="gv_gen" class="oculto"></div>
     </div>
 
     <div id="vNada" class="oculto"><div class="caja"><p class="resumen" style="margin:0">Tu usuario aún no tiene interfaces habilitadas. Pídele al administrador que te las active.</p></div></div>
@@ -350,7 +465,7 @@
     updatePassword, EmailAuthProvider, reauthenticateWithCredential
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
   import {
-    getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, collection, query, orderBy, limit,
+    getFirestore, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, collection, query, where, orderBy, limit,
     onSnapshot, runTransaction, writeBatch, serverTimestamp
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
@@ -362,17 +477,18 @@
     ['Ingreso de pedidos', [['verPedidos', 'Ver la lista de pedidos'], ['pedidos', 'Registrar pedidos recibidos'], ['conformidad', 'Dar conformidad de factura recibida']]],
     ['Observar productos', [['observar', 'Registrar productos observados']]],
     ['Por devolver', [['verPend', 'Ver los productos por devolver'], ['devolver', 'Confirmar devolución al proveedor'], ['decidir', 'Decidir que un producto se queda (no devolver)']]],
-    ['Devueltos y NC', [['verDev', 'Ver los productos devueltos'], ['verPrecios', 'Ver precios y montos'], ['parcial', 'Aprobar devoluciones parciales'], ['precios', 'Poner precios y nota de crédito']]]
+    ['Devueltos y NC', [['verDev', 'Ver los productos devueltos'], ['verPrecios', 'Ver precios y montos'], ['parcial', 'Aprobar devoluciones parciales'], ['precios', 'Poner precios y nota de crédito']]],
+    ['Pagos a proveedores', [['verPagos', 'Ver pagos: facturas, NC, dashboard y resúmenes'], ['pagos', 'Registrar y corregir facturas, NC y programación'], ['pagosBorrar', 'Eliminar o mover facturas y NC']]]
   ];
   const PERMISOS = GRUPOS.flatMap((g) => g[1]);
   // Para poder hacer algo en una interfaz hay que poder verla
   const REQUIERE = { pedidos: ['verPedidos'], conformidad: ['verPedidos'], devolver: ['verPend'], decidir: ['verPend'],
-    verPrecios: ['verDev'], parcial: ['verDev'], precios: ['verDev', 'verPrecios'] };
+    verPrecios: ['verDev'], parcial: ['verDev'], precios: ['verDev', 'verPrecios'], pagos: ['verPagos'], pagosBorrar: ['verPagos', 'pagos'] };
   const POR_AREA = { // lo que viene marcado al elegir el área; el administrador puede cambiarlo
     RECEPCION: ['verPedidos', 'pedidos', 'observar', 'verPend', 'devolver', 'verDev'],
     COMPRAS: ['verPedidos', 'conformidad', 'observar', 'verPend', 'decidir', 'verDev', 'verPrecios', 'parcial', 'precios'],
     GERENCIA: ['verPedidos', 'verPend', 'decidir', 'verDev', 'verPrecios', 'parcial'],
-    PAGOS: ['verDev', 'verPrecios', 'precios'],
+    PAGOS: ['verDev', 'verPrecios', 'precios', 'verPagos', 'pagos', 'pagosBorrar'],
     ADMIN: PERMISOS.map((p) => p[0])
   };
   const ESTADOS = ['Por devolver', 'Devuelto', 'NC recibida', 'Se queda', 'Anulado'];
@@ -555,7 +671,7 @@
 
   function aplicarPermisos() {
     const admin = yo.area === 'ADMIN';
-    const tabs = { vPedidos: puede('verPedidos'), vNuevo: puede('observar'), vPend: puede('verPend'), vDev: puede('verDev'),
+    const tabs = { vPedidos: puede('verPedidos'), vNuevo: puede('observar'), vPend: puede('verPend'), vDev: puede('verDev'), vPagos: puede('verPagos'),
       vUsuarios: admin, vCat: admin, vListas: admin };
     $('quien').textContent = `${yo.nombre} · ${yo.area}`;
     Object.entries(tabs).forEach(([v, ok]) => document.querySelector(`nav button[data-v="${v}"]`).classList.toggle('oculto', !ok));
@@ -564,13 +680,15 @@
     $('peQuien').textContent = 'Recepciona: ' + firma();
     // Si no puedo ver la interfaz en la que estoy, paso a la primera que sí tengo habilitada
     if (!tabs[vista]) ver(VISTAS.find((v) => tabs[v]) || 'vNada');
+    pgSuscribir();
   }
 
   function iniciar() {
     pantalla('app');
     $('peFecha').value = hoy();
     $('fpEst').value = 'P'; $('pEst').value = 'Por devolver'; $('dEst').value = 'Devuelto';
-    ['fpTxt', 'pTxt', 'dTxt'].forEach((id) => { $(id).value = ''; });
+    ['fpTxt', 'pTxt', 'dTxt', 'gTxt', 'xTxt', 'peSer', 'peNum', 'nSer', 'nNum'].forEach((id) => { $(id).value = ''; });
+    $('gFiltro').value = ''; msg('gMsg', ''); msg('xMsg', '');
     opciones($('uArea'), AREAS);
     $('uPerm').innerHTML = GRUPOS.map((g, i) =>
       `<fieldset><legend><label><input type="checkbox" class="gTodo" data-g="${i}"> ${esc(g[0])} · todo</label></legend>` +
@@ -579,6 +697,7 @@
     $('lineas').innerHTML = ''; agregarLinea();
     pintarListas();
     ver('vPedidos');
+    pgIniciar();
     aplicarPermisos();
 
     // Mis propios datos: si el administrador cambia mis permisos, se aplican al momento
@@ -620,6 +739,7 @@
         return f;
       });
       pintarFiltros(); pintarPend(); pintarDev();
+      if (vista === 'vPagos') pintarPagos();
     }, errorEscucha));
 
     if (yo.area === 'ADMIN') {
@@ -641,12 +761,13 @@
   }
 
   /* ---------- Navegación ---------- */
-  const VISTAS = ['vPedidos', 'vNuevo', 'vPend', 'vDev', 'vUsuarios', 'vCat', 'vListas', 'vNada'];
+  const VISTAS = ['vPedidos', 'vNuevo', 'vPend', 'vDev', 'vPagos', 'vUsuarios', 'vCat', 'vListas', 'vNada'];
   document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => ver(b.dataset.v)));
   function ver(v) {
     vista = v;
     VISTAS.forEach((x) => $(x).classList.toggle('oculto', x !== v));
     document.querySelectorAll('nav button').forEach((b) => b.classList.toggle('act', b.dataset.v === v));
+    if (v === 'vPagos') pintarPagos(true);
   }
   const contador = (id, n) => { $(id).textContent = n; $(id).classList.toggle('oculto', !n); };
 
@@ -666,7 +787,6 @@
     ['fpProv', 'pProv', 'dProv'].forEach((id) => opciones($(id), provs, 'Todos los proveedores'));
     ['pLab', 'dLab'].forEach((id) => opciones($(id), labsUso, 'Todos los laboratorios'));
     $('dlLab').innerHTML = labs.map((x) => `<option value="${esc(x)}">`).join('');
-    $('dlFac').innerHTML = unicos(pedidos.map((p) => p.factura)).map((x) => `<option value="${esc(x)}">`).join('');
   }
   $('fListas').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -683,7 +803,7 @@
   });
 
   /* ---------- Buscador de proveedor: escribes y aparecen las coincidencias; si no existe, se registra como nuevo ---------- */
-  const proveedoresConocidos = () => unicos(listas.proveedores.concat(pedidos.map((p) => p.proveedor), filas.map((f) => f.proveedor)));
+  const proveedoresConocidos = () => unicos(listas.proveedores); // lista oficial: la mantiene el administrador en la pestaña Listas
   function buscadorProveedor(id) {
     const inp = $(id), caja = inp.parentElement.querySelector('.sug');
     let ops = [], i = -1;
@@ -696,7 +816,7 @@
       const nuevo = q && !ops.length;
       i = ops.length ? 0 : -1;
       caja.innerHTML = ops.map((x, n) => `<div data-i="${n}"${n === i ? ' class="sel"' : ''}>${esc(x)}</div>`).join('') +
-        (nuevo ? `<div class="nada nuevo">"${esc(q)}" no está en la lista: se registrará como proveedor nuevo.</div>` : '') +
+        (nuevo ? `<div class="nada nuevo">"${esc(q)}" no está en la lista oficial de proveedores.${yo && yo.area === 'ADMIN' ? ' Al guardar podrás agregarlo.' : ' Pide al administrador que lo agregue.'}</div>` : '') +
         (!ops.length && !nuevo ? '<div class="nada">Escribe el nombre del proveedor.</div>' : '');
       caja.classList.remove('oculto');
     };
@@ -721,13 +841,28 @@
     });
   }
   buscadorProveedor('peProv'); buscadorProveedor('nProv');
-  // Devuelve el proveedor escrito; si es nuevo, pide confirmar para evitar duplicados por errores de escritura
-  function proveedorDe(id) {
+  // Devuelve el proveedor escrito. Solo valen los de la lista oficial; el administrador puede agregar uno nuevo al momento.
+  async function proveedorDe(id, idMsg) {
     const v = may($(id).value, 80);
     if (!v) return '';
-    if (!proveedoresConocidos().includes(v) && !confirm(`"${v}" no está en la lista de proveedores.\n¿Registrarlo como proveedor nuevo?`)) return '';
+    if (listas.proveedores.includes(v)) return v;
+    if (yo.area !== 'ADMIN') { msg(idMsg, `"${v}" no está en la lista oficial de proveedores. Elige uno de la lista; si es un proveedor nuevo, pide al administrador que lo agregue en Listas.`); return ''; }
+    if (!confirm(`"${v}" no está en la lista oficial de proveedores.\n¿Agregarlo a la lista?`)) return '';
+    try { await setDoc(doc(db, 'config', 'listas'), { ...listas, proveedores: unicos(listas.proveedores.concat([v])) }); } catch (e) { msg(idMsg, errorTexto(e)); return ''; }
     return v;
   }
+  // Factura = serie + número en casillas separadas. "F140-009187" y "F140-9187" son la misma.
+  function facturaDe(pre) {
+    const s = serDoc($(pre + 'Ser').value), n = numDoc($(pre + 'Num').value);
+    return (/^[A-Z0-9]{2,6}$/.test(s) && /^\d{1,10}$/.test(n)) ? `${s}-${n}` : '';
+  }
+  ['pe', 'n'].forEach((pre) => {
+    $(pre + 'Ser').addEventListener('change', () => { // si pegan "F140-009187" en la serie, se reparte sola
+      const m = $(pre + 'Ser').value.toUpperCase().match(/^\s*([A-Z]{1,3}\d{1,4})\s*[- ]\s*0*(\d+)\s*$/);
+      if (m) { $(pre + 'Ser').value = m[1]; $(pre + 'Num').value = m[2]; $(pre + 'Num').dispatchEvent(new Event('change', { bubbles: true })); } else $(pre + 'Ser').value = serDoc($(pre + 'Ser').value);
+    });
+    $(pre + 'Num').addEventListener('change', () => { $(pre + 'Num').value = numDoc($(pre + 'Num').value); });
+  });
 
   /* ---------- Excel: exportar y leer ---------- */
   function cargarXlsx() {
@@ -838,11 +973,12 @@
   $('fPedido').addEventListener('submit', async (e) => {
     e.preventDefault();
     const f = e.currentTarget;
-    const factura = may($('peFac').value, 40), bultos = Number($('peBultos').value);
+    const factura = facturaDe('pe'), bultos = Number($('peBultos').value);
+    if (!factura) return msg('pedMsg', 'Completa la serie (por ejemplo F140) y el número de la factura (solo dígitos).');
     if (!(bultos >= 1) || !Number.isInteger(bultos)) return msg('pedMsg', 'La cantidad de bultos debe ser un número entero mayor que cero.');
-    const proveedor = proveedorDe('peProv');
+    const proveedor = await proveedorDe('peProv', 'pedMsg');
     if (!proveedor) return;
-    if (pedidos.some((p) => p.factura === factura && p.proveedor === proveedor) &&
+    if (pedidos.some((p) => refDoc(p.factura) === factura && p.proveedor === proveedor) &&
         !confirm(`La factura ${factura} de ${proveedor} ya está registrada. ¿Registrarla otra vez?`)) return;
     msg('pedMsg', ''); ocupado(f, true);
     try {
@@ -851,7 +987,7 @@
         factura, proveedor, bultos, conforme: false, conformePor: '', conformeFecha: null
       });
       msg('pedMsg', `Pedido ${factura} registrado. Queda pendiente de entregar a Compras.`, 'ok');
-      $('peFac').value = ''; $('peBultos').value = ''; $('peFac').focus();
+      $('peSer').value = ''; $('peNum').value = ''; $('peBultos').value = ''; $('peSer').focus();
     } catch (err) { msg('pedMsg', errorTexto(err)); }
     ocupado(f, false);
   });
@@ -999,15 +1135,16 @@
   });
 
   // Si la factura ya fue ingresada como pedido, se completa el proveedor
-  $('nFac').addEventListener('change', () => {
-    const p = pedidos.find((x) => x.factura === may($('nFac').value, 40));
+  ['nSer', 'nNum'].forEach((id) => $(id).addEventListener('change', () => {
+    const k = facturaDe('n'), p = k && pedidos.find((x) => refDoc(x.factura) === k);
     if (p) $('nProv').value = p.proveedor;
-  });
+  }));
 
   $('fNuevo').addEventListener('submit', async (e) => {
     e.preventDefault();
     const f = e.currentTarget;
-    const factura = may($('nFac').value, 40);
+    const factura = facturaDe('n');
+    if (!factura) return msg('nuevoMsg', 'Completa la serie (por ejemplo F140) y el número de la factura (solo dígitos).');
     const lineas = [];
     let falta = '';
     [...$('lineas').children].forEach((l, i) => {
@@ -1019,8 +1156,15 @@
     });
     if (falta) return msg('nuevoMsg', falta);
     if (!lineas.length) return msg('nuevoMsg', 'Agrega al menos un producto observado.');
-    const proveedor = proveedorDe('nProv');
+    const proveedor = await proveedorDe('nProv', 'nuevoMsg');
     if (!proveedor) return;
+    // Cierre: una factura que ya está en pagos no admite más observaciones
+    let enPagos = '';
+    try { enPagos = await facturaEnPagos(proveedor, factura); } catch (err) { console.error(err); }
+    if (enPagos) {
+      if (yo.area !== 'ADMIN') return msg('nuevoMsg', `La factura ${factura} ya fue ingresada a pagos (${enPagos}), por eso ya no admite observaciones. Si es necesario, coordina con el administrador.`);
+      if (!confirm(`La factura ${factura} ya fue ingresada a pagos (${enPagos}).\nSolo el administrador puede observarla a estas alturas. ¿Registrar la observación de todos modos?`)) return;
+    }
     msg('nuevoMsg', ''); ocupado(f, true);
     const base = {
       creado: serverTimestamp(), uid: yo.uid, usuario: firma(), area: yo.area, proveedor, factura, estado: ESTADOS[0],
@@ -1047,7 +1191,7 @@
       msg('nuevoMsg', cods.length === 1
         ? `Se guardó 1 producto observado (${cods[0]}) de la factura ${factura}.`
         : `Se guardaron ${cods.length} productos observados (${cods[0]} a ${cods[cods.length - 1]}) de la factura ${factura}.`, 'ok');
-      $('nFac').value = ''; $('nProv').value = '';
+      $('nSer').value = ''; $('nNum').value = ''; $('nProv').value = '';
       $('lineas').innerHTML = ''; agregarLinea();
       window.scrollTo(0, 0);
     } catch (err) { msg('nuevoMsg', errorTexto(err)); }
@@ -1476,6 +1620,1245 @@
       msg('usrMsg', 'Usuario eliminado.', 'ok');
     } catch (err) { msg('usrMsg', errorTexto(err)); }
   });
+
+  /* ---------- Cruce: qué NC cubre lo observado de cada factura ----------
+     Orden, igual que en el Excel:
+       1) NC anotadas en la factura
+       2) NC que traen la referencia de la factura
+       3) NC cuyo monto coincide con el TOTAL observado (automático)
+       4) NC cuyo monto coincide con el de cada PRODUCTO observado (automático)
+       5) Sobrante de una NC ya usada que coincide con lo que le falta a otra observación (automático)
+     Solo se cruzan NC de productos: las de rebate no entran. Una NC que cubre
+     varias facturas se reparte según lo observado en cada una. */
+  const TOL_NC = 0.5;      // diferencia máxima (S/) para considerar iguales dos montos
+  const DIAS_NC = 180;     // plazo máximo entre la factura y una NC encontrada automáticamente
+  const r2 = (n) => Math.round(Number(n) * 100) / 100;
+  const diasEntre = (a, b) => ((!a || !b) ? null : Math.round((Date.parse(b) - Date.parse(a)) / 86400000));
+
+  function cruzar(docs, lineasDe) {
+    const ncs = new Map(), porNum = new Map(), usos = new Map(), facturas = [];
+    docs.forEach((d) => (d.filas || []).forEach((f) => {
+      if (f.t === 'NC') {
+        const o = { f, per: d.per, k: `${f.s}-${f.n}`, resto: Math.abs(Number(f.m) || 0), libre: true };
+        ncs.set(o.k, o);
+        if (!porNum.has(f.n)) porNum.set(f.n, []);
+        porNum.get(f.n).push(o);
+      } else if (f.t === 'FA') facturas.push({ f, per: d.per, lineas: lineasDe(f, d) });
+    }));
+    // Una NC anotada se busca por serie y número; si la serie no coincide, por el número solo
+    // (como en el Excel). Si hay varias con ese número, se prefiere la más cercana después de la factura.
+    const hallar = (k, fac) => {
+      if (ncs.has(k)) return ncs.get(k);
+      const cand = porNum.get(String(k).split('-').pop()) || [];
+      if (cand.length < 2) return cand[0] || null;
+      const dist = (o) => { const d = diasEntre(fac.f, o.f.f); return d === null ? 9e6 : (d < 0 ? 1e6 - d : d); };
+      return [...cand].sort((a, b) => dist(a) - dist(b))[0];
+    };
+    const refs = new Map();
+    ncs.forEach((o) => { if (o.f.r) { if (!refs.has(o.f.r)) refs.set(o.f.r, []); refs.get(o.f.r).push(o); } });
+    const lista = facturas.filter((x) => x.lineas.length || (x.f.nc || []).length).map((x) => {
+      const mias = [], faltan = [];
+      (x.f.nc || []).forEach((k) => { const o = hallar(k, x.f); if (o) { if (!mias.some((l) => l.o === o)) mias.push({ o, tipo: 'anotada' }); } else faltan.push(k); });
+      [`${x.f.s}-${x.f.n}`, x.f.n].forEach((ref) => (refs.get(ref) || []).forEach((o) => { if (!mias.some((l) => l.o === o)) mias.push({ o, tipo: 'referencia' }); }));
+      mias.forEach((l) => { usos.set(l.o, (usos.get(l.o) || 0) + 1); l.o.libre = false; });
+      return { ...x, mias, faltan };
+    }).sort((a, b) => String(a.f.f).localeCompare(String(b.f.f)) || String(a.f.n).localeCompare(String(b.f.n), undefined, { numeric: true }));
+
+    const res = new Map();
+    // Pasos 1 y 2: anotadas y por referencia
+    lista.forEach((x) => {
+      const obs = r2(x.lineas.reduce((s, l) => s + (Number(l.m) || 0), 0));
+      let pend = obs, aplicada = 0;
+      const det = x.mias.map(({ o, tipo }) => {
+        const comp = usos.get(o) > 1;
+        // Se aplica solo lo que falta cubrir; si la NC es mayor, queda un sobrante. Sin monto observado, se toma completa.
+        const a = obs > 0 ? Math.min(o.resto, Math.max(pend, 0)) : o.resto;
+        o.resto = r2(o.resto - a); pend = r2(pend - a); aplicada = r2(aplicada + a);
+        return { k: o.k, monto: Math.abs(Number(o.f.m) || 0), aplicado: a, fecha: o.f.f, per: o.per, tipo, comp };
+      });
+      res.set(`${x.per}|${x.f.i}`, { obs, aplicada, det, faltan: x.faltan, lineas: x.lineas, auto: '' });
+    });
+    // Pasos 3 y 4: búsqueda automática por monto, solo si la factura no tiene ninguna NC aplicada
+    const candidatas = () => [...ncs.values()].filter((o) => o.libre && !o.f.rb && o.resto > 0);
+    const buscar = (x, monto) => {
+      let mejor = null;
+      candidatas().forEach((o) => {
+        if (Math.abs(o.resto - monto) > TOL_NC) return;
+        const d = diasEntre(x.f.f, o.f.f);
+        if (d !== null && (d < 0 || d > DIAS_NC)) return;
+        if (!mejor || String(o.f.f).localeCompare(String(mejor.f.f)) < 0) mejor = o;
+      });
+      return mejor;
+    };
+    const aplicarAuto = (x, c, o, tipo) => {
+      const a = o.resto;
+      o.resto = 0; o.libre = false; usos.set(o, 1);
+      c.aplicada = r2(c.aplicada + a);
+      c.det.push({ k: o.k, monto: Math.abs(Number(o.f.m) || 0), aplicado: a, fecha: o.f.f, per: o.per, tipo, comp: false });
+    };
+    lista.forEach((x) => {
+      const c = res.get(`${x.per}|${x.f.i}`);
+      if (c.aplicada > 0 || c.obs <= 1) return; // montos mínimos no se cruzan solos: coincidirían con cualquier cosa
+      const total = buscar(x, c.obs);
+      if (total) { aplicarAuto(x, c, total, 'auto: monto total'); c.auto = 'Monto total'; return; }
+      const conMonto = x.lineas.filter((l) => Number(l.m) > 0);
+      if (conMonto.length < 2) return;
+      let n = 0;
+      conMonto.forEach((l) => { if (Number(l.m) <= 1) return; const o = buscar(x, Number(l.m)); if (o) { aplicarAuto(x, c, o, 'auto: por producto'); n += 1; } });
+      if (n) c.auto = `Por producto (${n} de ${conMonto.length})`;
+    });
+    // Paso 5: el sobrante de una NC ya usada cubre otra observación a la que le falta justo ese monto
+    [...ncs.values()].filter((o) => !o.libre && !o.f.rb && o.resto > TOL_NC)
+      .sort((p, q) => String(p.f.f).localeCompare(String(q.f.f))).forEach((o) => {
+        let mejor = null;
+        lista.forEach((x) => {
+          const c = res.get(`${x.per}|${x.f.i}`), falta = r2(c.obs - c.aplicada);
+          if (c.obs <= 0 || falta <= TOL_NC || Math.abs(falta - o.resto) > TOL_NC || c.det.some((d) => d.k === o.k)) return;
+          const d = diasEntre(x.f.f, o.f.f);
+          if (d !== null && (d < 0 || d > DIAS_NC)) return;
+          if (!mejor || String(x.f.f).localeCompare(String(mejor.x.f.f)) < 0) mejor = { x, c };
+        });
+        if (!mejor) return;
+        const a = o.resto;
+        o.resto = 0; usos.set(o, (usos.get(o) || 0) + 1);
+        mejor.c.aplicada = r2(mejor.c.aplicada + a);
+        mejor.c.det.push({ k: o.k, monto: Math.abs(Number(o.f.m) || 0), aplicado: a, fecha: o.f.f, per: o.per, tipo: 'auto: sobrante de NC', comp: true });
+        mejor.c.auto = mejor.c.auto || 'Sobrante de otra NC';
+      });
+    return { res, usadas: new Set(usos.keys()), ncs };
+  }
+
+  function estadoCruce(c) {
+    if (!c || !c.lineas.length) return '';
+    const auto = c.auto ? ' (auto)' : '';
+    if (c.obs === 0) return c.aplicada > 0 ? 'NC recibida (sin monto obs.)' : 'Pendiente (sin monto)';
+    if (c.aplicada === 0) return 'Pendiente';
+    const d = r2(c.obs - c.aplicada);
+    if (Math.abs(d) <= TOL_NC) return 'Conciliada' + auto;
+    return d > 0 ? 'Parcial' + auto : 'NC mayor a lo observado';
+  }
+
+  /* =====================================================================
+     5. PAGOS A PROVEEDORES
+     Cada documento de la colección "pagos" es un mes a pagar de una empresa
+     y un distribuidor, con todas sus filas adentro: abrir un mes cuesta una
+     sola lectura.
+     ===================================================================== */
+  const MESES = ['', 'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SETIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+  const DIAS = ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'];
+  let pgCfg = { empresas: [], dists: [], feriados: [], alias: {}, provs: [] }, pgDocs = [], pgBaja = null, pgClave = '', pgSel = new Set(), pgAbiertas = new Set(),
+    pgPend = false, pgPulsando = false, pgCola = Promise.resolve(), pgCruce = null, pgPegado = [], pgVista = 'grid', pgObs = new Map();
+  const perTxt = (p) => (/^\d{4}-\d{2}$/.test(p) ? `${MESES[Number(p.slice(5))]} ${p.slice(0, 4)}` : 'SIN MES A PAGAR');
+  const numDoc = (v) => String(v ?? '').trim().replace(/\s+/g, '').replace(/\.0+$/, '').replace(/^0+(?=\d)/, '');
+  const serDoc = (v) => String(v ?? '').toUpperCase().replace(/[\s-]/g, '');
+  const refDoc = (v) => { // "F140-009187", "f140 9187" y "F140-9187" son la misma factura
+    const s = String(v ?? '').toUpperCase().trim();
+    let m = s.match(/([A-Z]{1,3}\d{1,4})\s*[- ]\s*0*(\d{2,})/);
+    if (m) return `${m[1]}-${m[2]}`;
+    m = s.match(/^0*(\d{2,})$/);
+    return m ? m[1] : '';
+  };
+  const fechaIso = (v) => { // acepta 2026-07-21, 21/07/2026, 21-7-26
+    const s = String(v ?? '').trim();
+    let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
+    m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
+    if (!m || +m[2] < 1 || +m[2] > 12 || +m[1] < 1 || +m[1] > 31) return '';
+    return `${m[3].length === 2 ? '20' + m[3] : m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+  };
+  const montoNum = (v) => { // "1,234.56", "1234,56", "S/ 1 234.56", "-947"
+    const s = String(v ?? '').replace(/S\/\.?/i, '').replace(/\s/g, '').replace(/,(?=\d{3}(\D|$))/g, '').replace(',', '.');
+    const n = Number(s);
+    return (s === '' || !isFinite(n)) ? null : r2(n);
+  };
+  const mil = (n) => ((n === null || n === undefined || n === '') ? '' : Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+  const pgEmp = () => $('gEmp').value, pgDist = () => $('gDist').value, pgPer = () => $('gPer').value;
+  const pgDoc = () => pgDocs.find((d) => d.per === pgPer());
+  const pgId = (per) => `${pgEmp()}_${pgDist()}_${per}`;
+  const pgFila = (i) => ((pgDoc() || {}).filas || []).find((f) => f.i === i);
+  const claveFila = (f) => `${f.t}|${f.s}|${f.n}`;
+  const idNuevo = () => 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const empDe = (k) => pgCfg.empresas.find((x) => x.k === k) || { k, nombre: k, ruc: '' };
+  const distDe = (k) => pgCfg.dists.find((x) => x.k === k) || { k, nombre: k, pago: 'letras' };
+  const pendDe = (c) => ((c && c.obs > 0 && c.obs - c.aplicada > TOL_NC) ? r2(c.obs - c.aplicada) : 0);
+  const cruceDe = (per, f) => pgCruce.res.get(`${per}|${f.i}`) || { obs: 0, aplicada: 0, det: [], faltan: [], lineas: [], auto: '' };
+  const claseEst = (e) => (!e ? '' : e.startsWith('Conciliada') ? 'e2' : (e === 'Pendiente' ? 'alerta' : 'e0'));
+  const labDe = (f) => { const l = String(f.l || '').trim().toUpperCase(); return l ? (pgCfg.alias[l] || l) : 'SIN IDENTIFICAR'; };
+
+  /* ---------- Enlace con el módulo de productos observados ---------- */
+  const soloAlfa = (s) => String(s ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  function provCoincide(nombre, dist) { // "DIMEXA", "DIMEXA SA." y "DIMEXA S.A." son el mismo distribuidor
+    const a = soloAlfa(nombre), b = soloAlfa(dist.nombre), k = soloAlfa(dist.k);
+    if (a.length < 4) return false;
+    return a === b || a === k || b.includes(a) || a.includes(k) || a.startsWith(b);
+  }
+  function indexarObservados() { // observaciones de Recepción del distribuidor elegido, por factura
+    pgObs = new Map();
+    const dist = distDe(pgDist());
+    filas.forEach((o) => {
+      if (o.estado === 'Anulado' || !provCoincide(o.proveedor, dist)) return;
+      const k = refDoc(o.factura);
+      if (!k) return;
+      if (!pgObs.has(k)) pgObs.set(k, []);
+      pgObs.get(k).push(o);
+    });
+  }
+  const enlazadas = (f) => pgObs.get(`${f.s}-${f.n}`) || [];
+  const montoObs = (o) => { // lo devuelto vale cantidad devuelta por precio
+    if (o.monto !== null && o.monto !== undefined) return Number(o.monto);
+    if (o.precio !== null && o.precio !== undefined && o.cantDevuelta) return r2(Number(o.precio) * Number(o.cantDevuelta));
+    return null;
+  };
+  // Lo observado de una factura: las líneas escritas a mano más lo que Recepción ya devolvió
+  function lineasDe(f) {
+    const manual = (f.o || []).map((l) => ({ p: l.p, m: l.m, origen: 'manual' }));
+    const rec = enlazadas(f).filter((o) => o.estado === 'Devuelto' || o.estado === 'NC recibida')
+      .map((o) => ({ p: `${o.producto} (devuelto: ${o.cantDevuelta ?? ''})`, m: montoObs(o), origen: 'recepcion', id: o._id }));
+    return manual.concat(rec);
+  }
+
+  /* ---------- Configuración y suscripción ---------- */
+  function pgIniciar() {
+    ['gEmp', 'gDist', 'gPer'].forEach((id) => { $(id).innerHTML = ''; }); // cada sesión empieza en la primera empresa y distribuidor
+    $('gMes').value = hoy().slice(0, 7);
+    pgVer('grid');
+    bajas.push(onSnapshot(doc(db, 'config', 'pagos'), (s) => {
+      const d = s.exists() ? s.data() : {};
+      pgCfg = { empresas: d.empresas || [], dists: d.dists || [], feriados: d.feriados || [], alias: d.alias || {}, provs: d.provs || [] };
+      const sel = (id, arr) => {
+        const v = $(id).value;
+        $(id).innerHTML = arr.map((x) => `<option value="${esc(x.k)}">${esc(x.nombre)}</option>`).join('');
+        if (arr.some((x) => x.k === v)) $(id).value = v;
+      };
+      sel('gEmp', pgCfg.empresas); sel('gDist', pgCfg.dists);
+      pgSuscribir();
+    }, errorEscucha));
+    bajas.push(() => { if (pgBaja) pgBaja(); pgBaja = null; pgClave = ''; pgDocs = []; if (cxBaja) cxBaja(); cxBaja = null; cxClave = ''; cxDoc = null; });
+  }
+  function pgSuscribir() {
+    const clave = (puede('verPagos') && pgEmp() && pgDist()) ? `${pgEmp()}|${pgDist()}` : '';
+    if (clave === pgClave) { pintarPagos(); return; }
+    if (pgBaja) pgBaja();
+    pgBaja = null; pgClave = clave; pgDocs = []; pgSel.clear(); pgAbiertas.clear();
+    if (!clave) { pintarPagos(); return; }
+    pgBaja = onSnapshot(query(collection(db, 'pagos'), where('emp', '==', pgEmp()), where('dist', '==', pgDist())), (snap) => {
+      pgDocs = snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) })).sort((a, b) => String(b.per).localeCompare(String(a.per)));
+      const v = pgPer();
+      $('gPer').innerHTML = pgDocs.map((d) => `<option value="${esc(d.per)}">${esc(perTxt(d.per))}${(d.compra || []).length ? ' · compras ' + esc(d.compra.map((c) => MESES[Number(c.slice(5))].slice(0, 3).toLowerCase() + ' ' + c.slice(2, 4)).join(', ')) : ''}</option>`).join('');
+      if (pgDocs.some((d) => d.per === v)) $('gPer').value = v;
+      $('gMover').innerHTML = '<option value="">Mover seleccionadas a…</option>' + pgDocs.map((d) => `<option value="${esc(d.per)}">${esc(perTxt(d.per))}</option>`).join('');
+      pintarPagos();
+    }, errorEscucha);
+  }
+  $('gEmp').addEventListener('change', () => { pgSuscribir(); if (pgVista === 'cxp') cxSuscribir(); if (pgVista === 'gen') pintarGeneral(); });
+  $('gDist').addEventListener('change', pgSuscribir);
+  $('gPer').addEventListener('change', () => { pgSel.clear(); pgAbiertas.clear(); pintarPagos(true); });
+  $('gFiltro').addEventListener('change', () => pintarPagos(true));
+  $('gTxt').addEventListener('input', () => pintarPagos(true));
+
+  // Sub-pestañas dentro de Pagos
+  function pgVer(v) {
+    pgVista = v;
+    ['grid', 'dash', 'res', 'cruce', 'cxp', 'gen'].forEach((x) => $('gv_' + x).classList.toggle('oculto', x !== (v === 'ncp' ? 'cruce' : v)));
+    document.querySelectorAll('#gSub button').forEach((b) => b.classList.toggle('act', b.dataset.gv === v));
+    const porDist = !['cxp', 'gen'].includes(v);
+    $('gDist').classList.toggle('oculto', !porDist);
+    $('gPer').classList.toggle('oculto', !['grid', 'res'].includes(v));
+    $('gNuevoPer').classList.toggle('oculto', v !== 'grid' || !puede('pagos'));
+    $('gMes').classList.toggle('oculto', porDist);
+    if (v === 'cxp') cxSuscribir();
+    pintarPagos(true);
+  }
+  $('gSub').addEventListener('click', (e) => { const b = e.target.closest('button[data-gv]'); if (b) pgVer(b.dataset.gv); });
+  $('gMes').addEventListener('change', () => { if (pgVista === 'cxp') cxSuscribir(); else pintarGeneral(); });
+
+  const ncSinAsignar = (f) => f.t === 'NC' && !f.rb && !f.dt && pgCruce && !pgCruce.usadas.has(pgCruce.ncs.get(`${f.s}-${f.n}`));
+  // Devolución total: la factura completa se cancela con su NC
+  const esDevTotal = (f, c) => f.t === 'FA' && (f.dt === 1 || (c && c.obs > 0 && Math.abs(c.obs - Number(f.m)) <= TOL_NC));
+
+  /* ---------- Pintar: reparte según la sub-pestaña ---------- */
+  function pintarPagos(forzar) {
+    if (!yo) return;
+    // Los avisos de la base no redibujan al instante: se espera a que nadie esté escribiendo ni a mitad de un clic
+    if (!forzar) { pgPend = true; pgAlDia(); return; }
+    pgPend = false;
+    indexarObservados();
+    pgCruce = cruzar(pgDocs, lineasDe);
+    if (pgVista === 'grid') pintarGrilla();
+    else if (pgVista === 'dash') pintarDash();
+    else if (pgVista === 'res') pintarResumen();
+    else if (pgVista === 'cruce' || pgVista === 'ncp') pintarCruce();
+    else if (pgVista === 'cxp') pintarCxp();
+    else if (pgVista === 'gen') pintarGeneral();
+  }
+
+  /* =====================  A. FACTURAS Y NC (grilla)  ===================== */
+  function filasVista() {
+    const d = pgDoc();
+    if (!d) return [];
+    const fil = $('gFiltro').value, t = $('gTxt').value.trim().toLowerCase();
+    return (d.filas || []).filter((f) => {
+      if (fil === 'FA' && f.t !== 'FA') return false;
+      if (fil === 'NC' && f.t !== 'NC') return false;
+      if (fil === 'REV' && !f.x) return false;
+      if (fil === 'SIN' && !ncSinAsignar(f)) return false;
+      if (fil === 'OBS' || fil === 'PEN') {
+        const c = cruceDe(d.per, f), e = f.t === 'FA' ? estadoCruce(c) : '';
+        if (!e) return false;
+        if (fil === 'PEN' && e.startsWith('Conciliada')) return false;
+      }
+      if (t && ![f.s, f.n, f.l, f.rb, f.e, f.x, f.r, (f.nc || []).join(' '), lineasDe(f).map((x) => x.p).join(' ')].join(' ').toLowerCase().includes(t)) return false;
+      return true;
+    }).sort((a, b) => (a.t === b.t ? 0 : (a.t === 'FA' ? -1 : (b.t === 'FA' ? 1 : a.t.localeCompare(b.t)))) || String(a.f).localeCompare(String(b.f)) || String(a.n).localeCompare(String(b.n), undefined, { numeric: true }));
+  }
+
+  function pintarGrilla() {
+    const cuerpo = $('gCuerpo'), edita = puede('pagos'), d = pgDoc();
+    $('gHerr').classList.toggle('oculto', !edita && yo.area !== 'ADMIN');
+    ['gAdd', 'gPegar'].forEach((id) => $(id).classList.toggle('oculto', !edita));
+    ['gDel', 'gMover'].forEach((id) => $(id).classList.toggle('oculto', !puede('pagosBorrar')));
+    $('gImp').classList.toggle('oculto', yo.area !== 'ADMIN');
+    $('gNuevoPer').classList.toggle('oculto', !edita);
+    if (!pgCfg.empresas.length) {
+      cuerpo.innerHTML = `<tr><td colspan="12" class="vacio">${yo.area === 'ADMIN' ? 'Aún no hay datos de pagos. Usa "Importar datos" y elige el archivo datos-pagos.json.' : 'Aún no hay datos de pagos cargados.'}</td></tr>`;
+      $('gRes').textContent = ''; $('gPie').textContent = ''; return;
+    }
+    if (!d) {
+      cuerpo.innerHTML = '<tr><td colspan="12" class="vacio">Este distribuidor aún no tiene meses a pagar en esta empresa. Usa "+ Nuevo mes a pagar".</td></tr>';
+      $('gRes').textContent = ''; $('gPie').textContent = ''; return;
+    }
+    const vista = filasVista();
+    let h = '';
+    vista.forEach((f, n) => {
+      const c = cruceDe(d.per, f), est = f.t === 'FA' ? estadoCruce(c) : '', abierta = pgAbiertas.has(f.i);
+      const ed = edita ? ' class="ed"' : '', deRec = enlazadas(f).length;
+      let colNc = '';
+      if (f.t === 'NC') {
+        colNc = f.rb ? `<span class="quien">Rebate: ${esc(f.rb)}</span>` : (f.r ? `→ factura ${esc(f.r)}` : (ncSinAsignar(f) ? '<span class="est e0">Sin asignar a factura</span>' : '<span class="quien">Aplicada a una factura</span>'));
+      } else colNc = esc((f.nc || []).join(', ')) + (c.faltan.length ? ` <span class="est alerta" title="No está en la lista">falta ${esc(c.faltan.join(', '))}</span>` : '');
+      h += `<tr data-i="${esc(f.i)}" class="${pgSel.has(f.i) ? 'sel ' : ''}${f.t === 'NC' ? 'esnc' : ''}">` +
+        `<td class="nf">${n + 1}</td><td class="ck"><input type="checkbox" class="gCk"${pgSel.has(f.i) ? ' checked' : ''} aria-label="Seleccionar fila ${n + 1}"></td>` +
+        `<td data-c="f"${ed}>${esc(dia(f.f))}</td><td data-c="t"${ed}>${esc(f.t)}</td><td data-c="s"${ed}>${esc(f.s)}</td><td data-c="n"${ed}>${esc(f.n)}</td>` +
+        `<td data-c="m" class="${edita ? 'ed ' : ''}n${f.m < 0 ? ' neg' : ''}">${esc(mil(f.m))}</td>` +
+        `<td data-c="l"${ed}>${esc(f.l || f.e || f.dp || '')}</td>` +
+        (f.t === 'FA'
+          ? `<td class="n abre" data-ab="1">${c.lineas.length ? `<span class="tri">${abierta ? '▾' : '▸'}</span>${esc(mil(c.obs))}${deRec ? ' <span class="est e1" title="Observado en Recepción">R</span>' : ''}` : (deRec ? `<span class="tri">${abierta ? '▾' : '▸'}</span><span class="est e1">Recepción</span>` : (edita ? '<span class="mas">+ observar</span>' : ''))}</td>`
+          : '<td></td>') +
+        `<td data-c="${f.t === 'NC' ? 'r' : 'nc'}"${ed}>${colNc}</td>` +
+        `<td>${est ? `<span class="est ${claseEst(est)}">${esc(est)}</span>` : ''}${esDevTotal(f, c) ? ' <span class="quien">Dev. total</span>' : ''}</td>` +
+        `<td data-c="x" class="${edita ? 'ed ' : ''}nota">${esc(f.x || '')}</td></tr>`;
+      if (abierta && f.t === 'FA') h += filaDetalle(f, c, edita);
+    });
+    if (edita) {
+      h += '<tr class="nuevaFila"><td class="nf">+</td><td></td>' +
+        '<td><input class="gIn aF" placeholder="dd/mm/aaaa" aria-label="Fecha"></td>' +
+        '<td><select class="gIn aT" aria-label="Tipo"><option>FA</option><option>NC</option><option>ND</option></select></td>' +
+        '<td><input class="gIn aS" placeholder="Serie" aria-label="Serie"></td><td><input class="gIn aN" placeholder="Número" aria-label="Número"></td>' +
+        '<td><input class="gIn aM n" placeholder="Total" aria-label="Total"></td><td><input class="gIn aL" placeholder="Laboratorio" aria-label="Laboratorio"></td>' +
+        '<td colspan="4"><button class="pri mini aOk">Agregar fila</button> <span class="quien">o Enter. Para varias filas usa "Pegar desde Excel".</span></td></tr>';
+    }
+    cuerpo.innerHTML = h || '<tr><td colspan="12" class="vacio">Sin filas en esta vista</td></tr>';
+
+    const fs = d.filas || [], fa = fs.filter((f) => f.t === 'FA'), nc = fs.filter((f) => f.t === 'NC');
+    const suma = (a) => a.reduce((s, f) => s + (Number(f.m) || 0), 0);
+    let obsT = 0, pendT = 0;
+    fa.forEach((f) => { const c = cruceDe(d.per, f); obsT += c.obs; pendT += pendDe(c); });
+    const rev = fs.filter((f) => f.x).length, sinA = nc.filter((f) => ncSinAsignar(f)).length;
+    $('gRes').textContent = `${perTxt(d.per)} · Facturas: ${fa.length} · S/ ${mil(suma(fa))} · NC: ${nc.length} · S/ ${mil(suma(nc))} · Neto: S/ ${mil(suma(fs))}` +
+      ` · Observado: S/ ${mil(obsT)} · Pendiente de NC: S/ ${mil(pendT)}`;
+    $('gPie').innerHTML = [
+      rev ? `<b>${rev}</b> fila(s) por revisar` : '', sinA ? `<b>${sinA}</b> NC sin asignar a factura` : '',
+      (d.sueltas || []).length ? `<b>${d.sueltas.length}</b> observación(es) del Excel sin factura identificada <button class="mini" id="gSueltas">Ver</button>` : '',
+      d.actPor ? `Último cambio: ${esc(d.actPor)} · ${esc(fecha(d.act))}` : ''
+    ].filter(Boolean).join(' · ');
+    $('gDel').textContent = `Eliminar seleccionadas (${pgSel.size})`;
+  }
+
+  function filaDetalle(f, c, edita) {
+    const manual = (f.o || []).map((x, k) => (edita
+      ? `<tr><td><input class="gIn oProd" data-k="${k}" value="${esc(x.p)}" aria-label="Producto observado"></td><td><input class="gIn oMonto n" data-k="${k}" value="${esc(x.m ?? '')}" aria-label="Monto"></td><td class="n"><button class="mini pel oQuitar" data-k="${k}" aria-label="Quitar">✕</button></td></tr>`
+      : `<tr><td class="larga">${esc(x.p)}</td><td class="n">${esc(mil(x.m))}</td><td></td></tr>`)).join('');
+    const rec = enlazadas(f);
+    const pone = puede('precios');
+    const recHtml = rec.length ? '<h4 style="margin-top:10px">Observado y devuelto por Recepción</h4><table><tr><th>Producto</th><th class="n">Observado</th><th class="n">Devuelto</th><th>Situación</th><th class="n" style="width:110px">Precio unit.</th><th class="n">Monto</th></tr>' +
+      rec.map((o) => {
+        const cuenta = o.estado === 'Devuelto' || o.estado === 'NC recibida';
+        return `<tr><td class="larga"><b>${esc(o.codigo)}</b> ${esc(o.producto)}${o.guia ? `<div class="quien">Guía ${esc(o.guia)}</div>` : ''}</td><td class="n">${esc(o.cantidad)}</td><td class="n">${esc(o.cantDevuelta ?? '')}</td>` +
+          `<td>${cuenta ? esc(o.estado === 'Devuelto' ? 'Devuelto' : 'Devuelto · NC ' + (o.nc || '')) : `<span class="quien">${esc(o.estado === 'Por devolver' ? 'Aún no devuelto: no cuenta' : o.estado + ': no cuenta')}</span>`}</td>` +
+          `<td class="n">${cuenta && pone ? `<input class="gIn lpPrecio n" data-id="${esc(o._id)}" data-c="${esc(o.cantDevuelta ?? 0)}" value="${esc(o.precio ?? '')}" aria-label="Precio unitario ${esc(o.codigo)}">` : esc(mil(o.precio))}</td>` +
+          `<td class="n">${cuenta ? esc(mil(montoObs(o))) : ''}</td></tr>`;
+      }).join('') + '</table>' : '';
+    const ncs = c.det.map((x) => `<tr><td>${esc(x.k)} <span class="quien">${esc(x.tipo)}${x.comp ? ' · repartida' : ''}</span></td><td>${esc(dia(x.fecha))}</td>` +
+      `<td class="n">${esc(mil(x.monto))}</td><td class="n">${esc(mil(x.aplicado))}</td></tr>`).join('') +
+      c.faltan.map((k) => `<tr><td>${esc(k)}</td><td colspan="3"><span class="est alerta">No está registrada en la lista</span></td></tr>`).join('');
+    const falta = r2(c.obs - c.aplicada);
+    return `<tr class="det" data-d="${esc(f.i)}"><td colspan="12"><div class="detg">` +
+      `<div><h4>Productos observados de ${esc(f.s)}-${esc(f.n)}</h4>` +
+      ((f.o || []).length || !rec.length ? `<table><tr><th>Producto observado (anotado a mano)</th><th class="n" style="width:120px">Monto</th><th style="width:40px"></th></tr>${manual}</table>` : '') +
+      `${edita ? '<button class="mini oMas">+ Agregar producto observado</button>' : ''}${recHtml}` +
+      `<table style="margin-top:8px"><tr class="tot"><td>Total observado</td><td class="n" style="width:140px">${esc(mil(c.obs))}</td></tr></table></div>` +
+      `<div><h4>Notas de crédito aplicadas</h4><table><tr><th>NC</th><th>Fecha</th><th class="n">Monto de la NC</th><th class="n">Aplicado aquí</th></tr>${ncs || '<tr><td colspan="4" class="quien">Ninguna todavía. Anota la serie y número en la columna "NC anotadas".</td></tr>'}` +
+      `<tr class="tot"><td colspan="3">Total aplicado${Math.abs(falta) > TOL_NC ? (falta > 0 ? ` · falta S/ ${esc(mil(falta))}` : '') : ''}</td><td class="n">${esc(mil(c.aplicada))}</td></tr></table></div>` +
+      '</div></td></tr>';
+  }
+
+  /* ---------- Guardar (una transacción por mes a pagar), índice de facturas e historial ---------- */
+  async function pgLog(accion, detalle, per, clave) {
+    const id = String(9999999999999 - Date.now()) + Math.random().toString(36).slice(2, 6); // lo más reciente sale primero
+    await setDoc(doc(db, 'pagosLog', id), { clave: clave || `${pgEmp()}|${pgDist()}`, per: per || pgPer(), accion, detalle: String(detalle).slice(0, 400), quien: firma(), ts: serverTimestamp() });
+  }
+  // Índice que cualquier usuario puede leer: dice qué facturas ya están en pagos, para cerrar las observaciones
+  const idxCampo = (per) => 'm' + String(per).replace(/[^0-9A-Za-z]/g, '_');
+  const idxDe = (lista) => lista.filter((f) => f.t === 'FA' && f.n).map((f) => `${f.s}-${f.n}`);
+  // Los guardados van en fila, uno tras otro, para que dos cambios seguidos no se pisen
+  function pgGuardar(per, cambio, accion, detalle) {
+    const emp = pgEmp(), dist = pgDist();
+    const turno = pgCola.then(() => pgGuardarYa(emp, dist, per, cambio, accion, detalle));
+    pgCola = turno.catch(() => {});
+    return turno;
+  }
+  async function pgGuardarYa(emp, dist, per, cambio, accion, detalle) {
+    const ref = doc(db, 'pagos', `${emp}_${dist}_${per}`), idx = doc(db, 'pagosIdx', `${emp}_${dist}`);
+    await runTransaction(db, async (tx) => {
+      const s = await tx.get(ref);
+      if (!s.exists()) throw new Error('Ese mes a pagar ya no existe.');
+      const lista = (s.data().filas || []).map((f) => ({ ...f }));
+      const nuevas = cambio(lista) || lista;
+      tx.update(ref, { filas: nuevas, act: serverTimestamp(), actPor: firma() });
+      tx.set(idx, { p: { [idxCampo(per)]: idxDe(nuevas) } }, { merge: true });
+    });
+    pgLog(accion, detalle, per, `${emp}|${dist}`).catch(console.error);
+  }
+  const pgError = (e) => msg('gMsg', errorTexto(e));
+  const repetida = (f, exceptoId) => {
+    for (const d of pgDocs) for (const x of (d.filas || [])) if (x.n && claveFila(x) === claveFila(f) && !(d.per === pgPer() && x.i === exceptoId)) return d.per;
+    return '';
+  };
+  function ncDeTexto(v) { // "F241-7247, F241 7515" · "F241 7247-7515" · "7247"
+    const out = []; let serie = '';
+    (String(v).toUpperCase().match(/[A-Z]{1,3}\d{1,4}(?=\D|$)|\d{2,}/g) || []).forEach((tok) => {
+      if (/^[A-Z]/.test(tok)) serie = tok; else { const k = (serie ? serie + '-' : '') + numDoc(tok); if (!out.includes(k)) out.push(k); }
+    });
+    return out;
+  }
+  // Editor de celda genérico: clic, escribir, Enter. Escape cancela.
+  function editarEn(td, crudo, alGuardar, alTerminar) {
+    if (td.querySelector('input')) return;
+    td.innerHTML = `<input class="gIn${td.classList.contains('n') ? ' n' : ''}" value="${esc(crudo)}" aria-label="Editar celda">`;
+    const inp = td.firstChild;
+    inp.focus(); inp.select();
+    let listo = false, cancelar = false;
+    inp.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); inp.blur(); } else if (e.key === 'Escape') { cancelar = true; inp.blur(); }
+    });
+    inp.addEventListener('blur', () => {
+      if (listo) return;
+      listo = true;
+      const v = inp.value;
+      if (!cancelar && v.trim() !== String(crudo).trim()) Promise.resolve(alGuardar(v)).then(alTerminar, alTerminar); else alTerminar();
+    });
+  }
+
+  async function guardarCelda(id, c, v) {
+    const f = pgFila(id);
+    if (!f) return;
+    const nuevo = { ...f };
+    if (c === 'f') { const x = fechaIso(v); if (!x) return msg('gMsg', 'Fecha no válida. Escríbela como 21/07/2026.'); nuevo.f = x; }
+    else if (c === 't') { const x = String(v).trim().toUpperCase(); if (!['FA', 'NC', 'ND'].includes(x)) return msg('gMsg', 'El tipo debe ser FA, NC o ND.'); nuevo.t = x; if (x === 'NC' && nuevo.m > 0) nuevo.m = -nuevo.m; }
+    else if (c === 's') { nuevo.s = serDoc(v); if (!nuevo.s) return msg('gMsg', 'Falta la serie.'); }
+    else if (c === 'n') { nuevo.n = numDoc(v); if (!/^\d+$/.test(nuevo.n)) return msg('gMsg', 'El número solo lleva dígitos.'); }
+    else if (c === 'm') { const x = montoNum(v); if (x === null) return msg('gMsg', 'Monto no válido.'); nuevo.m = (nuevo.t === 'NC' && x > 0) ? -x : x; }
+    else if (c === 'l') { nuevo.l = may(v, 60); delete nuevo.e; delete nuevo.dp; }
+    else if (c === 'nc') nuevo.nc = ncDeTexto(v);
+    else if (c === 'r') nuevo.r = refDoc(v);
+    else if (c === 'x') nuevo.x = txt(v, 200);
+    if (['t', 's', 'n'].includes(c)) { const p = repetida(nuevo, id); if (p) return msg('gMsg', `Ya existe ${nuevo.t} ${nuevo.s}-${nuevo.n} en ${perTxt(p)}. No se guardó el cambio.`); }
+    msg('gMsg', '');
+    const antes = c === 'nc' ? (f.nc || []).join(', ') : f[c], ahora = c === 'nc' ? nuevo.nc.join(', ') : nuevo[c];
+    try {
+      await pgGuardar(pgPer(), (lista) => { const k = lista.findIndex((x) => x.i === id); if (k < 0) throw new Error('La fila ya no existe.'); lista[k] = nuevo; },
+        'Corrigió', `${f.t} ${f.s}-${f.n}: ${{ f: 'fecha', t: 'tipo', s: 'serie', n: 'número', m: 'total', l: 'laboratorio', nc: 'NC anotadas', r: 'ref. factura', x: 'nota' }[c]} "${antes ?? ''}" → "${ahora ?? ''}"`);
+    } catch (e) { pgError(e); }
+  }
+
+  async function agregarFila() {
+    const tr = $('gCuerpo').querySelector('.nuevaFila'), q = (c) => tr.querySelector(c).value;
+    const f = { i: idNuevo(), f: fechaIso(q('.aF')), t: q('.aT'), s: serDoc(q('.aS')), n: numDoc(q('.aN')), m: montoNum(q('.aM')) };
+    if (!f.f) return msg('gMsg', 'Fecha no válida. Escríbela como 21/07/2026.');
+    if (!f.s || !/^\d+$/.test(f.n)) return msg('gMsg', 'Completa la serie y el número (solo dígitos).');
+    if (f.m === null) return msg('gMsg', 'Monto no válido.');
+    if (f.t === 'NC' && f.m > 0) f.m = -f.m;
+    if (q('.aL').trim()) f.l = may(q('.aL'), 60);
+    const p = repetida(f);
+    if (p) return msg('gMsg', `Ya existe ${f.t} ${f.s}-${f.n} en ${perTxt(p)}. No se agregó.`);
+    msg('gMsg', '');
+    try { await pgGuardar(pgPer(), (lista) => { lista.push(f); }, 'Agregó', `${f.t} ${f.s}-${f.n} por ${mil(f.m)}`); pintarPagos(true); const n = $('gCuerpo').querySelector('.aS'); if (n) n.focus(); }
+    catch (e) { pgError(e); }
+  }
+
+  async function guardarObservados(tr) { // toma las líneas tal como están en pantalla
+    const id = tr.dataset.d, f = pgFila(id);
+    if (!f) return;
+    const o = [...tr.querySelectorAll('.oProd')].map((inp) => ({ p: txt(inp.value, 140), m: montoNum(tr.querySelector(`.oMonto[data-k="${inp.dataset.k}"]`).value) }));
+    try { await pgGuardar(pgPer(), (lista) => { const x = lista.find((y) => y.i === id); if (x) x.o = o; }, 'Observación', `${f.s}-${f.n}: ${o.length} producto(s), S/ ${mil(o.reduce((s, x) => s + (x.m || 0), 0))}`); }
+    catch (e) { pgError(e); }
+  }
+
+  /* ---------- Eventos de la grilla ---------- */
+  $('gCuerpo').addEventListener('click', (e) => {
+    const t = e.target, tr = t.closest('tr');
+    if (!tr) return;
+    if (t.classList.contains('gCk')) { if (t.checked) pgSel.add(tr.dataset.i); else pgSel.delete(tr.dataset.i); tr.classList.toggle('sel', t.checked); $('gDel').textContent = `Eliminar seleccionadas (${pgSel.size})`; return; }
+    if (t.classList.contains('aOk')) return agregarFila();
+    if (t.classList.contains('oMas')) {
+      const f = pgFila(t.closest('tr.det').dataset.d);
+      pgAbiertas.add(f.i);
+      return pgGuardar(pgPer(), (lista) => { const x = lista.find((y) => y.i === f.i); if (x) x.o = (x.o || []).concat([{ p: '', m: null }]); }, 'Observación', `${f.s}-${f.n}: agregó línea`).then(() => pintarPagos(true)).catch(pgError);
+    }
+    if (t.classList.contains('oQuitar')) {
+      const f = pgFila(t.closest('tr.det').dataset.d), k = Number(t.dataset.k);
+      return pgGuardar(pgPer(), (lista) => { const x = lista.find((y) => y.i === f.i); if (x) x.o = (x.o || []).filter((_, n) => n !== k); }, 'Observación', `${f.s}-${f.n}: quitó "${(f.o[k] || {}).p || ''}"`).then(() => pintarPagos(true)).catch(pgError);
+    }
+    const ab = t.closest('td[data-ab]');
+    if (ab && tr.dataset.i) {
+      const id = tr.dataset.i, f = pgFila(id);
+      if (!(f.o || []).length && !enlazadas(f).length) {
+        if (!puede('pagos')) return;
+        pgAbiertas.add(id);
+        return pgGuardar(pgPer(), (lista) => { const x = lista.find((y) => y.i === id); if (x) x.o = [{ p: '', m: null }]; }, 'Observación', `${f.s}-${f.n}: agregó línea`).then(() => pintarPagos(true)).catch(pgError);
+      }
+      if (pgAbiertas.has(id)) pgAbiertas.delete(id); else pgAbiertas.add(id);
+      return pintarPagos(true);
+    }
+    const td = t.closest('td.ed');
+    if (td && tr.dataset.i && puede('pagos')) {
+      const id = tr.dataset.i, c = td.dataset.c, f = pgFila(id);
+      if (!f) return;
+      editarEn(td, c === 'f' ? dia(f.f) : c === 'nc' ? (f.nc || []).join(', ') : c === 'l' ? (f.l || f.e || f.dp || '') : (f[c] ?? ''), (v) => guardarCelda(id, c, v), () => pintarPagos(true));
+    }
+  });
+  $('gCuerpo').addEventListener('change', async (e) => {
+    const t = e.target;
+    if (t.matches('.oProd, .oMonto')) return guardarObservados(t.closest('tr.det'));
+    if (t.matches('.lpPrecio')) { // precio de un producto devuelto: se guarda en el módulo de observados
+      const p = t.value.trim() === '' ? null : montoNum(t.value);
+      if (t.value.trim() !== '' && (p === null || p < 0)) return msg('gMsg', 'Precio no válido.');
+      try {
+        await updateDoc(doc(db, 'observaciones', t.dataset.id), { precio: p, monto: p === null ? null : r2(p * Number(t.dataset.c)), actPor: firma(), actFecha: serverTimestamp() });
+        msg('gMsg', '');
+      } catch (err) { pgError(err); }
+    }
+  });
+  $('gCuerpo').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.target.closest('.nuevaFila') && e.target.matches('input')) { e.preventDefault(); agregarFila(); }
+  });
+  const pgAlDia = () => setTimeout(() => {
+    const a = document.activeElement;
+    if (pgPend && !pgPulsando && !(a && a.matches('#gCuerpo input, #gCuerpo select, #xCuerpo input, #xCuerpo select'))) pintarPagos(true);
+  }, 0);
+  $('vPagos').addEventListener('focusout', pgAlDia);
+  $('vPagos').addEventListener('pointerdown', () => { pgPulsando = true; });
+  ['pointerup', 'pointercancel'].forEach((ev) => document.addEventListener(ev, () => setTimeout(() => { pgPulsando = false; pgAlDia(); }, 0)));
+  $('gAdd').addEventListener('click', () => { const n = $('gCuerpo').querySelector('.aF'); if (n) { n.scrollIntoView({ block: 'center' }); n.focus(); } });
+
+  $('gDel').addEventListener('click', async () => {
+    const ids = [...pgSel], d = pgDoc();
+    if (!ids.length || !d) return msg('gMsg', 'Marca primero las filas que quieres eliminar.');
+    const fs = d.filas.filter((f) => ids.includes(f.i));
+    if (!confirm(`¿Eliminar ${fs.length} fila(s)?\n${fs.slice(0, 8).map((f) => `${f.t} ${f.s}-${f.n}  ${mil(f.m)}`).join('\n')}${fs.length > 8 ? '\n…' : ''}`)) return;
+    try {
+      await pgGuardar(pgPer(), (lista) => lista.filter((f) => !ids.includes(f.i)), 'Eliminó', fs.map((f) => `${f.t} ${f.s}-${f.n} (${mil(f.m)})`).join(', '));
+      pgSel.clear(); msg('gMsg', `${fs.length} fila(s) eliminada(s).`, 'ok');
+    } catch (e) { pgError(e); }
+  });
+
+  $('gMover').addEventListener('change', async (e) => {
+    const destino = e.target.value, origen = pgPer(), ids = [...pgSel];
+    e.target.value = '';
+    if (!destino || destino === origen) return;
+    if (!ids.length) return msg('gMsg', 'Marca primero las filas que quieres mover.');
+    const fs = pgDoc().filas.filter((f) => ids.includes(f.i));
+    try {
+      const a = doc(db, 'pagos', pgId(origen)), b = doc(db, 'pagos', pgId(destino)), idx = doc(db, 'pagosIdx', `${pgEmp()}_${pgDist()}`);
+      await runTransaction(db, async (tx) => {
+        const sa = await tx.get(a), sb = await tx.get(b);
+        if (!sa.exists() || !sb.exists()) throw new Error('El mes a pagar ya no existe.');
+        const quedan = sa.data().filas.filter((f) => !ids.includes(f.i));
+        const llegan = sb.data().filas.concat(sa.data().filas.filter((f) => ids.includes(f.i)).map((f) => ({ ...f, i: idNuevo() })));
+        tx.update(a, { filas: quedan, act: serverTimestamp(), actPor: firma() });
+        tx.update(b, { filas: llegan, act: serverTimestamp(), actPor: firma() });
+        tx.set(idx, { p: { [idxCampo(origen)]: idxDe(quedan), [idxCampo(destino)]: idxDe(llegan) } }, { merge: true });
+      });
+      pgLog('Movió', `${fs.length} fila(s) de ${perTxt(origen)} a ${perTxt(destino)}: ${fs.map((f) => `${f.t} ${f.s}-${f.n}`).join(', ')}`, origen).catch(console.error);
+      pgSel.clear(); msg('gMsg', `${fs.length} fila(s) movida(s) a ${perTxt(destino)}.`, 'ok');
+    } catch (err) { pgError(err); }
+  });
+
+  $('gNuevoPer').addEventListener('click', async () => {
+    const v = prompt('Mes a pagar que quieres crear, como AAAA-MM (por ejemplo 2026-11):', '');
+    if (v === null) return;
+    const per = v.trim();
+    if (!/^20\d{2}-(0[1-9]|1[0-2])$/.test(per)) return msg('gMsg', 'Escribe el mes como AAAA-MM, por ejemplo 2026-11.');
+    if (pgDocs.some((d) => d.per === per)) { $('gPer').value = per; return pintarPagos(true); }
+    try {
+      await setDoc(doc(db, 'pagos', pgId(per)), { emp: pgEmp(), dist: pgDist(), per, compra: [], letras: null, desde: '', prog: [], filas: [], sueltas: [], act: serverTimestamp(), actPor: firma() });
+      pgLog('Creó mes', perTxt(per), per).catch(console.error);
+      setTimeout(() => { $('gPer').value = per; pintarPagos(true); }, 300);
+    } catch (e) { pgError(e); }
+  });
+
+  /* ---------- Pegar desde Excel ---------- */
+  function leerPegado(texto) {
+    const claves = new Set(), existentes = new Map();
+    pgDocs.forEach((d) => (d.filas || []).forEach((f) => { if (f.n) existentes.set(claveFila(f), d.per); }));
+    return texto.split(/\r?\n/).map((l) => l.split('\t').map((c) => c.trim())).filter((c) => c.some(Boolean)).map((c) => {
+      const iF = c.findIndex((x) => fechaIso(x));
+      if (iF < 0) return { crudo: c.join(' | '), err: 'No encuentro la fecha' };
+      let k = iF + 1, tipo = '';
+      if (/^(FA|NC|ND)$/i.test(c[k] || '')) { tipo = c[k].toUpperCase(); k += 1; }
+      let serie = c[k] || '', numero = c[k + 1] || '', resto = c.slice(k + 2);
+      const junto = serie.toUpperCase().match(/^([A-Z]{1,3}\d{1,4})\s*-\s*0*(\d+)$/); // "F241-55187" en una sola celda
+      if (junto) { serie = junto[1]; numero = junto[2]; resto = c.slice(k + 1); }
+      const m = montoNum(resto[0]);
+      const f = { f: fechaIso(c[iF]), t: tipo || (m !== null && m < 0 ? 'NC' : 'FA'), s: serDoc(serie), n: numDoc(numero), m };
+      if (resto[1] && montoNum(resto[1]) === null) f.l = may(resto[1], 60);
+      if (!f.s || !/^\d+$/.test(f.n)) return { ...f, crudo: c.join(' | '), err: 'Serie o número no válidos' };
+      if (m === null) return { ...f, crudo: c.join(' | '), err: 'Monto no válido' };
+      if (f.t === 'NC' && f.m > 0) f.m = -f.m;
+      const cl = claveFila(f);
+      if (existentes.has(cl)) return { ...f, dup: `Ya existe en ${perTxt(existentes.get(cl))}` };
+      if (claves.has(cl)) return { ...f, dup: 'Repetida dentro de lo pegado' };
+      claves.add(cl);
+      return f;
+    });
+  }
+  function dlgPegar(textoInicial) {
+    if (!pgDoc()) return msg('gMsg', 'Primero elige o crea el mes a pagar.');
+    modo = 'pegar'; abierto = null; pgPegado = [];
+    $('dTit').textContent = `Pegar desde Excel · ${perTxt(pgPer())}`;
+    $('dCuerpo').innerHTML = '<div id="dMsg"></div>' +
+      '<p class="quien">Copia en Excel las columnas <b>Fecha · Tipo · Serie · Número · Total</b> (y Laboratorio si quieres) y pégalas aquí con Ctrl + V. También acepta la columna Proveedor delante, o la serie y el número juntos como F241-55187.</p>' +
+      '<textarea id="pgTexto" rows="5" placeholder="Pega aquí las celdas copiadas de Excel" style="font-family:monospace;font-size:12px;white-space:pre"></textarea>' +
+      '<div id="pgVista" style="margin-top:10px"></div>';
+    if (!$('dlg').open) $('dlg').showModal();
+    if (textoInicial) { $('pgTexto').value = textoInicial; vistaPegado(); } else $('pgTexto').focus();
+  }
+  function vistaPegado() {
+    pgPegado = leerPegado($('pgTexto').value);
+    const nuevas = pgPegado.filter((f) => !f.err && !f.dup), dup = pgPegado.filter((f) => f.dup), err = pgPegado.filter((f) => f.err);
+    if (!pgPegado.length) { $('pgVista').innerHTML = ''; return; }
+    $('pgVista').innerHTML =
+      `<div class="msg" style="background:#fff8e6;color:#6b4a00">Pegaste ${pgPegado.length} fila(s): <b>${nuevas.length} nueva(s)</b>` +
+      `${dup.length ? `, <b>${dup.length} repetida(s)</b>` : ''}${err.length ? `, <b>${err.length} con error</b>` : ''}.</div>` +
+      '<div class="tabla grid" style="max-height:38vh;overflow:auto"><table><tr><th></th><th>Fecha</th><th>Tipo</th><th>Serie</th><th>Número</th><th class="n">Total</th><th>Laboratorio</th></tr>' +
+      pgPegado.map((f) => (f.err
+        ? `<tr class="dup"><td><span class="est alerta">error</span></td><td colspan="6">${esc(f.err)}: ${esc(f.crudo)}</td></tr>`
+        : `<tr class="${f.dup ? 'dup' : 'nueva'}"><td>${f.dup ? `<span class="est alerta" title="${esc(f.dup)}">repetida</span>` : '<span class="est e2">nueva</span>'}</td>` +
+          `<td>${esc(dia(f.f))}</td><td>${esc(f.t)}</td><td>${esc(f.s)}</td><td>${esc(f.n)}</td><td class="n">${esc(mil(f.m))}</td><td>${esc(f.dup || f.l || '')}</td></tr>`)).join('') +
+      '</table></div>' +
+      `<p style="margin-top:12px"><button class="pri" id="pgOk"${nuevas.length ? '' : ' disabled'}>Guardar las ${nuevas.length} nueva(s)</button> <span class="quien">Las repetidas y las que tienen error no se guardan.</span></p>`;
+  }
+  $('gPegar').addEventListener('click', () => dlgPegar(''));
+  document.addEventListener('paste', (e) => { // pegar directo sobre la grilla abre la vista previa
+    if ($('vPagos').classList.contains('oculto') || $('app').classList.contains('oculto') || pgVista !== 'grid' || !puede('pagos') || $('dlg').open) return;
+    if (document.activeElement && document.activeElement.matches('input, textarea, select')) return;
+    const t = (e.clipboardData || window.clipboardData).getData('text');
+    if (t && t.includes('\t')) { e.preventDefault(); dlgPegar(t); }
+  });
+  $('dCuerpo').addEventListener('input', (e) => { if (e.target.id === 'pgTexto') vistaPegado(); });
+  $('dCuerpo').addEventListener('click', async (e) => {
+    if (e.target.id !== 'pgOk') return;
+    const nuevas = pgPegado.filter((f) => !f.err && !f.dup).map((f) => { const x = { i: idNuevo(), f: f.f, t: f.t, s: f.s, n: f.n, m: f.m }; if (f.l) x.l = f.l; return x; });
+    e.target.disabled = true;
+    try {
+      await pgGuardar(pgPer(), (lista) => lista.concat(nuevas), 'Pegó', `${nuevas.length} fila(s): ${nuevas.slice(0, 12).map((f) => `${f.t} ${f.s}-${f.n}`).join(', ')}${nuevas.length > 12 ? '…' : ''}`);
+      $('dlg').close(); msg('gMsg', `Se guardaron ${nuevas.length} fila(s) nuevas.`, 'ok');
+    } catch (err) { msg('dMsg', errorTexto(err)); e.target.disabled = false; }
+  });
+
+  /* ---------- Historial, observaciones sueltas y exportar la grilla ---------- */
+  $('gHist').addEventListener('click', async () => {
+    modo = 'hist'; abierto = null;
+    $('dTit').textContent = 'Historial de cambios';
+    $('dCuerpo').innerHTML = '<p class="quien">Cargando…</p>';
+    if (!$('dlg').open) $('dlg').showModal();
+    try {
+      const s = await getDocs(query(collection(db, 'pagosLog'), where('clave', '==', `${pgEmp()}|${pgDist()}`), limit(150)));
+      const lista = s.docs.map((d) => d.data({ serverTimestamps: 'estimate' }));
+      $('dCuerpo').innerHTML = lista.length
+        ? '<div class="tabla"><table><tr><th>Cuándo</th><th>Quién</th><th>Mes a pagar</th><th>Acción</th><th>Detalle</th></tr>' +
+          lista.map((x) => `<tr><td>${esc(fecha(x.ts))}</td><td>${esc(x.quien)}</td><td>${esc(perTxt(x.per))}</td><td>${esc(x.accion)}</td><td class="larga">${esc(x.detalle)}</td></tr>`).join('') + '</table></div>'
+        : '<p class="quien">Todavía no hay cambios registrados para este distribuidor.</p>';
+    } catch (err) { $('dCuerpo').innerHTML = `<div class="msg err">${esc(errorTexto(err))}</div>`; }
+  });
+  $('gPie').addEventListener('click', (e) => {
+    if (e.target.id !== 'gSueltas') return;
+    modo = 'sueltas'; abierto = null;
+    $('dTit').textContent = 'Observaciones del Excel sin factura identificada';
+    $('dCuerpo').innerHTML = '<p class="quien">Estaban escritas en el Excel de este mes, pero no pude saber a qué factura corresponden. Revísalas y anótalas en su factura.</p>' +
+      '<div class="tabla"><table><tr><th>Factura (como estaba)</th><th>Producto</th><th class="n">Monto</th><th>Nota de NC</th></tr>' +
+      (pgDoc().sueltas || []).map((x) => `<tr><td>${esc(x.fac)}</td><td class="larga">${esc(x.prod)}</td><td class="n">${esc(mil(x.monto))}</td><td>${esc(x.nc)}</td></tr>`).join('') + '</table></div>';
+    if (!$('dlg').open) $('dlg').showModal();
+  });
+  $('gExp').addEventListener('click', () => {
+    const d = pgDoc();
+    if (!d) return;
+    const c = (f) => cruceDe(d.per, f);
+    exportar(`pagos-${d.dist}-${d.per}`, [
+      ['Empresa', () => empDe(d.emp).nombre], ['Distribuidor', () => distDe(d.dist).nombre], ['Mes a pagar', () => perTxt(d.per)], ['Fecha', (f) => dia(f.f)], ['Tipo', 't'], ['Serie', 's'], ['Número', 'n'], ['Total', 'm'],
+      ['Laboratorio', (f) => f.l || f.e || f.dp || ''], ['Productos observados', (f) => c(f).lineas.map((x) => `${x.p} (${mil(x.m)})`).join('\n')],
+      ['Monto observado', (f) => (c(f).lineas.length ? c(f).obs : '')], ['NC anotadas', (f) => (f.nc || []).join(', ')], ['NC aplicada', (f) => (c(f).lineas.length ? c(f).aplicada : '')],
+      ['Estado', (f) => (f.t === 'FA' ? estadoCruce(c(f)) : '')], ['Ref. factura (NC)', 'r'], ['Rebate', 'rb'], ['Nota', 'x']
+    ], filasVista());
+  });
+
+  /* =====================  B. DASHBOARD DE COMPRAS  ===================== */
+  let dashClave = '';
+  function pintarDash() {
+    const caja = $('gv_dash');
+    if (!pgDocs.length) { caja.innerHTML = '<div class="caja"><p class="resumen" style="margin:0">Este distribuidor no tiene datos en esta empresa.</p></div>'; return; }
+    const todas = [];
+    pgDocs.forEach((d) => (d.filas || []).forEach((f) => { if (f.f) todas.push({ f, per: d.per, y: +f.f.slice(0, 4), m: +f.f.slice(5, 7) }); }));
+    const anios = unicos(todas.filter((x) => x.f.t === 'FA').map((x) => String(x.y))).reverse();
+    if (dashClave !== pgClave || !$('dAnio')) { // al cambiar de distribuidor, arranca en el último mes con compras
+      dashClave = pgClave;
+      const ult = todas.filter((x) => x.f.t === 'FA').sort((a, b) => String(b.f.f).localeCompare(String(a.f.f)))[0] || { y: new Date().getFullYear(), m: new Date().getMonth() + 1 };
+      const pre = (pgDoc() && (pgDoc().compra || [])[0]) || `${ult.y}-${String(ult.m).padStart(2, '0')}`;
+      caja.innerHTML = '<div class="herr"><label style="margin:0">Mes de compra</label>' +
+        `<select id="dMes">${MESES.slice(1).map((n, i) => `<option value="${i + 1}"${i + 1 === +pre.slice(5) ? ' selected' : ''}>${n}</option>`).join('')}</select>` +
+        `<select id="dAnio">${anios.map((a) => `<option${a === pre.slice(0, 4) ? ' selected' : ''}>${a}</option>`).join('')}</select>` +
+        '<span class="quien">Todo se calcula según la fecha de la factura o de la NC.</span></div><div id="dCont"></div>';
+      ['dMes', 'dAnio'].forEach((id) => $(id).addEventListener('change', () => pintarDash()));
+    }
+    const y = +$('dAnio').value, m = +$('dMes').value;
+    const delMes = (yy, mm) => {
+      const fa = todas.filter((x) => x.f.t === 'FA' && x.y === yy && x.m === mm), nc = todas.filter((x) => x.f.t === 'NC' && x.y === yy && x.m === mm);
+      const s = (a) => r2(a.reduce((t, x) => t + (Number(x.f.m) || 0), 0));
+      const prod = nc.filter((x) => !x.f.rb), com = nc.filter((x) => x.f.rb);
+      let obs = 0, apl = 0, pend = 0, nObs = 0, nPend = 0, nDev = 0, mDev = 0;
+      fa.forEach((x) => {
+        const c = cruceDe(x.per, x.f);
+        if (c.lineas.length) { nObs += 1; obs += c.obs; apl += Math.min(c.aplicada, c.obs); const p = pendDe(c); pend += p; if (p) nPend += 1; }
+        if (esDevTotal(x.f, c)) { nDev += 1; mDev += Number(x.f.m) || 0; }
+      });
+      return { fa, n: fa.length, compras: s(fa), ncProd: s(prod), nNcProd: prod.length, ncCom: s(com), neta: r2(s(fa) + s(prod) + s(com)),
+        obs: r2(obs), apl: r2(apl), pend: r2(pend), nObs, nPend, nDev, mDev: r2(mDev) };
+    };
+    const a = delMes(y, m), ant = delMes(m === 1 ? y - 1 : y, m === 1 ? 12 : m - 1), anio = delMes(y - 1, m);
+    const pct = (x, base) => (base ? ((x - base) / Math.abs(base)) * 100 : null);
+    const var1 = (v) => (v === null ? '<strong>—</strong>' : `<strong class="${v >= 0 ? 'sube' : 'baja'}">${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(1)}%</strong>`);
+    const k = (t, v, sub) => `<div class="kpi"><b>${t}</b>${v}<small>${sub}</small></div>`;
+    const porPago = new Map();
+    a.fa.forEach((x) => porPago.set(x.per, r2((porPago.get(x.per) || 0) + (Number(x.f.m) || 0))));
+    const porLab = new Map();
+    a.fa.forEach((x) => { const l = labDe(x.f); porLab.set(l, r2((porLab.get(l) || 0) + (Number(x.f.m) || 0))); });
+    const labs = [...porLab.entries()].sort((p, q) => q[1] - p[1]).slice(0, 10), maxLab = labs.length ? labs[0][1] : 1;
+    let evo = '', tot = { compras: 0, ncProd: 0, ncCom: 0, neta: 0, obs: 0, pend: 0 };
+    for (let mm = 1; mm <= 12; mm += 1) {
+      const e = delMes(y, mm);
+      Object.keys(tot).forEach((c) => { tot[c] = r2(tot[c] + e[c]); });
+      evo += `<tr${mm === m ? ' class="hoy"' : ''}><td>${MESES[mm]}</td><td class="num">${mil(e.compras)}</td><td class="num">${mil(e.ncProd)}</td><td class="num">${mil(e.ncCom)}</td><td class="num">${mil(e.neta)}</td><td class="num">${mil(e.obs)}</td><td class="num${e.pend ? ' baja' : ''}">${mil(e.pend)}</td></tr>`;
+    }
+    $('dCont').innerHTML =
+      '<div class="kpis">' +
+      k('Compras del mes', `<strong>S/ ${mil(a.compras)}</strong>`, `${a.n} facturas${a.n ? ' · promedio S/ ' + mil(a.compras / a.n) : ''}`) +
+      k('Vs mes anterior', var1(pct(a.compras, ant.compras)), `mes anterior: S/ ${mil(ant.compras)}`) +
+      k('Vs mismo mes año ant.', var1(pct(a.compras, anio.compras)), `año anterior: S/ ${mil(anio.compras)}`) +
+      k('NC recibidas en el mes', `<strong>S/ ${mil(a.ncProd)}</strong>`, `${a.nNcProd} NC de productos`) +
+      k('Rebates / NC comerciales', `<strong>S/ ${mil(a.ncCom)}</strong>`, a.compras ? `${((Math.abs(a.ncCom) / a.compras) * 100).toFixed(2)}% sobre compras` : '') +
+      k('Compra neta', `<strong>S/ ${mil(a.neta)}</strong>`, 'compras menos NC del mes') +
+      '</div><div class="kpis">' +
+      k('Facturas observadas', `<strong>${a.nObs}</strong>`, a.n ? `${((a.nObs / a.n) * 100).toFixed(1)}% de las facturas` : '') +
+      k('Monto observado', `<strong>S/ ${mil(a.obs)}</strong>`, a.compras ? `${((a.obs / a.compras) * 100).toFixed(2)}% de las compras` : '') +
+      k('NC aplicada', `<strong>S/ ${mil(a.apl)}</strong>`, a.obs ? `conciliado: ${((a.apl / a.obs) * 100).toFixed(1)}%` : '') +
+      k('Pendiente de NC', `<strong class="${a.pend ? 'baja' : 'sube'}">S/ ${mil(a.pend)}</strong>`, `${a.nPend} factura(s) pendientes`) +
+      k('Devoluciones totales', `<strong>${a.nDev}</strong>`, `S/ ${mil(a.mDev)}`) +
+      k('Se paga en', `<strong>${[...porPago.keys()].sort().map((p) => MESES[+p.slice(5)] || 'SIN MES').join(', ') || '—'}</strong>`, 'según el mes a pagar de cada factura') +
+      '</div><div class="dos">' +
+      `<div><h3 class="sub">Evolución por mes de compra · ${y}</h3><div class="tabla"><table><tr><th>Mes</th><th class="num">Compras</th><th class="num">NC productos</th><th class="num">NC comerciales</th><th class="num">Compra neta</th><th class="num">Observado</th><th class="num">Pendiente NC</th></tr>${evo}` +
+      `<tr class="tot"><td>Total año</td><td class="num">${mil(tot.compras)}</td><td class="num">${mil(tot.ncProd)}</td><td class="num">${mil(tot.ncCom)}</td><td class="num">${mil(tot.neta)}</td><td class="num">${mil(tot.obs)}</td><td class="num">${mil(tot.pend)}</td></tr></table></div></div>` +
+      `<div><h3 class="sub">Laboratorios más comprados en ${MESES[m].toLowerCase()}</h3><div class="tabla"><table><tr><th>Laboratorio</th><th class="num">Compras</th><th class="num">%</th><th style="width:30%"></th></tr>` +
+      (labs.map(([l, v]) => `<tr><td>${esc(l)}</td><td class="num">${mil(v)}</td><td class="num">${a.compras ? ((v / a.compras) * 100).toFixed(1) : '0.0'}%</td><td><div class="barra" style="width:${Math.max(2, (v / maxLab) * 100)}%"></div></td></tr>`).join('') || '<tr><td colspan="4" class="vacio">Sin compras en este mes</td></tr>') +
+      '</table></div>' +
+      `<h3 class="sub">¿Cuándo se pagan las compras de ${MESES[m].toLowerCase()}?</h3><div class="tabla"><table><tr><th>Mes a pagar</th><th class="num">Monto</th><th class="num">% del mes</th></tr>` +
+      ([...porPago.entries()].sort().map(([p, v]) => `<tr><td>${esc(perTxt(p))}</td><td class="num">${mil(v)}</td><td class="num">${a.compras ? ((v / a.compras) * 100).toFixed(1) : '0.0'}%</td></tr>`).join('') || '<tr><td colspan="3" class="vacio">—</td></tr>') +
+      '</table></div></div></div>';
+  }
+
+  /* =====================  C. RESUMEN DE PAGO  ===================== */
+  const fechaLocal = (iso) => new Date(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10), 12);
+  const isoDe = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+  const fechaLarga = (iso) => { const d = fechaLocal(iso); return `${DIAS[d.getDay()]} ${String(d.getDate()).padStart(2, '0')} DE ${MESES[d.getMonth() + 1]}`; };
+  function diasHabiles(desde, n) { // n días seguidos sin sábados, domingos ni feriados
+    const fer = new Set(pgCfg.feriados), dias = [], saltados = [];
+    const dt = fechaLocal(desde);
+    for (let g = 0; dias.length < n && g < 500; g += 1) {
+      const iso = isoDe(dt), ds = dt.getDay();
+      if (ds !== 0 && ds !== 6) { if (fer.has(iso)) saltados.push(iso); else dias.push(iso); }
+      dt.setDate(dt.getDate() + 1);
+    }
+    return { dias, saltados };
+  }
+  function resumenDatos(d) {
+    const dist = distDe(d.dist), emp = empDe(d.emp), fs = d.filas || [];
+    const orden = (a, b) => String(a.f).localeCompare(String(b.f)) || String(a.n).localeCompare(String(b.n), undefined, { numeric: true });
+    const fa = fs.filter((f) => f.t !== 'NC').sort(orden);
+    const dev = fa.filter((f) => esDevTotal(f, cruceDe(d.per, f)));
+    const ncDev = new Set();
+    dev.forEach((f) => cruceDe(d.per, f).det.forEach((x) => ncDev.add(x.k)));
+    const normales = fa.filter((f) => !dev.includes(f));
+    const ncTodas = fs.filter((f) => f.t === 'NC').sort(orden);
+    const ncs = ncTodas.filter((f) => !ncDev.has(`${f.s}-${f.n}`) && !(f.dt === 1 && dev.length));
+    const ncDeDev = ncTodas.filter((f) => !ncs.includes(f));
+    // A qué factura se aplicó cada NC, mirando todo el distribuidor
+    const usoNc = new Map();
+    pgDocs.forEach((p) => (p.filas || []).forEach((f) => { if (f.t === 'FA') cruceDe(p.per, f).det.forEach((x) => { if (!usoNc.has(x.k)) usoNc.set(x.k, []); usoNc.get(x.k).push(`${f.s}-${f.n}`); }); }));
+    const suma = (a) => r2(a.reduce((s, f) => s + (Number(f.m) || 0), 0));
+    const tCompras = suma(normales), nCredito = suma(ncs), tPagar = r2(tCompras + nCredito);
+    const letras = dist.pago === 'letras' ? (Number(d.letras) || 0) : 0;
+    const desde = d.desde || (/^\d{4}-\d{2}$/.test(d.per) ? diasHabiles(`${d.per}-01`, 1).dias[0] : '');
+    const cal = letras && desde ? diasHabiles(desde, letras) : { dias: [], saltados: [] };
+    const obs = [];
+    normales.forEach((f) => { const c = cruceDe(d.per, f); c.lineas.forEach((l, i) => obs.push({ fac: `${f.s}-${f.n}`, prod: l.p, monto: l.m, nc: i === 0 ? (c.det.map((x) => x.k).join(', ') || (pendDe(c) ? 'FALTA NOTA DE CRÉDITO' : '')) : '' })); });
+    return { d, dist, emp, normales, ncs, dev, ncDeDev, usoNc, tCompras, nCredito, tPagar, letras, cuota: letras ? r2(tPagar / letras) : null, desde, cal, obs };
+  }
+  // Las filas del resumen, tal como van al Excel del proveedor y a la vista previa
+  function resumenFilas(R) {
+    const out = [], fila = (c, cls) => out.push({ c, cls: cls || '' });
+    const cab = () => { fila([R.emp.nombre], 'tit'); fila([`RUC ${R.emp.ruc}`]); fila([]); fila([R.dist.nombre], 'tit'); fila([]); };
+    const doc1 = (f, extra) => [R.dist.nombre, dia(f.f), f.t, f.s, f.n, Number(f.m) || 0].concat(extra || []);
+    cab();
+    fila(['PROVEEDOR', 'FECHA', 'TIPO', 'SERIE', 'NUMERO', 'TOTAL', 'LABORATORIO'], 'cab');
+    R.normales.forEach((f) => fila(doc1(f, [f.l || f.dp || ''])));
+    R.ncs.forEach((f) => fila(doc1(f, [f.rb ? 'REBATE ' + f.rb : ''])));
+    fila(['', '', '', '', 'TOTAL', R.tPagar, R.cuota === null ? '' : R.cuota], 'tot');
+    fila([]);
+    const mesCompra = (R.d.compra || []).map((c) => MESES[+c.slice(5)]).join(' Y ');
+    if (R.dist.pago === 'letras') {
+      fila([`Programación de pago de facturas${mesCompra ? ' del mes de ' + mesCompra : ''} por S/ ${mil(R.tPagar)}${R.letras ? ` en ${R.letras} letras c/u de S/ ${mil(R.cuota)}` : ''}`], 'txt');
+      if (R.cal.dias.length) {
+        fila([`DESDE EL ${fechaLarga(R.cal.dias[0])}`], 'txt');
+        fila([`HASTA EL ${fechaLarga(R.cal.dias[R.cal.dias.length - 1])} DEL ${R.cal.dias[R.cal.dias.length - 1].slice(0, 4)}`], 'txt');
+        fila([`NO INCLUYE SÁBADOS Y DOMINGOS${R.cal.saltados.length ? ', NI ' + (R.cal.saltados.length > 1 ? 'LOS FERIADOS DEL ' : 'EL FERIADO DEL ') + R.cal.saltados.map(dia).join(', ') : ''}`], 'txt');
+      } else fila(['Falta indicar el número de letras y la fecha de inicio.'], 'txt');
+    } else {
+      fila([`Resumen de facturas por pagar por un total de S/ ${mil(R.tPagar)}, que se ${R.dist.pago === 'fecha' ? 'pagarán en la fecha indicada para cada factura' : 'programarán según su fecha de vencimiento'}, con depósitos en el BCP para ${perTxt(R.d.per)}`], 'txt');
+    }
+    fila([]);
+    if (R.obs.length) {
+      fila(['OBSERVACIONES:'], 'tit');
+      R.obs.forEach((o) => fila([`${o.fac} ${o.prod}`, '', '', '', '', o.monto ?? '', o.nc ? 'NC ' + o.nc : '']));
+      fila([]);
+    }
+    fila(['', '', '', '', 'T.COMPRAS', R.tCompras], 'tot'); fila(['', '', '', '', 'N.CRÉDITO', R.nCredito], 'tot'); fila(['', '', '', '', 'T.PAGAR', R.tPagar], 'tot');
+    if (R.ncs.length) {
+      fila([]); fila([]); cab();
+      fila(['PROVEEDOR', 'FECHA', 'TIPO', 'SERIE', 'NUMERO', 'TOTAL', 'REFERENCIA'], 'cab');
+      R.ncs.forEach((f) => fila(doc1(f, [(R.usoNc.get(`${f.s}-${f.n}`) || []).join(', ') || f.r || (f.rb ? 'REBATE ' + f.rb : '') || f.e || ''])));
+      fila(['', '', '', '', 'TOTAL', R.nCredito], 'tot');
+      fila([]);
+      fila([`Notas de crédito por S/ ${mil(Math.abs(R.nCredito))} aplicadas a facturas de compras, con programación en el BCP para ${perTxt(R.d.per)}`], 'txt');
+    }
+    if (R.dev.length) {
+      fila([]); fila([]); cab();
+      fila(['PROVEEDOR', 'FECHA', 'TIPO', 'SERIE', 'NUMERO', 'TOTAL'], 'cab');
+      const usadas = new Set();
+      R.dev.forEach((f) => {
+        fila(doc1(f));
+        const claves = cruceDe(R.d.per, f).det.map((x) => x.k);
+        R.ncDeDev.filter((n) => claves.includes(`${n.s}-${n.n}`)).forEach((n) => { usadas.add(n); fila(doc1(n)); });
+      });
+      R.ncDeDev.filter((n) => !usadas.has(n)).forEach((n) => fila(doc1(n)));
+      fila(['', '', '', '', 'TOTAL', r2(R.dev.reduce((s, f) => s + Number(f.m), 0) + R.ncDeDev.reduce((s, f) => s + Number(f.m), 0))], 'tot');
+      fila([]);
+      fila(['DEVOLUCIÓN TOTAL DE FACTURA: SE CANCELA CON SU NOTA DE CRÉDITO SEGÚN DETALLE.'], 'txt');
+    }
+    return out;
+  }
+  function pintarResumen() {
+    const caja = $('gv_res'), d = pgDoc();
+    if (!d) { caja.innerHTML = '<div class="caja"><p class="resumen" style="margin:0">Elige un distribuidor y un mes a pagar.</p></div>'; return; }
+    const R = resumenDatos(d), edita = puede('pagos');
+    const conLetras = R.dist.pago === 'letras';
+    caja.innerHTML = '<div class="herr">' +
+      (conLetras ? `<label style="margin:0" for="rLetras">N° de letras</label><input id="rLetras" type="number" min="0" max="60" style="width:80px" value="${esc(d.letras ?? '')}"${edita ? '' : ' disabled'}>` +
+        `<label style="margin:0" for="rDesde">Desde</label><input id="rDesde" type="date" value="${esc(d.desde || R.desde || '')}"${edita ? '' : ' disabled'}>` +
+        (edita ? '<button id="rGuardar">Guardar programación</button>' : '') : `<span class="quien">${esc(R.dist.nombre)} no se paga en letras: ${R.dist.pago === 'fecha' ? 'cada factura tiene su fecha de pago' : 'se paga según vencimiento'}.</span>`) +
+      (edita ? '<button id="rFeriados">Feriados</button>' : '') +
+      '<span style="flex:1"></span><button class="pri" id="rExcel">Descargar Excel para el proveedor</button></div><div id="rMsg"></div>' +
+      '<div class="kpis">' +
+      `<div class="kpi"><b>T. compras</b><strong>S/ ${mil(R.tCompras)}</strong><small>${R.normales.length} facturas</small></div>` +
+      `<div class="kpi"><b>N. crédito</b><strong class="baja">S/ ${mil(R.nCredito)}</strong><small>${R.ncs.length} notas de crédito</small></div>` +
+      `<div class="kpi" style="border-color:var(--marca);background:var(--suave)"><b>T. a pagar</b><strong>S/ ${mil(R.tPagar)}</strong><small>${esc(perTxt(d.per))}</small></div>` +
+      (conLetras ? `<div class="kpi"><b>${R.letras || '—'} letras de</b><strong>${R.cuota === null ? '—' : 'S/ ' + mil(R.cuota)}</strong><small>${R.cal.dias.length ? `${esc(dia(R.cal.dias[0]))} al ${esc(dia(R.cal.dias[R.cal.dias.length - 1]))}` : 'falta definir'}</small></div>` : '') +
+      `<div class="kpi"><b>Devoluciones totales</b><strong>${R.dev.length}</strong><small>S/ ${mil(R.dev.reduce((s, f) => s + Number(f.m), 0))}</small></div>` +
+      '</div><div class="tabla hoja"><table>' +
+      resumenFilas(R).map((f) => `<tr class="r_${f.cls}">${f.c.length ? f.c.map((v, i) => `<td${typeof v === 'number' ? ' class="num"' : ''}${f.cls === 'txt' || (f.cls === 'tit') || (i === 0 && f.c.length > 6 && String(v).length > 34 && f.cls === '') ? '' : ''}${(f.cls === 'txt' || f.cls === 'tit') ? ' colspan="7"' : ''}>${typeof v === 'number' ? mil(v) : esc(v)}</td>`).join('') : '<td colspan="7">&nbsp;</td>'}</tr>`).join('') +
+      '</table></div>';
+  }
+  $('gv_res').addEventListener('click', async (e) => {
+    const d = pgDoc();
+    if (!d) return;
+    if (e.target.id === 'rGuardar') {
+      const n = $('rLetras').value === '' ? null : Number($('rLetras').value);
+      if (n !== null && !(n >= 0 && n <= 60 && Number.isInteger(n))) return msg('rMsg', 'El número de letras debe ser un entero entre 0 y 60.');
+      try {
+        await updateDoc(doc(db, 'pagos', d.id), { letras: n, desde: $('rDesde').value || '', act: serverTimestamp(), actPor: firma() });
+        pgLog('Programación', `${n ?? 0} letras desde ${dia($('rDesde').value) || 'el primer día hábil'}`, d.per).catch(console.error);
+      } catch (err) { msg('rMsg', errorTexto(err)); }
+    } else if (e.target.id === 'rFeriados') {
+      modo = 'feriados'; abierto = null;
+      $('dTit').textContent = 'Feriados';
+      $('dCuerpo').innerHTML = '<div id="dMsg"></div><p class="quien">Un feriado por línea, como 08/10/2026. Estos días no se cuentan al programar las letras.</p>' +
+        `<textarea id="ferTexto" rows="14">${esc(pgCfg.feriados.map(dia).join('\n'))}</textarea><p><button class="pri" id="ferOk">Guardar feriados</button></p>`;
+      if (!$('dlg').open) $('dlg').showModal();
+    } else if (e.target.id === 'rExcel') {
+      const R = resumenDatos(d);
+      descargarHoja(`${R.dist.k}-${R.emp.k}-${d.per}`, resumenFilas(R).map((f) => f.c), [34, 12, 6, 8, 11, 14, 30]);
+    }
+  });
+  $('dCuerpo').addEventListener('click', async (e) => {
+    if (e.target.id !== 'ferOk') return;
+    const lineas = $('ferTexto').value.split('\n').map((x) => x.trim()).filter(Boolean), fer = lineas.map(fechaIso);
+    if (fer.some((x) => !x)) return msg('dMsg', `No entiendo esta fecha: "${lineas[fer.findIndex((x) => !x)]}". Escríbela como 08/10/2026.`);
+    try { await setDoc(doc(db, 'config', 'pagos'), { feriados: unicos(fer) }, { merge: true }); $('dlg').close(); } catch (err) { msg('dMsg', errorTexto(err)); }
+  });
+  // Descarga una hoja de Excel real; si no se puede cargar el generador, baja un .xls equivalente
+  async function descargarHoja(nombre, datos, anchos) {
+    try {
+      await cargarXlsx();
+      const hoja = window.XLSX.utils.aoa_to_sheet(datos);
+      if (anchos) hoja['!cols'] = anchos.map((w) => ({ wch: w }));
+      const libro = window.XLSX.utils.book_new();
+      window.XLSX.utils.book_append_sheet(libro, hoja, 'Resumen');
+      window.XLSX.writeFile(libro, nombre + '.xlsx');
+    } catch (e) {
+      const html = '<html><head><meta charset="utf-8"></head><body><table border="1">' +
+        datos.map((r) => `<tr>${r.map((v) => `<td>${typeof v === 'number' ? String(v) : esc(v)}</td>`).join('')}</tr>`).join('') + '</table></body></html>';
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel' }));
+      a.download = nombre + '.xls';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+  }
+
+  /* =====================  D. CRUCE DE OBSERVACIONES Y NC PENDIENTES  ===================== */
+  function cruceFilas() {
+    const out = [];
+    pgDocs.forEach((d) => (d.filas || []).forEach((f) => {
+      if (f.t !== 'FA') return;
+      const c = cruceDe(d.per, f);
+      if (!c.lineas.length) return;
+      const al = [];
+      c.faltan.forEach((k) => al.push(`La NC ${k} no está registrada en la lista.`));
+      if (c.auto) al.push(`NC encontrada sola por monto (${c.auto}).`);
+      if (c.obs === 0) al.push('La observación no tiene monto.');
+      c.det.forEach((x) => {
+        const o = pgCruce.ncs.get(x.k);
+        if (x.tipo === 'auto: sobrante de NC') al.push(`Cubierta con el sobrante de la NC ${x.k}.`);
+        else if (o && o.resto > TOL_NC) al.push(`La NC ${x.k} tiene un sobrante sin usar de S/ ${mil(o.resto)}.`);
+        else if (x.comp) al.push(`La NC ${x.k} cubre varias facturas.`);
+      });
+      if (/QUEDA/i.test(f.x || '')) al.push('Marcada SE QUEDA en el Excel.');
+      out.push({ f, per: d.per, c, est: estadoCruce(c), pend: pendDe(c), alerta: al.join(' ') });
+    }));
+    return out.sort((a, b) => String(b.f.f).localeCompare(String(a.f.f)));
+  }
+  function pintarCruce() {
+    const caja = $('gv_cruce'), soloPend = pgVista === 'ncp';
+    const todas = cruceFilas();
+    if (!$('cAnio') || caja.dataset.clave !== pgClave + pgVista) {
+      caja.dataset.clave = pgClave + pgVista;
+      caja.innerHTML = '<div class="herr">' +
+        `<select id="cAnio" aria-label="Año"><option value="">Todos los años</option>${unicos(todas.map((x) => String(x.f.f).slice(0, 4))).reverse().map((a) => `<option>${esc(a)}</option>`).join('')}</select>` +
+        (soloPend ? '<input type="hidden" id="cEst" value="PEN">' : '<select id="cEst" aria-label="Estado"><option value="">Todos los estados</option><option value="PEN">Con pendiente de NC</option><option value="CON">Conciliadas</option><option value="AUTO">Encontradas solas por monto</option><option value="SINM">Sin monto observado</option></select>') +
+        '<input id="cTxt" placeholder="Buscar factura, producto, NC…" aria-label="Buscar" style="flex:1;min-width:200px"><button id="cExp">Exportar a Excel</button></div>' +
+        '<p class="resumen" id="cRes"></p><div class="tabla"><table><thead><tr><th>Fecha</th><th>Factura</th><th>Laboratorio</th><th>Productos observados</th><th class="num">Observado</th><th>NC aplicadas</th><th class="num">Aplicado</th><th class="num">Pendiente</th><th>Estado</th><th>Mes a pagar</th><th>Alerta</th></tr></thead><tbody id="cCuerpo"></tbody></table></div>';
+      ['cAnio', 'cEst'].forEach((id) => $(id).addEventListener('change', () => pintarCruce()));
+      $('cTxt').addEventListener('input', () => pintarCruce());
+      $('cExp').addEventListener('click', () => exportar(soloPend ? `nc-pendientes-${pgDist()}` : `cruce-observaciones-${pgDist()}`, [
+        ['Fecha', (x) => dia(x.f.f)], ['Factura', (x) => `${x.f.s}-${x.f.n}`], ['Total factura', (x) => x.f.m], ['Laboratorio', (x) => labDe(x.f)],
+        ['Productos observados', (x) => x.c.lineas.map((l) => `${l.p} (${mil(l.m)})`).join('\n')], ['Monto observado', (x) => x.c.obs],
+        ['NC aplicadas', (x) => x.c.det.map((n) => `${n.k} (${mil(n.aplicado)}, ${n.tipo})`).join('\n')], ['NC aplicada total', (x) => x.c.aplicada], ['Pendiente de NC', 'pend'],
+        ['Estado', 'est'], ['Mes a pagar', (x) => perTxt(x.per)], ['Alerta', 'alerta']
+      ], cruceVista()));
+    }
+    const lista = cruceVista();
+    $('cRes').textContent = `${lista.length} factura(s) observadas · observado S/ ${mil(lista.reduce((s, x) => s + x.c.obs, 0))} · ` +
+      `pendiente de NC S/ ${mil(lista.reduce((s, x) => s + x.pend, 0))} en ${lista.filter((x) => x.pend).length} factura(s)`;
+    $('cCuerpo').innerHTML = lista.map((x) =>
+      `<tr data-id="${esc(x.f.i)}" data-per="${esc(x.per)}"><td>${esc(dia(x.f.f))}</td><td><b>${esc(x.f.s)}-${esc(x.f.n)}</b></td><td>${esc(labDe(x.f))}</td>` +
+      `<td class="larga">${x.c.lineas.map((l) => `${esc(l.p)}${l.m !== null && l.m !== undefined ? ` <span class="quien">(${esc(mil(l.m))})</span>` : ''}`).join('<br>')}</td>` +
+      `<td class="num">${esc(mil(x.c.obs))}</td><td>${x.c.det.map((n) => `${esc(n.k)} <span class="quien">${esc(n.tipo)}</span>`).join('<br>') || '<span class="quien">—</span>'}</td>` +
+      `<td class="num">${esc(mil(x.c.aplicada))}</td><td class="num${x.pend ? ' baja' : ''}">${esc(mil(x.pend))}</td>` +
+      `<td><span class="est ${claseEst(x.est)}">${esc(x.est)}</span></td><td>${esc(perTxt(x.per))}</td><td class="larga quien">${esc(x.alerta)}</td></tr>`).join('') ||
+      '<tr><td colspan="11" class="vacio">Sin facturas en esta lista</td></tr>';
+  }
+  function cruceVista() {
+    const a = $('cAnio').value, e = $('cEst').value, t = $('cTxt').value.trim().toLowerCase();
+    return cruceFilas().filter((x) => {
+      if (a && String(x.f.f).slice(0, 4) !== a) return false;
+      if (e === 'PEN' && !x.pend) return false;
+      if (e === 'CON' && !x.est.startsWith('Conciliada')) return false;
+      if (e === 'AUTO' && !x.c.auto) return false;
+      if (e === 'SINM' && x.c.obs !== 0) return false;
+      if (t && ![x.f.s, x.f.n, labDe(x.f), x.c.lineas.map((l) => l.p).join(' '), x.c.det.map((n) => n.k).join(' ')].join(' ').toLowerCase().includes(t)) return false;
+      return true;
+    });
+  }
+  $('gv_cruce').addEventListener('click', (e) => { // ir a la factura en la grilla
+    const tr = e.target.closest('tr[data-id]');
+    if (!tr) return;
+    $('gPer').value = tr.dataset.per; $('gFiltro').value = ''; $('gTxt').value = '';
+    pgAbiertas.clear(); pgAbiertas.add(tr.dataset.id);
+    pgVer('grid');
+    const fila = $('gCuerpo').querySelector(`tr[data-i="${tr.dataset.id}"]`);
+    if (fila) fila.scrollIntoView({ block: 'center' });
+  });
+
+  /* =====================  E. PROVEEDORES MENORES (facturas por pagar)  ===================== */
+  const PLAZOS = ['30 DIAS', '45 DIAS', '60 DIAS', 'LETRAS', 'CONTADO', 'OTRO'];
+  let cxDoc = null, cxBaja = null, cxClave = '', cxSel = new Set();
+  const cxMes = () => $('gMes').value;
+  function cxSuscribir() {
+    const clave = (puede('verPagos') && pgEmp() && /^\d{4}-\d{2}$/.test(cxMes())) ? `${pgEmp()}_${cxMes()}` : '';
+    if (clave === cxClave) { pintarCxp(); return; }
+    if (cxBaja) cxBaja();
+    cxBaja = null; cxClave = clave; cxDoc = null; cxSel.clear();
+    if (!clave) { pintarCxp(); return; }
+    cxBaja = onSnapshot(doc(db, 'cxp', clave), (s) => {
+      cxDoc = s.exists() ? { id: s.id, ...s.data({ serverTimestamps: 'estimate' }) } : { id: clave, emp: pgEmp(), per: cxMes(), filas: [] };
+      if (pgVista === 'cxp') pintarPagos();
+    }, errorEscucha);
+  }
+  async function cxGuardar(cambio, accion, detalle) {
+    const ref = doc(db, 'cxp', cxClave), emp = pgEmp(), per = cxMes();
+    await runTransaction(db, async (tx) => {
+      const s = await tx.get(ref);
+      const lista = (s.exists() ? (s.data().filas || []) : []).map((f) => ({ ...f }));
+      const nuevas = cambio(lista) || lista;
+      tx.set(ref, { emp, per, filas: nuevas, act: serverTimestamp(), actPor: firma() });
+    });
+    pgLog(accion, detalle, per, `${emp}|CXP`).catch(console.error);
+  }
+  const cxOrden = (a, b) => (PLAZOS.indexOf(a.g) - PLAZOS.indexOf(b.g)) || String(a.p).localeCompare(String(b.p));
+  function cxVista() {
+    const t = $('xTxt').value.trim().toLowerCase();
+    const lista = ((cxDoc || {}).filas || []).map((f, k) => ({ ...f, _k: k })).filter((f) => !t || [f.p, f.d, f.v, f.e, f.x].join(' ').toLowerCase().includes(t));
+    return lista.sort((a, b) => cxOrden(a, b) || a._k - b._k);
+  }
+  function pintarCxp() {
+    const edita = puede('pagos'), cuerpo = $('xCuerpo');
+    $('xHerr').classList.toggle('oculto', !edita);
+    $('xDel').classList.toggle('oculto', !puede('pagosBorrar'));
+    if (!cxDoc) { cuerpo.innerHTML = '<tr><td colspan="10" class="vacio">Elige la empresa y el mes.</td></tr>'; $('xRes').textContent = ''; return; }
+    const lista = cxVista(), ed = edita ? ' class="ed"' : '';
+    let h = '', n = 0;
+    lista.forEach((f, k) => {
+      n += 1;
+      h += `<tr data-i="${esc(f.i)}" class="${cxSel.has(f.i) ? 'sel' : ''}"><td class="nf">${n}</td><td class="ck"><input type="checkbox" class="gCk"${cxSel.has(f.i) ? ' checked' : ''} aria-label="Seleccionar fila ${n}"></td>` +
+        `<td data-c="p"${ed}>${esc(f.p)}</td><td data-c="g"${ed}>${esc(f.g)}</td><td data-c="f"${ed}>${esc(dia(f.f))}</td><td data-c="d"${ed}>${esc(f.d)}</td><td data-c="v"${ed}>${esc(f.v)}</td>` +
+        `<td data-c="m" class="${edita ? 'ed ' : ''}n${f.m < 0 ? ' neg' : ''}">${esc(mil(f.m))}</td><td data-c="e"${ed}>${esc(f.e)}</td><td data-c="x" class="${edita ? 'ed ' : ''}nota">${esc(f.x || '')}</td></tr>`;
+      const sig = lista[k + 1];
+      if (!sig || sig.p !== f.p || sig.g !== f.g) {
+        const sub = lista.filter((x) => x.p === f.p && x.g === f.g).reduce((s, x) => s + (Number(x.m) || 0), 0);
+        h += `<tr class="subt"><td class="nf"></td><td colspan="6">Total ${esc(f.p)}</td><td class="n">${esc(mil(sub))}</td><td colspan="2"></td></tr>`;
+      }
+    });
+    if (edita) {
+      h += '<tr class="nuevaFila"><td class="nf">+</td><td></td>' +
+        '<td><input class="gIn xP" list="dlProv" placeholder="Proveedor" aria-label="Proveedor"></td>' +
+        `<td><select class="gIn xG" aria-label="Plazo">${PLAZOS.map((p) => `<option>${p}</option>`).join('')}</select></td>` +
+        '<td><input class="gIn xF" placeholder="dd/mm/aaaa" aria-label="Fecha"></td><td><input class="gIn xD" placeholder="F004-39971" aria-label="Documento"></td>' +
+        '<td><input class="gIn xV" placeholder="Vence o referencia" aria-label="Vence o referencia"></td><td><input class="gIn xM n" placeholder="Total" aria-label="Total"></td>' +
+        '<td><input class="gIn xE" placeholder="Estado" aria-label="Estado"></td><td><button class="pri mini xOk">Agregar</button></td></tr>';
+    }
+    cuerpo.innerHTML = h || '<tr><td colspan="10" class="vacio">Sin documentos en este mes</td></tr>';
+    const fs = cxDoc.filas || [];
+    $('dlProv').innerHTML = unicos(pgCfg.provs.concat(fs.map((f) => f.p))).map((x) => `<option value="${esc(x)}">`).join('');
+    $('xRes').textContent = `Cuentas por pagar de ${perTxt(cxDoc.per)} · ${unicos(fs.map((f) => f.p)).length} proveedores · ${fs.length} documentos · Total S/ ${mil(fs.reduce((s, f) => s + (Number(f.m) || 0), 0))}`;
+    $('xDel').textContent = `Eliminar seleccionadas (${cxSel.size})`;
+  }
+  $('xTxt').addEventListener('input', () => pintarPagos(true));
+  const cxError = (e) => msg('xMsg', errorTexto(e));
+  $('xCuerpo').addEventListener('click', (e) => {
+    const t = e.target, tr = t.closest('tr');
+    if (!tr) return;
+    if (t.classList.contains('gCk')) { if (t.checked) cxSel.add(tr.dataset.i); else cxSel.delete(tr.dataset.i); tr.classList.toggle('sel', t.checked); $('xDel').textContent = `Eliminar seleccionadas (${cxSel.size})`; return; }
+    if (t.classList.contains('xOk')) return cxAgregar();
+    const td = t.closest('td.ed');
+    if (!td || !tr.dataset.i || !puede('pagos')) return;
+    const id = tr.dataset.i, c = td.dataset.c, f = (cxDoc.filas || []).find((x) => x.i === id);
+    if (!f) return;
+    editarEn(td, c === 'f' ? dia(f.f) : (f[c] ?? ''), async (v) => {
+      const nuevo = { ...f };
+      if (c === 'f') { nuevo.f = v.trim() ? fechaIso(v) : ''; if (v.trim() && !nuevo.f) return msg('xMsg', 'Fecha no válida. Escríbela como 21/07/2026.'); }
+      else if (c === 'm') { const x = montoNum(v); if (x === null) return msg('xMsg', 'Monto no válido.'); nuevo.m = x; }
+      else if (c === 'g') { nuevo.g = may(v, 20); }
+      else if (c === 'd') nuevo.d = may(v, 40).replace(/\s+/g, '');
+      else if (c === 'x' || c === 'v') nuevo[c] = txt(v, 200);
+      else nuevo[c] = may(v, 80);
+      msg('xMsg', '');
+      try { await cxGuardar((lista) => { const k = lista.findIndex((x) => x.i === id); if (k < 0) throw new Error('La fila ya no existe.'); lista[k] = nuevo; }, 'Corrigió', `${f.p} ${f.d}: "${f[c] ?? ''}" → "${nuevo[c] ?? ''}"`); } catch (err) { cxError(err); }
+    }, () => pintarPagos(true));
+  });
+  async function cxAgregar() {
+    const tr = $('xCuerpo').querySelector('.nuevaFila'), q = (c) => tr.querySelector(c).value;
+    const f = { i: idNuevo(), p: may(q('.xP'), 80), g: q('.xG'), f: q('.xF').trim() ? fechaIso(q('.xF')) : '', d: may(q('.xD'), 40).replace(/\s+/g, ''), v: txt(q('.xV'), 120), m: montoNum(q('.xM')), e: may(q('.xE'), 40) };
+    if (!f.p) return msg('xMsg', 'Falta el proveedor.');
+    if (q('.xF').trim() && !f.f) return msg('xMsg', 'Fecha no válida. Escríbela como 21/07/2026.');
+    if (!f.d) return msg('xMsg', 'Falta el documento.');
+    if (f.m === null) return msg('xMsg', 'Monto no válido.');
+    if ((cxDoc.filas || []).some((x) => x.p === f.p && x.d === f.d && /\d{3,}$/.test(f.d))) return msg('xMsg', `${f.p} ya tiene el documento ${f.d} en este mes. No se agregó.`);
+    msg('xMsg', '');
+    try { await cxGuardar((lista) => { lista.push(f); }, 'Agregó', `${f.p} ${f.d} por ${mil(f.m)}`); pintarPagos(true); const n = $('xCuerpo').querySelector('.xD'); if (n) { $('xCuerpo').querySelector('.xP').value = f.p; $('xCuerpo').querySelector('.xG').value = f.g; n.focus(); } }
+    catch (e) { cxError(e); }
+  }
+  $('xCuerpo').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.closest('.nuevaFila') && e.target.matches('input')) { e.preventDefault(); cxAgregar(); } });
+  $('xAdd').addEventListener('click', () => { const n = $('xCuerpo').querySelector('.xP'); if (n) { n.scrollIntoView({ block: 'center' }); n.focus(); } });
+  $('xDel').addEventListener('click', async () => {
+    const ids = [...cxSel], fs = ((cxDoc || {}).filas || []).filter((f) => ids.includes(f.i));
+    if (!fs.length) return msg('xMsg', 'Marca primero las filas que quieres eliminar.');
+    if (!confirm(`¿Eliminar ${fs.length} documento(s)?\n${fs.slice(0, 8).map((f) => `${f.p}  ${f.d}  ${mil(f.m)}`).join('\n')}`)) return;
+    try { await cxGuardar((lista) => lista.filter((f) => !ids.includes(f.i)), 'Eliminó', fs.map((f) => `${f.p} ${f.d} (${mil(f.m)})`).join(', ')); cxSel.clear(); msg('xMsg', `${fs.length} documento(s) eliminado(s).`, 'ok'); }
+    catch (e) { cxError(e); }
+  });
+  // Retención del 3%: se calcula sobre la factura menos las NC que la referencian
+  $('xRet').addEventListener('click', async () => {
+    const fs = (cxDoc.filas || []), sel = fs.filter((f) => cxSel.has(f.i) && f.m > 0);
+    if (!sel.length) return msg('xMsg', 'Marca primero las facturas a las que se les aplica la retención.');
+    const nuevas = [];
+    sel.forEach((f) => {
+      if (fs.some((x) => x.p === f.p && /RET/i.test(x.v || '') && (x.v || '').toUpperCase().includes(f.d))) return;
+      const ncs = fs.filter((x) => x.p === f.p && x.m < 0 && (x.v || '').toUpperCase().replace(/\s/g, '').includes(f.d) && !/RET/i.test(x.v || ''));
+      const base = r2(f.m + ncs.reduce((s, x) => s + x.m, 0));
+      nuevas.push({ i: idNuevo(), p: f.p, g: f.g, f: '', d: 'CR/E001-', v: `RET3% ${f.d}`, m: -r2(base * 0.03), e: 'POR DESCONTAR', despues: f.i });
+    });
+    if (!nuevas.length) return msg('xMsg', 'Esas facturas ya tienen su retención registrada.');
+    try {
+      await cxGuardar((lista) => { nuevas.forEach((r) => { const k = lista.findIndex((x) => x.i === r.despues); const { despues, ...fila } = r; lista.splice(k + 1, 0, fila); }); }, 'Retención 3%', nuevas.map((r) => `${r.p} ${r.v}: ${mil(r.m)}`).join(', '));
+      cxSel.clear(); msg('xMsg', `Se agregó la retención del 3% a ${nuevas.length} factura(s).`, 'ok');
+    } catch (e) { cxError(e); }
+  });
+  $('xExp').addEventListener('click', () => exportar(`facturas-por-pagar-${pgEmp()}-${cxMes()}`, [
+    ['Proveedor', 'p'], ['Plazo', 'g'], ['Fecha', (f) => dia(f.f)], ['Documento', 'd'], ['Vence / referencia', 'v'], ['Total', 'm'], ['Estado', 'e'], ['Nota', 'x']
+  ], cxVista()));
+  $('xPegar').addEventListener('click', () => {
+    modo = 'pegarCxp'; abierto = null;
+    $('dTit').textContent = `Pegar documentos · ${perTxt(cxMes())}`;
+    $('dCuerpo').innerHTML = '<div id="dMsg"></div><div class="rejilla">' +
+      '<div class="campo"><label for="xpProv">Proveedor *</label><input id="xpProv" list="dlProv"></div>' +
+      `<div class="campo"><label for="xpPlazo">Plazo</label><select id="xpPlazo">${PLAZOS.map((p) => `<option>${p}</option>`).join('')}</select></div></div>` +
+      '<p class="quien">Copia en Excel las columnas <b>Fecha · Documento · Vence · Total · Estado</b> de ese proveedor y pégalas aquí.</p>' +
+      '<textarea id="xpTexto" rows="6" style="font-family:monospace;font-size:12px;white-space:pre"></textarea><p><button class="pri" id="xpOk">Guardar</button></p>';
+    if (!$('dlg').open) $('dlg').showModal();
+  });
+  $('dCuerpo').addEventListener('click', async (e) => {
+    if (e.target.id !== 'xpOk') return;
+    const p = may($('xpProv').value, 80), g = $('xpPlazo').value;
+    if (!p) return msg('dMsg', 'Falta el proveedor.');
+    const ya = new Set((cxDoc.filas || []).filter((x) => x.p === p).map((x) => x.d)), nuevas = [], malas = [];
+    $('xpTexto').value.split(/\r?\n/).map((l) => l.split('\t').map((c) => c.trim())).filter((c) => c.some(Boolean)).forEach((c) => {
+      const iF = c.findIndex((x) => fechaIso(x)), k = iF < 0 ? 0 : iF + 1;
+      const iM = c.findIndex((x, n) => n > k && montoNum(x) !== null && /\d/.test(x));
+      const d = may(c[k], 40).replace(/\s+/g, '');
+      if (!d || iM < 0) { malas.push(c.join(' | ')); return; }
+      if (ya.has(d) && /\d{3,}$/.test(d)) { malas.push(`${d} ya existe`); return; }
+      ya.add(d);
+      nuevas.push({ i: idNuevo(), p, g, f: iF < 0 ? '' : fechaIso(c[iF]), d, v: c.slice(k + 1, iM).join(' '), m: montoNum(c[iM]), e: may(c[iM + 1] || '', 40) });
+    });
+    if (!nuevas.length) return msg('dMsg', 'No encontré filas válidas. ' + malas.slice(0, 3).join(' · '));
+    try {
+      await cxGuardar((lista) => lista.concat(nuevas), 'Pegó', `${p}: ${nuevas.length} documento(s)`);
+      $('dlg').close(); msg('xMsg', `Se guardaron ${nuevas.length} documento(s) de ${p}.${malas.length ? ` No entraron ${malas.length}: ${malas.slice(0, 3).join(' · ')}` : ''}`, 'ok');
+    } catch (err) { msg('dMsg', errorTexto(err)); }
+  });
+
+  /* =====================  F. RESUMEN GENERAL (todos los proveedores)  ===================== */
+  let genCache = { clave: '', dists: [], cxp: [] };
+  async function pintarGeneral() {
+    const caja = $('gv_gen'), emp = pgEmp(), per = cxMes();
+    if (!emp || !/^\d{4}-\d{2}$/.test(per)) { caja.innerHTML = '<div class="caja"><p class="resumen" style="margin:0">Elige la empresa y el mes a pagar.</p></div>'; return; }
+    const clave = `${emp}|${per}`;
+    if (genCache.clave !== clave) {
+      caja.innerHTML = '<p class="resumen">Cargando…</p>';
+      try {
+        const [a, b] = await Promise.all([getDocs(query(collection(db, 'pagos'), where('emp', '==', emp), where('per', '==', per))), getDoc(doc(db, 'cxp', `${emp}_${per}`))]);
+        genCache = { clave, dists: a.docs.map((d) => d.data()), cxp: b.exists() ? (b.data().filas || []) : [] };
+      } catch (e) { caja.innerHTML = `<div class="msg err">${esc(errorTexto(e))}</div>`; return; }
+      if (pgVista !== 'gen' || `${pgEmp()}|${cxMes()}` !== clave) return;
+    }
+    const grandes = genCache.dists.map((d) => {
+      const fs = d.filas || [], total = r2(fs.reduce((s, f) => s + (Number(f.m) || 0), 0)), di = distDe(d.dist);
+      return { tipo: 'Distribuidor', nombre: di.nombre, docs: fs.filter((f) => f.t !== 'NC').length, total, forma: di.pago === 'letras' ? (d.letras ? `${d.letras} letras` : 'Letras (sin definir)') : (di.pago === 'fecha' ? 'Fecha por factura' : 'Según vencimiento'), cuota: di.pago === 'letras' && d.letras ? r2(total / d.letras) : '' };
+    }).sort((a, b) => b.total - a.total);
+    const porProv = new Map();
+    genCache.cxp.forEach((f) => { const k = f.p; if (!porProv.has(k)) porProv.set(k, { tipo: 'Proveedor', nombre: k, docs: 0, total: 0, forma: f.g || '', cuota: '' }); const x = porProv.get(k); x.total = r2(x.total + (Number(f.m) || 0)); if (f.m > 0) x.docs += 1; });
+    const chicos = [...porProv.values()].sort((a, b) => b.total - a.total);
+    const tg = r2(grandes.reduce((s, x) => s + x.total, 0)), tc = r2(chicos.reduce((s, x) => s + x.total, 0));
+    const filaG = (x) => `<tr><td>${esc(x.nombre)}</td><td class="num">${x.docs}</td><td class="num">${mil(x.total)}</td><td>${esc(x.forma)}</td><td class="num">${x.cuota === '' ? '' : mil(x.cuota)}</td></tr>`;
+    caja.innerHTML = '<div class="herr"><span style="flex:1"></span><button id="genExp">Exportar a Excel</button></div><div class="kpis">' +
+      `<div class="kpi"><b>Distribuidores</b><strong>S/ ${mil(tg)}</strong><small>${grandes.length} con programación</small></div>` +
+      `<div class="kpi"><b>Proveedores menores</b><strong>S/ ${mil(tc)}</strong><small>${chicos.length} proveedores</small></div>` +
+      `<div class="kpi" style="border-color:var(--marca);background:var(--suave)"><b>Total a pagar · ${esc(perTxt(per))}</b><strong>S/ ${mil(tg + tc)}</strong><small>${esc(empDe(emp).nombre)}</small></div></div>` +
+      '<div class="tabla"><table><tr><th>Nombre</th><th class="num">Facturas</th><th class="num">Total a pagar</th><th>Forma de pago</th><th class="num">Cuota</th></tr>' +
+      '<tr class="grupo"><td colspan="5"><b>Distribuidores</b></td></tr>' + (grandes.map(filaG).join('') || '<tr><td colspan="5" class="vacio">Sin programación en este mes</td></tr>') +
+      `<tr class="tot"><td>Total distribuidores</td><td></td><td class="num">${mil(tg)}</td><td colspan="2"></td></tr>` +
+      '<tr class="grupo"><td colspan="5"><b>Proveedores menores</b></td></tr>' + (chicos.map(filaG).join('') || '<tr><td colspan="5" class="vacio">Sin documentos en este mes</td></tr>') +
+      `<tr class="tot"><td>Total proveedores menores</td><td></td><td class="num">${mil(tc)}</td><td colspan="2"></td></tr>` +
+      `<tr class="tot"><td>TOTAL GENERAL</td><td></td><td class="num">${mil(tg + tc)}</td><td colspan="2"></td></tr></table></div>` +
+      '<p class="quien" style="margin-top:8px">El total de cada distribuidor es facturas menos notas de crédito de ese mes a pagar. Se actualiza al entrar a esta vista o al cambiar de mes.</p>';
+    $('genExp').addEventListener('click', () => exportar(`resumen-general-${emp}-${per}`, [['Tipo', 'tipo'], ['Nombre', 'nombre'], ['Facturas', 'docs'], ['Total a pagar', 'total'], ['Forma de pago', 'forma'], ['Cuota', 'cuota']], grandes.concat(chicos)));
+  }
+
+  /* =====================  G. IMPORTAR LOS DATOS DE LOS EXCEL  ===================== */
+  $('gImp').addEventListener('click', () => $('gImpArch').click());
+  $('gImpArch').addEventListener('change', async (e) => {
+    const archivo = e.target.files[0];
+    e.target.value = '';
+    if (!archivo) return;
+    try {
+      const j = JSON.parse(await archivo.text());
+      if (!j || !Array.isArray(j.periodos) || !Array.isArray(j.empresas) || !Array.isArray(j.dists)) throw new Error('El archivo no es un datos-pagos.json válido.');
+      const nFilas = j.periodos.reduce((s, p) => s + (p.filas || []).length, 0), cxp = j.cxp || [];
+      if (!confirm(`Se cargarán:\n· ${j.periodos.length} meses a pagar con ${nFilas} facturas y NC de ${j.dists.length} distribuidores\n· ${cxp.length} meses de proveedores menores con ${cxp.reduce((s, c) => s + c.filas.length, 0)} documentos\n\nSi un mes ya existe, se REEMPLAZA con lo del archivo.\n\n¿Continuar?`)) return;
+      msg('gMsg', 'Importando… no cierres la página.', 'ok');
+      const provs = unicos(cxp.flatMap((c) => c.filas.map((f) => f.p)));
+      await setDoc(doc(db, 'config', 'pagos'), { empresas: j.empresas, dists: j.dists, feriados: j.feriados || [], alias: j.alias || {}, provs });
+      const sello = { act: serverTimestamp(), actPor: firma() + ' (importación)' };
+      const tareas = j.periodos.map((p) => [doc(db, 'pagos', p.id), {
+        emp: p.emp, dist: p.dist, per: p.per, compra: p.compra || [], letras: p.letras || null, desde: p.desde || '', prog: p.prog || [], sueltas: p.sueltas || [],
+        filas: (p.filas || []).map((f) => { const x = { ...f }; if (x.o) x.o = x.o.map((l) => (Array.isArray(l) ? { p: l[0] || '', m: l[1] ?? null } : l)); return x; }), ...sello
+      }]).concat(cxp.map((c) => [doc(db, 'cxp', c.id), { emp: c.emp, per: c.per, filas: c.filas, ...sello }]));
+      const idx = {}; // qué facturas están en pagos, por empresa y distribuidor
+      j.periodos.forEach((p) => { const k = `${p.emp}_${p.dist}`; if (!idx[k]) idx[k] = {}; idx[k][idxCampo(p.per)] = idxDe(p.filas || []); });
+      Object.entries(idx).forEach(([k, p]) => tareas.push([doc(db, 'pagosIdx', k), { p }]));
+      for (let k = 0; k < tareas.length; k += 20) {
+        const lote = writeBatch(db);
+        tareas.slice(k, k + 20).forEach(([ref, datos]) => lote.set(ref, datos));
+        await lote.commit();
+        msg('gMsg', `Importando… ${Math.min(k + 20, tareas.length)} de ${tareas.length}.`, 'ok');
+      }
+      // Los distribuidores pasan a la lista oficial de proveedores de Recepción
+      await setDoc(doc(db, 'config', 'listas'), { ...listas, proveedores: unicos(listas.proveedores.concat(j.dists.map((d) => d.nombre))) });
+      msg('gMsg', `Importación terminada: ${j.periodos.length} meses a pagar, ${nFilas} facturas y NC, y ${cxp.length} meses de proveedores menores.`, 'ok');
+    } catch (err) { pgError(err); }
+  });
+
+  /* =====================  H. CIERRE: una factura que ya está en pagos no admite más observaciones  ===================== */
+  async function facturaEnPagos(proveedor, clave) {
+    if (!clave) return '';
+    for (const d of pgCfg.dists.filter((x) => provCoincide(proveedor, x))) {
+      for (const e of pgCfg.empresas) {
+        const s = await getDoc(doc(db, 'pagosIdx', `${e.k}_${d.k}`));
+        if (!s.exists()) continue;
+        const p = s.data().p || {};
+        for (const campo of Object.keys(p)) if ((p[campo] || []).includes(clave)) return `${e.nombre}, ${perTxt(campo.slice(1).replace('_', '-'))}`;
+      }
+    }
+    return '';
+  }
 </script>
 </body>
 </html>
