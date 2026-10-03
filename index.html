@@ -82,6 +82,7 @@
   .permisos legend { padding:0 6px; }
   .permisos legend label { font-weight:700; color:var(--pri); }
   .sinPrecios .cPrecio { display:none; }
+  .sinPO .cPO { display:none; }
   /* Pagos a proveedores: grilla tipo Excel */
   .herr { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
   .herr select, .herr input { width:auto; padding:7px 10px; }
@@ -479,7 +480,7 @@
   // Permisos por interfaz: el administrador decide qué ve y qué puede hacer cada usuario
   const GRUPOS = [
     ['Ingreso de pedidos', [['verPedidos', 'Ver la lista de pedidos'], ['pedidos', 'Registrar pedidos recibidos'], ['conformidad', 'Dar conformidad de factura recibida']]],
-    ['Observar productos', [['observar', 'Registrar productos observados']]],
+    ['Observar productos', [['observar', 'Registrar productos observados'], ['precioObs', 'Poner el precio unitario al observar']]],
     ['Por devolver', [['verPend', 'Ver los productos por devolver'], ['devolver', 'Confirmar devolución al proveedor'], ['decidir', 'Decidir que un producto se queda (no devolver)']]],
     ['Devueltos y NC', [['verDev', 'Ver los productos devueltos'], ['verPrecios', 'Ver precios y montos'], ['parcial', 'Aprobar devoluciones parciales'], ['precios', 'Poner precios y nota de crédito']]],
     ['Pagos a proveedores', [['verPagos', 'Ver pagos: facturas, NC, dashboard y resúmenes'], ['pagos', 'Registrar y corregir facturas, NC y programación'], ['pagosBorrar', 'Eliminar o mover facturas y NC']]]
@@ -487,10 +488,10 @@
   const PERMISOS = GRUPOS.flatMap((g) => g[1]);
   // Para poder hacer algo en una interfaz hay que poder verla
   const REQUIERE = { pedidos: ['verPedidos'], conformidad: ['verPedidos'], devolver: ['verPend'], decidir: ['verPend'],
-    verPrecios: ['verDev'], parcial: ['verDev'], precios: ['verDev', 'verPrecios'], pagos: ['verPagos'], pagosBorrar: ['verPagos', 'pagos'] };
+    verPrecios: ['verDev'], parcial: ['verDev'], precios: ['verDev', 'verPrecios'], pagos: ['verPagos'], pagosBorrar: ['verPagos', 'pagos'], precioObs: ['observar'] };
   const POR_AREA = { // lo que viene marcado al elegir el área; el administrador puede cambiarlo
     RECEPCION: ['verPedidos', 'pedidos', 'observar', 'verPend', 'devolver', 'verDev'],
-    COMPRAS: ['verPedidos', 'conformidad', 'observar', 'verPend', 'decidir', 'verDev', 'verPrecios', 'parcial', 'precios'],
+    COMPRAS: ['verPedidos', 'conformidad', 'observar', 'precioObs', 'verPend', 'decidir', 'verDev', 'verPrecios', 'parcial', 'precios'],
     GERENCIA: ['verPedidos', 'verPend', 'decidir', 'verDev', 'verPrecios', 'parcial'],
     PAGOS: ['verDev', 'verPrecios', 'precios', 'verPagos', 'pagos', 'pagosBorrar'],
     ADMIN: PERMISOS.map((p) => p[0])
@@ -681,6 +682,7 @@
     Object.entries(tabs).forEach(([v, ok]) => document.querySelector(`nav button[data-v="${v}"]`).classList.toggle('oculto', !ok));
     $('cajaPedido').classList.toggle('oculto', !puede('pedidos'));
     $('vDev').classList.toggle('sinPrecios', !puede('verPrecios'));
+    $('vNuevo').classList.toggle('sinPO', !puede('precioObs'));
     $('peQuien').textContent = 'Recepciona: ' + firma();
     // Si no puedo ver la interfaz en la que estoy, paso a la primera que sí tengo habilitada
     if (!tabs[vista]) ver(VISTAS.find((v) => tabs[v]) || 'vNada');
@@ -1065,6 +1067,7 @@
       '<div class="campo"><label>Vencimiento</label><input class="lVence" type="date"></div>' +
       '<div class="campo"><label>Cantidad *</label><input class="lCant" type="number" min="0.01" step="any"></div>' +
       '<div class="campo"><label>Motivo *</label><select class="lMot"></select></div>' +
+      '<div class="campo cPO"><label>Precio unitario (S/)</label><input class="lPrecio" type="number" min="0" step="any" placeholder="Opcional"></div>' +
       '<div class="campo ancho"><label>Observación</label><input class="lObs" maxlength="500"></div>' +
       '</div>';
     d.dataset.cod = '';
@@ -1156,7 +1159,9 @@
       const producto = may(v('.lProd'), 150), cantidad = Number(v('.lCant')), motivo = v('.lMot');
       if (!producto && !v('.lCant') && !motivo && !v('.lLote')) return; // línea vacía: se ignora
       if (!producto || !(cantidad > 0) || !motivo) { falta = falta || `Producto ${i + 1}: completa producto, cantidad y motivo.`; return; }
-      lineas.push({ codProd: l.dataset.cod || '', producto, laboratorio: may(v('.lLab'), 80), lote: may(v('.lLote'), 40), vence: v('.lVence'), cantidad, motivo, obs: txt(v('.lObs'), 500) });
+      const pTxt = puede('precioObs') ? v('.lPrecio').trim() : '', precio = pTxt === '' ? null : Math.round(Number(pTxt) * 10000) / 10000;
+      if (pTxt !== '' && !(precio >= 0)) { falta = falta || `Producto ${i + 1}: el precio unitario no es válido.`; return; }
+      lineas.push({ codProd: l.dataset.cod || '', producto, laboratorio: may(v('.lLab'), 80), lote: may(v('.lLote'), 40), vence: v('.lVence'), cantidad, motivo, obs: txt(v('.lObs'), 500), precio });
     });
     if (falta) return msg('nuevoMsg', falta);
     if (!lineas.length) return msg('nuevoMsg', 'Agrega al menos un producto observado.');
@@ -1262,7 +1267,7 @@
     if (!yo) return;
     const lista = devFiltradas(), grupos = agrupar(lista);
     contador('nDev', filas.filter((f) => f.estado === 'Devuelto').length);
-    const suma = (arr) => arr.reduce((s, f) => s + (Number(f.monto) || 0), 0);
+    const suma = (arr) => arr.reduce((s, f) => s + (Number(montoObs(f)) || 0), 0);
     const parc = filas.filter((f) => parcialPend(f) && (f.estado === 'Devuelto' || f.estado === 'NC recibida')).length;
     $('resDev').textContent = `${lista.length} producto(s) devuelto(s)` + (puede('verPrecios')
       ? ` · pendiente de NC: ${soles(suma(lista.filter((f) => f.estado === 'Devuelto')))}` +
@@ -1283,7 +1288,7 @@
         return `<tr data-id="${esc(f._id)}"><td>${esc(f.codigo)}</td><td class="larga">${prodTxt(f)}</td><td>${esc(f.laboratorio)}</td>` +
           `<td class="num">${esc(f.cantidad)}</td><td class="num">${esc(f.cantDevuelta)}</td><td>${falta}</td><td>${esc(f.guia)}</td>` +
           `<td>${esc(f.devueltoPor)}<div class="quien">${esc(fecha(f.devueltoFecha))}</div></td>` +
-          `<td class="num cPrecio">${esc(soles(f.precio))}</td><td class="num cPrecio">${esc(soles(f.monto))}</td><td>${esc(f.nc) || '<span class="quien">Pendiente</span>'}</td>` +
+          `<td class="num cPrecio">${esc(soles(f.precio))}</td><td class="num cPrecio">${esc(soles(montoObs(f)))}</td><td>${esc(f.nc) || '<span class="quien">Pendiente</span>'}</td>` +
           `<td><span class="${claseEstado(f.estado)}">${f.estado === 'Devuelto' ? 'NC pendiente' : esc(f.estado)}</span></td></tr>`;
       }).join('');
     });
@@ -1366,7 +1371,7 @@
           `<tr data-i="${esc(f._id)}" data-c="${esc(f.cantDevuelta ?? 0)}"><td class="larga"><b>${esc(f.codigo)}</b> ${esc(f.producto)}<div class="quien">${f.codProd ? 'Cód. ' + esc(f.codProd) + ' · ' : ''}Guía ${esc(f.guia)}</div></td>` +
           `<td class="num">${esc(f.cantDevuelta)}</td>` +
           `<td><input type="number" class="gPrecio" min="0" step="0.0001" value="${esc(f.precio ?? '')}" aria-label="Precio ${esc(f.codigo)}"></td>` +
-          `<td class="num gMonto">${esc(soles(f.monto))}</td>` +
+          `<td class="num gMonto">${esc(soles(montoObs(f)))}</td>` +
           `<td><input class="gNc" maxlength="40" value="${esc(f.nc)}" placeholder="Pendiente" aria-label="NC ${esc(f.codigo)}"></td></tr>`).join('') +
         '</tbody></table></div>' +
         '<p class="quien" id="gTotal" style="margin:10px 0"></p>' +
@@ -1503,7 +1508,7 @@
     } else {
       h += '<div class="datos">' + dato('Cant. devuelta', f.cantDevuelta) + dato('N° guía de devolución', f.guia) +
         dato('Devolvió', f.devueltoPor ? `${f.devueltoPor} · ${fecha(f.devueltoFecha)}` : '') +
-        (puede('verPrecios') ? dato('Precio unit.', soles(f.precio)) + dato('Monto', soles(f.monto)) : '') + dato('N° NC', f.nc) + dato('Fecha NC', dia(f.fechaNc)) + '</div>';
+        (puede('verPrecios') ? dato('Precio unit.', soles(f.precio)) + dato('Monto', soles(montoObs(f))) : '') + dato('N° NC', f.nc) + dato('Fecha NC', dia(f.fechaNc)) + '</div>';
     }
     if (f.actPor) h += `<div class="quien">Última actualización: ${esc(f.actPor)} · ${esc(fecha(f.actFecha))}</div>`;
     h += '</div>';
