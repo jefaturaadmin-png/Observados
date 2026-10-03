@@ -92,6 +92,7 @@
   .cpTabla { font-size:13px; } .cpTabla td, .cpTabla th { padding:5px 9px; }
   .cpTabla tr.cpLot td { background:#f6efe7; font-weight:700; color:var(--pri); }
   .cpTabla tr.cpRET td { color:var(--rojo); font-size:12px; }
+  .cpTabla tr.cpOBS td { color:#1f4e96; font-size:12px; }
   .cpTabla tr.cpSUB td, .cpTabla tr.cpTOT td { font-weight:700; background:#fbfaf8; }
   .cpTabla tr.cpPrg td { background:#fff8e6; font-weight:600; }
   .cpTabla tr.cpCUO td { background:#fffdf6; }
@@ -408,14 +409,14 @@
         <div class="herr">
           <select id="cpFiltro" aria-label="Qué mostrar">
             <option value="">Todo</option><option value="FA">Solo facturas</option><option value="NC">NC y otros</option>
-            <option value="PEN">Facturas sin pagar</option><option value="VEN">Vencidas o por vencer</option><option value="DUP">Repetidas</option>
+            <option value="PEN">Facturas sin pagar</option><option value="VEN">Vencidas o por vencer</option><option value="OBS">Facturas observadas</option><option value="ONC">Observadas sin NC completa</option><option value="DUP">Repetidas</option>
           </select>
           <input id="cpTxt" placeholder="Buscar proveedor, documento, referencia…" aria-label="Buscar" style="flex:1;min-width:200px">
           <button id="cpExp">Exportar a Excel</button>
         </div>
         <p class="resumen" id="cpRes"></p>
         <div class="tabla grid"><table>
-          <thead><tr><th class="nf"></th><th></th><th>Proveedor</th><th>Tipo doc.</th><th>Emisión</th><th>N° documento</th><th>Referencia / detalle</th><th>Factura que afecta</th><th>Vence</th><th class="n">Importe S/</th><th class="n">Plazo</th><th>Ret.</th><th class="n">Ret. 3%</th><th class="n">Neto</th><th>Estado</th><th>Pagado</th><th>Fecha pago</th><th>N° operación</th><th>Situación</th><th>Observaciones</th></tr></thead>
+          <thead><tr><th class="nf"></th><th></th><th>Proveedor</th><th>Tipo doc.</th><th>Emisión</th><th>N° documento</th><th>Referencia / detalle</th><th>Factura que afecta</th><th>Vence</th><th class="n">Importe S/</th><th class="n">Observado</th><th class="n">Plazo</th><th>Ret.</th><th class="n">Ret. 3%</th><th class="n">Neto</th><th>Estado</th><th>Pagado</th><th>Fecha pago</th><th>N° operación</th><th>Situación</th><th>Observaciones</th></tr></thead>
           <tbody id="cpCuerpo"></tbody>
         </table></div>
       </div>
@@ -3235,7 +3236,18 @@
       const base = f.t === 'FACTURA' ? r2(m - (dinamica ? (ncDe.get(`${f.p}|${cpDocNorm(f.d)}`) || 0) : 0)) : 0;
       let plazo = f.t === 'FACTURA' || f.v ? cpDias(f.f, f.v) : null;
       if (plazo === null) plazo = (f.pl !== undefined && f.pl !== null && f.pl !== '') ? Number(f.pl) : (prov && prov.pl !== '' && prov.pl !== undefined ? Number(prov.pl) : '');
-      R.set(f.i, { sg, base, g, k: `${f.p}|${g}`, plazo, q: 0, neto: 0, sit: '', dup: '' });
+      const r = { sg, base, g, k: `${f.p}|${g}`, plazo, q: 0, neto: 0, sit: '', dup: '', obsL: [], obs: 0, ncAp: 0, obsEst: '' };
+      if (f.t === 'FACTURA') { // productos observados: los anotados aquí más los registrados en Observados para esta factura
+        const clave = cpDocNorm(f.d), dist = { nombre: f.p, k: f.p };
+        r.obsL = (f.o || []).map((l) => ({ p: l.p, m: l.m, origen: 'manual' }))
+          .concat(filas.filter((o) => obsCuenta(o) && refDoc(o.factura) === clave && provCoincide(o.proveedor, dist)).map((o) => ({ p: obsTexto(o), m: montoObs(o), origen: 'recepcion', cod: o.codigo })));
+        if (r.obsL.length) {
+          r.obs = r2(r.obsL.reduce((s, l) => s + (Number(l.m) || 0), 0)); r.ncAp = ncDe.get(`${f.p}|${clave}`) || 0;
+          const falta = r2(r.obs - r.ncAp);
+          r.obsEst = r.obs === 0 ? (r.ncAp ? 'CON NC' : 'OBSERVADA SIN MONTO') : (!r.ncAp ? 'FALTA NOTA DE CRÉDITO' : (Math.abs(falta) <= TOL_NC ? 'CON NC' : (falta > 0 ? `NC PARCIAL · FALTA S/ ${mil(falta)}` : 'NC MAYOR A LO OBSERVADO')));
+        }
+      }
+      R.set(f.i, r);
       if (f.t === 'FACTURA' && f.ar) totBase.set(`${f.p}|${g}`, r2((totBase.get(`${f.p}|${g}`) || 0) + base));
     });
     const veces = new Map();
@@ -3369,20 +3381,44 @@
       if (fil === 'FA' && f.t !== 'FACTURA') return false;
       if (fil === 'NC' && f.t === 'FACTURA') return false;
       if (fil === 'DUP' && !r.dup) return false;
+      if (fil === 'OBS' && !r.obsL.length) return false;
+      if (fil === 'ONC' && !(r.obsL.length && r.obsEst !== 'CON NC')) return false;
       if (fil === 'PEN' && !(f.t === 'FACTURA' && r.sit !== 'PAGADO')) return false;
       if (fil === 'VEN' && !['VENCIDO', 'POR VENCER'].includes(r.sit)) return false;
-      if (t && ![f.p, f.t, f.d, f.ref, f.af, f.e, f.op, f.x].join(' ').toLowerCase().includes(t)) return false;
+      if (t && ![f.p, f.t, f.d, f.ref, f.af, f.e, f.op, f.x, r.obsL.map((l) => l.p).join(' ')].join(' ').toLowerCase().includes(t)) return false;
       return true;
     }).map((x) => x.f);
   }
   const cpSit = (s) => (s === 'PAGADO' ? 'e2' : s === 'VENCIDO' ? 'alerta' : s === 'POR VENCER' ? 'e0' : s === 'VIGENTE' ? 'e1' : 'e4');
+  const cpAbiertas = new Set();
+  function cpDetObs(f, r, edita) { // detalle de una factura: productos observados y las NC que la afectan
+    const manual = (f.o || []).map((x, k) => (edita
+      ? `<tr><td><input class="gIn coProd" data-k="${k}" value="${esc(x.p)}" placeholder="Producto observado" aria-label="Producto observado"></td><td><input class="gIn coMonto n" data-k="${k}" value="${esc(x.m ?? '')}" placeholder="Monto" aria-label="Monto"></td><td class="n"><button class="mini pel coQuitar" data-k="${k}" aria-label="Quitar">✕</button></td></tr>`
+      : `<tr><td class="larga">${esc(x.p)}</td><td class="n">${esc(mil(x.m))}</td><td></td></tr>`)).join('');
+    const rec = r.obsL.filter((l) => l.origen === 'recepcion');
+    const ncs = (cpDoc.filas || []).filter((x) => x.t === 'NOTA DE CRÉDITO' && x.p === f.p && x.af && cpDocNorm(x.af) === cpDocNorm(f.d));
+    return `<tr class="det" data-d="${esc(f.i)}"><td colspan="21"><div class="detg"><div><h4>Productos observados de ${esc(f.d)}</h4>` +
+      `<table><tr><th>Producto observado</th><th class="n" style="width:130px">Monto</th><th style="width:40px"></th></tr>${manual}` +
+      rec.map((l) => `<tr><td class="larga"><b>${esc(l.cod || '')}</b> ${esc(l.p)} <span class="est e1">Observados</span></td><td class="n">${esc(mil(l.m))}</td><td></td></tr>`).join('') + '</table>' +
+      `${edita ? '<button class="mini coMas">+ Agregar producto observado</button>' : ''}<table style="margin-top:8px"><tr class="tot"><td>Total observado</td><td class="n" style="width:140px">${esc(mil(r.obs))}</td></tr></table></div>` +
+      `<div><h4>Notas de crédito de esta factura (en este mes)</h4><table><tr><th>NC</th><th>Fecha</th><th class="n">Importe</th></tr>` +
+      (ncs.map((x) => `<tr><td>${esc(x.d)}</td><td>${esc(dia(x.f))}</td><td class="n">${esc(mil(x.m))}</td></tr>`).join('') || '<tr><td colspan="3" class="quien">Ninguna todavía. Cuando llegue, regístrala como NOTA DE CRÉDITO y escribe esta factura en "Factura que afecta".</td></tr>') +
+      `<tr class="tot"><td colspan="2">${esc(r.obsEst || 'Sin observaciones')}</td><td class="n">${esc(mil(r.ncAp))}</td></tr></table></div></div></td></tr>`;
+  }
+  function cpGuardarObs(tr) { // toma las líneas tal como están en pantalla
+    const id = tr.dataset.d, f = cpFila(id);
+    if (!f) return;
+    const o = [...tr.querySelectorAll('.coProd')].map((inp) => ({ p: txt(inp.value, 140), m: montoNum(tr.querySelector(`.coMonto[data-k="${inp.dataset.k}"]`).value) }));
+    f.o = o;
+    cpGuardar((est) => { const x = est.filas.find((y) => y.i === id); if (x) x.o = o; }, 'Observación', `${f.p} ${f.d}: ${o.length} producto(s), S/ ${mil(o.reduce((s, x) => s + (x.m || 0), 0))}`).catch(cpError);
+  }
   function cpPintarReg() {
     const cuerpo = $('cpCuerpo'), edita = puede('cxp'), admin = yo.area === 'ADMIN';
     $('cpHerr').classList.toggle('oculto', !edita && !admin);
     ['cpAdd', 'cpPegar', 'cpProvs'].forEach((id) => $(id).classList.toggle('oculto', !edita));
     $('cpDel').classList.toggle('oculto', !puede('cxpBorrar'));
     $('cpImp').classList.toggle('oculto', !admin);
-    if (!cpDoc) { cuerpo.innerHTML = '<tr><td colspan="19" class="vacio">Elige la empresa y el mes de pago.</td></tr>'; $('cpRes').textContent = ''; return; }
+    if (!cpDoc) { cuerpo.innerHTML = '<tr><td colspan="21" class="vacio">Elige la empresa y el mes de pago.</td></tr>'; $('cpRes').textContent = ''; return; }
     const lista = cpVistaFilas(), ed = edita ? ' class="ed"' : '', reponer = conservarNueva(cuerpo);
     let h = '';
     lista.forEach((f, n) => {
@@ -3392,11 +3428,14 @@
         `<td data-c="p"${ed}>${esc(f.p)}${cpProv(f.p) ? '' : ' <span class="est alerta" title="No está en la lista de proveedores">nuevo</span>'}</td><td data-c="t"${ed}>${esc(f.t)}</td><td data-c="f"${ed}>${esc(dia(f.f))}</td>` +
         `<td data-c="d"${ed}>${esc(f.d)}${r.dup ? ` <span class="est alerta" title="${r.dup === 'mes' ? 'Repetida en este mes' : 'Ya está en ' + esc((cpIdx.mapa.get(cpClaveFac(f)) || []).filter((p) => p !== cpDoc.per).map(perTxt).join(', '))}">${r.dup === 'mes' ? 'duplicada' : 'en otro mes'}</span>` : ''}</td>` +
         `<td data-c="ref" class="${edita ? 'ed ' : ''}nota" style="color:inherit">${esc(f.ref || '')}</td><td data-c="af"${ed}>${esc(f.af || '')}</td><td data-c="v"${ed}>${esc(dia(f.v))}</td>` +
-        `<td data-c="m" class="${edita ? 'ed ' : ''}n${m < 0 ? ' neg' : ''}">${esc(mil(m))}</td><td class="n">${fac ? esc(r.plazo) : ''}</td>` +
+        `<td data-c="m" class="${edita ? 'ed ' : ''}n${m < 0 ? ' neg' : ''}">${esc(mil(m))}</td>` +
+        (fac ? `<td class="n abre" data-ab="1">${r.obsL.length ? `<span class="tri">${cpAbiertas.has(f.i) ? '▾' : '▸'}</span>${esc(mil(r.obs))} <span class="est ${r.obsEst === 'CON NC' ? 'e2' : 'alerta'}" style="font-size:10px">${esc(r.obsEst === 'CON NC' ? 'con NC' : r.obsEst.startsWith('NC PARCIAL') ? 'NC parcial' : r.obsEst === 'NC MAYOR A LO OBSERVADO' ? 'NC mayor' : 'falta NC')}</span>` : (edita ? '<span class="mas">+ observar</span>' : '')}</td>` : '<td></td>') +
+        `<td class="n">${fac ? esc(r.plazo) : ''}</td>` +
         `<td data-c="ar"${fac ? ed : ''}>${fac ? (f.ar ? 'SÍ' : 'NO') : ''}</td><td class="n neg">${r.q ? esc(mil(-r.q)) : ''}</td><td class="n"><b>${esc(mil(r.neto))}</b></td>` +
         `<td data-c="e"${ed}>${esc(f.e || '')}</td><td class="ck">${fac ? `<input type="checkbox" class="cpPg"${f.pg ? ' checked' : ''}${edita ? '' : ' disabled'} aria-label="Pagado">` : ''}</td>` +
         `<td data-c="fp"${fac ? ed : ''}>${esc(dia(f.fp))}</td><td data-c="op"${fac ? ed : ''}>${esc(f.op || '')}</td>` +
         `<td>${r.sit && r.sit !== '—' ? `<span class="est ${cpSit(r.sit)}">${esc(r.sit)}</span>` : ''}</td><td data-c="x" class="${edita ? 'ed ' : ''}nota">${esc(f.x || '')}</td></tr>`;
+      if (fac && cpAbiertas.has(f.i)) h += cpDetObs(f, r, edita);
     });
     if (edita) {
       h += '<tr class="nuevaFila"><td class="nf">+</td><td></td>' +
@@ -3405,9 +3444,9 @@
         '<td><input class="gIn nF" placeholder="dd/mm/aaaa" aria-label="Fecha de emisión"></td><td><input class="gIn nD" placeholder="F001-12345" aria-label="N° de documento"></td>' +
         '<td><input class="gIn nR" placeholder="Referencia" aria-label="Referencia"></td><td><input class="gIn nA" placeholder="Solo NC" aria-label="Factura que afecta"></td>' +
         '<td><input class="gIn nV" placeholder="dd/mm/aaaa" aria-label="Vencimiento"></td><td><input class="gIn nM n" placeholder="Importe" aria-label="Importe"></td>' +
-        `<td colspan="9" style="white-space:normal"><button class="pri mini nOk">Agregar</button> ${cpAviso ? `<span class="est alerta" style="white-space:normal;border-radius:8px">${cpAviso}</span>` : '<span class="quien">o Enter. Quedan el proveedor y el tipo para la siguiente.</span>'}</td></tr>`;
+        `<td colspan="10" style="white-space:normal"><button class="pri mini nOk">Agregar</button> ${cpAviso ? `<span class="est alerta" style="white-space:normal;border-radius:8px">${cpAviso}</span>` : '<span class="quien">o Enter. Quedan el proveedor y el tipo para la siguiente.</span>'}</td></tr>`;
     }
-    cuerpo.innerHTML = h || '<tr><td colspan="19" class="vacio">Sin documentos en este mes</td></tr>';
+    cuerpo.innerHTML = h || '<tr><td colspan="21" class="vacio">Sin documentos en este mes</td></tr>';
     reponer();
     const t = cpC.tot, nd = (cpDoc.filas || []).filter((f) => cpC.R.get(f.i).dup).length;
     $('cpRes').innerHTML = `${esc(perTxt(cpDoc.per))} · ${(cpDoc.filas || []).length} documentos de ${cpC.provs.length} proveedores · Facturas S/ ${mil(t.fac)} · NC y otros S/ ${mil(t.otros)} · Retención S/ ${mil(t.ret)} · <b>Neto S/ ${mil(t.neto)}</b> · Pagado S/ ${mil(t.pagado)} · Saldo S/ ${mil(t.saldo)}` +
@@ -3468,6 +3507,19 @@
     if (!tr) return;
     if (t.classList.contains('gCk')) { if (t.checked) cpSel.add(tr.dataset.i); else cpSel.delete(tr.dataset.i); tr.classList.toggle('sel', t.checked); $('cpDel').textContent = `Eliminar seleccionadas (${cpSel.size})`; return; }
     if (t.classList.contains('nOk')) return cpAgregar();
+    if (t.classList.contains('coMas') || t.classList.contains('coQuitar')) {
+      const det = t.closest('tr.det'), f = cpFila(det.dataset.d), k = Number(t.dataset.k);
+      const o = [...det.querySelectorAll('.coProd')].map((inp) => ({ p: txt(inp.value, 140), m: montoNum(det.querySelector(`.coMonto[data-k="${inp.dataset.k}"]`).value) }));
+      const nuevo = t.classList.contains('coMas') ? o.concat([{ p: '', m: null }]) : o.filter((_, n) => n !== k);
+      return cpCambiar(f.i, (x) => { x.o = nuevo; }, 'Observación', `${f.p} ${f.d}: ${t.classList.contains('coMas') ? 'agregó línea' : 'quitó línea'}`);
+    }
+    const ab = t.closest('td[data-ab]');
+    if (ab && tr.dataset.i) {
+      const id = tr.dataset.i, f = cpFila(id), r = cpC.R.get(id);
+      if (!r.obsL.length) { if (!puede('cxp')) return; cpAbiertas.add(id); return cpCambiar(id, (x) => { x.o = [{ p: '', m: null }]; }, 'Observación', `${f.p} ${f.d}: agregó línea`); }
+      if (cpAbiertas.has(id)) cpAbiertas.delete(id); else cpAbiertas.add(id);
+      return cpPintar(true);
+    }
     if (t.classList.contains('cpPg')) {
       const f = cpFila(tr.dataset.i), v = t.checked;
       return cpCambiar(f.i, (x) => { x.pg = v; if (v && !x.fp) x.fp = hoy(); }, v ? 'Marcó pagada' : 'Quitó pagada', `${f.p} ${f.d}`);
@@ -3487,6 +3539,7 @@
   });
   $('cpCuerpo').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.closest('.nuevaFila') && e.target.matches('input, select')) { e.preventDefault(); cpAgregar(); } });
   $('cpCuerpo').addEventListener('change', (e) => { // al elegir proveedor o emisión, propone el vencimiento con su plazo habitual
+    if (e.target.matches('.coProd, .coMonto')) return cpGuardarObs(e.target.closest('tr.det'));
     if (!e.target.matches('.nP, .nF')) return;
     const tr = e.target.closest('tr'), pv = cpProv(may(tr.querySelector('.nP').value, 80)), f = fechaIso(tr.querySelector('.nF').value), v = tr.querySelector('.nV');
     if (pv && pv.pl !== '' && pv.pl !== undefined && f && !v.value.trim() && tr.querySelector('.nT').value === 'FACTURA') { const dt = fechaLocal(f); dt.setDate(dt.getDate() + Number(pv.pl)); v.value = dia(isoDe(dt)); }
@@ -3504,6 +3557,7 @@
     f.m = Math.abs(f.m);
     const rep = cpRepetida(f);
     if (rep && rep.includes('este mes')) return aviso(esc(rep) + ' No se agregó.');
+    if (rep && !confirm(`${rep}\n\n¿Agregarla también en ${perTxt(cpDoc.per)}? Hazlo solo si de verdad pasó de mes.`)) return aviso(esc(rep) + ' No se agregó.');
     const pv = cpProv(f.p);
     if (!pv && !confirm(`"${f.p}" no está en la lista de proveedores.\n¿Agregarlo? Luego completa su plazo, retención y cuenta en "Proveedores".`)) return;
     f.ar = pv ? pv.ret === true : false;
@@ -3532,12 +3586,12 @@
     const r = (f) => cpC.R.get(f.i);
     exportar(`cuentas-por-pagar-${cpEmp()}-${cpPer()}`, [['Periodo de pago', () => perTxt(cpDoc.per)], ['Proveedor', 'p'], ['Plazo (días)', (f) => r(f).plazo], ['Tipo doc.', 't'], ['Fecha emisión', (f) => dia(f.f)], ['N° documento', 'd'],
       ['Referencia / detalle', 'ref'], ['Factura que afecta', 'af'], ['Fecha vencimiento', (f) => dia(f.v)], ['Importe S/', (f) => r(f).sg * (Number(f.m) || 0)], ['Aplica ret. 3%', (f) => (f.t === 'FACTURA' ? (f.ar ? 'SÍ' : 'NO') : '')],
-      ['Retención 3%', (f) => r(f).q || ''], ['Neto a pagar', (f) => r(f).neto], ['Estado', 'e'], ['Pagado', (f) => (f.pg ? 'SÍ' : '')], ['Fecha pago', (f) => dia(f.fp)], ['N° operación', 'op'], ['Situación', (f) => r(f).sit], ['Observaciones', 'x']], cpVistaFilas());
+      ['Retención 3%', (f) => r(f).q || ''], ['Neto a pagar', (f) => r(f).neto], ['Estado', 'e'], ['Pagado', (f) => (f.pg ? 'SÍ' : '')], ['Fecha pago', (f) => dia(f.fp)], ['N° operación', 'op'], ['Situación', (f) => r(f).sit], ['Productos observados', (f) => r(f).obsL.map((l) => `${l.p} (${mil(l.m)})`).join('\n')], ['Monto observado', (f) => (r(f).obsL.length ? r(f).obs : '')], ['NC de la observación', (f) => r(f).obsEst], ['Observaciones', 'x']], cpVistaFilas());
   });
 
   /* ---------- Pegar desde Excel: Proveedor · [Plazo] · Tipo · Emisión · N° documento · Referencia · Factura que afecta · Vencimiento · Importe ---------- */
   let cpPegado = [];
-  function cpLeerPegado(texto, provDlg) {
+  function cpLeerPegado(texto, provDlg, conOtroMes) {
     const vistos = new Set((cpDoc.filas || []).map(cpClaveFac).filter(Boolean));
     const esTipo = (x) => /^(FA|FAC|FACT|NC|ND|BO|RE)$/i.test(x) || !cpValor('t', x).error;
     const tipoDe = (x) => (/^FA/i.test(x) ? 'FACTURA' : /^NC$/i.test(x) ? 'NOTA DE CRÉDITO' : /^ND$/i.test(x) ? 'FACTURA' : cpValor('t', x).valor);
@@ -3576,7 +3630,10 @@
       if (k && vistos.has(k)) return { ...f, dup: 'Ya está en este mes' };
       if (k) vistos.add(k);
       const otros = k ? (cpIdx.mapa.get(k) || []).filter((p) => p !== cpDoc.per) : [];
-      if (otros.length) f.ojo = `también en ${otros.map(perTxt).join(', ')}`;
+      if (otros.length) { // ya registrada en otro mes de pago: no se sube, salvo que se pida incluirlas
+        if (!conOtroMes) return { ...f, dup: `Ya está en ${otros.map(perTxt).join(', ')}`, otroMes: true };
+        f.ojo = `también está en ${otros.map(perTxt).join(', ')}`;
+      }
       return f;
     });
   }
@@ -3591,15 +3648,18 @@
     $('cpPegProv').focus();
   });
   $('dCuerpo').addEventListener('input', (e) => {
-    if (e.target.id !== 'cpTexto' && e.target.id !== 'cpPegProv') return;
-    cpPegado = cpLeerPegado($('cpTexto').value, may($('cpPegProv').value, 80));
+    if (e.target.id !== 'cpTexto' && e.target.id !== 'cpPegProv' && e.target.id !== 'cpPegOtro') return;
+    const conOtro = !!($('cpPegOtro') && $('cpPegOtro').checked);
+    cpPegado = cpLeerPegado($('cpTexto').value, may($('cpPegProv').value, 80), conOtro);
+    const nOtro = cpPegado.filter((f) => f.otroMes || f.ojo).length;
     const nuevas = cpPegado.filter((f) => !f.err && !f.dup);
     $('cpVistaP').innerHTML = !cpPegado.length ? '' :
       `<div class="msg" style="background:#fff8e6;color:#6b4a00">Pegaste ${cpPegado.length} fila(s): <b>${nuevas.length} nueva(s)</b>, ${cpPegado.filter((f) => f.dup).length} repetida(s), ${cpPegado.filter((f) => f.err).length} con error.</div>` +
       '<div class="tabla grid" style="max-height:38vh;overflow:auto"><table><tr><th></th><th>Proveedor</th><th>Tipo</th><th>Emisión</th><th>Documento</th><th>Vence</th><th class="n">Importe</th><th>Aviso</th></tr>' +
       cpPegado.map((f) => (f.err ? `<tr class="dup"><td><span class="est alerta">error</span></td><td colspan="7">${esc(f.err)}: ${esc(f.crudo)}</td></tr>`
-        : `<tr class="${f.dup ? 'dup' : 'nueva'}"><td>${f.dup ? '<span class="est alerta">repetida</span>' : '<span class="est e2">nueva</span>'}</td><td>${esc(f.p)}</td><td>${esc(f.t)}</td><td>${esc(dia(f.f))}</td><td>${esc(f.d)}</td><td>${esc(dia(f.v))}</td><td class="n">${esc(mil(cpSigno(f.t) * f.m))}</td><td>${esc(f.dup || [f.ojo, f.nuevo ? 'proveedor nuevo' : ''].filter(Boolean).join(' · '))}</td></tr>`)).join('') +
-      `</table></div><p style="margin-top:12px"><button class="pri" id="cpPegOk"${nuevas.length ? '' : ' disabled'}>Guardar las ${nuevas.length} nueva(s)</button></p>`;
+        : `<tr class="${f.dup ? 'dup' : 'nueva'}"><td>${f.dup ? '<span class="est alerta">repetida</span>' : (f.ojo ? '<span class="est e0">nueva</span>' : '<span class="est e2">nueva</span>')}</td><td>${esc(f.p)}</td><td>${esc(f.t)}</td><td>${esc(dia(f.f))}</td><td>${esc(f.d)}</td><td>${esc(dia(f.v))}</td><td class="n">${esc(mil(cpSigno(f.t) * f.m))}</td><td>${esc(f.dup || [f.ojo, f.nuevo ? 'proveedor nuevo' : ''].filter(Boolean).join(' · '))}</td></tr>`)).join('') +
+      '</table></div>' + (nOtro ? `<p style="margin:10px 0 0"><label style="display:flex;gap:6px;align-items:center;font-weight:500;color:inherit;margin:0"><input type="checkbox" id="cpPegOtro"${conOtro ? ' checked' : ''}> Subir también las ${nOtro} que ya están en otro mes de pago (solo si de verdad pasaron de mes)</label></p>` : '') +
+      `<p style="margin-top:12px"><button class="pri" id="cpPegOk"${nuevas.length ? '' : ' disabled'}>Guardar las ${nuevas.length} nueva(s)</button> <span class="quien">Las repetidas no se suben.</span></p>`;
   });
   $('dCuerpo').addEventListener('click', async (e) => {
     if (e.target.id !== 'cpPegOk') return;
@@ -3651,6 +3711,7 @@
         c.docs.forEach((f) => {
           const r = R.get(f.i), fac = f.t === 'FACTURA';
           add('DOC', [f.d, dia(f.f), f.t, [f.af ? 'Aplica a ' + f.af : (f.ref || ''), f.x].filter(Boolean).join('  ·  '), dia(f.v), r.sg * (Number(f.m) || 0), f.e || '', r.sit, fac && f.pg ? '✓' : '', fac ? dia(f.fp) : '', fac ? (f.op || '') : '', fac ? String(r.plazo) : ''], { sit: r.sit });
+          r.obsL.forEach((l, n) => add('OBS', [`      Observado: ${l.p}`, '', '', n === 0 ? r.obsEst : '', '', l.m ?? '', '', '', '', '', '', '']));
           if (r.q > 0) add('RET', ['      RET 3%', '', 'RETENCIÓN 3%', `Base S/ ${mil(r.base)}`, '', -r.q, 'DESCONTADO', '', '', '', '', '']);
         });
         add(c.multi ? 'SUB' : 'TOT', [c.multi ? `Subtotal ${etq}` : `TOTAL ${p.prov}`, '', '', `Pagado S/ ${mil(c.pagado)}   ·   Saldo S/ ${mil(c.saldo)}`, '', c.neto, '', c.retTxt, '', '', '', '']);
