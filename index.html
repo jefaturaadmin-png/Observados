@@ -482,7 +482,7 @@
   // Permisos por interfaz: el administrador decide qué ve y qué puede hacer cada usuario
   const GRUPOS = [
     ['Ingreso de pedidos', [['verPedidos', 'Ver la lista de pedidos'], ['pedidos', 'Registrar pedidos recibidos'], ['conformidad', 'Dar conformidad de factura recibida']]],
-    ['Observar productos', [['observar', 'Registrar productos observados'], ['precioObs', 'Poner el precio unitario al observar']]],
+    ['Observar productos', [['observar', 'Registrar productos observados'], ['precioObs', 'Poner el precio unitario al observar'], ['observarCerrada', 'Observar facturas que ya están en pagos']]],
     ['Por devolver', [['verPend', 'Ver los productos por devolver'], ['devolver', 'Confirmar devolución al proveedor'], ['decidir', 'Decidir que un producto se queda (no devolver)']]],
     ['Devueltos y NC', [['verDev', 'Ver los productos devueltos'], ['verPrecios', 'Ver precios y montos'], ['parcial', 'Aprobar devoluciones parciales'], ['precios', 'Poner precios y nota de crédito']]],
     ['Pagos a proveedores', [['verPagos', 'Ver pagos: facturas, NC, dashboard y resúmenes'], ['pagos', 'Registrar y corregir facturas, NC y programación'], ['pagosBorrar', 'Eliminar o mover facturas y NC']]]
@@ -490,7 +490,7 @@
   const PERMISOS = GRUPOS.flatMap((g) => g[1]);
   // Para poder hacer algo en una interfaz hay que poder verla
   const REQUIERE = { pedidos: ['verPedidos'], conformidad: ['verPedidos'], devolver: ['verPend'], decidir: ['verPend'],
-    verPrecios: ['verDev'], parcial: ['verDev'], precios: ['verDev', 'verPrecios'], pagos: ['verPagos'], pagosBorrar: ['verPagos', 'pagos'], precioObs: ['observar'] };
+    verPrecios: ['verDev'], parcial: ['verDev'], precios: ['verDev', 'verPrecios'], pagos: ['verPagos'], pagosBorrar: ['verPagos', 'pagos'], precioObs: ['observar'], observarCerrada: ['observar'] };
   const POR_AREA = { // lo que viene marcado al elegir el área; el administrador puede cambiarlo
     RECEPCION: ['verPedidos', 'pedidos', 'observar', 'verPend', 'devolver', 'verDev'],
     COMPRAS: ['verPedidos', 'conformidad', 'observar', 'precioObs', 'verPend', 'decidir', 'verDev', 'verPrecios', 'parcial', 'precios'],
@@ -849,6 +849,12 @@
     });
   }
   buscadorProveedor('peProv'); buscadorProveedor('nProv');
+  // Al escribir el precio unitario se muestra el total de la línea, para no confundir precio unitario con importe
+  $('lineas').addEventListener('input', (e) => {
+    if (!e.target.matches('.lCant, .lPrecio')) return;
+    const l = e.target.closest('.linea'), c = Number(l.querySelector('.lCant').value), p = l.querySelector('.lPrecio').value;
+    l.querySelector('.lTot').textContent = (p !== '' && c > 0 && Number(p) >= 0) ? `Total: ${c} × S/ ${Number(p).toFixed(2)} = S/ ${(c * Number(p)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '';
+  });
   // Devuelve el proveedor escrito. Solo valen los de la lista oficial; el administrador puede agregar uno nuevo al momento.
   async function proveedorDe(id, idMsg) {
     const v = may($(id).value, 80);
@@ -1069,7 +1075,7 @@
       '<div class="campo"><label>Vencimiento</label><input class="lVence" type="date"></div>' +
       '<div class="campo"><label>Cantidad *</label><input class="lCant" type="number" min="0.01" step="any"></div>' +
       '<div class="campo"><label>Motivo *</label><select class="lMot"></select></div>' +
-      '<div class="campo cPO"><label>Precio unitario (S/)</label><input class="lPrecio" type="number" min="0" step="any" placeholder="Opcional"></div>' +
+      '<div class="campo cPO"><label>Precio unitario (S/)</label><input class="lPrecio" type="number" min="0" step="any" placeholder="Opcional"><div class="quien lTot" style="margin-top:4px"></div></div>' +
       '<div class="campo ancho"><label>Observación</label><input class="lObs" maxlength="500"></div>' +
       '</div>';
     d.dataset.cod = '';
@@ -1173,8 +1179,8 @@
     let enPagos = '';
     try { enPagos = await facturaEnPagos(proveedor, factura); } catch (err) { console.error(err); }
     if (enPagos) {
-      if (yo.area !== 'ADMIN') return msg('nuevoMsg', `La factura ${factura} ya fue ingresada a pagos (${enPagos}), por eso ya no admite observaciones. Si es necesario, coordina con el administrador.`);
-      if (!confirm(`La factura ${factura} ya fue ingresada a pagos (${enPagos}).\nSolo el administrador puede observarla a estas alturas. ¿Registrar la observación de todos modos?`)) return;
+      if (!puede('observarCerrada')) return msg('nuevoMsg', `La factura ${factura} ya fue ingresada a pagos (${enPagos}), por eso ya no admite observaciones. Si hay un motivo para observarla igual, debe registrarla alguien con el permiso "Observar facturas que ya están en pagos".`);
+      if (!confirm(`La factura ${factura} ya fue ingresada a pagos (${enPagos}).\n¿Registrar la observación de todos modos? Quedará marcada como observación posterior al ingreso a pagos.`)) return;
     }
     msg('nuevoMsg', ''); ocupado(f, true);
     const base = {
@@ -1184,6 +1190,7 @@
       guia: '', devueltoPor: '', devueltoFecha: null, quedaMotivo: '', quedaPor: '', quedaFecha: null,
       precio: null, monto: null, nc: '', fechaNc: '', actPor: '', actFecha: null
     };
+    if (enPagos) { base.tardia = true; base.tardiaInfo = enPagos; }
     try {
       const cods = await runTransaction(db, async (tx) => {
         const ref = doc(db, 'config', 'contador');
@@ -2045,7 +2052,7 @@
     const recHtml = rec.length ? '<h4 style="margin-top:10px">Observado y devuelto por Recepción</h4><table><tr><th>Producto</th><th class="n">Observado</th><th class="n">Devuelto</th><th>Situación</th><th class="n" style="width:110px">Precio unit.</th><th class="n">Monto</th></tr>' +
       rec.map((o) => {
         const cuenta = o.estado === 'Devuelto' || o.estado === 'NC recibida';
-        return `<tr><td class="larga"><b>${esc(o.codigo)}</b> ${esc(o.producto)}${o.guia ? `<div class="quien">Guía ${esc(o.guia)}</div>` : ''}</td><td class="n">${esc(o.cantidad)}</td><td class="n">${esc(o.cantDevuelta ?? '')}</td>` +
+        return `<tr><td class="larga"><b>${esc(o.codigo)}</b> ${esc(o.producto)}${o.tardia ? ' <span class="est e0" title="Se observó cuando la factura ya estaba en pagos">Observada después</span>' : ''}${o.guia ? `<div class="quien">Guía ${esc(o.guia)}</div>` : ''}</td><td class="n">${esc(o.cantidad)}</td><td class="n">${esc(o.cantDevuelta ?? '')}</td>` +
           `<td>${cuenta ? esc(o.estado === 'Devuelto' ? 'Devuelto' : 'Devuelto · NC ' + (o.nc || '')) : `<span class="quien">${esc(o.estado === 'Por devolver' ? 'Aún no devuelto: no cuenta' : o.estado + ': no cuenta')}</span>`}</td>` +
           `<td class="n">${cuenta && pone ? `<input class="gIn lpPrecio n" data-id="${esc(o._id)}" data-c="${esc(o.cantDevuelta ?? 0)}" value="${esc(o.precio ?? '')}" aria-label="Precio unitario ${esc(o.codigo)}">` : esc(mil(o.precio))}</td>` +
           `<td class="n">${cuenta ? esc(mil(montoObs(o))) : ''}</td></tr>`;
