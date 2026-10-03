@@ -133,9 +133,9 @@
   .hoja tr.r_cab td { background:#f1eee9; font-weight:700; font-size:12px; }
   .hoja tr.r_tot td { font-weight:700; background:#fbfaf8; }
   .hoja tr.r_txt td { white-space:normal; font-weight:600; border:none; }
-  .hoja tr.r_nc td { background:#fdecea; color:var(--rojo); }
-  .hoja tr.r_obs td, .hoja tr.r_obsF td { background:#e6effc; color:#1f4e96; white-space:pre-wrap; }
-  .hoja tr.r_obsF td { font-weight:700; border-top:2px solid #b9cdef; }
+  .hoja tr.r_nc td { color:var(--rojo); }
+  .hoja tr.r_obs td, .hoja tr.r_obsF td { color:#1f4e96; white-space:pre-wrap; }
+  .hoja tr.r_obsF td { font-weight:700; }
   #gMsg, #xMsg { position:sticky; top:6px; z-index:4; }
   .par { display:grid; grid-template-columns:minmax(70px, 1fr) minmax(90px, 1.6fr); gap:6px; }
 
@@ -1833,16 +1833,19 @@
     });
   }
   const enlazadas = (f) => pgObs.get(`${f.s}-${f.n}`) || [];
-  const montoObs = (o) => { // lo devuelto vale cantidad devuelta por precio
+  const montoObs = (o) => { // lo devuelto vale cantidad devuelta por precio; lo que aún está por devolver, cantidad observada por precio
     if (o.monto !== null && o.monto !== undefined) return Number(o.monto);
-    if (o.precio !== null && o.precio !== undefined && o.cantDevuelta) return r2(Number(o.precio) * Number(o.cantDevuelta));
+    const cant = (o.cantDevuelta !== null && o.cantDevuelta !== undefined) ? o.cantDevuelta : (o.estado === 'Por devolver' ? o.cantidad : null);
+    if (o.precio !== null && o.precio !== undefined && cant) return r2(Number(o.precio) * Number(cant));
     return null;
   };
-  // Lo observado de una factura: las líneas escritas a mano más lo que Recepción ya devolvió
+  // Cuenta como observado todo lo que espera nota de crédito: lo ya devuelto y lo que está por devolver. "Se queda" y "Anulado" no.
+  const obsCuenta = (o) => ['Por devolver', 'Devuelto', 'NC recibida'].includes(o.estado);
+  const obsTexto = (o) => `${o.producto} (${o.estado === 'Por devolver' ? 'por devolver: ' + (o.cantidad ?? '') : 'devuelto: ' + (o.cantDevuelta ?? '')})`;
+  // Lo observado de una factura: las líneas escritas a mano más lo registrado en Observados (devuelto o por devolver)
   function lineasDe(f) {
     const manual = (f.o || []).map((l) => ({ p: l.p, m: l.m, origen: 'manual' }));
-    const rec = enlazadas(f).filter((o) => o.estado === 'Devuelto' || o.estado === 'NC recibida')
-      .map((o) => ({ p: `${o.producto} (devuelto: ${o.cantDevuelta ?? ''})`, m: montoObs(o), origen: 'recepcion', id: o._id }));
+    const rec = enlazadas(f).filter(obsCuenta).map((o) => ({ p: obsTexto(o), m: montoObs(o), origen: 'recepcion', id: o._id }));
     return manual.concat(rec);
   }
 
@@ -2049,12 +2052,12 @@
       : `<tr><td class="larga">${esc(x.p)}</td><td class="n">${esc(mil(x.m))}</td><td></td></tr>`)).join('');
     const rec = enlazadas(f);
     const pone = puede('precios');
-    const recHtml = rec.length ? '<h4 style="margin-top:10px">Observado y devuelto por Recepción</h4><table><tr><th>Producto</th><th class="n">Observado</th><th class="n">Devuelto</th><th>Situación</th><th class="n" style="width:110px">Precio unit.</th><th class="n">Monto</th></tr>' +
+    const recHtml = rec.length ? '<h4 style="margin-top:10px">Registrado en Observados</h4><table><tr><th>Producto</th><th class="n">Observado</th><th class="n">Devuelto</th><th>Situación</th><th class="n" style="width:110px">Precio unit.</th><th class="n">Monto</th></tr>' +
       rec.map((o) => {
-        const cuenta = o.estado === 'Devuelto' || o.estado === 'NC recibida';
+        const cuenta = obsCuenta(o), devuelto = o.estado === 'Devuelto' || o.estado === 'NC recibida';
         return `<tr><td class="larga"><b>${esc(o.codigo)}</b> ${esc(o.producto)}${o.tardia ? ' <span class="est e0" title="Se observó cuando la factura ya estaba en pagos">Observada después</span>' : ''}${o.guia ? `<div class="quien">Guía ${esc(o.guia)}</div>` : ''}</td><td class="n">${esc(o.cantidad)}</td><td class="n">${esc(o.cantDevuelta ?? '')}</td>` +
-          `<td>${cuenta ? esc(o.estado === 'Devuelto' ? 'Devuelto' : 'Devuelto · NC ' + (o.nc || '')) : `<span class="quien">${esc(o.estado === 'Por devolver' ? 'Aún no devuelto: no cuenta' : o.estado + ': no cuenta')}</span>`}</td>` +
-          `<td class="n">${cuenta && pone ? `<input class="gIn lpPrecio n" data-id="${esc(o._id)}" data-c="${esc(o.cantDevuelta ?? 0)}" value="${esc(o.precio ?? '')}" aria-label="Precio unitario ${esc(o.codigo)}">` : esc(mil(o.precio))}</td>` +
+          `<td>${cuenta ? esc(o.estado === 'Por devolver' ? 'Por devolver (falta devolución física)' : o.estado === 'Devuelto' ? 'Devuelto' : 'Devuelto · NC ' + (o.nc || '')) : `<span class="quien">${esc(o.estado + ': no cuenta')}</span>`}</td>` +
+          `<td class="n">${devuelto && pone ? `<input class="gIn lpPrecio n" data-id="${esc(o._id)}" data-c="${esc(o.cantDevuelta ?? 0)}" value="${esc(o.precio ?? '')}" aria-label="Precio unitario ${esc(o.codigo)}">` : esc(mil(o.precio))}</td>` +
           `<td class="n">${cuenta ? esc(mil(montoObs(o))) : ''}</td></tr>`;
       }).join('') + '</table>' : '';
     const ncs = c.det.map((x) => `<tr><td>${esc(x.k)} <span class="quien">${esc(x.tipo)}${x.comp ? ' · repartida' : ''}</span></td><td>${esc(dia(x.fecha))}</td>` +
@@ -2417,7 +2420,7 @@
         mapa.get(r).push(o);
       });
       const lin = (f) => (f.o || []).map((l) => ({ p: l.p, m: l.m }))
-        .concat((mapa.get(`${f.s}-${f.n}`) || []).filter((o) => o.estado === 'Devuelto' || o.estado === 'NC recibida').map((o) => ({ p: o.producto, m: montoObs(o) })));
+        .concat((mapa.get(`${f.s}-${f.n}`) || []).filter(obsCuenta).map((o) => ({ p: obsTexto(o), m: montoObs(o) })));
       const cr = cruzar(docs, lin), ncDev = new Set(), tmp = [];
       docs.forEach((d) => (d.filas || []).forEach((f) => {
         if (!f.f) return;
@@ -2576,23 +2579,35 @@
     const letras = dist.pago === 'letras' ? (Number(d.letras) || 0) : 0;
     const desde = d.desde || (/^\d{4}-\d{2}$/.test(d.per) ? diasHabiles(`${d.per}-01`, 1).dias[0] : '');
     const cal = letras && desde ? diasHabiles(desde, letras) : { dias: [], saltados: [] };
-    const obs = []; // un cuadro por factura observada: sus productos y cómo va su nota de crédito
-    normales.forEach((f) => {
-      const c = cruceDe(d.per, f);
+    const obs = [], obsAnt = []; // un cuadro por factura observada: sus productos y cómo va su nota de crédito
+    const cuadro = (f, per, lista, extra) => {
+      const c = cruceDe(per, f);
       if (!c.lineas.length) return;
       const ncs2 = c.det.map((x) => x.k).join(', '), falta = pendDe(c), est = estadoCruce(c);
       const sit = !c.det.length ? 'FALTA NOTA DE CRÉDITO'
         : falta ? `NC PARCIAL ${ncs2} POR S/ ${mil(c.aplicada)} · FALTA S/ ${mil(falta)}`
           : est === 'NC mayor a lo observado' ? `CON NC ${ncs2} (MAYOR A LO OBSERVADO)` : `CON NC ${ncs2}`;
-      obs.push({ fac: `${f.s}-${f.n}`, total: c.obs, sit, lineas: c.lineas });
-    });
-    return { d, dist, emp, normales, ncs, dev, ncDeDev, usoNc, tCompras, nCredito, tPagar, letras, cuota: letras ? r2(tPagar / letras) : null, desde, cal, obs };
+      if (extra && c.det.length && !falta) return; // de meses anteriores solo interesa lo que sigue sin nota de crédito
+      lista.push({ fac: `${f.s}-${f.n}${extra || ''}`, total: c.obs, falta: r2(Math.max(0, c.obs - c.aplicada)), sit, lineas: c.lineas });
+    };
+    normales.forEach((f) => cuadro(f, d.per, obs));
+    // Observaciones de facturas de meses anteriores (hasta 6 meses atrás) que siguen esperando su NC: incluye las observadas después de programar
+    if (/^\d{4}-\d{2}$/.test(d.per)) {
+      const nMes = (p) => +p.slice(0, 4) * 12 + +p.slice(5);
+      pgDocs.filter((p) => /^\d{4}-\d{2}$/.test(p.per) && p.per < d.per && nMes(d.per) - nMes(p.per) <= 6).sort((a, b) => String(a.per).localeCompare(String(b.per)))
+        .forEach((p) => (p.filas || []).filter((f) => f.t === 'FA' && !esDevTotal(f, cruceDe(p.per, f))).sort(orden).forEach((f) => cuadro(f, p.per, obsAnt, ` · pagada en ${perTxt(p.per)}`)));
+    }
+    return { d, dist, emp, normales, ncs, dev, ncDeDev, usoNc, tCompras, nCredito, tPagar, letras, cuota: letras ? r2(tPagar / letras) : null, desde, cal, obs, obsAnt };
   }
   // Las filas del resumen, tal como van al Excel del proveedor y a la vista previa
   function resumenFilas(R) {
     const out = [], fila = (c, cls) => out.push({ c, cls: cls || '' });
     const cab = () => { fila([R.emp.nombre], 'tit'); fila([`RUC ${R.emp.ruc}`]); fila([]); fila([R.dist.nombre], 'tit'); fila([]); };
     const doc1 = (f, extra) => [R.dist.nombre, dia(f.f), f.t, f.s, f.n, Number(f.m) || 0].concat(extra || []);
+    const pintaObs = (o) => {
+      fila([`FACTURA ${o.fac}`, '', '', '', 'OBSERVADO', o.total, o.sit], 'obsF');
+      o.lineas.forEach((l) => fila([`     ${l.p}`, '', '', '', '', l.m ?? '', ''], 'obs'));
+    };
     const filaDoc = (f, extra) => fila(doc1(f, extra), f.t === 'NC' ? 'nc' : ''); // las NC van en rojo
     cab();
     fila(['PROVEEDOR', 'FECHA', 'TIPO', 'SERIE', 'NUMERO', 'TOTAL', 'LABORATORIO'], 'cab');
@@ -2614,10 +2629,13 @@
     fila([]);
     if (R.obs.length) {
       fila(['OBSERVACIONES:'], 'tit');
-      R.obs.forEach((o) => {
-        fila([`FACTURA ${o.fac}`, '', '', '', 'OBSERVADO', o.total, o.sit], 'obsF');
-        o.lineas.forEach((l) => fila([`     ${l.p}`, '', '', '', '', l.m ?? '', ''], 'obs'));
-      });
+      R.obs.forEach(pintaObs);
+      fila([]);
+    }
+    if (R.obsAnt.length) {
+      fila(['OBSERVACIONES DE MESES ANTERIORES PENDIENTES DE NOTA DE CRÉDITO:'], 'tit');
+      R.obsAnt.forEach(pintaObs);
+      fila([`Falta nota de crédito por S/ ${mil(R.obsAnt.reduce((s, o) => s + (Number(o.falta) || 0), 0))} en ${R.obsAnt.length} factura(s) de meses anteriores. No modifica el total a pagar de este mes.`], 'txt');
       fila([]);
     }
     fila(['', '', '', '', 'T.COMPRAS', R.tCompras], 'tot'); fila(['', '', '', '', 'N.CRÉDITO', R.nCredito], 'tot'); fila(['', '', '', '', 'T.PAGAR', R.tPagar], 'tot');
