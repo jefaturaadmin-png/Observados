@@ -130,6 +130,7 @@
   .hoja tr.r_cab td { background:#f1eee9; font-weight:700; font-size:12px; }
   .hoja tr.r_tot td { font-weight:700; background:#fbfaf8; }
   .hoja tr.r_txt td { white-space:normal; font-weight:600; border:none; }
+  #gMsg, #xMsg { position:sticky; top:6px; z-index:4; }
   .par { display:grid; grid-template-columns:minmax(70px, 1fr) minmax(90px, 1.6fr); gap:6px; }
 
   dialog { border:none; border-radius:14px; padding:0; width:min(780px, 94vw); max-height:90vh; color:inherit; }
@@ -1852,7 +1853,7 @@
   }
   $('gEmp').addEventListener('change', () => { pgSuscribir(); if (pgVista === 'cxp') cxSuscribir(); if (pgVista === 'gen') pintarGeneral(); });
   $('gDist').addEventListener('change', pgSuscribir);
-  $('gPer').addEventListener('change', () => { pgSel.clear(); pgAbiertas.clear(); pintarPagos(true); });
+  $('gPer').addEventListener('change', () => { pgAviso = ''; pgSel.clear(); pgAbiertas.clear(); pintarPagos(true); });
   $('gFiltro').addEventListener('change', () => pintarPagos(true));
   $('gTxt').addEventListener('input', () => pintarPagos(true));
 
@@ -1915,6 +1916,29 @@
     }).sort((a, b) => (a.t === b.t ? 0 : (a.t === 'FA' ? -1 : (b.t === 'FA' ? 1 : a.t.localeCompare(b.t)))) || String(a.f).localeCompare(String(b.f)) || String(a.n).localeCompare(String(b.n), undefined, { numeric: true }));
   }
 
+  // Lo que se está escribiendo en la fila nueva (y el cursor) se conserva aunque la tabla se redibuje
+  function conservarNueva(cuerpo) {
+    const nf = cuerpo.querySelector('.nuevaFila');
+    if (!nf) return () => {};
+    const ins = [...nf.querySelectorAll('.gIn')], vals = ins.map((e) => e.value), k = ins.indexOf(document.activeElement);
+    const sel = k >= 0 && ins[k].tagName === 'INPUT' ? [ins[k].selectionStart, ins[k].selectionEnd] : null;
+    return () => {
+      const n2 = cuerpo.querySelector('.nuevaFila');
+      if (!n2) return;
+      const i2 = [...n2.querySelectorAll('.gIn')];
+      i2.forEach((e, n) => { if (vals[n] !== undefined && vals[n] !== '') e.value = vals[n]; });
+      if (k >= 0 && i2[k]) { i2[k].focus(); if (sel) { try { i2[k].setSelectionRange(sel[0], sel[1]); } catch (e) { /* no aplica */ } } }
+    };
+  }
+  let pgAviso = ''; // aviso que se muestra junto a la fila nueva (por ejemplo, factura repetida)
+  function irAFila(per, id) {
+    if (!pgDocs.some((d) => d.per === per)) return;
+    $('gPer').value = per; $('gFiltro').value = ''; $('gTxt').value = ''; pgSel.clear();
+    pintarPagos(true);
+    const fila = $('gCuerpo').querySelector(`tr[data-i="${id}"]`);
+    if (fila) { fila.classList.add('sel'); fila.scrollIntoView({ block: 'center' }); }
+  }
+  const avisoRepetida = (f, r) => `Ya existe ${f.t} ${f.s}-${f.n} por S/ ${mil(r.m)} del ${dia(r.f)}, programada en <b>${esc(perTxt(r.per))}</b>. No se agregó. <button class="mini gIr" data-per="${esc(r.per)}" data-id="${esc(r.i)}">Ver esa fila</button>`;
   function pintarGrilla() {
     const cuerpo = $('gCuerpo'), edita = puede('pagos'), d = pgDoc();
     $('gHerr').classList.toggle('oculto', !edita && yo.area !== 'ADMIN');
@@ -1930,7 +1954,7 @@
       cuerpo.innerHTML = '<tr><td colspan="12" class="vacio">Este distribuidor aún no tiene meses a pagar en esta empresa. Usa "+ Nuevo mes a pagar".</td></tr>';
       $('gRes').textContent = ''; $('gPie').textContent = ''; return;
     }
-    const vista = filasVista();
+    const vista = filasVista(), reponer = conservarNueva(cuerpo);
     let h = '';
     vista.forEach((f, n) => {
       const c = cruceDe(d.per, f), est = f.t === 'FA' ? estadoCruce(c) : '', abierta = pgAbiertas.has(f.i);
@@ -1958,9 +1982,10 @@
         '<td><select class="gIn aT" aria-label="Tipo"><option>FA</option><option>NC</option><option>ND</option></select></td>' +
         '<td><input class="gIn aS" placeholder="Serie" aria-label="Serie"></td><td><input class="gIn aN" placeholder="Número" aria-label="Número"></td>' +
         '<td><input class="gIn aM n" placeholder="Total" aria-label="Total"></td><td><input class="gIn aL" placeholder="Laboratorio" aria-label="Laboratorio"></td>' +
-        '<td colspan="4"><button class="pri mini aOk">Agregar fila</button> <span class="quien">o Enter. Para varias filas usa "Pegar desde Excel".</span></td></tr>';
+        `<td colspan="4" style="white-space:normal"><button class="pri mini aOk">Agregar fila</button> ${pgAviso ? `<span class="est alerta" style="white-space:normal;border-radius:8px">${pgAviso}</span>` : '<span class="quien">o Enter. Para varias filas usa "Pegar desde Excel".</span>'}</td></tr>`;
     }
     cuerpo.innerHTML = h || '<tr><td colspan="12" class="vacio">Sin filas en esta vista</td></tr>';
+    reponer();
 
     const fs = d.filas || [], fa = fs.filter((f) => f.t === 'FA'), nc = fs.filter((f) => f.t === 'NC');
     const suma = (a) => a.reduce((s, f) => s + (Number(f.m) || 0), 0);
@@ -2041,8 +2066,8 @@
   }
   const pgError = (e) => msg('gMsg', errorTexto(e));
   const repetida = (f, exceptoId) => {
-    for (const d of pgDocs) for (const x of (d.filas || [])) if (x.n && claveFila(x) === claveFila(f) && !(d.per === pgPer() && x.i === exceptoId)) return d.per;
-    return '';
+    for (const d of pgDocs) for (const x of (d.filas || [])) if (x.n && claveFila(x) === claveFila(f) && !(d.per === pgPer() && x.i === exceptoId)) return { per: d.per, i: x.i, m: x.m, f: x.f };
+    return null;
   };
   function ncDeTexto(v) { // "F241-7247, F241 7515" · "F241 7247-7515" · "7247"
     const out = []; let serie = '';
@@ -2082,7 +2107,7 @@
     else if (c === 'nc') nuevo.nc = ncDeTexto(v);
     else if (c === 'r') nuevo.r = refDoc(v);
     else if (c === 'x') nuevo.x = txt(v, 200);
-    if (['t', 's', 'n'].includes(c)) { const p = repetida(nuevo, id); if (p) return msg('gMsg', `Ya existe ${nuevo.t} ${nuevo.s}-${nuevo.n} en ${perTxt(p)}. No se guardó el cambio.`); }
+    if (['t', 's', 'n'].includes(c)) { const p = repetida(nuevo, id); if (p) return msg('gMsg', `Ya existe ${nuevo.t} ${nuevo.s}-${nuevo.n} por S/ ${mil(p.m)} en ${perTxt(p.per)}. No se guardó el cambio.`); }
     msg('gMsg', '');
     const antes = c === 'nc' ? (f.nc || []).join(', ') : f[c], ahora = c === 'nc' ? nuevo.nc.join(', ') : nuevo[c];
     try {
@@ -2092,18 +2117,25 @@
   }
 
   async function agregarFila() {
-    const tr = $('gCuerpo').querySelector('.nuevaFila'), q = (c) => tr.querySelector(c).value;
+    const tr = $('gCuerpo').querySelector('.nuevaFila'), q = (c) => tr.querySelector(c).value, d = pgDoc();
+    if (!tr || !d) return;
+    const aviso = (texto) => { pgAviso = texto; pintarPagos(true); }; // el aviso sale junto a la fila, a la vista
     const f = { i: idNuevo(), f: fechaIso(q('.aF')), t: q('.aT'), s: serDoc(q('.aS')), n: numDoc(q('.aN')), m: montoNum(q('.aM')) };
-    if (!f.f) return msg('gMsg', 'Fecha no válida. Escríbela como 21/07/2026.');
-    if (!f.s || !/^\d+$/.test(f.n)) return msg('gMsg', 'Completa la serie y el número (solo dígitos).');
-    if (f.m === null) return msg('gMsg', 'Monto no válido.');
+    if (!f.f) return aviso('Fecha no válida. Escríbela como 21/07/2026.');
+    if (!f.s || !/^\d+$/.test(f.n)) return aviso('Completa la serie y el número (solo dígitos).');
+    if (f.m === null) return aviso('Falta el total o no es un monto válido.');
     if (f.t === 'NC' && f.m > 0) f.m = -f.m;
     if (q('.aL').trim()) f.l = may(q('.aL'), 60);
     const p = repetida(f);
-    if (p) return msg('gMsg', `Ya existe ${f.t} ${f.s}-${f.n} en ${perTxt(p)}. No se agregó.`);
-    msg('gMsg', '');
-    try { await pgGuardar(pgPer(), (lista) => { lista.push(f); }, 'Agregó', `${f.t} ${f.s}-${f.n} por ${mil(f.m)}`); pintarPagos(true); const n = $('gCuerpo').querySelector('.aS'); if (n) n.focus(); }
-    catch (e) { pgError(e); }
+    if (p) return aviso(avisoRepetida(f, p));
+    // Se muestra al instante y se guarda por detrás; quedan fecha, tipo y serie para la siguiente
+    pgAviso = ''; msg('gMsg', '');
+    ['.aN', '.aM', '.aL'].forEach((c) => { tr.querySelector(c).value = ''; });
+    d.filas = (d.filas || []).concat([f]);
+    pintarPagos(true);
+    const n = $('gCuerpo').querySelector('.aN'); if (n) n.focus();
+    try { await pgGuardar(d.per, (lista) => { if (!lista.some((x) => x.i === f.i)) lista.push(f); }, 'Agregó', `${f.t} ${f.s}-${f.n} por ${mil(f.m)}`); }
+    catch (e) { d.filas = (d.filas || []).filter((x) => x.i !== f.i); pintarPagos(true); pgAviso = `No se pudo guardar ${f.t} ${f.s}-${f.n}: ${esc(errorTexto(e))}`; pintarPagos(true); }
   }
 
   async function guardarObservados(tr) { // toma las líneas tal como están en pantalla
@@ -2120,6 +2152,7 @@
     if (!tr) return;
     if (t.classList.contains('gCk')) { if (t.checked) pgSel.add(tr.dataset.i); else pgSel.delete(tr.dataset.i); tr.classList.toggle('sel', t.checked); $('gDel').textContent = `Eliminar seleccionadas (${pgSel.size})`; return; }
     if (t.classList.contains('aOk')) return agregarFila();
+    if (t.classList.contains('gIr')) { pgAviso = ''; return irAFila(t.dataset.per, t.dataset.id); }
     if (t.classList.contains('gPg')) { // incluir o no una devolución total en el listado de pago, junto con sus NC
       const f = pgFila(tr.dataset.i), pone = !f.pg, per = pgPer();
       const suyas = f.t === 'FA' ? cruceDe(per, f).det.map((x) => x.k) : [];
@@ -2166,11 +2199,11 @@
     }
   });
   $('gCuerpo').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && e.target.closest('.nuevaFila') && e.target.matches('input')) { e.preventDefault(); agregarFila(); }
+    if (e.key === 'Enter' && e.target.closest('.nuevaFila') && e.target.matches('input, select')) { e.preventDefault(); agregarFila(); }
   });
   const pgAlDia = () => setTimeout(() => {
     const a = document.activeElement;
-    if (pgPend && !pgPulsando && !(a && a.matches('#gCuerpo input, #gCuerpo select, #xCuerpo input, #xCuerpo select'))) pintarPagos(true);
+    if (pgPend && !pgPulsando && !(a && a.matches('#gCuerpo tr:not(.nuevaFila) input, #gCuerpo tr:not(.nuevaFila) select, #xCuerpo tr:not(.nuevaFila) input, #xCuerpo tr:not(.nuevaFila) select'))) pintarPagos(true);
   }, 0);
   $('vPagos').addEventListener('focusout', pgAlDia);
   $('vPagos').addEventListener('pointerdown', () => { pgPulsando = true; });
@@ -2669,7 +2702,7 @@
     $('xHerr').classList.toggle('oculto', !edita);
     $('xDel').classList.toggle('oculto', !puede('pagosBorrar'));
     if (!cxDoc) { cuerpo.innerHTML = '<tr><td colspan="10" class="vacio">Elige la empresa y el mes.</td></tr>'; $('xRes').textContent = ''; return; }
-    const lista = cxVista(), ed = edita ? ' class="ed"' : '';
+    const lista = cxVista(), ed = edita ? ' class="ed"' : '', reponer = conservarNueva(cuerpo);
     let h = '', n = 0;
     lista.forEach((f, k) => {
       n += 1;
@@ -2691,6 +2724,7 @@
         '<td><input class="gIn xE" placeholder="Estado" aria-label="Estado"></td><td><button class="pri mini xOk">Agregar</button></td></tr>';
     }
     cuerpo.innerHTML = h || '<tr><td colspan="10" class="vacio">Sin documentos en este mes</td></tr>';
+    reponer();
     const fs = cxDoc.filas || [];
     $('dlProv').innerHTML = unicos(pgCfg.provs.concat(fs.map((f) => f.p))).map((x) => `<option value="${esc(x)}">`).join('');
     $('xRes').textContent = `Cuentas por pagar de ${perTxt(cxDoc.per)} · ${unicos(fs.map((f) => f.p)).length} proveedores · ${fs.length} documentos · Total S/ ${mil(fs.reduce((s, f) => s + (Number(f.m) || 0), 0))}`;
@@ -2728,8 +2762,11 @@
     if (f.m === null) return msg('xMsg', 'Monto no válido.');
     if ((cxDoc.filas || []).some((x) => x.p === f.p && x.d === f.d && /\d{3,}$/.test(f.d))) return msg('xMsg', `${f.p} ya tiene el documento ${f.d} en este mes. No se agregó.`);
     msg('xMsg', '');
-    try { await cxGuardar((lista) => { lista.push(f); }, 'Agregó', `${f.p} ${f.d} por ${mil(f.m)}`); pintarPagos(true); const n = $('xCuerpo').querySelector('.xD'); if (n) { $('xCuerpo').querySelector('.xP').value = f.p; $('xCuerpo').querySelector('.xG').value = f.g; n.focus(); } }
-    catch (e) { cxError(e); }
+    ['.xF', '.xD', '.xV', '.xM', '.xE'].forEach((c) => { tr.querySelector(c).value = ''; }); // quedan proveedor y plazo para el siguiente
+    cxDoc.filas = (cxDoc.filas || []).concat([f]); pintarPagos(true);
+    const n = $('xCuerpo').querySelector('.xD'); if (n) n.focus();
+    try { await cxGuardar((lista) => { if (!lista.some((x) => x.i === f.i)) lista.push(f); }, 'Agregó', `${f.p} ${f.d} por ${mil(f.m)}`); }
+    catch (e) { cxDoc.filas = (cxDoc.filas || []).filter((x) => x.i !== f.i); pintarPagos(true); cxError(e); }
   }
   $('xCuerpo').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.closest('.nuevaFila') && e.target.matches('input')) { e.preventDefault(); cxAgregar(); } });
   $('xAdd').addEventListener('click', () => { const n = $('xCuerpo').querySelector('.xP'); if (n) { n.scrollIntoView({ block: 'center' }); n.focus(); } });
