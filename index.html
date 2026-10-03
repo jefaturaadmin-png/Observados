@@ -85,6 +85,17 @@
   .permisos legend label { font-weight:700; color:var(--pri); }
   .sinPrecios .cPrecio { display:none; }
   .sinPO .cPO { display:none; }
+  .grid tr.dupo td { background:#fff3d6; }
+  h3.sub.cpSec { background:var(--pri); color:#fff; padding:7px 12px; border-radius:8px; margin:18px 0 10px; }
+  .cpCaja { border:2px solid var(--pri); border-radius:10px; background:#fff; margin-bottom:22px; overflow-x:auto; }
+  .cpTit { font-weight:800; font-size:15px; padding:9px 12px; background:var(--suave); border-bottom:1px solid var(--borde); }
+  .cpTabla { font-size:13px; } .cpTabla td, .cpTabla th { padding:5px 9px; }
+  .cpTabla tr.cpLot td { background:#f6efe7; font-weight:700; color:var(--pri); }
+  .cpTabla tr.cpRET td { color:var(--rojo); font-size:12px; }
+  .cpTabla tr.cpSUB td, .cpTabla tr.cpTOT td { font-weight:700; background:#fbfaf8; }
+  .cpTabla tr.cpPrg td { background:#fff8e6; font-weight:600; }
+  .cpTabla tr.cpCUO td { background:#fffdf6; }
+  .cpTabla tr.cpCta td { color:var(--gris); font-size:12px; border-bottom:none; }
   /* Pagos a proveedores: grilla tipo Excel */
   .herr { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
   .herr select, .herr input { width:auto; padding:7px 10px; }
@@ -210,6 +221,7 @@
     <button data-v="vPend">Por devolver<span class="cuenta oculto" id="nPend"></span></button>
     <button data-v="vDev">Devueltos y NC<span class="cuenta oculto" id="nDev"></span></button>
     <button data-v="vPagos" id="tabPagos">Pagos a proveedores</button>
+    <button data-v="vCxp" id="tabCxp">Cuentas por pagar</button>
     <button data-v="vUsuarios" id="tabUsuarios">Usuarios</button>
     <button data-v="vCat" id="tabCat">Productos</button>
     <button data-v="vListas" id="tabListas">Listas</button>
@@ -324,7 +336,7 @@
       <div class="subnav" id="gSub">
         <button data-gv="grid">Facturas y NC</button><button data-gv="dash">Dashboard compras</button><button data-gv="res">Resumen de pago</button>
         <button data-gv="cruce">Cruce observaciones</button><button data-gv="ncp">NC pendientes</button>
-        <button data-gv="cxp">Facturas por pagar (otros proveedores)</button><button data-gv="gen">Resumen general</button>
+        <button data-gv="gen">Resumen general</button>
       </div>
       <div id="gv_grid">
         <div class="herr" id="gHerr">
@@ -375,6 +387,40 @@
         <datalist id="dlProv"></datalist>
       </div>
       <div id="gv_gen" class="oculto"></div>
+    </div>
+
+    <!-- ===== 6. CUENTAS POR PAGAR ===== -->
+    <div id="vCxp" class="oculto">
+      <div class="herr">
+        <select id="cpEmp" aria-label="Empresa"></select>
+        <label style="margin:0" for="cpMes">Mes de pago</label><input type="month" id="cpMes">
+      </div>
+      <div class="subnav" id="cpSub"><button data-cv="reg">Registro</button><button data-cv="det">Detalle del mes</button></div>
+      <div id="cpMsg"></div>
+      <div id="cv_reg">
+        <div class="herr" id="cpHerr">
+          <button class="pri" id="cpAdd">+ Documento</button>
+          <button id="cpPegar">Pegar desde Excel</button>
+          <button class="pel" id="cpDel">Eliminar seleccionadas (0)</button>
+          <button id="cpProvs">Proveedores</button>
+          <button id="cpImp">Importar libro de Sheets</button><input type="file" id="cpImpArch" accept=".xlsx,.csv" multiple class="oculto">
+        </div>
+        <div class="herr">
+          <select id="cpFiltro" aria-label="Qué mostrar">
+            <option value="">Todo</option><option value="FA">Solo facturas</option><option value="NC">NC y otros</option>
+            <option value="PEN">Facturas sin pagar</option><option value="VEN">Vencidas o por vencer</option><option value="DUP">Repetidas</option>
+          </select>
+          <input id="cpTxt" placeholder="Buscar proveedor, documento, referencia…" aria-label="Buscar" style="flex:1;min-width:200px">
+          <button id="cpExp">Exportar a Excel</button>
+        </div>
+        <p class="resumen" id="cpRes"></p>
+        <div class="tabla grid"><table>
+          <thead><tr><th class="nf"></th><th></th><th>Proveedor</th><th>Tipo doc.</th><th>Emisión</th><th>N° documento</th><th>Referencia / detalle</th><th>Factura que afecta</th><th>Vence</th><th class="n">Importe S/</th><th class="n">Plazo</th><th>Ret.</th><th class="n">Ret. 3%</th><th class="n">Neto</th><th>Estado</th><th>Pagado</th><th>Fecha pago</th><th>N° operación</th><th>Situación</th><th>Observaciones</th></tr></thead>
+          <tbody id="cpCuerpo"></tbody>
+        </table></div>
+      </div>
+      <div id="cv_det" class="oculto"></div>
+      <datalist id="dlCp"></datalist>
     </div>
 
     <div id="vNada" class="oculto"><div class="caja"><p class="resumen" style="margin:0">Tu usuario aún no tiene interfaces habilitadas. Pídele al administrador que te las active.</p></div></div>
@@ -485,17 +531,18 @@
     ['Observar productos', [['observar', 'Registrar productos observados'], ['precioObs', 'Poner el precio unitario al observar'], ['observarCerrada', 'Observar facturas que ya están en pagos']]],
     ['Por devolver', [['verPend', 'Ver los productos por devolver'], ['devolver', 'Confirmar devolución al proveedor'], ['decidir', 'Decidir que un producto se queda (no devolver)']]],
     ['Devueltos y NC', [['verDev', 'Ver los productos devueltos'], ['verPrecios', 'Ver precios y montos'], ['parcial', 'Aprobar devoluciones parciales'], ['precios', 'Poner precios y nota de crédito']]],
-    ['Pagos a proveedores', [['verPagos', 'Ver pagos: facturas, NC, dashboard y resúmenes'], ['pagos', 'Registrar y corregir facturas, NC y programación'], ['pagosBorrar', 'Eliminar o mover facturas y NC']]]
+    ['Pagos a proveedores', [['verPagos', 'Ver pagos: facturas, NC, dashboard y resúmenes'], ['pagos', 'Registrar y corregir facturas, NC y programación'], ['pagosBorrar', 'Eliminar o mover facturas y NC']]],
+    ['Cuentas por pagar', [['verCxp', 'Ver el registro y el detalle del mes'], ['cxp', 'Registrar documentos y programar pagos'], ['cxpBorrar', 'Eliminar documentos']]]
   ];
   const PERMISOS = GRUPOS.flatMap((g) => g[1]);
   // Para poder hacer algo en una interfaz hay que poder verla
   const REQUIERE = { pedidos: ['verPedidos'], conformidad: ['verPedidos'], devolver: ['verPend'], decidir: ['verPend'],
-    verPrecios: ['verDev'], parcial: ['verDev'], precios: ['verDev', 'verPrecios'], pagos: ['verPagos'], pagosBorrar: ['verPagos', 'pagos'], precioObs: ['observar'], observarCerrada: ['observar'] };
+    verPrecios: ['verDev'], parcial: ['verDev'], precios: ['verDev', 'verPrecios'], pagos: ['verPagos'], pagosBorrar: ['verPagos', 'pagos'], precioObs: ['observar'], observarCerrada: ['observar'], cxp: ['verCxp'], cxpBorrar: ['verCxp', 'cxp'] };
   const POR_AREA = { // lo que viene marcado al elegir el área; el administrador puede cambiarlo
     RECEPCION: ['verPedidos', 'pedidos', 'observar', 'verPend', 'devolver', 'verDev'],
     COMPRAS: ['verPedidos', 'conformidad', 'observar', 'precioObs', 'verPend', 'decidir', 'verDev', 'verPrecios', 'parcial', 'precios'],
     GERENCIA: ['verPedidos', 'verPend', 'decidir', 'verDev', 'verPrecios', 'parcial'],
-    PAGOS: ['verDev', 'verPrecios', 'precios', 'verPagos', 'pagos', 'pagosBorrar'],
+    PAGOS: ['verDev', 'verPrecios', 'precios', 'verPagos', 'pagos', 'pagosBorrar', 'verCxp', 'cxp', 'cxpBorrar'],
     ADMIN: PERMISOS.map((p) => p[0])
   };
   const ESTADOS = ['Por devolver', 'Devuelto', 'NC recibida', 'Se queda', 'Anulado'];
@@ -678,7 +725,7 @@
 
   function aplicarPermisos() {
     const admin = yo.area === 'ADMIN';
-    const tabs = { vPedidos: puede('verPedidos'), vNuevo: puede('observar'), vPend: puede('verPend'), vDev: puede('verDev'), vPagos: puede('verPagos'),
+    const tabs = { vPedidos: puede('verPedidos'), vNuevo: puede('observar'), vPend: puede('verPend'), vDev: puede('verDev'), vPagos: puede('verPagos'), vCxp: puede('verCxp'),
       vUsuarios: admin, vCat: admin, vListas: admin };
     $('quien').textContent = `${yo.nombre} · ${yo.area}`;
     Object.entries(tabs).forEach(([v, ok]) => document.querySelector(`nav button[data-v="${v}"]`).classList.toggle('oculto', !ok));
@@ -689,6 +736,7 @@
     // Si no puedo ver la interfaz en la que estoy, paso a la primera que sí tengo habilitada
     if (!tabs[vista]) ver(VISTAS.find((v) => tabs[v]) || 'vNada');
     pgSuscribir();
+    cpSuscribir();
   }
 
   function iniciar() {
@@ -696,7 +744,7 @@
     $('peFecha').value = hoy();
     $('fpEst').value = 'P'; $('pEst').value = 'Por devolver'; $('dEst').value = 'Devuelto';
     ['fpTxt', 'pTxt', 'dTxt', 'gTxt', 'xTxt', 'peSer', 'peNum', 'nSer', 'nNum'].forEach((id) => { $(id).value = ''; });
-    $('gFiltro').value = ''; msg('gMsg', ''); msg('xMsg', '');
+    $('gFiltro').value = ''; msg('gMsg', ''); msg('xMsg', ''); $('cpFiltro').value = ''; $('cpTxt').value = ''; msg('cpMsg', '');
     opciones($('uArea'), AREAS);
     $('uPerm').innerHTML = GRUPOS.map((g, i) =>
       `<fieldset><legend><label><input type="checkbox" class="gTodo" data-g="${i}"> ${esc(g[0])} · todo</label></legend>` +
@@ -706,6 +754,7 @@
     pintarListas();
     ver('vPedidos');
     pgIniciar();
+    cpIniciar();
     aplicarPermisos();
 
     // Mis propios datos: si el administrador cambia mis permisos, se aplican al momento
@@ -769,13 +818,14 @@
   }
 
   /* ---------- Navegación ---------- */
-  const VISTAS = ['vPedidos', 'vNuevo', 'vPend', 'vDev', 'vPagos', 'vUsuarios', 'vCat', 'vListas', 'vNada'];
+  const VISTAS = ['vPedidos', 'vNuevo', 'vPend', 'vDev', 'vPagos', 'vCxp', 'vUsuarios', 'vCat', 'vListas', 'vNada'];
   document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => ver(b.dataset.v)));
   function ver(v) {
     vista = v;
     VISTAS.forEach((x) => $(x).classList.toggle('oculto', x !== v));
     document.querySelectorAll('nav button').forEach((b) => b.classList.toggle('act', b.dataset.v === v));
     if (v === 'vPagos') pintarPagos(true);
+    if (v === 'vCxp') cpPintar(true);
   }
   const contador = (id, n) => { $(id).textContent = n; $(id).classList.toggle('oculto', !n); };
 
@@ -1795,10 +1845,15 @@
     if (!m || +m[2] < 1 || +m[2] > 12 || +m[1] < 1 || +m[1] > 31) return '';
     return `${m[3].length === 2 ? '20' + m[3] : m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
   };
-  const montoNum = (v) => { // "1,234.56", "1234,56", "S/ 1 234.56", "-947"
-    const s = String(v ?? '').replace(/S\/\.?/i, '').replace(/\s/g, '').replace(/,(?=\d{3}(\D|$))/g, '').replace(',', '.');
+  const montoNum = (v) => { // "1,234.56" · "1.234,56" (como lo copia Sheets) · "1234,56" · "S/ 1 234.56" · "-947"
+    let s = String(v ?? '').replace(/S\/\.?/i, '').replace(/\s/g, '');
+    if (s === '') return null;
+    const c = s.lastIndexOf(','), p = s.lastIndexOf('.');
+    if (c >= 0 && p >= 0) s = c > p ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+    else if (c >= 0) s = /^-?\d{1,3}(,\d{3})+$/.test(s) ? s.replace(/,/g, '') : s.replace(',', '.');
+    else if (p >= 0 && /^-?\d{1,3}(\.\d{3}){2,}$/.test(s)) s = s.replace(/\./g, '');
     const n = Number(s);
-    return (s === '' || !isFinite(n)) ? null : r2(n);
+    return isFinite(n) ? r2(n) : null;
   };
   const mil = (n) => ((n === null || n === undefined || n === '') ? '' : Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
   const pgEmp = () => $('gEmp').value, pgDist = () => $('gDist').value, pgPer = () => $('gPer').value;
@@ -3013,8 +3068,11 @@
     if (genCache.clave !== clave) {
       caja.innerHTML = '<p class="resumen">Cargando…</p>';
       try {
-        const [a, b] = await Promise.all([getDocs(query(collection(db, 'pagos'), where('emp', '==', emp), where('per', '==', per))), getDoc(doc(db, 'cxp', `${emp}_${per}`))]);
-        genCache = { clave, dists: a.docs.map((d) => d.data()), cxp: b.exists() ? (b.data().filas || []) : [] };
+        const [a, b] = await Promise.all([getDocs(query(collection(db, 'pagos'), where('emp', '==', emp), where('per', '==', per))), getDoc(doc(db, 'cpm', `${emp}_${per}`)).catch(() => null)]);
+        // los demás proveedores salen del módulo Cuentas por pagar, con su neto (facturas − NC − retención)
+        let otros = [];
+        if (b && b.exists()) { const c = cpCalc(b.data()); otros = c.provs.map((p) => ({ p: p.prov, m: p.neto, n: p.cuadros.reduce((s, q) => s + q.docs.filter((f) => f.t === 'FACTURA').length, 0), g: p.plazo === '' ? '' : (p.plazo === 0 ? 'CONTADO' : p.plazo + ' DÍAS') })); }
+        genCache = { clave, dists: a.docs.map((d) => d.data()), cxp: otros };
       } catch (e) { caja.innerHTML = `<div class="msg err">${esc(errorTexto(e))}</div>`; return; }
       if (pgVista !== 'gen' || `${pgEmp()}|${cxMes()}` !== clave) return;
     }
@@ -3023,19 +3081,19 @@
       return { tipo: 'Distribuidor', nombre: di.nombre, docs: fs.filter((f) => f.t !== 'NC').length, total, forma: di.pago === 'letras' ? (d.letras ? `${d.letras} letras` : 'Letras (sin definir)') : (di.pago === 'fecha' ? 'Fecha por factura' : 'Según vencimiento'), cuota: di.pago === 'letras' && d.letras ? r2(total / d.letras) : '' };
     }).sort((a, b) => b.total - a.total);
     const porProv = new Map();
-    genCache.cxp.forEach((f) => { const k = f.p; if (!porProv.has(k)) porProv.set(k, { tipo: 'Proveedor', nombre: k, docs: 0, total: 0, forma: f.g || '', cuota: '' }); const x = porProv.get(k); x.total = r2(x.total + (Number(f.m) || 0)); if (f.m > 0) x.docs += 1; });
+    genCache.cxp.forEach((f) => { const k = f.p; if (!porProv.has(k)) porProv.set(k, { tipo: 'Proveedor', nombre: k, docs: 0, total: 0, forma: f.g || '', cuota: '' }); const x = porProv.get(k); x.total = r2(x.total + (Number(f.m) || 0)); x.docs += f.n || 0; });
     const chicos = [...porProv.values()].sort((a, b) => b.total - a.total);
     const tg = r2(grandes.reduce((s, x) => s + x.total, 0)), tc = r2(chicos.reduce((s, x) => s + x.total, 0));
     const filaG = (x) => `<tr><td>${esc(x.nombre)}</td><td class="num">${x.docs}</td><td class="num">${mil(x.total)}</td><td>${esc(x.forma)}</td><td class="num">${x.cuota === '' ? '' : mil(x.cuota)}</td></tr>`;
     caja.innerHTML = '<div class="herr"><span style="flex:1"></span><button id="genExp">Exportar a Excel</button></div><div class="kpis">' +
       `<div class="kpi"><b>Distribuidores</b><strong>S/ ${mil(tg)}</strong><small>${grandes.length} con programación</small></div>` +
-      `<div class="kpi"><b>Proveedores menores</b><strong>S/ ${mil(tc)}</strong><small>${chicos.length} proveedores</small></div>` +
+      `<div class="kpi"><b>Cuentas por pagar (otros proveedores)</b><strong>S/ ${mil(tc)}</strong><small>${chicos.length} proveedores</small></div>` +
       `<div class="kpi" style="border-color:var(--marca);background:var(--suave)"><b>Total a pagar · ${esc(perTxt(per))}</b><strong>S/ ${mil(tg + tc)}</strong><small>${esc(empDe(emp).nombre)}</small></div></div>` +
       '<div class="tabla"><table><tr><th>Nombre</th><th class="num">Facturas</th><th class="num">Total a pagar</th><th>Forma de pago</th><th class="num">Cuota</th></tr>' +
       '<tr class="grupo"><td colspan="5"><b>Distribuidores</b></td></tr>' + (grandes.map(filaG).join('') || '<tr><td colspan="5" class="vacio">Sin programación en este mes</td></tr>') +
       `<tr class="tot"><td>Total distribuidores</td><td></td><td class="num">${mil(tg)}</td><td colspan="2"></td></tr>` +
-      '<tr class="grupo"><td colspan="5"><b>Proveedores menores</b></td></tr>' + (chicos.map(filaG).join('') || '<tr><td colspan="5" class="vacio">Sin documentos en este mes</td></tr>') +
-      `<tr class="tot"><td>Total proveedores menores</td><td></td><td class="num">${mil(tc)}</td><td colspan="2"></td></tr>` +
+      '<tr class="grupo"><td colspan="5"><b>Cuentas por pagar (otros proveedores)</b></td></tr>' + (chicos.map(filaG).join('') || '<tr><td colspan="5" class="vacio">Sin documentos en este mes</td></tr>') +
+      `<tr class="tot"><td>Total otros proveedores</td><td></td><td class="num">${mil(tc)}</td><td colspan="2"></td></tr>` +
       `<tr class="tot"><td>TOTAL GENERAL</td><td></td><td class="num">${mil(tg + tc)}</td><td colspan="2"></td></tr></table></div>` +
       '<p class="quien" style="margin-top:8px">El total de cada distribuidor es facturas menos notas de crédito de ese mes a pagar. Se actualiza al entrar a esta vista o al cambiar de mes.</p>';
     $('genExp').addEventListener('click', () => exportar(`resumen-general-${emp}-${per}`, [['Tipo', 'tipo'], ['Nombre', 'nombre'], ['Facturas', 'docs'], ['Total a pagar', 'total'], ['Forma de pago', 'forma'], ['Cuota', 'cuota']], grandes.concat(chicos)));
@@ -3088,6 +3146,742 @@
     }
     return '';
   }
+
+  /* =====================================================================
+     6. CUENTAS POR PAGAR (proveedores con factura): REGISTRO y DETALLE DEL MES
+     Misma lógica que el libro de Google Sheets "FACTURAS POR PAGAR" (script v15):
+     cuadros por proveedor y mes de emisión, pagos separados, retención 3% por pago,
+     plazo en días, programación de letras y duplicados.
+     Cada documento de "cpm" es un mes de pago de una empresa, con sus filas adentro.
+     ===================================================================== */
+  const CP_TIPOS = ['FACTURA', 'NOTA DE CRÉDITO', 'BONIFICACIÓN', 'RETENCIÓN 3%', 'PAGO / TRANSFERENCIA'];
+  const CP_ESTADOS = ['', 'EN CARTERA', 'FACT. NEGOCIABLE', 'LETRA', 'APLICADA', 'PAGADO'];
+  const CP_MODS = ['LETRAS BCP', 'LETRAS BBVA', 'FACT. NEGOCIABLE BCP', 'EN CARTERA', 'TRANSFERENCIA / DEPÓSITO', 'CONTADO'];
+  const CP_PLAZOS = [0, 7, 15, 30, 45, 60, 75, 90, 120, 150, 180];
+  const CP_EMP = [{ k: 'SOC', nombre: 'FS SOCORRO SAC' }, { k: 'INN', nombre: 'FS INNOVA SOCORRO SAC' }, { k: 'HEA', nombre: 'HEALTH PREVENTIVE SAC' }];
+  let cpCfg = { provs: [], tasa: 0.03, min: 700, retDesde: '2026-10', alerta: 7 }, cpDoc = null, cpBaja = null, cpClave = '', cpVista = 'reg',
+    cpSel = new Set(), cpAviso = '', cpIdx = { emp: '', mapa: new Map(), anios: new Set() }, cpC = null, cpPend = false;
+  const cpEmp = () => $('cpEmp').value, cpPer = () => $('cpMes').value;
+  const cpYm = (iso) => (/^\d{4}-\d{2}/.test(iso || '') ? iso.slice(0, 4) + iso.slice(5, 7) : '');
+  const cpSigno = (t) => (t === 'FACTURA' || t === 'BONIFICACIÓN' ? 1 : -1);
+  const cpProv = (n) => cpCfg.provs.find((p) => p.n === n) || null;
+  const cpDocNorm = (d) => { // F001-0466556 = F001-466556 = F001 466556
+    const u = String(d ?? '').toUpperCase().trim(), m = u.match(/^([A-Z]{1,4}\d{0,3})[^A-Z0-9]*0*(\d+)$/);
+    return m ? `${m[1]}-${m[2]}` : u.replace(/[^A-Z0-9-]/g, '').replace(/-0+(\d)/g, '-$1');
+  };
+  const cpClaveFac = (f) => ((f.t === 'FACTURA' && f.p && cpDocNorm(f.d).replace(/[^A-Z0-9]/g, '').length >= 4) ? `${f.p}|${cpDocNorm(f.d)}` : '');
+  const cpDias = (a, b) => { const d = diasEntre(a, b); return (d !== null && !isNaN(d) && d >= 0 && d <= 400) ? d : null; };
+  const cpStd = (d) => ((d === null || d === '' || d === undefined || isNaN(Number(d))) ? '' : CP_PLAZOS.reduce((a, b) => (Math.abs(b - d) < Math.abs(a - d) ? b : a), CP_PLAZOS[0]));
+  const cpGrupoManual = (v) => { // '' | 'AAAAMM' | 'AAAAMM-P2'
+    const m = String(v ?? '').toUpperCase().replace(/\s/g, '').match(/^(\d{6})(?:-?P(\d+))?$/);
+    return !m ? '' : ((m[2] && Number(m[2]) > 1) ? `${m[1]}-P${Number(m[2])}` : m[1]);
+  };
+  const cpBase = (g) => Number(String(g).slice(0, 6)), cpPagoN = (g) => { const m = String(g || '').match(/-P(\d+)$/); return m ? Number(m[1]) : 1; };
+  const cpEtq = (g) => { const b = cpBase(g), n = cpPagoN(g); return `${MESES[b % 100]} ${Math.floor(b / 100)}${n > 1 ? ' · pago ' + n : ''}`; };
+  const cpDifMeses = (a, b) => (Math.floor(a / 100) * 12 + (a % 100)) - (Math.floor(b / 100) * 12 + (b % 100));
+
+  /* ---------- Cálculo de un mes: grupos, retención, netos, plazos, situación, cuadros ---------- */
+  function cpGrupos(filasMes) { // devuelve Map(id fila → grupo) y Map(proveedor → [grupos])
+    const porProv = new Map(), deFila = new Map(), lista = new Map();
+    filasMes.forEach((f) => { if (f.p) { if (!porProv.has(f.p)) porProv.set(f.p, []); porProv.get(f.p).push(f); } });
+    porProv.forEach((docs, prov) => {
+      const g = new Map(), conFac = new Set(), porDoc = new Map();
+      docs.forEach((f) => {
+        const man = cpGrupoManual(f.g), em = cpYm(f.f);
+        g.set(f.i, man || em || null);
+        if (f.t === 'FACTURA') { if (g.get(f.i)) conFac.add(g.get(f.i)); porDoc.set(cpDocNorm(f.d), f.i); }
+      });
+      const orden = [...conFac].sort();
+      if (orden.length <= 1) { docs.forEach((f) => deFila.set(f.i, '')); lista.set(prov, ['']); return; }
+      docs.forEach((f) => {
+        if (cpGrupoManual(f.g)) return;                       // el grupo manual manda
+        if (g.get(f.i) && conFac.has(g.get(f.i))) return;     // su mes tiene facturas
+        const ref = f.af ? porDoc.get(cpDocNorm(f.af)) : undefined;
+        if (ref !== undefined && g.get(ref)) { g.set(f.i, g.get(ref)); return; }
+        const em = g.get(f.i) || orden[0];
+        let mejor = orden[0];                                  // mes más cercano con facturas
+        orden.forEach((l) => { if (Math.abs(cpDifMeses(cpBase(l), cpBase(em))) < Math.abs(cpDifMeses(cpBase(mejor), cpBase(em)))) mejor = l; });
+        g.set(f.i, mejor);
+      });
+      const usados = new Set();
+      docs.forEach((f) => { deFila.set(f.i, g.get(f.i)); usados.add(g.get(f.i)); });
+      lista.set(prov, [...usados].sort());
+    });
+    return { deFila, lista };
+  }
+  function cpModa(docs, R) { // plazo estándar más frecuente entre las facturas, pesando por importe
+    const f = new Map();
+    docs.forEach((d) => { if (d.t !== 'FACTURA') return; const q = cpStd(R.get(d.i).plazo); if (q !== '') f.set(q, (f.get(q) || 0) + R.get(d.i).neto + 1); });
+    let mejor = '';
+    f.forEach((v, q) => { if (mejor === '' || v > f.get(mejor)) mejor = q; });
+    return mejor;
+  }
+  function cpProgDe(d, k, unico) { // la programación de un cuadro; si el proveedor quedó con un solo cuadro, sirve la que tenga
+    const ps = d.prog || [];
+    return ps.find((x) => x.k === k) || (unico ? ps.find((x) => String(x.k).split('|')[0] === k.split('|')[0]) : null) || null;
+  }
+  function cpCalc(d) {
+    const fs = (d && d.filas) || [], per = (d && d.per) || '', dinamica = per >= cpCfg.retDesde, hoyIso = hoy(), cerrado = per < hoyIso.slice(0, 7);
+    const { deFila, lista } = cpGrupos(fs), R = new Map();
+    // NC aplicadas a cada factura (para la base de retención) y total de base por pago
+    const ncDe = new Map();
+    fs.forEach((f) => { if (f.t === 'NOTA DE CRÉDITO' && f.af) { const k = `${f.p}|${cpDocNorm(f.af)}`; ncDe.set(k, r2((ncDe.get(k) || 0) + (Number(f.m) || 0))); } });
+    const totBase = new Map();
+    fs.forEach((f) => {
+      const sg = cpSigno(f.t), m = Number(f.m) || 0, prov = cpProv(f.p), g = deFila.get(f.i) || '';
+      const base = f.t === 'FACTURA' ? r2(m - (dinamica ? (ncDe.get(`${f.p}|${cpDocNorm(f.d)}`) || 0) : 0)) : 0;
+      let plazo = f.t === 'FACTURA' || f.v ? cpDias(f.f, f.v) : null;
+      if (plazo === null) plazo = (f.pl !== undefined && f.pl !== null && f.pl !== '') ? Number(f.pl) : (prov && prov.pl !== '' && prov.pl !== undefined ? Number(prov.pl) : '');
+      R.set(f.i, { sg, base, g, k: `${f.p}|${g}`, plazo, q: 0, neto: 0, sit: '', dup: '' });
+      if (f.t === 'FACTURA' && f.ar) totBase.set(`${f.p}|${g}`, r2((totBase.get(`${f.p}|${g}`) || 0) + base));
+    });
+    const veces = new Map();
+    fs.forEach((f) => { const k = cpClaveFac(f); if (k) veces.set(k, (veces.get(k) || 0) + 1); });
+    fs.forEach((f) => {
+      const r = R.get(f.i);
+      if (f.t === 'FACTURA') r.q = dinamica ? ((f.ar && (totBase.get(r.k) || 0) > cpCfg.min) ? r2(r.base * cpCfg.tasa) : 0) : (Number(f.q) || 0);
+      r.neto = r2(r.sg * (Number(f.m) || 0) - r.q);
+      const k = cpClaveFac(f);
+      if (k) r.dup = veces.get(k) > 1 ? 'mes' : ((cpIdx.mapa.get(k) || []).some((p) => p !== per) ? 'otro' : '');
+    });
+    // Cuadros (proveedor + grupo) con su programación, pagado y saldo
+    const cuadros = [], porProv = new Map();
+    lista.forEach((gs, prov) => {
+      const multi = gs.length > 1, mios = [];
+      gs.forEach((g) => {
+        const docs = fs.filter((f) => f.p === prov && (deFila.get(f.i) || '') === g)
+          .sort((a, b) => ((a.t === 'FACTURA' ? 0 : a.t === 'NOTA DE CRÉDITO' ? 1 : 2) - (b.t === 'FACTURA' ? 0 : b.t === 'NOTA DE CRÉDITO' ? 1 : 2)));
+        const k = `${prov}|${g}`, pr = cpProgDe(d, k, !multi), n = pr ? Math.max(0, Math.min(24, Number(pr.n) || 0)) : 0;
+        const neto = r2(docs.reduce((s, f) => s + R.get(f.i).neto, 0)), facs = docs.filter((f) => f.t === 'FACTURA');
+        const ref = n ? r2(neto / n) : 0;
+        const cuotas = [];
+        for (let q = 1; q <= n; q += 1) {
+          const c = (pr.cu || [])[q - 1] || {}, imp = (c.m === '' || c.m === null || c.m === undefined) ? (q < n ? ref : r2(neto - ref * (n - 1))) : Number(c.m);
+          const dv = c.v ? diasEntre(hoyIso, c.v) : null;
+          cuotas.push({ n: q, l: c.l || '', v: c.v || '', m: imp, pg: c.pg === true, fp: c.fp || '', op: c.op || '',
+            sit: c.pg === true ? 'PAGADO' : (!c.v ? 'SIN FECHA' : (dv < 0 ? 'VENCIDO' : (dv <= cpCfg.alerta ? 'POR VENCER' : 'VIGENTE'))) });
+        }
+        const todasPg = facs.length > 0 && facs.every((f) => f.pg === true);
+        const pagado = r2(n ? cuotas.filter((c) => c.pg).reduce((s, c) => s + c.m, 0) : (todasPg ? neto : facs.filter((f) => f.pg === true).reduce((s, f) => s + R.get(f.i).neto, 0)));
+        const saldo = r2(neto - pagado);
+        const est = !n ? ((Math.abs(saldo) < 0.05 && pagado) ? 'PAGADO' : '⚠ FALTA PROGRAMAR')
+          : (cuotas.every((c) => c.pg) ? 'PAGADO' : (cuotas.some((c) => !c.v) ? '⚠ FALTAN FECHAS' : 'PROGRAMADO'));
+        const conRet = facs.some((f) => f.ar), base = totBase.get(k) || 0;
+        const c = { k, prov, g, multi, docs, neto, pagado, saldo, n, mod: pr ? (pr.mod || '') : '', cuotas, est, plazo: cpModa(docs, R),
+          retTxt: !conRet ? '' : (dinamica ? (base > cpCfg.min ? `RET. 3%: SÍ (pago > ${cpCfg.min})` : `SIN RET. (pago ≤ ${cpCfg.min})`) : ''), base, pagadoTodo: Math.abs(saldo) < 0.05 && pagado !== 0 };
+        cuadros.push(c); mios.push(c);
+      });
+      porProv.set(prov, mios);
+    });
+    // Situación de cada documento
+    const deCuadro = new Map(); cuadros.forEach((c) => c.docs.forEach((f) => deCuadro.set(f.i, c)));
+    fs.forEach((f) => {
+      const r = R.get(f.i), c = deCuadro.get(f.i);
+      if (f.t !== 'FACTURA') { r.sit = '—'; return; }
+      if (f.pg === true || (c && c.pagadoTodo)) r.sit = 'PAGADO';
+      else if (cerrado) r.sit = 'HISTÓRICO';
+      else if (!f.v) r.sit = 'SIN FECHA';
+      else { const dv = diasEntre(hoyIso, f.v); r.sit = dv < 0 ? 'VENCIDO' : (dv <= cpCfg.alerta ? 'POR VENCER' : 'VIGENTE'); }
+    });
+    // Proveedores ordenados por plazo del mes (de mayor a menor) y nombre
+    const provs = [...porProv.keys()].map((prov) => {
+      const todos = fs.filter((f) => f.p === prov), pm = cpModa(todos, R), hab = cpProv(prov);
+      const plazo = pm !== '' ? pm : cpStd(hab && hab.pl !== '' ? hab.pl : '');
+      const cs = porProv.get(prov);
+      return { prov, plazo, cuadros: cs, neto: r2(cs.reduce((s, c) => s + c.neto, 0)), pagado: r2(cs.reduce((s, c) => s + c.pagado, 0)), saldo: r2(cs.reduce((s, c) => s + c.saldo, 0)), cuenta: hab ? (hab.cta || '') : '' };
+    }).sort((a, b) => ((b.plazo === '' ? -1 : b.plazo) - (a.plazo === '' ? -1 : a.plazo)) || a.prov.localeCompare(b.prov));
+    const tot = { fac: 0, otros: 0, ret: 0, neto: 0, pagado: 0, saldo: 0 };
+    fs.forEach((f) => { const r = R.get(f.i), m = r.sg * (Number(f.m) || 0); if (f.t === 'FACTURA') tot.fac += m; else tot.otros += m; tot.ret -= r.q; });
+    provs.forEach((p) => { tot.neto += p.neto; tot.pagado += p.pagado; tot.saldo += p.saldo; });
+    Object.keys(tot).forEach((k) => { tot[k] = r2(tot[k]); });
+    return { R, cuadros, provs, tot, deCuadro };
+  }
+
+  /* ---------- Configuración, suscripción e índice de duplicados ---------- */
+  function cpIniciar() {
+    cpVer('reg');
+    $('cpMes').value = hoy().slice(0, 7);
+    $('cpEmp').innerHTML = CP_EMP.map((x) => `<option value="${x.k}">${esc(x.nombre)}</option>`).join('');
+    bajas.push(onSnapshot(doc(db, 'config', 'cxp'), (s) => {
+      const d = s.exists() ? s.data() : {};
+      cpCfg = { provs: (d.provs || []).slice().sort((a, b) => String(a.n).localeCompare(String(b.n))), tasa: Number(d.tasa) || 0.03, min: Number(d.min) || 700, retDesde: d.retDesde || '2026-10', alerta: Number(d.alerta) || 7 };
+      $('dlCp').innerHTML = cpCfg.provs.filter((p) => p.act !== false).map((p) => `<option value="${esc(p.n)}">`).join('');
+      cpPintar();
+    }, errorEscucha));
+    bajas.push(() => { if (cpBaja) cpBaja(); cpBaja = null; cpClave = ''; cpDoc = null; cpIdx = { emp: '', mapa: new Map(), anios: new Set() }; });
+  }
+  function cpSuscribir() {
+    const clave = (puede('verCxp') && cpEmp() && /^\d{4}-\d{2}$/.test(cpPer())) ? `${cpEmp()}_${cpPer()}` : '';
+    if (clave === cpClave) { cpPintar(true); return; }
+    if (cpBaja) cpBaja();
+    cpBaja = null; cpClave = clave; cpDoc = null; cpSel.clear(); cpAviso = '';
+    if (!clave) { cpPintar(true); return; }
+    const emp = cpEmp(), per = cpPer();
+    cpCargarIdx(emp, per);
+    cpBaja = onSnapshot(doc(db, 'cpm', clave), (s) => {
+      cpDoc = s.exists() ? { id: s.id, ...s.data({ serverTimestamps: 'estimate' }) } : { id: clave, emp, per, filas: [], prog: [] };
+      cpPintar();
+    }, errorEscucha);
+  }
+  // Índice de facturas por mes (año del mes elegido y el anterior), para avisar "repetida en otro mes"
+  async function cpCargarIdx(emp, per) {
+    if (cpIdx.emp !== emp) cpIdx = { emp, mapa: new Map(), anios: new Set() };
+    const anios = [per.slice(0, 4), String(Number(per.slice(0, 4)) - 1)].filter((a) => !cpIdx.anios.has(a));
+    if (!anios.length) return;
+    anios.forEach((a) => cpIdx.anios.add(a));
+    try {
+      const ss = await Promise.all(anios.map((a) => getDoc(doc(db, 'cpIdx', `${emp}_${a}`))));
+      ss.forEach((s, n) => { if (!s.exists()) return; Object.entries(s.data().m || {}).forEach(([mes, ks]) => (ks || []).forEach((k) => { const p = `${anios[n]}-${mes}`; if (!cpIdx.mapa.has(k)) cpIdx.mapa.set(k, []); if (!cpIdx.mapa.get(k).includes(p)) cpIdx.mapa.get(k).push(p); })); });
+      cpPintar();
+    } catch (e) { console.error(e); }
+  }
+  const cpIdxDe = (lista) => unicos(lista.map(cpClaveFac));
+  $('cpEmp').addEventListener('change', cpSuscribir);
+  $('cpMes').addEventListener('change', cpSuscribir);
+  $('cpSub').addEventListener('click', (e) => { const b = e.target.closest('button[data-cv]'); if (b) cpVer(b.dataset.cv); });
+  $('vCxp').addEventListener('pointerdown', () => { pgPulsando = true; });
+  $('vCxp').addEventListener('focusout', () => setTimeout(() => { if (cpPend) cpPintar(); }, 0));
+  function cpVer(v) {
+    cpVista = v;
+    ['reg', 'det'].forEach((x) => $('cv_' + x).classList.toggle('oculto', x !== v));
+    document.querySelectorAll('#cpSub button').forEach((b) => b.classList.toggle('act', b.dataset.cv === v));
+    cpPintar(true);
+  }
+  function cpPintar(forzar) {
+    if (!yo) return;
+    const a = document.activeElement;
+    // Los avisos de la base no pisan lo que se está escribiendo en una celda ni a mitad de un clic
+    if (!forzar && (pgPulsando || $('dlg').open || (a && a.matches('#cpCuerpo tr:not(.nuevaFila) input, #cpCuerpo tr:not(.nuevaFila) select')))) { cpPend = true; if (pgPulsando) setTimeout(() => { if (cpPend) cpPintar(); }, 60); return; }
+    cpPend = false;
+    cpC = cpDoc ? cpCalc(cpDoc) : null;
+    if (cpVista === 'reg') cpPintarReg(); else cpPintarDet();
+  }
+
+  /* =====================  A. REGISTRO  ===================== */
+  function cpVistaFilas() {
+    if (!cpDoc) return [];
+    const fil = $('cpFiltro').value, t = $('cpTxt').value.trim().toLowerCase();
+    return (cpDoc.filas || []).map((f, n) => ({ f, n })).filter(({ f }) => {
+      const r = cpC.R.get(f.i);
+      if (fil === 'FA' && f.t !== 'FACTURA') return false;
+      if (fil === 'NC' && f.t === 'FACTURA') return false;
+      if (fil === 'DUP' && !r.dup) return false;
+      if (fil === 'PEN' && !(f.t === 'FACTURA' && r.sit !== 'PAGADO')) return false;
+      if (fil === 'VEN' && !['VENCIDO', 'POR VENCER'].includes(r.sit)) return false;
+      if (t && ![f.p, f.t, f.d, f.ref, f.af, f.e, f.op, f.x].join(' ').toLowerCase().includes(t)) return false;
+      return true;
+    }).map((x) => x.f);
+  }
+  const cpSit = (s) => (s === 'PAGADO' ? 'e2' : s === 'VENCIDO' ? 'alerta' : s === 'POR VENCER' ? 'e0' : s === 'VIGENTE' ? 'e1' : 'e4');
+  function cpPintarReg() {
+    const cuerpo = $('cpCuerpo'), edita = puede('cxp'), admin = yo.area === 'ADMIN';
+    $('cpHerr').classList.toggle('oculto', !edita && !admin);
+    ['cpAdd', 'cpPegar', 'cpProvs'].forEach((id) => $(id).classList.toggle('oculto', !edita));
+    $('cpDel').classList.toggle('oculto', !puede('cxpBorrar'));
+    $('cpImp').classList.toggle('oculto', !admin);
+    if (!cpDoc) { cuerpo.innerHTML = '<tr><td colspan="19" class="vacio">Elige la empresa y el mes de pago.</td></tr>'; $('cpRes').textContent = ''; return; }
+    const lista = cpVistaFilas(), ed = edita ? ' class="ed"' : '', reponer = conservarNueva(cuerpo);
+    let h = '';
+    lista.forEach((f, n) => {
+      const r = cpC.R.get(f.i), fac = f.t === 'FACTURA', m = r.sg * (Number(f.m) || 0);
+      h += `<tr data-i="${esc(f.i)}" class="${cpSel.has(f.i) ? 'sel ' : ''}${r.dup === 'mes' ? 'dup ' : r.dup === 'otro' ? 'dupo ' : ''}${fac ? '' : 'esnc'}">` +
+        `<td class="nf">${n + 1}</td><td class="ck"><input type="checkbox" class="gCk"${cpSel.has(f.i) ? ' checked' : ''} aria-label="Seleccionar fila ${n + 1}"></td>` +
+        `<td data-c="p"${ed}>${esc(f.p)}${cpProv(f.p) ? '' : ' <span class="est alerta" title="No está en la lista de proveedores">nuevo</span>'}</td><td data-c="t"${ed}>${esc(f.t)}</td><td data-c="f"${ed}>${esc(dia(f.f))}</td>` +
+        `<td data-c="d"${ed}>${esc(f.d)}${r.dup ? ` <span class="est alerta" title="${r.dup === 'mes' ? 'Repetida en este mes' : 'Ya está en ' + esc((cpIdx.mapa.get(cpClaveFac(f)) || []).filter((p) => p !== cpDoc.per).map(perTxt).join(', '))}">${r.dup === 'mes' ? 'duplicada' : 'en otro mes'}</span>` : ''}</td>` +
+        `<td data-c="ref" class="${edita ? 'ed ' : ''}nota" style="color:inherit">${esc(f.ref || '')}</td><td data-c="af"${ed}>${esc(f.af || '')}</td><td data-c="v"${ed}>${esc(dia(f.v))}</td>` +
+        `<td data-c="m" class="${edita ? 'ed ' : ''}n${m < 0 ? ' neg' : ''}">${esc(mil(m))}</td><td class="n">${fac ? esc(r.plazo) : ''}</td>` +
+        `<td data-c="ar"${fac ? ed : ''}>${fac ? (f.ar ? 'SÍ' : 'NO') : ''}</td><td class="n neg">${r.q ? esc(mil(-r.q)) : ''}</td><td class="n"><b>${esc(mil(r.neto))}</b></td>` +
+        `<td data-c="e"${ed}>${esc(f.e || '')}</td><td class="ck">${fac ? `<input type="checkbox" class="cpPg"${f.pg ? ' checked' : ''}${edita ? '' : ' disabled'} aria-label="Pagado">` : ''}</td>` +
+        `<td data-c="fp"${fac ? ed : ''}>${esc(dia(f.fp))}</td><td data-c="op"${fac ? ed : ''}>${esc(f.op || '')}</td>` +
+        `<td>${r.sit && r.sit !== '—' ? `<span class="est ${cpSit(r.sit)}">${esc(r.sit)}</span>` : ''}</td><td data-c="x" class="${edita ? 'ed ' : ''}nota">${esc(f.x || '')}</td></tr>`;
+    });
+    if (edita) {
+      h += '<tr class="nuevaFila"><td class="nf">+</td><td></td>' +
+        '<td><input class="gIn nP" list="dlCp" placeholder="Proveedor" aria-label="Proveedor" style="min-width:190px"></td>' +
+        `<td><select class="gIn nT" aria-label="Tipo">${CP_TIPOS.map((t) => `<option>${t}</option>`).join('')}</select></td>` +
+        '<td><input class="gIn nF" placeholder="dd/mm/aaaa" aria-label="Fecha de emisión"></td><td><input class="gIn nD" placeholder="F001-12345" aria-label="N° de documento"></td>' +
+        '<td><input class="gIn nR" placeholder="Referencia" aria-label="Referencia"></td><td><input class="gIn nA" placeholder="Solo NC" aria-label="Factura que afecta"></td>' +
+        '<td><input class="gIn nV" placeholder="dd/mm/aaaa" aria-label="Vencimiento"></td><td><input class="gIn nM n" placeholder="Importe" aria-label="Importe"></td>' +
+        `<td colspan="9" style="white-space:normal"><button class="pri mini nOk">Agregar</button> ${cpAviso ? `<span class="est alerta" style="white-space:normal;border-radius:8px">${cpAviso}</span>` : '<span class="quien">o Enter. Quedan el proveedor y el tipo para la siguiente.</span>'}</td></tr>`;
+    }
+    cuerpo.innerHTML = h || '<tr><td colspan="19" class="vacio">Sin documentos en este mes</td></tr>';
+    reponer();
+    const t = cpC.tot, nd = (cpDoc.filas || []).filter((f) => cpC.R.get(f.i).dup).length;
+    $('cpRes').innerHTML = `${esc(perTxt(cpDoc.per))} · ${(cpDoc.filas || []).length} documentos de ${cpC.provs.length} proveedores · Facturas S/ ${mil(t.fac)} · NC y otros S/ ${mil(t.otros)} · Retención S/ ${mil(t.ret)} · <b>Neto S/ ${mil(t.neto)}</b> · Pagado S/ ${mil(t.pagado)} · Saldo S/ ${mil(t.saldo)}` +
+      (nd ? ` · <span class="est alerta">${nd} repetida(s)</span>` : '') + (cpDoc.actPor ? ` · Último cambio: ${esc(cpDoc.actPor)}` : '');
+    $('cpDel').textContent = `Eliminar seleccionadas (${cpSel.size})`;
+  }
+
+  /* ---------- Guardar: una transacción por mes, en fila, con índice de duplicados e historial ---------- */
+  let cpCola = Promise.resolve();
+  function cpGuardar(cambio, accion, detalle) {
+    const emp = cpEmp(), per = cpPer();
+    const turno = cpCola.then(async () => {
+      const ref = doc(db, 'cpm', `${emp}_${per}`);
+      await runTransaction(db, async (tx) => {
+        const s = await tx.get(ref), d = s.exists() ? s.data() : { filas: [], prog: [] };
+        const est = { filas: (d.filas || []).map((f) => ({ ...f })), prog: (d.prog || []).map((p) => ({ ...p, cu: (p.cu || []).map((c) => ({ ...c })) })) };
+        cambio(est);
+        tx.set(ref, { emp, per, filas: est.filas, prog: est.prog, act: serverTimestamp(), actPor: firma() });
+        tx.set(doc(db, 'cpIdx', `${emp}_${per.slice(0, 4)}`), { m: { [per.slice(5)]: cpIdxDe(est.filas) } }, { merge: true });
+      });
+      const id = String(9999999999999 - Date.now()) + Math.random().toString(36).slice(2, 6);
+      setDoc(doc(db, 'pagosLog', id), { clave: `${emp}|CXP`, per, accion, detalle: String(detalle).slice(0, 400), quien: firma(), ts: serverTimestamp() }).catch(console.error);
+    });
+    cpCola = turno.catch(() => {});
+    return turno;
+  }
+  const cpError = (e) => msg('cpMsg', errorTexto(e));
+  const cpFila = (i) => ((cpDoc || {}).filas || []).find((f) => f.i === i);
+  function cpRepetida(f, exceptoId) { // misma factura del mismo proveedor: en este mes o en otro
+    const k = cpClaveFac(f);
+    if (!k) return '';
+    if ((cpDoc.filas || []).some((x) => x.i !== exceptoId && cpClaveFac(x) === k)) return `${f.d} de ${f.p} ya está en este mes.`;
+    const otros = (cpIdx.mapa.get(k) || []).filter((p) => p !== cpDoc.per);
+    return otros.length ? `OJO: ${f.d} de ${f.p} ya está registrada en ${otros.map(perTxt).join(', ')}.` : '';
+  }
+  // Cambios de una fila: se ven al instante y se guardan por detrás
+  function cpCambiar(id, cambio, accion, detalle) {
+    const f = cpFila(id);
+    if (!f) return;
+    const antes = { ...f };
+    cambio(f);
+    cpPintar(true);
+    cpGuardar((est) => { const x = est.filas.find((y) => y.i === id); if (!x) throw new Error('La fila ya no existe.'); cambio(x); }, accion, detalle)
+      .catch((e) => { const pos = (cpDoc.filas || []).findIndex((y) => y.i === id); if (pos >= 0) cpDoc.filas[pos] = antes; cpError(e); cpPintar(true); });
+  }
+  function cpValor(c, v, f) { // valida lo escrito en una celda; devuelve { ok, valor } o { error }
+    if (c === 'p') { const x = may(v, 80); return x ? { valor: x } : { error: 'Falta el proveedor.' }; }
+    if (c === 't') { const u = may(v, 30), x = CP_TIPOS.find((t) => t === u) || CP_TIPOS.find((t) => u && t.startsWith(u)) || (/^N\.?C/.test(u) ? 'NOTA DE CRÉDITO' : ''); return x ? { valor: x } : { error: 'Tipo no válido: FACTURA, NOTA DE CRÉDITO, BONIFICACIÓN, RETENCIÓN 3% o PAGO / TRANSFERENCIA.' }; }
+    if (c === 'f' || c === 'v' || c === 'fp') { if (!String(v).trim()) return { valor: '' }; const x = fechaIso(v); return x ? { valor: x } : { error: 'Fecha no válida. Escríbela como 21/07/2026.' }; }
+    if (c === 'm') { const x = montoNum(v); return x === null ? { error: 'Importe no válido.' } : { valor: Math.abs(x) }; }
+    if (c === 'ar') return { valor: /^S/i.test(String(v).trim()) };
+    if (c === 'd' || c === 'af') return { valor: may(v, 40).replace(/\s+/g, '') };
+    if (c === 'e') return { valor: may(v, 30) };
+    return { valor: txt(v, c === 'ref' ? 600 : 200) };
+  }
+  $('cpCuerpo').addEventListener('click', (e) => {
+    const t = e.target, tr = t.closest('tr');
+    if (!tr) return;
+    if (t.classList.contains('gCk')) { if (t.checked) cpSel.add(tr.dataset.i); else cpSel.delete(tr.dataset.i); tr.classList.toggle('sel', t.checked); $('cpDel').textContent = `Eliminar seleccionadas (${cpSel.size})`; return; }
+    if (t.classList.contains('nOk')) return cpAgregar();
+    if (t.classList.contains('cpPg')) {
+      const f = cpFila(tr.dataset.i), v = t.checked;
+      return cpCambiar(f.i, (x) => { x.pg = v; if (v && !x.fp) x.fp = hoy(); }, v ? 'Marcó pagada' : 'Quitó pagada', `${f.p} ${f.d}`);
+    }
+    const td = t.closest('td.ed');
+    if (!td || !tr.dataset.i || !puede('cxp')) return;
+    const id = tr.dataset.i, c = td.dataset.c, f = cpFila(id);
+    if (!f) return;
+    const crudo = ['f', 'v', 'fp'].includes(c) ? dia(f[c]) : c === 'ar' ? (f.ar ? 'SÍ' : 'NO') : c === 'm' ? (f.m ?? '') : (f[c] ?? '');
+    editarEn(td, crudo, (v) => {
+      const r = cpValor(c, v, f);
+      if (r.error) return msg('cpMsg', r.error);
+      msg('cpMsg', '');
+      if (['p', 't', 'd'].includes(c)) { const rep = cpRepetida({ ...f, [c]: r.valor }, id); if (rep) msg('cpMsg', rep); }
+      cpCambiar(id, (x) => { x[c] = r.valor; if (c === 'p') { const pv = cpProv(r.valor); if (pv) x.ar = pv.ret === true; } }, 'Corrigió', `${f.p} ${f.d}: ${c} "${crudo}" → "${v}"`);
+    }, () => cpPintar(true));
+  });
+  $('cpCuerpo').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.closest('.nuevaFila') && e.target.matches('input, select')) { e.preventDefault(); cpAgregar(); } });
+  $('cpCuerpo').addEventListener('change', (e) => { // al elegir proveedor o emisión, propone el vencimiento con su plazo habitual
+    if (!e.target.matches('.nP, .nF')) return;
+    const tr = e.target.closest('tr'), pv = cpProv(may(tr.querySelector('.nP').value, 80)), f = fechaIso(tr.querySelector('.nF').value), v = tr.querySelector('.nV');
+    if (pv && pv.pl !== '' && pv.pl !== undefined && f && !v.value.trim() && tr.querySelector('.nT').value === 'FACTURA') { const dt = fechaLocal(f); dt.setDate(dt.getDate() + Number(pv.pl)); v.value = dia(isoDe(dt)); }
+  });
+  function cpAgregar() {
+    const tr = $('cpCuerpo').querySelector('.nuevaFila'), q = (c) => tr.querySelector(c).value;
+    const aviso = (t) => { cpAviso = t; cpPintar(true); };
+    const f = { i: idNuevo(), p: may(q('.nP'), 80), t: q('.nT'), f: q('.nF').trim() ? fechaIso(q('.nF')) : '', d: may(q('.nD'), 40).replace(/\s+/g, ''), ref: txt(q('.nR'), 600),
+      af: may(q('.nA'), 40).replace(/\s+/g, ''), v: q('.nV').trim() ? fechaIso(q('.nV')) : '', m: montoNum(q('.nM')), e: '', pg: false, fp: '', op: '', x: '' };
+    if (!f.p) return aviso('Falta el proveedor.');
+    if (q('.nF').trim() && !f.f) return aviso('Fecha de emisión no válida. Escríbela como 21/07/2026.');
+    if (q('.nV').trim() && !f.v) return aviso('Fecha de vencimiento no válida.');
+    if (f.t === 'FACTURA' && !f.d) return aviso('Falta el N° de documento.');
+    if (f.m === null) return aviso('Falta el importe o no es válido.');
+    f.m = Math.abs(f.m);
+    const rep = cpRepetida(f);
+    if (rep && rep.includes('este mes')) return aviso(esc(rep) + ' No se agregó.');
+    const pv = cpProv(f.p);
+    if (!pv && !confirm(`"${f.p}" no está en la lista de proveedores.\n¿Agregarlo? Luego completa su plazo, retención y cuenta en "Proveedores".`)) return;
+    f.ar = pv ? pv.ret === true : false;
+    if (f.t === 'NOTA DE CRÉDITO') f.e = 'APLICADA';
+    cpAviso = rep ? esc(rep) + ' Se agregó igual: revísala.' : ''; msg('cpMsg', '');
+    ['.nF', '.nD', '.nR', '.nA', '.nV', '.nM'].forEach((c) => { tr.querySelector(c).value = ''; });
+    cpDoc.filas = (cpDoc.filas || []).concat([f]);
+    cpPintar(true);
+    const n = $('cpCuerpo').querySelector('.nF'); if (n) n.focus();
+    if (!pv) setDoc(doc(db, 'config', 'cxp'), { provs: cpCfg.provs.concat([{ n: f.p, pl: '', ret: false, cta: '', act: true }]) }, { merge: true }).catch(cpError);
+    cpGuardar((est) => { if (!est.filas.some((x) => x.i === f.i)) est.filas.push(f); }, 'Agregó', `${f.p} ${f.t} ${f.d} por ${mil(f.m)}`)
+      .catch((e) => { cpDoc.filas = (cpDoc.filas || []).filter((x) => x.i !== f.i); cpAviso = `No se pudo guardar ${esc(f.d)}: ${esc(errorTexto(e))}`; cpPintar(true); });
+  }
+  $('cpAdd').addEventListener('click', () => { const n = $('cpCuerpo').querySelector('.nP'); if (n) { n.scrollIntoView({ block: 'center' }); n.focus(); } });
+  $('cpFiltro').addEventListener('change', () => cpPintar(true));
+  $('cpTxt').addEventListener('input', () => cpPintar(true));
+  $('cpDel').addEventListener('click', async () => {
+    const ids = [...cpSel], fs = ((cpDoc || {}).filas || []).filter((f) => ids.includes(f.i));
+    if (!fs.length) return msg('cpMsg', 'Marca primero las filas que quieres eliminar.');
+    if (!confirm(`¿Eliminar ${fs.length} documento(s)?\n${fs.slice(0, 8).map((f) => `${f.p}  ${f.d}  ${mil(f.m)}`).join('\n')}${fs.length > 8 ? '\n…' : ''}`)) return;
+    try { await cpGuardar((est) => { est.filas = est.filas.filter((f) => !ids.includes(f.i)); }, 'Eliminó', fs.map((f) => `${f.p} ${f.d} (${mil(f.m)})`).join(', ')); cpSel.clear(); msg('cpMsg', `${fs.length} documento(s) eliminado(s).`, 'ok'); }
+    catch (e) { cpError(e); }
+  });
+  $('cpExp').addEventListener('click', () => {
+    if (!cpDoc) return;
+    const r = (f) => cpC.R.get(f.i);
+    exportar(`cuentas-por-pagar-${cpEmp()}-${cpPer()}`, [['Periodo de pago', () => perTxt(cpDoc.per)], ['Proveedor', 'p'], ['Plazo (días)', (f) => r(f).plazo], ['Tipo doc.', 't'], ['Fecha emisión', (f) => dia(f.f)], ['N° documento', 'd'],
+      ['Referencia / detalle', 'ref'], ['Factura que afecta', 'af'], ['Fecha vencimiento', (f) => dia(f.v)], ['Importe S/', (f) => r(f).sg * (Number(f.m) || 0)], ['Aplica ret. 3%', (f) => (f.t === 'FACTURA' ? (f.ar ? 'SÍ' : 'NO') : '')],
+      ['Retención 3%', (f) => r(f).q || ''], ['Neto a pagar', (f) => r(f).neto], ['Estado', 'e'], ['Pagado', (f) => (f.pg ? 'SÍ' : '')], ['Fecha pago', (f) => dia(f.fp)], ['N° operación', 'op'], ['Situación', (f) => r(f).sit], ['Observaciones', 'x']], cpVistaFilas());
+  });
+
+  /* ---------- Pegar desde Excel: Proveedor · [Plazo] · Tipo · Emisión · N° documento · Referencia · Factura que afecta · Vencimiento · Importe ---------- */
+  let cpPegado = [];
+  function cpLeerPegado(texto) {
+    const vistos = new Set((cpDoc.filas || []).map(cpClaveFac).filter(Boolean));
+    return cpParseTabla(texto, '\t').filter((c) => c.some((x) => String(x).trim())).map((c0) => {
+      const c = c0.map((x) => String(x).trim());
+      const iT = c.findIndex((x, n) => n >= 1 && n <= 2 && !cpValor('t', x).error);
+      if (iT < 0) return { crudo: c.join(' | '), err: 'No encuentro el tipo de documento (debe ir después del proveedor)' };
+      const [tipo, emi, d, ref, af, ven, imp] = c.slice(iT), f = { i: idNuevo(), p: may(c[0], 80), t: cpValor('t', tipo).valor, f: emi ? fechaIso(emi) : '', d: may(d, 40).replace(/\s+/g, ''), ref: txt(ref, 600),
+        af: may(af, 40).replace(/\s+/g, ''), v: ven ? fechaIso(ven) : '', m: montoNum(imp), e: '', pg: false, fp: '', op: '', x: '' };
+      if (!f.p) return { ...f, crudo: c.join(' | '), err: 'Falta el proveedor' };
+      if ((emi && !f.f) || (ven && !f.v)) return { ...f, crudo: c.join(' | '), err: 'Fecha no válida' };
+      if (f.m === null) return { ...f, crudo: c.join(' | '), err: 'Importe no válido' };
+      f.m = Math.abs(f.m);
+      const pv = cpProv(f.p); f.ar = pv ? pv.ret === true : false; f.nuevo = !pv;
+      if (f.t === 'NOTA DE CRÉDITO') f.e = 'APLICADA';
+      const k = cpClaveFac(f);
+      if (k && vistos.has(k)) return { ...f, dup: 'Ya está en este mes' };
+      if (k) vistos.add(k);
+      const otros = k ? (cpIdx.mapa.get(k) || []).filter((p) => p !== cpDoc.per) : [];
+      if (otros.length) f.ojo = `también en ${otros.map(perTxt).join(', ')}`;
+      return f;
+    });
+  }
+  $('cpPegar').addEventListener('click', () => {
+    if (!cpDoc) return;
+    modo = 'cpPegar'; abierto = null; cpPegado = [];
+    $('dTit').textContent = `Pegar desde Excel · ${perTxt(cpPer())}`;
+    $('dCuerpo').innerHTML = '<div id="dMsg"></div><p class="quien">Copia de tu REGISTRO las columnas <b>Proveedor · Plazo · Tipo doc. · Fecha emisión · N° documento · Referencia · Factura que afecta · Fecha vencimiento · Importe</b> (de D a L) y pégalas aquí. La columna Plazo es opcional.</p>' +
+      '<textarea id="cpTexto" rows="5" placeholder="Pega aquí las celdas copiadas" style="font-family:monospace;font-size:12px;white-space:pre"></textarea><div id="cpVistaP" style="margin-top:10px"></div>';
+    if (!$('dlg').open) $('dlg').showModal();
+    $('cpTexto').focus();
+  });
+  $('dCuerpo').addEventListener('input', (e) => {
+    if (e.target.id !== 'cpTexto') return;
+    cpPegado = cpLeerPegado(e.target.value);
+    const nuevas = cpPegado.filter((f) => !f.err && !f.dup);
+    $('cpVistaP').innerHTML = !cpPegado.length ? '' :
+      `<div class="msg" style="background:#fff8e6;color:#6b4a00">Pegaste ${cpPegado.length} fila(s): <b>${nuevas.length} nueva(s)</b>, ${cpPegado.filter((f) => f.dup).length} repetida(s), ${cpPegado.filter((f) => f.err).length} con error.</div>` +
+      '<div class="tabla grid" style="max-height:38vh;overflow:auto"><table><tr><th></th><th>Proveedor</th><th>Tipo</th><th>Emisión</th><th>Documento</th><th>Vence</th><th class="n">Importe</th><th>Aviso</th></tr>' +
+      cpPegado.map((f) => (f.err ? `<tr class="dup"><td><span class="est alerta">error</span></td><td colspan="7">${esc(f.err)}: ${esc(f.crudo)}</td></tr>`
+        : `<tr class="${f.dup ? 'dup' : 'nueva'}"><td>${f.dup ? '<span class="est alerta">repetida</span>' : '<span class="est e2">nueva</span>'}</td><td>${esc(f.p)}</td><td>${esc(f.t)}</td><td>${esc(dia(f.f))}</td><td>${esc(f.d)}</td><td>${esc(dia(f.v))}</td><td class="n">${esc(mil(cpSigno(f.t) * f.m))}</td><td>${esc(f.dup || [f.ojo, f.nuevo ? 'proveedor nuevo' : ''].filter(Boolean).join(' · '))}</td></tr>`)).join('') +
+      `</table></div><p style="margin-top:12px"><button class="pri" id="cpPegOk"${nuevas.length ? '' : ' disabled'}>Guardar las ${nuevas.length} nueva(s)</button></p>`;
+  });
+  $('dCuerpo').addEventListener('click', async (e) => {
+    if (e.target.id !== 'cpPegOk') return;
+    const nuevas = cpPegado.filter((f) => !f.err && !f.dup).map(({ nuevo, ojo, ...f }) => f), provN = unicos(cpPegado.filter((f) => !f.err && !f.dup && f.nuevo).map((f) => f.p));
+    e.target.disabled = true;
+    try {
+      if (provN.length) await setDoc(doc(db, 'config', 'cxp'), { provs: cpCfg.provs.concat(provN.map((n) => ({ n, pl: '', ret: false, cta: '', act: true }))) }, { merge: true });
+      await cpGuardar((est) => { est.filas = est.filas.concat(nuevas); }, 'Pegó', `${nuevas.length} documento(s)`);
+      $('dlg').close(); msg('cpMsg', `Se guardaron ${nuevas.length} documento(s).${provN.length ? ` Proveedores nuevos: ${provN.join(', ')}.` : ''}`, 'ok');
+    } catch (err) { msg('dMsg', errorTexto(err)); e.target.disabled = false; }
+  });
+
+  /* ---------- Proveedores: plazo habitual, retención y cuenta ---------- */
+  $('cpProvs').addEventListener('click', () => {
+    modo = 'cpProvs'; abierto = null;
+    $('dTit').textContent = 'Proveedores de cuentas por pagar';
+    const fila = (p) => `<tr><td><input class="vN" value="${esc(p.n)}" maxlength="80"></td><td><input class="vPl" type="number" min="0" max="400" value="${esc(p.pl ?? '')}" style="width:80px"></td>` +
+      `<td class="ck"><input type="checkbox" class="vR"${p.ret ? ' checked' : ''}></td><td><input class="vC" value="${esc(p.cta || '')}" maxlength="120"></td><td class="ck"><input type="checkbox" class="vA"${p.act !== false ? ' checked' : ''}></td></tr>`;
+    $('dCuerpo').innerHTML = '<div id="dMsg"></div><p class="quien">El plazo es en días (0 = contado). "Retención" marca a los proveedores a los que se les retiene el 3% cuando el pago supera el mínimo.</p>' +
+      `<div class="rejilla"><div class="campo"><label for="vTasa">Tasa de retención (%)</label><input id="vTasa" type="number" step="0.1" value="${esc(r2(cpCfg.tasa * 100))}"></div>` +
+      `<div class="campo"><label for="vMin">Monto mínimo para retener (S/)</label><input id="vMin" type="number" value="${esc(cpCfg.min)}"></div>` +
+      `<div class="campo"><label for="vDesde">Retención calculada por pago desde</label><input id="vDesde" type="month" value="${esc(cpCfg.retDesde)}"></div></div>` +
+      '<div class="tabla" style="max-height:46vh;overflow:auto"><table><thead><tr><th>Proveedor</th><th>Plazo habitual</th><th>Retención 3%</th><th>Cuenta / medio de pago</th><th>Activo</th></tr></thead>' +
+      `<tbody id="vCuerpo">${cpCfg.provs.map(fila).join('')}</tbody></table></div><p style="margin-top:12px"><button id="vMas">+ Proveedor</button> <button class="pri" id="vOk">Guardar proveedores</button></p>`;
+    $('vMas').addEventListener('click', () => { $('vCuerpo').insertAdjacentHTML('beforeend', fila({ n: '', pl: '', ret: false, cta: '', act: true })); const ins = $('vCuerpo').querySelectorAll('.vN'); ins[ins.length - 1].focus(); });
+    $('vOk').addEventListener('click', async () => {
+      const provs = [...$('vCuerpo').querySelectorAll('tr')].map((tr) => ({ n: may(tr.querySelector('.vN').value, 80), pl: tr.querySelector('.vPl').value === '' ? '' : Math.max(0, Math.min(400, Math.round(Number(tr.querySelector('.vPl').value) || 0))),
+        ret: tr.querySelector('.vR').checked, cta: txt(tr.querySelector('.vC').value, 120), act: tr.querySelector('.vA').checked })).filter((p) => p.n);
+      if (new Set(provs.map((p) => p.n)).size !== provs.length) return msg('dMsg', 'Hay proveedores con el mismo nombre.');
+      try { await setDoc(doc(db, 'config', 'cxp'), { provs, tasa: (Number($('vTasa').value) || 3) / 100, min: Number($('vMin').value) || 700, retDesde: $('vDesde').value || cpCfg.retDesde, alerta: cpCfg.alerta }); $('dlg').close(); msg('cpMsg', 'Proveedores guardados.', 'ok'); }
+      catch (err) { msg('dMsg', errorTexto(err)); }
+    });
+    cpAncho();
+    if (!$('dlg').open) $('dlg').showModal();
+  });
+
+  /* =====================  B. DETALLE DEL MES (solo lectura, con "Programar" en cada cuadro)  ===================== */
+  const cpSecTxt = (pl) => (pl === 0 ? 'FACTURAS AL CONTADO (0 DÍAS)' : pl === '' ? 'FACTURAS SIN PLAZO DEFINIDO' : `FACTURAS POR PAGAR A ${pl} DÍAS`);
+  function cpDetalleLineas() { // las mismas líneas van a la pantalla y al Excel
+    const L = [], R = cpC.R, add = (tipo, c, extra) => L.push({ tipo, c, ...(extra || {}) });
+    let ant = null;
+    cpC.provs.forEach((p) => {
+      if (p.plazo !== ant) { add('SEC', [cpSecTxt(p.plazo)]); ant = p.plazo; }
+      add('TIT', [p.prov]);
+      p.cuadros.forEach((c) => {
+        const etq = c.g ? cpEtq(c.g) + (cpPagoN(c.g) === 1 && p.cuadros.some((o) => o !== c && cpBase(o.g) === cpBase(c.g)) ? ' · pago 1' : '') : '';
+        if (c.multi) add('LOT', [`▸ Facturas emitidas en ${etq}${c.plazo !== '' ? `   ·   plazo ${c.plazo} días` : ''}`]);
+        add('HDR', ['DOCUMENTO', 'FECHA', 'TIPO', 'REFERENCIA / FACTURA QUE AFECTA', 'VENCE', 'IMPORTE S/', 'ESTADO', 'SITUACIÓN', 'PAGADO', 'FECHA PAGO', 'N° OPERACIÓN', 'PLAZO']);
+        c.docs.forEach((f) => {
+          const r = R.get(f.i), fac = f.t === 'FACTURA';
+          add('DOC', [f.d, dia(f.f), f.t, [f.af ? 'Aplica a ' + f.af : (f.ref || ''), f.x].filter(Boolean).join('  ·  '), dia(f.v), r.sg * (Number(f.m) || 0), f.e || '', r.sit, fac && f.pg ? '✓' : '', fac ? dia(f.fp) : '', fac ? (f.op || '') : '', fac ? String(r.plazo) : ''], { sit: r.sit });
+          if (r.q > 0) add('RET', ['      RET 3%', '', 'RETENCIÓN 3%', `Base S/ ${mil(r.base)}`, '', -r.q, 'DESCONTADO', '', '', '', '', '']);
+        });
+        add(c.multi ? 'SUB' : 'TOT', [c.multi ? `Subtotal ${etq}` : `TOTAL ${p.prov}`, '', '', `Pagado S/ ${mil(c.pagado)}   ·   Saldo S/ ${mil(c.saldo)}`, '', c.neto, '', c.retTxt, '', '', '', '']);
+        add('PRG', [`▸ PROGRAMACIÓN DE PAGO${c.multi ? ' — ' + etq : ''}`, '', c.n ? (c.mod || 'LETRAS') : 'Sin programar', c.n ? `${c.n} ${c.n === 1 ? 'letra / cuota' : 'letras / cuotas'}` : '', '', c.n ? r2(c.neto / c.n) : '', c.n ? 'cuota ref.' : '', c.est, '', '', '', ''], { k: c.k, est: c.est });
+        c.cuotas.forEach((q) => add('CUO', [`      ${c.mod || 'Letra'}  ${q.n} de ${c.n}`, '', '', q.l, dia(q.v), q.m, '', q.sit, q.pg ? '✓' : '', dia(q.fp), q.op, ''], { sit: q.sit }));
+      });
+      if (p.cuadros.length > 1) add('TOT', [`TOTAL ${p.prov}  (${p.cuadros.length} grupos)`, '', '', `Pagado S/ ${mil(p.pagado)}   ·   Saldo S/ ${mil(p.saldo)}`, '', p.neto, '', '', '', '', '', '']);
+      add('CTA', [p.cuenta ? `Cuenta: ${p.cuenta}` : '(Sin cuenta bancaria en Proveedores)']);
+      add('FIN', []);
+    });
+    return L;
+  }
+  function cpPintarDet() {
+    const caja = $('cv_det');
+    if (!cpDoc) { caja.innerHTML = '<div class="caja"><p class="resumen" style="margin:0">Elige la empresa y el mes de pago.</p></div>'; return; }
+    if (!(cpDoc.filas || []).length) { caja.innerHTML = '<div class="caja"><p class="resumen" style="margin:0">Este mes aún no tiene documentos. Regístralos en la hoja Registro.</p></div>'; return; }
+    const t = cpC.tot, edita = puede('cxp'), L = cpDetalleLineas(), y = window.scrollY;
+    const celdas = (c) => c.map((v, i) => `<td class="${typeof v === 'number' ? 'num' : ''}${i === 3 ? ' larga' : ''}">${typeof v === 'number' ? mil(v) : esc(v)}</td>`).join('');
+    let h = '', abierta = false;
+    L.forEach((l) => {
+      if (l.tipo === 'SEC') { h += `<h3 class="sub cpSec">${esc(l.c[0])}</h3>`; return; }
+      if (l.tipo === 'TIT') { h += `<div class="cpCaja"><div class="cpTit">${esc(l.c[0])}</div><table class="cpTabla">`; abierta = true; return; }
+      if (l.tipo === 'FIN') { h += '</table></div>'; abierta = false; return; }
+      if (l.tipo === 'LOT') { h += `<tr class="cpLot"><td colspan="12">${esc(l.c[0])}</td></tr>`; return; }
+      if (l.tipo === 'HDR') { h += `<tr class="cpHdr">${l.c.map((v, i) => `<th${i === 5 || i === 11 ? ' class="num"' : ''}>${esc(v)}</th>`).join('')}</tr>`; return; }
+      if (l.tipo === 'CTA') { h += `<tr class="cpCta"><td colspan="12">${esc(l.c[0])}</td></tr>`; return; }
+      if (l.tipo === 'PRG') {
+        h += `<tr class="cpPrg"><td colspan="2">${esc(l.c[0])}</td><td>${esc(l.c[2])}</td><td>${esc(l.c[3])}</td><td></td><td class="num">${l.c[5] === '' ? '' : mil(l.c[5])}</td><td>${esc(l.c[6])}</td>` +
+          `<td><span class="est ${l.est === 'PAGADO' ? 'e2' : l.est === 'PROGRAMADO' ? 'e1' : 'alerta'}">${esc(l.est)}</span></td><td colspan="4">${edita ? `<button class="mini pri cpProg" data-k="${esc(l.k)}">✎ Programar</button>` : ''}</td></tr>`;
+        return;
+      }
+      const c = l.c.slice();
+      let fila = celdas(c);
+      if (l.tipo === 'DOC' || l.tipo === 'CUO') fila = c.map((v, i) => (i === 7 && v && v !== '—' ? `<td><span class="est ${cpSit(v)}">${esc(v)}</span></td>` : `<td class="${typeof v === 'number' ? 'num' + (v < 0 ? ' baja' : '') : ''}${i === 3 ? ' larga' : ''}">${typeof v === 'number' ? mil(v) : esc(v)}</td>`)).join('');
+      h += `<tr class="cp${l.tipo}">${fila}</tr>`;
+    });
+    if (abierta) h += '</table></div>';
+    const falta = cpC.cuadros.filter((c) => c.est.startsWith('⚠')).length;
+    caja.innerHTML = '<div class="herr"><span class="quien">Solo lectura. Para programar letras, modalidad o marcar pagos usa el botón ✎ Programar de cada cuadro.</span><span style="flex:1"></span><button id="cpDetExp">Descargar Excel</button></div>' +
+      `<h3 class="sub" style="margin-top:0">CUENTAS POR PAGAR · ${esc(perTxt(cpDoc.per))} · ${esc((CP_EMP.find((x) => x.k === cpDoc.emp) || {}).nombre || cpDoc.emp)} · corte ${esc(dia(hoy()))}</h3><div class="kpis">` +
+      `<div class="kpi"><b>Facturas</b><strong>S/ ${mil(t.fac)}</strong><small>${cpC.provs.length} proveedores</small></div>` +
+      `<div class="kpi"><b>NC y otros</b><strong class="baja">S/ ${mil(t.otros)}</strong><small>notas de crédito, retenciones registradas</small></div>` +
+      `<div class="kpi"><b>Retención 3%</b><strong class="baja">S/ ${mil(t.ret)}</strong><small>calculada por pago</small></div>` +
+      `<div class="kpi"><b>Pagado</b><strong class="sube">S/ ${mil(t.pagado)}</strong><small>&nbsp;</small></div>` +
+      `<div class="kpi" style="border-color:var(--marca);background:var(--suave)"><b>Saldo</b><strong>S/ ${mil(t.saldo)}</strong><small>neto S/ ${mil(t.neto)}${falta ? ` · ${falta} cuadro(s) sin programar` : ''}</small></div></div>` + h +
+      '<h3 class="sub cpSec">FACTURAS POR PROVEEDOR</h3><div class="tabla"><table><tr><th>Proveedor</th><th class="num">Plazo</th><th>Modalidad / letras</th><th>1er venc.</th><th class="num">Neto a pagar</th><th class="num">Saldo S/</th><th>Programación</th></tr>' +
+      cpC.provs.map((p) => {
+        const mods = p.cuadros.filter((c) => c.n).map((c) => `${c.multi ? cpEtq(c.g).slice(0, 3) + (cpPagoN(c.g) > 1 ? ' p' + cpPagoN(c.g) : '') + ': ' : ''}${c.mod || 'LETRAS'} ${c.n}`).join('  ·  ') || '—';
+        const vs = p.cuadros.flatMap((c) => c.cuotas.map((q) => q.v)).filter(Boolean).sort(), est = (Math.abs(p.saldo) < 0.05 && p.pagado) ? 'PAGADO' : (p.cuadros.some((c) => c.est === '⚠ FALTA PROGRAMAR') ? '⚠ FALTA PROGRAMAR' : 'PROGRAMADO');
+        return `<tr><td>${esc(p.prov)}</td><td class="num">${esc(p.plazo)}</td><td>${esc(mods)}</td><td>${esc(dia(vs[0] || ''))}</td><td class="num">${mil(p.neto)}</td><td class="num">${mil(p.saldo)}</td><td><span class="est ${est === 'PAGADO' ? 'e2' : est === 'PROGRAMADO' ? 'e1' : 'alerta'}">${esc(est)}</span></td></tr>`;
+      }).join('') + `<tr class="tot"><td>TOTAL FACTURAS DEL MES</td><td colspan="3"></td><td class="num">${mil(t.neto)}</td><td class="num">${mil(t.saldo)}</td><td></td></tr></table></div>`;
+    window.scrollTo(0, y);
+  }
+  $('cv_det').addEventListener('click', (e) => {
+    const b = e.target.closest('.cpProg');
+    if (b) return cpProgramar(b.dataset.k);
+    if (e.target.id === 'cpDetExp') {
+      const filas2 = [[(CP_EMP.find((x) => x.k === cpDoc.emp) || {}).nombre || cpDoc.emp], [`CUENTAS POR PAGAR ${perTxt(cpDoc.per)}`], []];
+      cpDetalleLineas().forEach((l) => { if (l.tipo === 'FIN') { filas2.push([], []); return; } filas2.push(l.c); });
+      descargarHoja(`detalle-mes-${cpDoc.emp}-${cpDoc.per}`, filas2, [34, 12, 18, 44, 12, 14, 18, 16, 8, 12, 18, 8]);
+    }
+  });
+
+  /* ---------- Ventana Programar: pagos separados, retención por pago, modalidad y letras ---------- */
+  let cpP = null;
+  const cpAncho = () => { $('dlg').style.width = 'min(1180px, 96vw)'; $('dlg').style.maxWidth = '96vw'; }; // estas ventanas llevan tablas anchas
+  $('dlg').addEventListener('close', () => { $('dlg').style.width = ''; $('dlg').style.maxWidth = ''; });
+  function cpProgramar(k) {
+    const c = cpC.cuadros.find((x) => x.k === k);
+    if (!c) return;
+    const yaCu = (cpProgDe(cpDoc, k, !c.multi) || {}).cu || [];
+    cpP = { k, prov: c.prov, g: c.g, mod: c.mod, neto: c.neto,
+      docs: c.docs.map((f) => { const r = cpC.R.get(f.i), gAct = cpGrupoManual(f.g) || c.g; return { i: f.i, d: f.d, t: f.t, f: f.f, imp: r.sg * (Number(f.m) || 0), q: r.q, neto: r.neto, sit: r.sit, fac: f.t === 'FACTURA', base: r.base, ar: f.ar === true, pg: f.pg === true, fp: f.fp || '', op: f.op || '', pago: cpPagoN(gAct), mesBase: String(gAct ? cpBase(gAct) : (cpYm(f.f) || cpYm(cpDoc.per + '-01'))), g0: f.g || '' }; }),
+      cuotas: c.cuotas.map((q, n) => ({ l: q.l, v: q.v, m: (yaCu[n] && yaCu[n].m !== '' && yaCu[n].m !== null && yaCu[n].m !== undefined) ? yaCu[n].m : '', pg: q.pg, fp: q.fp, op: q.op })) };
+    modo = 'cpProg'; abierto = null;
+    $('dTit').textContent = `Programar pagos — ${c.prov}${c.g ? ' (' + cpEtq(c.g) + ')' : ''}`;
+    cpProgPintar(); cpAncho();
+    if (!$('dlg').open) $('dlg').showModal();
+  }
+  const cpDef = (q, n, neto) => { const b = r2(neto / n); return q < n ? b : r2(neto - b * (n - 1)); };
+  function cpProgPintar() {
+    const p = cpP, n = p.cuotas.length;
+    $('dCuerpo').innerHTML = '<div id="dMsg"></div><p class="quien" style="margin:0 0 6px">Para pagar por separado, pon otro N° en <b>Pago</b> (1, 2, 3…) y guarda: cada pago tendrá su propio cuadro, programación y retención.</p>' +
+      '<div class="tabla"><table><tr><th>Pago</th><th>Documento</th><th>Emisión</th><th>Tipo</th><th class="num">Importe</th><th class="num">Ret. 3%</th><th class="num">Neto</th><th>Situación</th><th>Pagado</th><th>Fecha pago</th><th>N° operación</th></tr>' +
+      p.docs.map((x, i) => `<tr><td><select data-d="${i}" data-k="pago" style="width:60px;padding:4px">${[1, 2, 3, 4, 5].map((v) => `<option${v === x.pago ? ' selected' : ''}>${v}</option>`).join('')}</select></td><td>${esc(x.d)}</td><td>${esc(dia(x.f))}</td><td>${esc(x.t)}</td>` +
+        `<td class="num">${mil(x.imp)}</td><td class="num">${x.q ? mil(-x.q) : ''}</td><td class="num">${mil(x.neto)}</td><td>${x.sit && x.sit !== '—' ? `<span class="est ${cpSit(x.sit)}">${esc(x.sit)}</span>` : ''}</td>` +
+        (x.fac ? `<td class="ck"><input type="checkbox" data-d="${i}" data-k="pg"${x.pg ? ' checked' : ''}></td><td><input type="date" data-d="${i}" data-k="fp" value="${esc(x.fp)}" style="padding:4px"></td><td><input data-d="${i}" data-k="op" value="${esc(x.op)}" style="padding:4px;min-width:110px"></td>` : '<td></td><td></td><td></td>') + '</tr>').join('') +
+      `<tr class="tot"><td colspan="6">Total a pagar del cuadro</td><td class="num">${mil(p.neto)}</td><td colspan="4"></td></tr></table></div><div id="cpRetPrev" style="margin-top:8px"></div>` +
+      '<h3 class="sub">Programación de pago</h3><div class="herr">' +
+      `<label style="margin:0" for="cpMod">Modalidad</label><select id="cpMod"><option value="">— elegir —</option>${CP_MODS.map((m) => `<option${m === p.mod ? ' selected' : ''}>${esc(m)}</option>`).join('')}</select>` +
+      `<label style="margin:0" for="cpN">N° de letras / cuotas</label><select id="cpN">${Array.from({ length: 25 }, (_, k) => `<option${k === n ? ' selected' : ''}>${k}</option>`).join('')}</select><span class="quien" id="cpRef"></span></div>` +
+      (n ? '<div class="tabla"><table><tr><th>Letra</th><th>N° letra / documento</th><th>Vence</th><th class="num">Importe</th><th>Pagado</th><th>Fecha pago</th><th>N° operación</th></tr>' +
+        p.cuotas.map((c, i) => `<tr><td>${i + 1} de ${n}</td><td><input data-c="${i}" data-k="l" value="${esc(c.l)}" style="padding:4px"></td><td><input type="date" data-c="${i}" data-k="v" value="${esc(c.v)}" style="padding:4px"></td>` +
+          `<td><input type="number" step="0.01" data-c="${i}" data-k="m" value="${esc(c.m)}" placeholder="${mil(cpDef(i + 1, n, p.neto))}" style="padding:4px;text-align:right;min-width:110px"></td>` +
+          `<td class="ck"><input type="checkbox" data-c="${i}" data-k="pg"${c.pg ? ' checked' : ''}></td><td><input type="date" data-c="${i}" data-k="fp" value="${esc(c.fp)}" style="padding:4px"></td><td><input data-c="${i}" data-k="op" value="${esc(c.op)}" style="padding:4px"></td></tr>`).join('') +
+        '<tr class="tot"><td colspan="3">Suma de letras</td><td class="num" id="cpSuma"></td><td colspan="3" id="cpDif"></td></tr></table></div>' : '<p class="quien">Sin letras. Elige el N° de letras para programarlas.</p>') +
+      '<p style="margin-top:12px"><button class="pri" id="cpProgOk">Guardar</button> <button id="cpRepartir">Repartir importes</button></p>';
+    cpProgCalc();
+  }
+  function cpProgCalc() {
+    const p = cpP, n = p.cuotas.length, g = new Map();
+    p.docs.forEach((x) => { const k = x.pago || 1; if (!g.has(k)) g.set(k, { base: 0, n: 0, ar: false }); const o = g.get(k); if (x.fac) { o.n += 1; if (x.ar) { o.base = r2(o.base + x.base); o.ar = true; } } });
+    $('cpRetPrev').innerHTML = '<div class="tabla"><table><tr><th>Pago</th><th class="num">Facturas</th><th class="num">Base retención</th><th>Retención 3%</th></tr>' +
+      [...g.keys()].sort().map((k) => { const o = g.get(k), si = o.ar && o.base > cpCfg.min; return `<tr><td>Pago ${k}</td><td class="num">${o.n}</td><td class="num">${mil(o.base)}</td><td>${!o.ar ? '<span class="quien">proveedor sin retención</span>' : (si ? `<b class="baja">SÍ · S/ ${mil(o.base * cpCfg.tasa)}</b> (supera S/ ${mil(cpCfg.min)})` : `<b class="sube">NO</b> (no supera S/ ${mil(cpCfg.min)})`)}</td></tr>`; }).join('') + '</table></div>';
+    $('cpRef').textContent = n ? `Cuota referencial: S/ ${mil(cpDef(1, n, p.neto))}` : '';
+    if (!$('cpSuma')) return;
+    const s = r2(p.cuotas.reduce((a, c, i) => a + ((c.m === '' || c.m === null) ? cpDef(i + 1, n, p.neto) : Number(c.m)), 0)), dif = r2(s - p.neto);
+    $('cpSuma').textContent = mil(s);
+    $('cpDif').innerHTML = Math.abs(dif) < 0.05 ? '<b class="sube">✓ cuadra con el total</b>' : `<b class="baja">⚠ diferencia S/ ${mil(dif)}</b>`;
+  }
+  $('dCuerpo').addEventListener('change', (e) => {
+    if (modo !== 'cpProg' || !cpP) return;
+    const t = e.target;
+    if (t.id === 'cpMod') { cpP.mod = t.value; return; }
+    if (t.id === 'cpN') { const n = Number(t.value); while (cpP.cuotas.length < n) cpP.cuotas.push({ l: '', v: '', m: '', pg: false, fp: '', op: '' }); cpP.cuotas.length = n; return cpProgPintar(); }
+    const k = t.dataset.k, v = t.type === 'checkbox' ? t.checked : t.value;
+    if (t.dataset.d !== undefined) { const x = cpP.docs[+t.dataset.d]; x[k] = k === 'pago' ? Number(v) : v; if (k === 'pg' && v && !x.fp) { x.fp = hoy(); $('dCuerpo').querySelector(`[data-d="${t.dataset.d}"][data-k="fp"]`).value = x.fp; } }
+    else if (t.dataset.c !== undefined) { const c = cpP.cuotas[+t.dataset.c]; c[k] = v; if (k === 'pg' && v && !c.fp) { c.fp = hoy(); $('dCuerpo').querySelector(`[data-c="${t.dataset.c}"][data-k="fp"]`).value = c.fp; } }
+    cpProgCalc();
+  });
+  $('dCuerpo').addEventListener('click', async (e) => {
+    if (modo !== 'cpProg' || !cpP) return;
+    if (e.target.id === 'cpRepartir') { const n = cpP.cuotas.length; cpP.cuotas.forEach((c, i) => { c.m = cpDef(i + 1, n, cpP.neto); }); return cpProgPintar(); }
+    if (e.target.id !== 'cpProgOk') return;
+    const p = cpP, n = p.cuotas.length;
+    const cu = p.cuotas.map((c) => ({ l: txt(c.l, 40), v: c.v || '', m: (c.m === '' || c.m === null) ? '' : r2(Number(c.m)), pg: c.pg === true, fp: c.fp || '', op: txt(c.op, 60) }));
+    e.target.disabled = true;
+    try {
+      await cpGuardar((est) => {
+        p.docs.forEach((x) => {
+          const f = est.filas.find((y) => y.i === x.i);
+          if (!f) return;
+          if (x.fac) { f.pg = x.pg === true; f.fp = x.fp || ''; f.op = txt(x.op, 60); }
+          const pago = Math.max(1, Number(x.pago) || 1), nuevo = pago > 1 ? `${x.mesBase}-P${pago}` : (cpPagoN(cpGrupoManual(x.g0)) > 1 ? '' : x.g0);
+          if (nuevo) f.g = nuevo; else delete f.g;
+        });
+        // La programación queda en el cuadro donde quedó el pago 1 (la clave cambia si se separan o se juntan pagos)
+        const ref = (p.docs.find((x) => (Number(x.pago) || 1) === 1) || p.docs[0]).i, g2 = cpGrupos(est.filas).deFila.get(ref) || '', k2 = `${p.prov}|${g2}`;
+        const mia = (n || p.mod) ? { k: k2, mod: p.mod || '', n, cu } : null;
+        est.prog = est.prog.filter((x) => x.k !== p.k && !(mia && x.k === k2)); // si se junta con un cuadro que ya tenía programación y este no trae, se conserva la del otro
+        if (mia) est.prog.push(mia);
+      }, 'Programó', `${p.prov}${p.g ? ' ' + cpEtq(p.g) : ''}: ${p.mod || 'sin modalidad'}, ${n} letra(s)`);
+      $('dlg').close(); msg('cpMsg', 'Programación guardada.', 'ok');
+    } catch (err) { msg('dMsg', errorTexto(err)); e.target.disabled = false; }
+  });
+
+  /* =====================  C. IMPORTAR DESDE EL LIBRO DE GOOGLE SHEETS (Excel o CSV)  ===================== */
+  function cpParseTabla(texto, sep) { // CSV o pegado de Excel: respeta comillas y saltos de línea dentro de una celda
+    const filas2 = []; let fila = [], celda = '', dentro = false;
+    const t = String(texto).replace(/\r\n?/g, '\n');
+    for (let i = 0; i < t.length; i += 1) {
+      const ch = t[i];
+      if (dentro) { if (ch === '"') { if (t[i + 1] === '"') { celda += '"'; i += 1; } else dentro = false; } else celda += ch; }
+      else if (ch === '"' && celda === '') dentro = true;
+      else if (ch === sep) { fila.push(celda); celda = ''; }
+      else if (ch === '\n') { fila.push(celda); filas2.push(fila); fila = []; celda = ''; }
+      else celda += ch;
+    }
+    if (celda !== '' || fila.length) { fila.push(celda); filas2.push(fila); }
+    return filas2;
+  }
+  const cpNorm = (s) => String(s ?? '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Z0-9%]/g, '');
+  const cpNum = (v) => { // 17.331,00 · 17,331.00 · 17331 · "-" → número
+    if (typeof v === 'number') return r2(v);
+    const s = String(v ?? '').trim();
+    if (!s || s === '-' || s === '—') return 0;
+    const m = s.match(/^-?\d{1,3}\.\d{3}$/) ? Number(s.replace('.', '')) : montoNum(s); // en el libro, 1.690 es mil seiscientos noventa
+    return m === null ? 0 : r2(m);
+  };
+  const cpFecha = (v) => (v instanceof Date ? isoDe(new Date(v.getTime() + 12 * 3600000)) : fechaIso(v));
+  const CP_MES3 = { ENE: '01', FEB: '02', MAR: '03', ABR: '04', MAY: '05', JUN: '06', JUL: '07', AGO: '08', SEP: '09', SET: '09', OCT: '10', NOV: '11', DIC: '12' };
+  const cpPeriodo = (v) => { // "oct-2026", "sept-2026", fecha o 2026-10
+    if (v instanceof Date) return cpFecha(v).slice(0, 7);
+    const s = String(v ?? '').trim().toUpperCase(), m = s.match(/^([A-Z]{3})[A-Z]*\.?[-\s/]+(\d{2,4})$/);
+    if (m && CP_MES3[m[1]]) return `${m[2].length === 2 ? '20' + m[2] : m[2]}-${CP_MES3[m[1]]}`;
+    if (/^\d{4}-\d{2}/.test(s)) return s.slice(0, 7);
+    const f = fechaIso(s);
+    return f ? f.slice(0, 7) : '';
+  };
+  const cpBool = (v) => v === true || /^(TRUE|VERDADERO|SI|SÍ|S|X|✓)$/i.test(String(v ?? '').trim());
+  const cpEmpDe = (v) => { const u = cpNorm(v); return u.includes('INNOVA') ? 'INN' : u.includes('HEALTH') ? 'HEA' : 'SOC'; };
+  function cpLeerLibro(tablas) { // tablas = lista de matrices (una por hoja); se reconocen por sus encabezados
+    const out = { meses: new Map(), provs: [], progs: [], cuotas: [], n: 0 };
+    tablas.forEach((t) => {
+      const iH = t.slice(0, 20).findIndex((r) => r.some((c) => cpNorm(c) === 'PROVEEDOR'));
+      if (iH < 0) return;
+      const H = t[iH].map(cpNorm), col = (...ns) => { for (const n of ns) { const k = H.indexOf(n); if (k >= 0) return k; } return -1; }, filas2 = t.slice(iH + 1);
+      const cP = col('PROVEEDOR');
+      if (H.includes('TIPODOC') && H.includes('NDOCUMENTO')) { // REGISTRO
+        const c = { per: col('PERIODODEPAGO'), emp: col('EMPRESA'), pl: col('PLAZODIAS', 'PLAZO'), t: col('TIPODOC'), f: col('FECHAEMISION'), d: col('NDOCUMENTO'), ref: col('REFERENCIADETALLE'), af: H.findIndex((h) => h.startsWith('FACTURAQUEAFECTA')),
+          v: col('FECHAVENCIMIENTO'), m: col('IMPORTES', 'IMPORTE'), ar: H.findIndex((h) => h.startsWith('APLICARET')), q: H.findIndex((h) => h.startsWith('RETENCION3')), e: col('ESTADO'), pg: col('PAGADO'), fp: col('FECHAPAGO'),
+          op: H.findIndex((h) => h.startsWith('NOPERACION')), x: col('OBSERVACIONES'), g: H.findIndex((h) => h.startsWith('GRUPOMANUAL')) };
+        filas2.forEach((r) => {
+          const p = may(r[cP], 80), per = cpPeriodo(r[c.per]);
+          if (!p || !per) return;
+          const tipo = cpValor('t', r[c.t]).valor || 'FACTURA', emp = c.emp >= 0 ? cpEmpDe(r[c.emp]) : 'SOC', k = `${emp}_${per}`;
+          const f = { i: 'h' + (out.n += 1).toString(36), p, t: tipo, f: cpFecha(r[c.f]) || '', d: may(r[c.d], 40).replace(/\s+/g, ''), ref: txt(r[c.ref], 600), af: c.af >= 0 ? may(r[c.af], 40).replace(/\s+/g, '') : '',
+            v: cpFecha(r[c.v]) || '', m: Math.abs(cpNum(r[c.m])), ar: c.ar >= 0 && /^S/i.test(String(r[c.ar] ?? '').trim()), e: c.e >= 0 ? may(r[c.e], 30) : '', pg: c.pg >= 0 && cpBool(r[c.pg]), fp: c.fp >= 0 ? (cpFecha(r[c.fp]) || '') : '',
+            op: c.op >= 0 ? txt(r[c.op], 60) : '', x: c.x >= 0 ? txt(r[c.x], 200) : '' };
+          const q = c.q >= 0 ? Math.abs(cpNum(r[c.q])) : 0; if (q && tipo === 'FACTURA') f.q = q;
+          const g = c.g >= 0 ? cpGrupoManual(r[c.g]) : ''; if (g) f.g = g;
+          if (!f.f || !f.v) { const pl = c.pl >= 0 ? cpNum(r[c.pl]) : 0; if (c.pl >= 0 && String(r[c.pl] ?? '').trim() !== '') f.pl = pl; }
+          if (!out.meses.has(k)) out.meses.set(k, { emp, per, filas: [] });
+          out.meses.get(k).filas.push(f);
+        });
+      } else if (H.some((h) => h.startsWith('PLAZOHABITUAL'))) { // PROVEEDORES
+        const c = { pl: H.findIndex((h) => h.startsWith('PLAZOHABITUAL')), ar: H.findIndex((h) => h.startsWith('APLICARET')), cta: H.findIndex((h) => h.startsWith('CUENTA')), est: col('ESTADO') };
+        filas2.forEach((r) => { const n = may(r[cP], 80); if (!n) return; out.provs.push({ n, pl: String(r[c.pl] ?? '').trim() === '' ? '' : Math.round(cpNum(r[c.pl])), ret: c.ar >= 0 && /^S/i.test(String(r[c.ar] ?? '').trim()), cta: c.cta >= 0 ? txt(r[c.cta], 120) : '', act: c.est < 0 || !/INACT/i.test(String(r[c.est] ?? '')) }); });
+      } else if (H.some((h) => h.startsWith('NLETRAS'))) { // PROGRAMACION
+        const c = { per: col('PERIODO'), mod: col('MODALIDAD'), n: H.findIndex((h) => h.startsWith('NLETRAS')), g: H.findIndex((h) => h.startsWith('GRUPO')) };
+        filas2.forEach((r) => { const p = may(r[cP], 80), per = cpPeriodo(r[c.per]); if (p && per) out.progs.push({ per, p, mod: txt(r[c.mod], 40), n: Math.max(0, Math.min(24, Math.round(cpNum(r[c.n])))), g: c.g >= 0 ? cpGrupoManual(r[c.g]) : '' }); });
+      } else if (H.includes('NCUOTA')) { // CUOTAS
+        const c = { per: col('PERIODO'), q: col('NCUOTA'), v: col('FECHAVENCIMIENTO'), l: H.findIndex((h) => h.startsWith('NLETRA')), m: H.findIndex((h) => h.startsWith('IMPORTE')), pg: col('PAGADO'), fp: col('FECHAPAGO'), op: H.findIndex((h) => h.startsWith('NOPERACION')), g: H.findIndex((h) => h.startsWith('GRUPO')) };
+        filas2.forEach((r) => { const p = may(r[cP], 80), per = cpPeriodo(r[c.per]), q = Math.round(cpNum(r[c.q])); if (p && per && q >= 1) out.cuotas.push({ per, p, q, g: c.g >= 0 ? cpGrupoManual(r[c.g]) : '', v: cpFecha(r[c.v]) || '', l: c.l >= 0 ? txt(r[c.l], 40) : '', m: String(r[c.m] ?? '').trim() === '' ? '' : cpNum(r[c.m]), pg: cpBool(r[c.pg]), fp: cpFecha(r[c.fp]) || '', op: c.op >= 0 ? txt(r[c.op], 60) : '' }); });
+      }
+    });
+    // La programación no trae empresa: va a la empresa que tenga a ese proveedor en ese mes
+    out.progs.forEach((pr) => {
+      const mes = [...out.meses.values()].find((m) => m.per === pr.per && m.filas.some((f) => f.p === pr.p));
+      if (!mes || (!pr.n && !pr.mod)) return;
+      const cu = out.cuotas.filter((c) => c.per === pr.per && c.p === pr.p && c.g === pr.g).sort((a, b) => a.q - b.q).slice(0, pr.n).map(({ v, l, m, pg, fp, op }) => ({ l, v, m, pg, fp, op }));
+      (mes.prog = mes.prog || []).push({ k: `${pr.p}|${pr.g}`, mod: pr.mod, n: pr.n, cu });
+    });
+    return out;
+  }
+  $('cpImp').addEventListener('click', () => $('cpImpArch').click());
+  $('cpImpArch').addEventListener('change', async (e) => {
+    const archivos = [...e.target.files];
+    e.target.value = '';
+    if (!archivos.length) return;
+    try {
+      msg('cpMsg', 'Leyendo el archivo…', 'ok');
+      const tablas = [];
+      for (const a of archivos) {
+        if (/\.csv$/i.test(a.name)) tablas.push(cpParseTabla(await a.text(), ','));
+        else { await cargarXlsx(); const lib = window.XLSX.read(await a.arrayBuffer(), { type: 'array', cellDates: true }); lib.SheetNames.forEach((n) => tablas.push(window.XLSX.utils.sheet_to_json(lib.Sheets[n], { header: 1, raw: true, defval: '' }))); }
+      }
+      const L = cpLeerLibro(tablas), meses = [...L.meses.values()], nDocs = meses.reduce((s, m) => s + m.filas.length, 0);
+      if (!meses.length && !L.provs.length) throw new Error('No encontré las hojas REGISTRO ni PROVEEDORES en ese archivo. Descarga el libro completo como Excel (.xlsx), o cada hoja como CSV.');
+      const pers = meses.map((m) => m.per).sort();
+      if (!confirm(`Se cargarán:\n· ${nDocs} documentos en ${meses.length} meses de pago${pers.length ? ` (${perTxt(pers[0])} a ${perTxt(pers[pers.length - 1])})` : ''}\n· ${L.provs.length} proveedores\n· ${meses.reduce((s, m) => s + (m.prog || []).length, 0)} programaciones de letras\n\nCada mes que venga en el archivo REEMPLAZA al que ya exista aquí.\n\n¿Continuar?`)) return msg('cpMsg', '');
+      const sello = { act: serverTimestamp(), actPor: firma() + ' (importación)' };
+      if (L.provs.length) { const ya = new Set(L.provs.map((p) => p.n)); await setDoc(doc(db, 'config', 'cxp'), { provs: L.provs.concat(cpCfg.provs.filter((p) => !ya.has(p.n))), tasa: cpCfg.tasa, min: cpCfg.min, retDesde: cpCfg.retDesde, alerta: cpCfg.alerta }); }
+      const tareas = meses.map((m) => [doc(db, 'cpm', `${m.emp}_${m.per}`), { emp: m.emp, per: m.per, filas: m.filas, prog: m.prog || [], ...sello }, false]), idx = new Map();
+      meses.forEach((m) => { const k = `${m.emp}_${m.per.slice(0, 4)}`; if (!idx.has(k)) idx.set(k, {}); idx.get(k)[m.per.slice(5)] = cpIdxDe(m.filas); });
+      idx.forEach((m, k) => tareas.push([doc(db, 'cpIdx', k), { m }, true]));
+      for (let k = 0; k < tareas.length; k += 20) {
+        const lote = writeBatch(db);
+        tareas.slice(k, k + 20).forEach(([ref, datos, mezcla]) => (mezcla ? lote.set(ref, datos, { merge: true }) : lote.set(ref, datos)));
+        await lote.commit();
+        msg('cpMsg', `Importando… ${Math.min(k + 20, tareas.length)} de ${tareas.length}.`, 'ok');
+      }
+      cpIdx = { emp: '', mapa: new Map(), anios: new Set() }; cpClave = ''; cpSuscribir();
+      msg('cpMsg', `Importación terminada: ${nDocs} documentos en ${meses.length} meses y ${L.provs.length} proveedores.`, 'ok');
+    } catch (err) { cpError(err); }
+  });
 </script>
 </body>
 </html>
