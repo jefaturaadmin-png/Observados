@@ -2724,7 +2724,7 @@
       R.obs.forEach(pintaObs);
       fila([]);
     }
-    if (R.obsAnt.length) {
+    if (R.obsAnt.length && resAnt) {
       fila(['OBSERVACIONES DE MESES ANTERIORES PENDIENTES DE NOTA DE CRÉDITO:'], 'tit');
       R.obsAnt.forEach(pintaObs);
       fila([`Falta nota de crédito por S/ ${mil(R.obsAnt.reduce((s, o) => s + (Number(o.falta) || 0), 0))} en ${R.obsAnt.length} factura(s) de meses anteriores. No modifica el total a pagar de este mes.`], 'txt');
@@ -2755,6 +2755,7 @@
     }
     return out;
   }
+  let resAnt = false; // las observaciones pendientes de meses anteriores van ocultas, salvo que se pida verlas
   function pintarResumen() {
     const caja = $('gv_res'), d = pgDoc();
     if (!d) { caja.innerHTML = '<div class="caja"><p class="resumen" style="margin:0">Elige un distribuidor y un mes a pagar.</p></div>'; return; }
@@ -2765,6 +2766,7 @@
         `<label style="margin:0" for="rDesde">Desde</label><input id="rDesde" type="date" value="${esc(d.desde || R.desde || '')}"${edita ? '' : ' disabled'}>` +
         (edita ? '<button id="rGuardar">Guardar programación</button>' : '') : `<span class="quien">${esc(R.dist.nombre)} no se paga en letras: ${R.dist.pago === 'fecha' ? 'cada factura tiene su fecha de pago' : 'se paga según vencimiento'}.</span>`) +
       (edita ? '<button id="rFeriados">Feriados</button>' : '') +
+      (R.obsAnt.length ? `<label style="margin:0;display:flex;gap:6px;align-items:center;font-weight:500;color:inherit"><input type="checkbox" id="rAnt"${resAnt ? ' checked' : ''}> Mostrar observaciones de meses anteriores sin NC (${R.obsAnt.length} · S/ ${mil(R.obsAnt.reduce((s, o) => s + (Number(o.falta) || 0), 0))})</label>` : '') +
       '<span style="flex:1"></span><button class="pri" id="rExcel">Descargar Excel para el proveedor</button></div><div id="rMsg"></div>' +
       '<div class="kpis">' +
       `<div class="kpi"><b>T. compras</b><strong>S/ ${mil(R.tCompras)}</strong><small>${R.normales.length} facturas</small></div>` +
@@ -2776,6 +2778,7 @@
       resumenFilas(R).map((f) => `<tr class="r_${f.cls}">${f.c.length ? f.c.map((v, i) => `<td${typeof v === 'number' ? ' class="num"' : ''}${f.cls === 'txt' || (f.cls === 'tit') || (i === 0 && f.c.length > 6 && String(v).length > 34 && f.cls === '') ? '' : ''}${(f.cls === 'txt' || f.cls === 'tit') ? ' colspan="7"' : ''}>${typeof v === 'number' ? mil(v) : esc(v)}</td>`).join('') : '<td colspan="7">&nbsp;</td>'}</tr>`).join('') +
       '</table></div>';
   }
+  $('gv_res').addEventListener('change', (e) => { if (e.target.id === 'rAnt') { resAnt = e.target.checked; pintarPagos(true); } });
   $('gv_res').addEventListener('click', async (e) => {
     const d = pgDoc();
     if (!d) return;
