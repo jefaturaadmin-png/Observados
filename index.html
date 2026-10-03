@@ -3534,19 +3534,40 @@
 
   /* ---------- Pegar desde Excel: Proveedor · [Plazo] · Tipo · Emisión · N° documento · Referencia · Factura que afecta · Vencimiento · Importe ---------- */
   let cpPegado = [];
-  function cpLeerPegado(texto) {
+  function cpLeerPegado(texto, provDlg) {
     const vistos = new Set((cpDoc.filas || []).map(cpClaveFac).filter(Boolean));
+    const esTipo = (x) => /^(FA|FAC|FACT|NC|ND|BO|RE)$/i.test(x) || !cpValor('t', x).error;
+    const tipoDe = (x) => (/^FA/i.test(x) ? 'FACTURA' : /^NC$/i.test(x) ? 'NOTA DE CRÉDITO' : /^ND$/i.test(x) ? 'FACTURA' : cpValor('t', x).valor);
     return cpParseTabla(texto, '\t').filter((c) => c.some((x) => String(x).trim())).map((c0) => {
-      const c = c0.map((x) => String(x).trim());
-      const iT = c.findIndex((x, n) => n >= 1 && n <= 2 && !cpValor('t', x).error);
-      if (iT < 0) return { crudo: c.join(' | '), err: 'No encuentro el tipo de documento (debe ir después del proveedor)' };
-      const [tipo, emi, d, ref, af, ven, imp] = c.slice(iT), f = { i: idNuevo(), p: may(c[0], 80), t: cpValor('t', tipo).valor, f: emi ? fechaIso(emi) : '', d: may(d, 40).replace(/\s+/g, ''), ref: txt(ref, 600),
-        af: may(af, 40).replace(/\s+/g, ''), v: ven ? fechaIso(ven) : '', m: montoNum(imp), e: '', pg: false, fp: '', op: '', x: '' };
-      if (!f.p) return { ...f, crudo: c.join(' | '), err: 'Falta el proveedor' };
-      if ((emi && !f.f) || (ven && !f.v)) return { ...f, crudo: c.join(' | '), err: 'Fecha no válida' };
-      if (f.m === null) return { ...f, crudo: c.join(' | '), err: 'Importe no válido' };
+      const c = c0.map((x) => String(x).trim()), crudo = c.join(' | ');
+      let f;
+      if (fechaIso(c[0]) && !/[A-Z]{3}/i.test(c[0])) {
+        // Formato corto, igual que en Pagos: Fecha · Tipo · Serie · Número · Total. El proveedor se elige arriba.
+        let k = 1, tipo = 'FACTURA';
+        if (esTipo(c[k] || '')) { tipo = tipoDe(c[k]); k += 1; }
+        let serie = c[k] || '', numero = c[k + 1] || '', resto = c.slice(k + 2);
+        const junto = serie.toUpperCase().match(/^([A-Z]{1,4}\d{0,4})\s*-\s*(\d+)$/); // "F001-28204" en una sola celda
+        if (junto) { serie = junto[1]; numero = junto[2]; resto = c.slice(k + 1); }
+        const m = montoNum(resto[0]);
+        if (!provDlg) return { crudo, err: 'Elige arriba el proveedor de estas filas' };
+        if (!serDoc(serie) || !/^\d+$/.test(numDoc(numero))) return { crudo, err: 'Serie o número no válidos' };
+        if (m === null) return { crudo, err: 'Importe no válido' };
+        if (!c[1] || !esTipo(c[1])) tipo = m < 0 ? 'NOTA DE CRÉDITO' : 'FACTURA';
+        f = { i: idNuevo(), p: provDlg, t: tipo, f: fechaIso(c[0]), d: `${serDoc(serie)}-${numero.replace(/\s/g, '')}`, ref: /^ND$/i.test(c[1] || '') ? 'NOTA DE DÉBITO' : '', af: '', v: '', m, e: '', pg: false, fp: '', op: '', x: '' };
+      } else {
+        // Formato del REGISTRO: Proveedor · [Plazo] · Tipo · Emisión · N° documento · Referencia · Factura que afecta · Vencimiento · Importe
+        const iT = c.findIndex((x, n) => n >= 1 && n <= 2 && esTipo(x));
+        if (iT < 0) return { crudo, err: 'No reconozco el formato. Pega Fecha · Tipo · Serie · Número · Total, o las columnas D a L del REGISTRO' };
+        const [tipo, emi, d, ref, af, ven, imp] = c.slice(iT);
+        f = { i: idNuevo(), p: may(c[0], 80), t: tipoDe(tipo), f: emi ? fechaIso(emi) : '', d: may(d, 40).replace(/\s+/g, ''), ref: txt(ref, 600),
+          af: may(af, 40).replace(/\s+/g, ''), v: ven ? fechaIso(ven) : '', m: montoNum(imp), e: '', pg: false, fp: '', op: '', x: '' };
+        if (!f.p) return { crudo, err: 'Falta el proveedor' };
+        if ((emi && !f.f) || (ven && !f.v)) return { crudo, err: 'Fecha no válida' };
+        if (f.m === null) return { crudo, err: 'Importe no válido' };
+      }
       f.m = Math.abs(f.m);
       const pv = cpProv(f.p); f.ar = pv ? pv.ret === true : false; f.nuevo = !pv;
+      if (f.t === 'FACTURA' && f.f && !f.v && pv && pv.pl !== '' && pv.pl !== undefined) { const dt = fechaLocal(f.f); dt.setDate(dt.getDate() + Number(pv.pl)); f.v = isoDe(dt); } // vencimiento con el plazo habitual
       if (f.t === 'NOTA DE CRÉDITO') f.e = 'APLICADA';
       const k = cpClaveFac(f);
       if (k && vistos.has(k)) return { ...f, dup: 'Ya está en este mes' };
@@ -3560,14 +3581,15 @@
     if (!cpDoc) return;
     modo = 'cpPegar'; abierto = null; cpPegado = [];
     $('dTit').textContent = `Pegar desde Excel · ${perTxt(cpPer())}`;
-    $('dCuerpo').innerHTML = '<div id="dMsg"></div><p class="quien">Copia de tu REGISTRO las columnas <b>Proveedor · Plazo · Tipo doc. · Fecha emisión · N° documento · Referencia · Factura que afecta · Fecha vencimiento · Importe</b> (de D a L) y pégalas aquí. La columna Plazo es opcional.</p>' +
+    $('dCuerpo').innerHTML = '<div id="dMsg"></div><div class="campo" style="max-width:520px"><label for="cpPegProv">Proveedor de estas filas</label><input id="cpPegProv" list="dlCp" placeholder="Escribe o elige el proveedor" autocomplete="off"></div>' +
+      '<p class="quien">Copia en Excel las columnas <b>Fecha · Tipo (FA / NC) · Serie · Número · Total</b> y pégalas aquí, igual que en Pagos a proveedores. El vencimiento se calcula con el plazo habitual del proveedor. También acepta las columnas D a L de tu REGISTRO (ahí cada fila trae su proveedor).</p>' +
       '<textarea id="cpTexto" rows="5" placeholder="Pega aquí las celdas copiadas" style="font-family:monospace;font-size:12px;white-space:pre"></textarea><div id="cpVistaP" style="margin-top:10px"></div>';
     if (!$('dlg').open) $('dlg').showModal();
-    $('cpTexto').focus();
+    $('cpPegProv').focus();
   });
   $('dCuerpo').addEventListener('input', (e) => {
-    if (e.target.id !== 'cpTexto') return;
-    cpPegado = cpLeerPegado(e.target.value);
+    if (e.target.id !== 'cpTexto' && e.target.id !== 'cpPegProv') return;
+    cpPegado = cpLeerPegado($('cpTexto').value, may($('cpPegProv').value, 80));
     const nuevas = cpPegado.filter((f) => !f.err && !f.dup);
     $('cpVistaP').innerHTML = !cpPegado.length ? '' :
       `<div class="msg" style="background:#fff8e6;color:#6b4a00">Pegaste ${cpPegado.length} fila(s): <b>${nuevas.length} nueva(s)</b>, ${cpPegado.filter((f) => f.dup).length} repetida(s), ${cpPegado.filter((f) => f.err).length} con error.</div>` +
@@ -3698,7 +3720,7 @@
     if (!c) return;
     const yaCu = (cpProgDe(cpDoc, k, !c.multi) || {}).cu || [];
     cpP = { k, prov: c.prov, g: c.g, mod: c.mod, neto: c.neto,
-      docs: c.docs.map((f) => { const r = cpC.R.get(f.i), gAct = cpGrupoManual(f.g) || c.g; return { i: f.i, d: f.d, t: f.t, f: f.f, imp: r.sg * (Number(f.m) || 0), q: r.q, neto: r.neto, sit: r.sit, fac: f.t === 'FACTURA', base: r.base, ar: f.ar === true, pg: f.pg === true, fp: f.fp || '', op: f.op || '', pago: cpPagoN(gAct), mesBase: String(gAct ? cpBase(gAct) : (cpYm(f.f) || cpYm(cpDoc.per + '-01'))), g0: f.g || '' }; }),
+      docs: c.docs.map((f) => { const r = cpC.R.get(f.i), gAct = cpGrupoManual(f.g) || c.g; return { i: f.i, d: f.d, t: f.t, f: f.f, v: f.v || '', plazo: r.plazo, imp: r.sg * (Number(f.m) || 0), q: r.q, neto: r.neto, sit: r.sit, fac: f.t === 'FACTURA', base: r.base, ar: f.ar === true, pg: f.pg === true, fp: f.fp || '', op: f.op || '', pago: cpPagoN(gAct), mesBase: String(gAct ? cpBase(gAct) : (cpYm(f.f) || cpYm(cpDoc.per + '-01'))), g0: f.g || '' }; }),
       cuotas: c.cuotas.map((q, n) => ({ l: q.l, v: q.v, m: (yaCu[n] && yaCu[n].m !== '' && yaCu[n].m !== null && yaCu[n].m !== undefined) ? yaCu[n].m : '', pg: q.pg, fp: q.fp, op: q.op })) };
     modo = 'cpProg'; abierto = null;
     $('dTit').textContent = `Programar pagos — ${c.prov}${c.g ? ' (' + cpEtq(c.g) + ')' : ''}`;
@@ -3709,11 +3731,11 @@
   function cpProgPintar() {
     const p = cpP, n = p.cuotas.length;
     $('dCuerpo').innerHTML = '<div id="dMsg"></div><p class="quien" style="margin:0 0 6px">Para pagar por separado, pon otro N° en <b>Pago</b> (1, 2, 3…) y guarda: cada pago tendrá su propio cuadro, programación y retención.</p>' +
-      '<div class="tabla"><table><tr><th>Pago</th><th>Documento</th><th>Emisión</th><th>Tipo</th><th class="num">Importe</th><th class="num">Ret. 3%</th><th class="num">Neto</th><th>Situación</th><th>Pagado</th><th>Fecha pago</th><th>N° operación</th></tr>' +
-      p.docs.map((x, i) => `<tr><td><select data-d="${i}" data-k="pago" style="width:60px;padding:4px">${[1, 2, 3, 4, 5].map((v) => `<option${v === x.pago ? ' selected' : ''}>${v}</option>`).join('')}</select></td><td>${esc(x.d)}</td><td>${esc(dia(x.f))}</td><td>${esc(x.t)}</td>` +
+      '<div class="tabla"><table><tr><th>Pago</th><th>Documento</th><th>Emisión</th><th>Vence</th><th class="num">Plazo</th><th>Tipo</th><th class="num">Importe</th><th class="num">Ret. 3%</th><th class="num">Neto</th><th>Situación</th><th>Pagado</th><th>Fecha pago</th><th>N° operación</th></tr>' +
+      p.docs.map((x, i) => `<tr><td><select data-d="${i}" data-k="pago" style="width:60px;padding:4px">${[1, 2, 3, 4, 5].map((v) => `<option${v === x.pago ? ' selected' : ''}>${v}</option>`).join('')}</select></td><td>${esc(x.d)}</td><td>${esc(dia(x.f))}</td><td><b>${esc(dia(x.v))}</b></td><td class="num">${x.fac ? esc(x.plazo) : ''}</td><td>${esc(x.t)}</td>` +
         `<td class="num">${mil(x.imp)}</td><td class="num">${x.q ? mil(-x.q) : ''}</td><td class="num">${mil(x.neto)}</td><td>${x.sit && x.sit !== '—' ? `<span class="est ${cpSit(x.sit)}">${esc(x.sit)}</span>` : ''}</td>` +
         (x.fac ? `<td class="ck"><input type="checkbox" data-d="${i}" data-k="pg"${x.pg ? ' checked' : ''}></td><td><input type="date" data-d="${i}" data-k="fp" value="${esc(x.fp)}" style="padding:4px"></td><td><input data-d="${i}" data-k="op" value="${esc(x.op)}" style="padding:4px;min-width:110px"></td>` : '<td></td><td></td><td></td>') + '</tr>').join('') +
-      `<tr class="tot"><td colspan="6">Total a pagar del cuadro</td><td class="num">${mil(p.neto)}</td><td colspan="4"></td></tr></table></div><div id="cpRetPrev" style="margin-top:8px"></div>` +
+      `<tr class="tot"><td colspan="8">Total a pagar del cuadro</td><td class="num">${mil(p.neto)}</td><td colspan="4"></td></tr></table></div><div id="cpRetPrev" style="margin-top:8px"></div>` +
       '<h3 class="sub">Programación de pago</h3><div class="herr">' +
       `<label style="margin:0" for="cpMod">Modalidad</label><select id="cpMod"><option value="">— elegir —</option>${CP_MODS.map((m) => `<option${m === p.mod ? ' selected' : ''}>${esc(m)}</option>`).join('')}</select>` +
       `<label style="margin:0" for="cpN">N° de letras / cuotas</label><select id="cpN">${Array.from({ length: 25 }, (_, k) => `<option${k === n ? ' selected' : ''}>${k}</option>`).join('')}</select><span class="quien" id="cpRef"></span></div>` +
@@ -3730,7 +3752,8 @@
     p.docs.forEach((x) => { const k = x.pago || 1; if (!g.has(k)) g.set(k, { base: 0, n: 0, ar: false }); const o = g.get(k); if (x.fac) { o.n += 1; if (x.ar) { o.base = r2(o.base + x.base); o.ar = true; } } });
     $('cpRetPrev').innerHTML = '<div class="tabla"><table><tr><th>Pago</th><th class="num">Facturas</th><th class="num">Base retención</th><th>Retención 3%</th></tr>' +
       [...g.keys()].sort().map((k) => { const o = g.get(k), si = o.ar && o.base > cpCfg.min; return `<tr><td>Pago ${k}</td><td class="num">${o.n}</td><td class="num">${mil(o.base)}</td><td>${!o.ar ? '<span class="quien">proveedor sin retención</span>' : (si ? `<b class="baja">SÍ · S/ ${mil(o.base * cpCfg.tasa)}</b> (supera S/ ${mil(cpCfg.min)})` : `<b class="sube">NO</b> (no supera S/ ${mil(cpCfg.min)})`)}</td></tr>`; }).join('') + '</table></div>';
-    $('cpRef').textContent = n ? `Cuota referencial: S/ ${mil(cpDef(1, n, p.neto))}` : '';
+    const vs = p.docs.filter((x) => x.fac && x.v).map((x) => x.v).sort();
+    $('cpRef').textContent = [n ? `Cuota referencial: S/ ${mil(cpDef(1, n, p.neto))}` : '', vs.length ? (vs[0] === vs[vs.length - 1] ? `Las facturas vencen el ${dia(vs[0])}` : `Las facturas vencen del ${dia(vs[0])} al ${dia(vs[vs.length - 1])}`) : 'Las facturas no tienen fecha de vencimiento'].filter(Boolean).join('   ·   ');
     if (!$('cpSuma')) return;
     const s = r2(p.cuotas.reduce((a, c, i) => a + ((c.m === '' || c.m === null) ? cpDef(i + 1, n, p.neto) : Number(c.m)), 0)), dif = r2(s - p.neto);
     $('cpSuma').textContent = mil(s);
