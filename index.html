@@ -4197,13 +4197,13 @@
     fal.forEach((x) => { if (!porProv.has(x.prov)) porProv.set(x.prov, []); porProv.get(x.prov).push(x); });
     const provs = [...porProv.keys()].sort();
     if (!provs.length) { cont.innerHTML = `<p class="quien">${esc(cn.info || '')}</p><div class="msg ok">No falta subir nada de los proveedores de Cuentas por pagar.</div>`; return; }
-    if (!porProv.has(cnLadoProv)) { cnLadoProv = provs[0]; cnLadoSel.clear(); }
-    const mias = porProv.get(cnLadoProv), dest = mias[0].dest, total = r2(mias.reduce((s, x) => s + x.m, 0));
+    if (cnLadoProv !== '*' && !porProv.has(cnLadoProv)) { cnLadoProv = provs[0]; cnLadoSel.clear(); }
+    const todos = cnLadoProv === '*', mias = todos ? fal : porProv.get(cnLadoProv), dest = mias[0].dest, total = r2(mias.reduce((s, x) => s + x.m, 0)), kk = (x) => `${x.prov}|${x.doc}`;
     cont.innerHTML = `<p class="quien" style="margin:6px 0">${esc(cn.info || '')} · del ${esc(dia(cn.rep.desde))} al ${esc(dia(cn.rep.hasta))}</p>` +
-      `<label for="cnLadoSelP">Proveedor (${provs.length} con faltantes · ${fal.length} facturas)</label><select id="cnLadoSelP">${provs.map((p) => `<option value="${esc(p)}"${p === cnLadoProv ? ' selected' : ''}>${esc(p)} (${porProv.get(p).length})</option>`).join('')}</select>` +
-      `<p class="quien" style="margin:6px 0">${dest.tipo === 'cxp' ? `Se insertan como <b>${esc(dest.nombre)}</b>` : 'No lo reconozco entre tus proveedores: se insertará con este nombre y quedará agregado a la lista'} · ${mias.length} factura(s) · S/ ${mil(total)}</p>` +
-      '<div class="tabla" style="max-height:52vh;overflow:auto"><table style="font-size:13px"><thead><tr><th><input type="checkbox" id="cnLadoTodo" aria-label="Marcar todas"></th><th>Registro</th><th>Documento</th><th>Vence</th><th class="num">Importe</th><th></th></tr></thead><tbody>' +
-      mias.map((x) => `<tr><td><input type="checkbox" class="cnLk" data-k="${esc(x.doc)}"${cnLadoSel.has(x.doc) ? ' checked' : ''} aria-label="Marcar ${esc(x.doc)}"></td><td>${esc(dia(x.f))}</td><td><b>${esc(x.doc)}</b>${x.tipo !== 'FA' ? ` <span class="quien">${esc(x.tipo)}</span>` : ''}${x.partes > 1 ? ' <span class="quien">2 partes</span>' : ''}</td><td>${esc(dia(x.v))}</td><td class="num">${mil(x.m)}</td><td><button class="mini cnIns1" data-k="${esc(x.doc)}">Insertar</button></td></tr>`).join('') +
+      `<label for="cnLadoSelP">Proveedor (${provs.length} con faltantes · ${fal.length} facturas)</label><select id="cnLadoSelP"><option value="*"${todos ? ' selected' : ''}>TODOS (${fal.length})</option>${provs.map((p) => `<option value="${esc(p)}"${p === cnLadoProv ? ' selected' : ''}>${esc(p)} (${porProv.get(p).length})</option>`).join('')}</select>` +
+      `<p class="quien" style="margin:6px 0">${todos ? 'Todos los proveedores' : dest.tipo === 'cxp' ? `Se insertan como <b>${esc(dest.nombre)}</b>` : 'No lo reconozco entre tus proveedores: se insertará con este nombre y quedará agregado a la lista'} · ${mias.length} factura(s) · S/ ${mil(total)}</p>` +
+      '<div class="tabla" style="max-height:52vh;overflow:auto"><table style="font-size:13px"><thead><tr><th><input type="checkbox" id="cnLadoTodo" aria-label="Marcar todas"></th><th>Registro</th>' + (todos ? '<th>Proveedor</th>' : '') + '<th>Documento</th><th>Vence</th><th class="num">Importe</th><th></th></tr></thead><tbody>' +
+      mias.map((x) => `<tr><td><input type="checkbox" class="cnLk" data-k="${esc(kk(x))}"${cnLadoSel.has(kk(x)) ? ' checked' : ''} aria-label="Marcar ${esc(x.doc)}"></td><td>${esc(dia(x.f))}</td>${todos ? `<td class="larga" style="min-width:110px;font-size:12px">${esc(x.dest.tipo === 'cxp' ? x.dest.nombre : x.prov)}</td>` : ''}<td><b>${esc(x.doc)}</b>${x.tipo !== 'FA' ? ` <span class="quien">${esc(x.tipo)}</span>` : ''}${x.partes > 1 ? ' <span class="quien">2 partes</span>' : ''}</td><td>${esc(dia(x.v))}</td><td class="num">${mil(x.m)}</td><td><button class="mini cnIns1" data-k="${esc(kk(x))}">Insertar</button></td></tr>`).join('') +
       `</tbody></table></div><p style="margin:10px 0 0"><button class="pri" id="cnInsSel">Insertar marcadas en ${esc(perTxt(cpDoc.per))}</button> <button id="cnInsTodo">Insertar las ${mias.length}</button></p>` +
       '<p class="quien" style="margin:8px 0 0">La fecha de emisión queda con la fecha de registro del sistema; corrígela en la grilla si hace falta. Las que ya están registradas no aparecen aquí.</p>';
   }
@@ -4228,7 +4228,7 @@
       filas2.forEach((o) => { // ya no faltan: quedan como registradas en la comparación
         const reg = { mod: 'Cuentas por pagar', prov: o.f.p, per: cpDoc.per, doc: cpDocNorm(o.f.d), m: o.f.m };
         [[cn.sis.cxp, `${o.f.p}|${reg.doc}`], [cn.sis.porDoc, reg.doc]].forEach(([m, k]) => { if (!m.has(k)) m.set(k, []); m.get(k).push(reg); });
-        cnLadoSel.delete(o.rep.doc);
+        cnLadoSel.delete(`${o.rep.prov}|${o.rep.doc}`);
       });
       cpPintar(true);
       await cpGuardar((est) => { docs.forEach((f) => { if (!est.filas.some((x) => x.i === f.i)) est.filas.push(f); }); }, 'Insertó del reporte', `${docs.length} factura(s) de ${unicos(docs.map((f) => f.p)).join(', ')}`);
@@ -4242,10 +4242,10 @@
     if (t.classList.contains('cnLk')) { if (t.checked) cnLadoSel.add(t.dataset.k); else cnLadoSel.delete(t.dataset.k); }
   });
   $('cpLado').addEventListener('click', (e) => {
-    const t = e.target, mias = () => cnFaltantesCxp().filter((x) => x.prov === cnLadoProv);
-    if (t.classList.contains('cnIns1')) return cnInsertar(mias().filter((x) => x.doc === t.dataset.k));
+    const t = e.target, mias = () => cnFaltantesCxp().filter((x) => cnLadoProv === '*' || x.prov === cnLadoProv), kk = (x) => `${x.prov}|${x.doc}`;
+    if (t.classList.contains('cnIns1')) return cnInsertar(mias().filter((x) => kk(x) === t.dataset.k));
     if (t.id === 'cnInsTodo') return cnInsertar(mias());
-    if (t.id === 'cnInsSel') { const s = mias().filter((x) => cnLadoSel.has(x.doc)); if (!s.length) return msg('cnLadoMsg', 'Marca primero las facturas que quieres insertar.'); msg('cnLadoMsg', ''); return cnInsertar(s); }
+    if (t.id === 'cnInsSel') { const s = mias().filter((x) => cnLadoSel.has(kk(x))); if (!s.length) return msg('cnLadoMsg', 'Marca primero las facturas que quieres insertar.'); msg('cnLadoMsg', ''); return cnInsertar(s); }
   });
 </script>
 </body>
