@@ -118,6 +118,7 @@
   .pvCheck { width:92px; height:92px; border-radius:50%; background:var(--ok); color:#fff; font-size:56px; line-height:92px; margin:0 auto; font-weight:800; animation:pvPop .35s ease-out; } @keyframes pvPop { from { transform:scale(.3); opacity:0; } to { transform:scale(1); opacity:1; } }
   @media (prefers-reduced-motion: reduce) { .pvCheck { animation:none; } }
   .pvCab { background:var(--marca); color:#fff; padding:14px 20px; font-size:15px; } .pvCuerpo { max-width:1300px; margin:0 auto; padding:16px; }
+  tr.cpHDoble td { background:#fff1e0; } tr.cpHFalta td { background:#fdf0ee; }
   .rpHoja { max-width:1120px; } .rpHoja td.rpFa { color:#1f3864; } .rpHoja table { font-size:13.5px; } .rpHoja td { border:1px solid #d9d4cc; padding:4px 9px; }
   .rpHoja tr.rpTit td { background:#ffff00; color:#0070c0; font-weight:800; font-size:16px; text-align:center; text-decoration:underline; }
   .rpHoja tr.rpSec td { background:#ffff00; text-align:center; color:#b35c00; font-size:12px; } .rpHoja tr.rpSec td:first-child { background:#fff; font-size:13.5px; }
@@ -4218,36 +4219,45 @@
   });
 
   /* ---------- Eliminados e historial: ver lo que se borró (de cualquier mes) y restaurarlo ---------- */
-  let cpH = { lista: [], solo: true };
+  let cpH = { lista: [], solo: true, soloF: true, hoy: new Map() };
   function cpHFilas(x) { // filas de una eliminación: completas si se guardaron; si es antigua, se reconstruyen del texto (proveedor, documento, importe)
     if (Array.isArray(x.filas) && x.filas.length) return x.filas.map((f) => ({ f, completo: true }));
     return String(x.detalle || '').split(/\),\s*/).map((t) => { const m = t.replace(/\)$/, '').match(/^(.*\S)\s+(\S+)\s+\(([-\d.,]+)$/); const mm = m ? montoNum(m[3]) : null; return m && mm !== null ? { f: { p: m[1], d: m[2], m: Math.abs(mm), t: 'FACTURA' }, completo: false } : null; }).filter(Boolean);
   }
+  const cpHK = (f) => `${f.p}|${cpDocNorm(f.d)}`;
   async function cpHAbrir() {
     modo = 'cpHist'; abierto = null;
     $('dTit').textContent = `Eliminados e historial · ${(CP_EMP.find((e) => e.k === cpEmp()) || {}).nombre || ''}`;
     $('dCuerpo').innerHTML = '<p class="quien">Cargando…</p>';
     if (!$('dlg').open) $('dlg').showModal();
+    cpAncho();
     try {
-      const s = await getDocs(query(collection(db, 'pagosLog'), where('clave', '==', `${cpEmp()}|CXP`), limit(400)));
+      const emp = cpEmp(), s = await getDocs(query(collection(db, 'pagosLog'), where('clave', '==', `${emp}|CXP`), limit(400)));
       cpH.lista = s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) })).sort((a, b) => String(a.id).localeCompare(String(b.id)));
+      // Lo que hay hoy en cada mes tocado, para saber qué eliminado ya no tiene ninguna copia
+      const pers = unicos(cpH.lista.filter((x) => x.accion === 'Eliminó').map((x) => x.per)), docs = await Promise.all(pers.map((p) => getDoc(doc(db, 'cpm', `${emp}_${p}`)).catch(() => null)));
+      cpH.hoy = new Map(pers.map((p, n) => [p, new Set(((docs[n] && docs[n].exists() && docs[n].data().filas) || []).map(cpHK))]));
       cpHPintar();
     } catch (err) { $('dCuerpo').innerHTML = `<div class="msg err">${esc(errorTexto(err))}</div>`; }
   }
   function cpHPintar() {
-    const lista = cpH.lista.filter((x) => !cpH.solo || x.accion === 'Eliminó'), puedo = puede('cxp');
+    const puedo = puede('cxp'), elim = [], veces = new Map();
+    cpH.lista.forEach((x) => { if (x.accion === 'Eliminó') cpHFilas(x).forEach((o, k) => { const kk = x.per + '|' + cpHK(o.f); veces.set(kk, (veces.get(kk) || 0) + 1); elim.push({ x, o, k, kk, esta: (cpH.hoy.get(x.per) || new Set()).has(cpHK(o.f)) }); }); });
+    const faltan = elim.filter((e) => !e.esta), unicasF = unicos(faltan.map((e) => e.kk)), dobles = unicasF.filter((kk) => veces.get(kk) > 1).length;
+    const vistas = new Set(), lista = elim.filter((e) => !cpH.soloF || !e.esta);
     $('dCuerpo').innerHTML = '<div id="dMsg"></div>' +
-      `<div class="herr"><label style="margin:0;display:flex;gap:6px;align-items:center;font-weight:500;color:inherit"><input type="checkbox" id="cpHSolo" style="width:auto"${cpH.solo ? ' checked' : ''}> Solo lo eliminado</label><span class="quien">Se muestran los últimos cambios de todos los meses de esta empresa.</span></div>` +
-      (lista.length ? '<div class="tabla" style="max-height:62vh;overflow:auto"><table style="font-size:13px"><tr><th>Cuándo</th><th>Quién</th><th>Mes de pago</th><th>Acción</th><th>Detalle</th><th></th></tr>' +
-        lista.map((x) => {
-          if (x.accion !== 'Eliminó') return `<tr><td>${esc(fecha(x.ts))}</td><td>${esc(x.quien)}</td><td>${esc(perTxt(x.per))}</td><td>${esc(x.accion)}</td><td class="larga">${esc(x.detalle)}</td><td></td></tr>`;
-          const fs = cpHFilas(x), ya = new Set(x.rest || []);
-          return fs.map((o, k) => `<tr>${k === 0 ? `<td rowspan="${fs.length}">${esc(fecha(x.ts))}</td><td rowspan="${fs.length}">${esc(x.quien)}</td><td rowspan="${fs.length}"><b>${esc(perTxt(x.per))}</b></td><td rowspan="${fs.length}"><span class="est alerta">Eliminó</span></td>` : ''}` +
-            `<td class="larga"><b>${esc(o.f.p)}</b> · ${esc(o.f.t || 'FACTURA')} ${esc(o.f.d || '')} · S/ ${mil(o.f.m)}${o.f.f ? ' · emitida ' + esc(dia(o.f.f)) : ''}${o.completo ? '' : ' <span class="quien">(solo se conserva proveedor, documento e importe)</span>'}</td>` +
-            `<td>${ya.has(k) ? '<span class="est e2">Restaurada</span>' : (puedo ? `<button class="mini cpHRest" data-id="${esc(x.id)}" data-k="${k}">Restaurar en ${esc(perTxt(x.per))}</button>` : '')}</td></tr>`).join('') ||
-            `<tr><td>${esc(fecha(x.ts))}</td><td>${esc(x.quien)}</td><td>${esc(perTxt(x.per))}</td><td>Eliminó</td><td class="larga">${esc(x.detalle)}</td><td></td></tr>`;
-        }).join('') + '</table></div>' : '<p class="quien">No hay eliminaciones registradas en esta empresa.</p>') +
-      '<p class="quien" style="margin:8px 0 0">Lo eliminado desde hoy se restaura completo. De lo eliminado antes solo quedó el proveedor, el número y el importe: al restaurarlo vuelve como FACTURA sin fechas y hay que completarlo en la grilla.</p>';
+      `<div class="herr"><label style="margin:0;display:flex;gap:6px;align-items:center;font-weight:500;color:inherit"><input type="checkbox" id="cpHSoloF" style="width:auto"${cpH.soloF ? ' checked' : ''}> Solo las que ya no están en su mes</label>` +
+      `<label style="margin:0;display:flex;gap:6px;align-items:center;font-weight:500;color:inherit"><input type="checkbox" id="cpHSolo" style="width:auto"${cpH.solo ? ' checked' : ''}> Ocultar los demás cambios</label></div>` +
+      `<div class="kpis"><div class="kpi" style="border-color:var(--rojo)"><b>Ya no están en su mes</b><strong class="baja">${unicasF.length}</strong><small>documentos eliminados sin ninguna copia</small></div><div class="kpi" style="border-color:var(--marca);background:var(--suave)"><b>De esos, eliminados 2 veces o más</b><strong>${dobles}</strong><small>se borró el original y su repetido</small></div><div class="kpi"><b>Eliminados que siguen en su mes</b><strong>${unicos(elim.filter((e) => e.esta).map((e) => e.kk)).length}</strong><small>queda una copia: no hay que hacer nada</small></div></div>` +
+      (lista.length ? '<div class="tabla" style="max-height:52vh;overflow:auto"><table style="font-size:13px"><tr><th>Cuándo</th><th>Quién</th><th>Mes de pago</th><th>Proveedor</th><th>Tipo</th><th>Documento</th><th class="num">Importe</th><th>Emisión</th><th>Situación</th><th></th></tr>' +
+        lista.map((e) => {
+          const { x, o, k, kk } = e, n = veces.get(kk), rep = vistas.has(kk); vistas.add(kk);
+          const sit = e.esta ? '<span class="est e2">Sigue en el mes</span>' : `<span class="est alerta">Ya no está</span>${n > 1 ? ` <span class="est e0">eliminada ${n} veces</span>` : ''}`;
+          const bot = e.esta || !puedo ? '' : (rep && cpH.soloF !== false ? '<span class="quien">misma factura de arriba</span>' : `<button class="mini pri cpHRest" data-id="${esc(x.id)}" data-k="${k}">Restaurar en ${esc(perTxt(x.per))}</button>`);
+          return `<tr class="${e.esta ? '' : (n > 1 ? 'cpHDoble' : 'cpHFalta')}"><td>${esc(fecha(x.ts))}</td><td>${esc(x.quien)}</td><td><b>${esc(perTxt(x.per))}</b></td><td>${esc(o.f.p)}</td><td>${esc(o.f.t || 'FACTURA')}${o.completo ? '' : ' <span class="quien" title="De esta eliminación antigua solo quedó proveedor, documento e importe">?</span>'}</td><td><b>${esc(o.f.d || '')}</b></td><td class="num">${mil(o.f.m)}</td><td>${esc(dia(o.f.f || ''))}</td><td>${sit}</td><td>${bot}</td></tr>`;
+        }).join('') + '</table></div>' : `<div class="msg ok">${elim.length ? 'Todo lo eliminado sigue teniendo una copia en su mes: no falta nada.' : 'No hay eliminaciones registradas en esta empresa.'}</div>`) +
+      (cpH.solo ? '' : '<h3 class="sub">Los demás cambios</h3><div class="tabla" style="max-height:30vh;overflow:auto"><table style="font-size:13px"><tr><th>Cuándo</th><th>Quién</th><th>Mes de pago</th><th>Acción</th><th>Detalle</th></tr>' + cpH.lista.filter((x) => x.accion !== 'Eliminó').map((x) => `<tr><td>${esc(fecha(x.ts))}</td><td>${esc(x.quien)}</td><td>${esc(perTxt(x.per))}</td><td>${esc(x.accion)}</td><td class="larga">${esc(x.detalle)}</td></tr>`).join('') + '</table></div>') +
+      '<p class="quien" style="margin:8px 0 0">En naranja, las facturas que se eliminaron dos veces (el original y su repetido): basta restaurar una. Las marcadas con "?" son eliminaciones antiguas de las que solo quedó proveedor, número e importe: vuelven como FACTURA sin fechas y hay que completarlas en la grilla.</p>';
   }
   async function cpHRestaurar(id, k) {
     const x = cpH.lista.find((y) => y.id === id), o = x && cpHFilas(x)[k];
@@ -4263,14 +4273,15 @@
         tx.set(ref, { emp, per, filas: filas2, prog: d.prog || [], act: serverTimestamp(), actPor: firma() });
         tx.set(doc(db, 'cpIdx', `${emp}_${per.slice(0, 4)}`), { m: { [per.slice(5)]: cpIdxDe(filas2) } }, { merge: true });
       });
-      if (repetida) return msg('dMsg', `${f.p} ${f.d} ya está en ${perTxt(per)}: no se volvió a agregar.`);
-      x.rest = (x.rest || []).concat([k]);
+      if (repetida) { if (!cpH.hoy.has(per)) cpH.hoy.set(per, new Set()); cpH.hoy.get(per).add(cpHK(f)); cpHPintar(); return msg('dMsg', `${f.p} ${f.d} ya está en ${perTxt(per)}: no se volvió a agregar.`); }
+      if (!cpH.hoy.has(per)) cpH.hoy.set(per, new Set());
+      cpH.hoy.get(per).add(cpHK(f)); // ya vuelve a estar en su mes
       setDoc(doc(db, 'pagosLog', String(9999999999999 - Date.now()) + Math.random().toString(36).slice(2, 6)), { clave: `${emp}|CXP`, per, accion: 'Restauró', detalle: `${f.p} ${f.d} (${mil(f.m)})`, quien: firma(), ts: serverTimestamp() }).catch(console.error);
       cpHPintar(); msg('dMsg', `Restaurada ${f.p} ${f.d} en ${perTxt(per)}.`, 'ok');
     } catch (e) { msg('dMsg', errorTexto(e)); }
   }
   $('cpHist').addEventListener('click', cpHAbrir);
-  $('dCuerpo').addEventListener('change', (e) => { if (modo === 'cpHist' && e.target.id === 'cpHSolo') { cpH.solo = e.target.checked; cpHPintar(); } });
+  $('dCuerpo').addEventListener('change', (e) => { if (modo !== 'cpHist') return; if (e.target.id === 'cpHSolo') cpH.solo = e.target.checked; else if (e.target.id === 'cpHSoloF') cpH.soloF = e.target.checked; else return; cpHPintar(); });
   $('dCuerpo').addEventListener('click', (e) => { if (modo === 'cpHist' && e.target.classList.contains('cpHRest')) cpHRestaurar(e.target.dataset.id, Number(e.target.dataset.k)); });
 
   /* =====================  D. CONCILIAR CON EL REPORTE "PROVISIONES POR PROVEEDOR" DEL SISTEMA  =====================
