@@ -106,6 +106,9 @@
   .hoja tr.r_fobs td:nth-child(5), .hoja tr.r_fobs td:nth-child(6) { color:#1f4e96; font-weight:600; }
   button.sgKpi { text-align:left; cursor:pointer; font:inherit; } button.sgKpi.sel { background:var(--suave); box-shadow:0 0 0 2px var(--marca) inset; } .sgChk { display:flex; gap:6px; align-items:center; margin:0; font-weight:600; color:inherit; white-space:nowrap; } .sgChk input { width:auto; }
   #sgFiltros select { width:auto; max-width:340px; }
+  .sgDot { display:inline-block; width:12px; height:12px; border-radius:50%; margin-right:7px; vertical-align:-1px; } .sgDot.v { background:#1b7a4b; } .sgDot.n { background:#fe6e00; } .sgDot.r { background:#d92d20; }
+  td.sgEnt { white-space:nowrap; } .sgBtn.si { background:#1b7a4b; color:#fff; border-color:#1b7a4b; font-weight:700; margin-left:6px; } .sgBtn { margin-left:6px; }
+  td.sgLin { padding:0; } td.sgLin table { width:100%; border:none; } td.sgLin td { border:none; padding:5px 10px; font-size:13px; } td.sgLin tr + tr td { border-top:1px dashed var(--borde); } td.sgLin td:first-child { min-width:230px; white-space:normal; } td.sgLin td.num { width:70px; }
   .ctDatos { display:flex; gap:8px 28px; flex-wrap:wrap; } .ctDatos div b { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:var(--gris); }
   .ctTabla .gIn { width:100%; min-width:84px; padding:4px 6px; border:1px solid var(--borde); border-radius:5px; font-size:13px; } .ctTabla .gIn.n { text-align:right; } .ctTabla td { vertical-align:middle; } tr.ctNa td { background:#fbf3f2; }
   .ctChat { display:flex; flex-direction:column; gap:8px; max-height:340px; overflow:auto; } .ctMsg { background:#f4f1ec; border-radius:10px; padding:8px 12px; max-width:760px; white-space:pre-wrap; } .ctMsg.int { background:#fff8e6; border:1px dashed #e0c98a; } .ctMsg.prov { background:#e8f0fb; align-self:flex-end; }
@@ -429,6 +432,7 @@
         <select id="gDist" aria-label="Distribuidor"></select>
         <select id="gPer" aria-label="Mes a pagar"></select>
         <button id="gNuevoPer">+ Nuevo mes a pagar</button>
+        <button id="gEditPer" title="Cambiar de qué mes son las compras">Editar mes</button>
         <input type="month" id="gMes" aria-label="Mes a pagar" class="oculto">
       </div>
       <div class="subnav" id="gSub">
@@ -451,14 +455,14 @@
             <option value="OBS">Facturas observadas</option><option value="PEN">Observadas sin conciliar</option>
             <option value="SIN">NC sin asignar a factura</option><option value="REV">Por revisar</option>
           </select>
-          <input id="gTxt" placeholder="Buscar número, laboratorio, producto…" aria-label="Buscar" style="flex:1;min-width:200px">
+          <input id="gTxt" placeholder="Buscar número, laboratorio, producto… (busca en todos los meses)" aria-label="Buscar" style="flex:1;min-width:200px">
           <button id="gHist">Historial de cambios</button>
           <button id="gExp">Exportar a Excel</button>
         </div>
         <div id="gMsg"></div>
         <p class="resumen" id="gRes"></p>
         <div class="tabla grid"><table>
-          <thead><tr><th class="nf"></th><th></th><th>Fecha</th><th>Tipo</th><th>Serie</th><th>Número</th><th class="n">Total</th><th>Laboratorio</th><th class="n">Observado</th><th>NC anotadas</th><th>Estado</th><th>Nota</th></tr></thead>
+          <thead><tr><th class="nf"></th><th class="ck"><input type="checkbox" id="gCkTodo" title="Seleccionar todo lo que se ve" aria-label="Seleccionar todo lo que se ve"></th><th>Fecha</th><th>Tipo</th><th>Serie</th><th>Número</th><th class="n">Total</th><th>Laboratorio</th><th class="n">Observado</th><th>NC anotadas</th><th>Estado</th><th>Nota</th></tr></thead>
           <tbody id="gCuerpo"></tbody>
         </table></div>
         <p class="resumen" id="gPie" style="margin-top:10px"></p>
@@ -2032,7 +2036,7 @@
   const obsTexto = (o) => `${o.producto} (${o.estado === 'Por devolver' ? 'por devolver: ' + (o.cantidad ?? '') : 'devuelto: ' + (o.cantDevuelta ?? '')})`;
   // Lo observado de una factura: las líneas escritas a mano más lo registrado en Observados (devuelto o por devolver)
   function lineasDe(f) {
-    const manual = (f.o || []).map((l) => ({ p: l.p, m: l.m, origen: 'manual' }));
+    const manual = (f.o || []).filter((l) => !lineaBasura(l.p)).map((l) => ({ p: l.p, m: l.m, origen: 'manual' }));
     const rec = enlazadas(f).filter(obsCuenta).map((o) => ({ p: obsTexto(o), m: montoObs(o), origen: 'recepcion', id: o._id }));
     return manual.concat(rec);
   }
@@ -2064,7 +2068,7 @@
     pgBaja = onSnapshot(query(collection(db, 'pagos'), where('emp', '==', pgEmp()), where('dist', '==', pgDist())), (snap) => {
       pgDocs = snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) })).sort((a, b) => String(b.per).localeCompare(String(a.per)));
       const v = pgPer();
-      $('gPer').innerHTML = pgDocs.map((d) => `<option value="${esc(d.per)}">${esc(perTxt(d.per))}${(d.compra || []).length ? ' · compras ' + esc(d.compra.map((c) => MESES[Number(c.slice(5))].slice(0, 3).toLowerCase() + ' ' + c.slice(2, 4)).join(', ')) : ''}</option>`).join('');
+      $('gPer').innerHTML = pgDocs.map((d) => `<option value="${esc(d.per)}">${esc(perCompra(d))}</option>`).join('');
       if (pgDocs.some((d) => d.per === v)) $('gPer').value = v;
       $('gMover').innerHTML = '<option value="">Mover seleccionadas a…</option>' + pgDocs.map((d) => `<option value="${esc(d.per)}">${esc(perTxt(d.per))}</option>`).join('');
       pintarPagos();
@@ -2122,6 +2126,23 @@
   }
 
   /* =====================  A. FACTURAS Y NC (grilla)  ===================== */
+  // "OCTUBRE 2026 (compras julio)": el mes a pagar con el mes de compra que se le indicó
+  const perCompra = (d) => perTxt(d.per) + ((d.compra || []).length ? ` (compras ${d.compra.map((c) => MESES[Number(c.slice(5))].toLowerCase() + (c.slice(0, 4) !== String(d.per).slice(0, 4) ? ' ' + c.slice(0, 4) : '')).join(' y ')})` : '');
+  const textoFila = (f) => [f.s, f.n, `${f.s}-${f.n}`, f.l, f.rb, f.e, f.x, f.r, (f.nc || []).join(' '), lineasDe(f).map((x) => x.p).join(' ')].join(' ').toLowerCase();
+  // Lo que se busca también se muestra si está en OTRO mes a pagar, con el mes donde está y un botón para ir
+  function pintarOtrosMeses() {
+    let caja = $('gOtros');
+    if (!caja) { caja = document.createElement('div'); caja.id = 'gOtros'; const t = $('gCuerpo').closest('.tabla'); t.parentNode.insertBefore(caja, t); caja.addEventListener('click', (e) => { const b = e.target.closest('[data-per]'); if (b) irAFila(b.dataset.per, b.dataset.id); }); }
+    const t = $('gTxt').value.trim().toLowerCase(), per = pgPer();
+    if (t.length < 2) { caja.innerHTML = ''; return; }
+    const out = [];
+    pgDocs.forEach((d) => { if (d.per === per) return; (d.filas || []).forEach((f) => { if (textoFila(f).includes(t)) out.push({ d, f }); }); });
+    out.sort((a, b) => String(b.f.f).localeCompare(String(a.f.f)));
+    caja.innerHTML = !out.length ? `<p class="quien" style="margin:0 0 8px">"${esc($('gTxt').value.trim())}" no aparece en ningún otro mes a pagar de este distribuidor.</p>` :
+      `<div class="caja" style="padding:10px 14px;border-color:var(--marca)"><b>También está en otros meses a pagar (${out.length})</b><div class="tabla" style="max-height:32vh;overflow:auto;margin-top:8px"><table style="font-size:13px"><tr><th>Mes a pagar</th><th>Fecha</th><th>Tipo</th><th>Serie</th><th>Número</th><th class="num">Total</th><th>Laboratorio / referencia</th><th></th></tr>` +
+      out.slice(0, 80).map(({ d, f }) => `<tr${f.t === 'NC' ? ' class="esnc"' : ''}><td><span class="est e3">${esc(perTxt(d.per))}</span></td><td>${esc(dia(f.f))}</td><td>${esc(f.t)}</td><td>${esc(f.s)}</td><td><b>${esc(f.n)}</b></td><td class="num">${mil(f.m)}</td><td>${esc(f.l || f.rb || f.r || '')}</td><td><button class="mini" data-per="${esc(d.per)}" data-id="${esc(f.i)}">Ir a esa fila</button></td></tr>`).join('') +
+      `</table></div>${out.length > 80 ? `<p class="quien" style="margin:6px 0 0">Se muestran las primeras 80; escribe algo más preciso.</p>` : ''}</div>`;
+  }
   function filasVista() {
     const d = pgDoc();
     if (!d) return [];
@@ -2136,7 +2157,7 @@
         if (!e) return false;
         if (fil === 'PEN' && e.startsWith('Conciliada')) return false;
       }
-      if (t && ![f.s, f.n, f.l, f.rb, f.e, f.x, f.r, (f.nc || []).join(' '), lineasDe(f).map((x) => x.p).join(' ')].join(' ').toLowerCase().includes(t)) return false;
+      if (t && !textoFila(f).includes(t)) return false;
       return true;
     }).sort((a, b) => (a.t === b.t ? 0 : (a.t === 'FA' ? -1 : (b.t === 'FA' ? 1 : a.t.localeCompare(b.t)))) || String(a.f).localeCompare(String(b.f)) || String(a.n).localeCompare(String(b.n), undefined, { numeric: true }));
   }
@@ -2170,7 +2191,7 @@
     ['gAdd', 'gPegar'].forEach((id) => $(id).classList.toggle('oculto', !edita));
     ['gDel', 'gMover'].forEach((id) => $(id).classList.toggle('oculto', !puede('pagosBorrar')));
     $('gImp').classList.toggle('oculto', yo.area !== 'ADMIN');
-    $('gNuevoPer').classList.toggle('oculto', !edita);
+    $('gNuevoPer').classList.toggle('oculto', !edita); $('gEditPer').classList.toggle('oculto', !edita || !d);
     if (!pgCfg.empresas.length) {
       cuerpo.innerHTML = `<tr><td colspan="12" class="vacio">${yo.area === 'ADMIN' ? 'Aún no hay datos de pagos. Usa "Importar datos" y elige el archivo datos-pagos.json.' : 'Aún no hay datos de pagos cargados.'}</td></tr>`;
       $('gRes').textContent = ''; $('gPie').textContent = ''; return;
@@ -2180,6 +2201,8 @@
       $('gRes').textContent = ''; $('gPie').textContent = ''; return;
     }
     const vista = filasVista(), reponer = conservarNueva(cuerpo);
+    pintarOtrosMeses();
+    { const ct2 = $('gCkTodo'); if (ct2) { const n = vista.filter((f) => pgSel.has(f.i)).length; ct2.checked = vista.length > 0 && n === vista.length; ct2.indeterminate = n > 0 && n < vista.length; ct2.disabled = !vista.length; } }
     let h = '';
     vista.forEach((f, n) => {
       const c = cruceDe(d.per, f), est = f.t === 'FA' ? estadoCruce(c) : '', abierta = pgAbiertas.has(f.i);
@@ -2415,7 +2438,7 @@
   $('gCuerpo').addEventListener('click', (e) => {
     const t = e.target, tr = t.closest('tr');
     if (!tr) return;
-    if (t.classList.contains('gCk')) { if (t.checked) pgSel.add(tr.dataset.i); else pgSel.delete(tr.dataset.i); tr.classList.toggle('sel', t.checked); $('gDel').textContent = `Eliminar seleccionadas (${pgSel.size})`; return; }
+    if (t.classList.contains('gCk')) { if (t.checked) pgSel.add(tr.dataset.i); else pgSel.delete(tr.dataset.i); tr.classList.toggle('sel', t.checked); $('gDel').textContent = `Eliminar seleccionadas (${pgSel.size})`; { const v = filasVista(), n = v.filter((f) => pgSel.has(f.i)).length, c2 = $('gCkTodo'); c2.checked = v.length > 0 && n === v.length; c2.indeterminate = n > 0 && n < v.length; } return; }
     if (t.classList.contains('aOk')) return agregarFila();
     if (t.classList.contains('gIr')) { pgAviso = ''; return irAFila(t.dataset.per, t.dataset.id); }
     if (t.classList.contains('gPg')) { // incluir o no una devolución total en el listado de pago, junto con sus NC
@@ -2508,17 +2531,44 @@
     } catch (err) { pgError(err); }
   });
 
-  $('gNuevoPer').addEventListener('click', async () => {
-    const v = prompt('Mes a pagar que quieres crear, como AAAA-MM (por ejemplo 2026-11):', '');
-    if (v === null) return;
-    const per = v.trim();
-    if (!/^20\d{2}-(0[1-9]|1[0-2])$/.test(per)) return msg('gMsg', 'Escribe el mes como AAAA-MM, por ejemplo 2026-11.');
-    if (pgDocs.some((d) => d.per === per)) { $('gPer').value = per; return pintarPagos(true); }
+  // Seleccionar todo lo que se ve (con el filtro o la búsqueda puestos), como en una hoja de cálculo
+  $('gCkTodo').addEventListener('change', (e) => { const v = filasVista(); v.forEach((f) => { if (e.target.checked) pgSel.add(f.i); else pgSel.delete(f.i); }); pintarPagos(true); });
+  // Nuevo mes a pagar (o editar el que está abierto): se elige el mes y de qué mes son las compras
+  function dlgMes(editar) {
+    const d = editar ? pgDoc() : null;
+    if (editar && !d) return msg('gMsg', 'Elige el mes a pagar.');
+    if (!pgEmp() || !pgDist()) return msg('gMsg', 'Elige la empresa y el distribuidor.');
+    modo = 'mesPago'; abierto = null;
+    const sig = (() => { const u = pgDocs.map((x) => x.per).filter((p) => /^\d{4}-\d{2}$/.test(p)).sort().pop() || hoy().slice(0, 7); let y = +u.slice(0, 4), m = +u.slice(5) + 1; if (m > 12) { m = 1; y += 1; } return `${y}-${String(m).padStart(2, '0')}`; })();
+    const c = (d && d.compra) || [];
+    $('dTit').textContent = editar ? `Editar ${perTxt(d.per)}` : 'Nuevo mes a pagar';
+    $('dCuerpo').innerHTML = `<div id="dMsg"></div><p class="quien" style="margin-top:0">${esc(empDe(pgEmp()).nombre)} · ${esc(distDe(pgDist()).nombre)}</p><div class="rejilla">` +
+      `<div class="campo"><label for="nmPer">Mes a pagar</label><input type="month" id="nmPer" value="${esc(d ? d.per : sig)}"${editar ? ' disabled' : ''}></div>` +
+      `<div class="campo"><label for="nmC1">Compras del mes</label><input type="month" id="nmC1" value="${esc(c[0] || '')}"></div>` +
+      `<div class="campo"><label for="nmC2">y también de (opcional)</label><input type="month" id="nmC2" value="${esc(c[1] || '')}"></div></div>` +
+      `<p class="quien">En la lista se verá así: <b id="nmVista"></b></p><p><button class="pri" id="nmOk" data-ed="${editar ? 1 : 0}">${editar ? 'Guardar' : 'Crear mes a pagar'}</button></p>`;
+    const vista = () => { const p = $('nmPer').value, cs = [$('nmC1').value, $('nmC2').value].filter(Boolean); $('nmVista').textContent = /^\d{4}-\d{2}$/.test(p) ? perCompra({ per: p, compra: cs }) : '—'; };
+    ['nmPer', 'nmC1', 'nmC2'].forEach((id) => $(id).addEventListener('input', vista)); vista();
+    if (!$('dlg').open) $('dlg').showModal();
+  }
+  $('gNuevoPer').addEventListener('click', () => dlgMes(false));
+  $('gEditPer').addEventListener('click', () => dlgMes(true));
+  $('dCuerpo').addEventListener('click', async (e) => {
+    if (modo !== 'mesPago' || e.target.id !== 'nmOk') return;
+    const per = $('nmPer').value, compra = unicos([$('nmC1').value, $('nmC2').value].filter((x) => /^\d{4}-\d{2}$/.test(x))).sort();
+    if (!/^20\d{2}-(0[1-9]|1[0-2])$/.test(per)) return msg('dMsg', 'Elige el mes a pagar.');
     try {
-      await setDoc(doc(db, 'pagos', pgId(per)), { emp: pgEmp(), dist: pgDist(), per, compra: [], letras: null, desde: '', prog: [], filas: [], sueltas: [], act: serverTimestamp(), actPor: firma() });
-      pgLog('Creó mes', perTxt(per), per).catch(console.error);
-      setTimeout(() => { $('gPer').value = per; pintarPagos(true); }, 300);
-    } catch (e) { pgError(e); }
+      if (e.target.dataset.ed === '1') {
+        await updateDoc(doc(db, 'pagos', pgId(per)), { compra, act: serverTimestamp(), actPor: firma() });
+        pgLog('Editó mes', perCompra({ per, compra }), per).catch(console.error);
+      } else {
+        if (pgDocs.some((d) => d.per === per)) { $('dlg').close(); $('gPer').value = per; return pintarPagos(true); }
+        await setDoc(doc(db, 'pagos', pgId(per)), { emp: pgEmp(), dist: pgDist(), per, compra, letras: null, desde: '', prog: [], filas: [], sueltas: [], act: serverTimestamp(), actPor: firma() });
+        pgLog('Creó mes', perCompra({ per, compra }), per).catch(console.error);
+        setTimeout(() => { $('gPer').value = per; pintarPagos(true); }, 300);
+      }
+      $('dlg').close();
+    } catch (err) { msg('dMsg', errorTexto(err)); }
   });
 
   /* ---------- Pegar desde Excel ---------- */
@@ -2647,7 +2697,7 @@
         if (!mapa.has(r)) mapa.set(r, []);
         mapa.get(r).push(o);
       });
-      const lin = (f) => (f.o || []).map((l) => ({ p: l.p, m: l.m }))
+      const lin = (f) => (f.o || []).filter((l) => !lineaBasura(l.p)).map((l) => ({ p: l.p, m: l.m }))
         .concat((mapa.get(`${f.s}-${f.n}`) || []).filter(obsCuenta).map((o) => ({ p: obsTexto(o), m: montoObs(o) })));
       const cr = cruzar(docs, lin), ncDev = new Set(), tmp = [];
       docs.forEach((d) => (d.filas || []).forEach((f) => {
@@ -2788,8 +2838,10 @@
     }
     return { dias, saltados };
   }
+  const MODOS = [['letras', 'En letras'], ['fecha', 'Fecha por factura'], ['venc', 'Según vencimiento']];
+  function modoPago(d) { return (d && d.modo) || distDe(d.dist).pago || 'letras'; }
   function resumenDatos(d) {
-    const dist = distDe(d.dist), emp = empDe(d.emp), fs = d.filas || [];
+    const dist = { ...distDe(d.dist), pago: modoPago(d) }, emp = empDe(d.emp), fs = d.filas || []; // la forma de pago se puede cambiar en cada mes
     const orden = (a, b) => String(a.f).localeCompare(String(b.f)) || String(a.n).localeCompare(String(b.n), undefined, { numeric: true });
     const fa = fs.filter((f) => f.t !== 'NC').sort(orden);
     const dev = fa.filter((f) => esDevTotal(f, cruceDe(d.per, f)));
@@ -2909,9 +2961,10 @@
     const R = resumenDatos(d), edita = puede('pagos');
     const conLetras = R.dist.pago === 'letras';
     caja.innerHTML = '<div class="herr">' +
+      `<label style="margin:0" for="rModo">Forma de pago</label><select id="rModo" style="width:auto"${edita ? '' : ' disabled'}>${MODOS.map(([v, n]) => `<option value="${v}"${R.dist.pago === v ? ' selected' : ''}>${n}</option>`).join('')}</select>` +
       (conLetras ? `<label style="margin:0" for="rLetras">N° de letras</label><input id="rLetras" type="number" min="0" max="60" style="width:80px" value="${esc(d.letras ?? '')}"${edita ? '' : ' disabled'}>` +
         `<label style="margin:0" for="rDesde">Desde</label><input id="rDesde" type="date" value="${esc(d.desde || R.desde || '')}"${edita ? '' : ' disabled'}>` +
-        (edita ? '<button id="rGuardar">Guardar programación</button>' : '') : `<span class="quien">${esc(R.dist.nombre)} no se paga en letras: ${R.dist.pago === 'fecha' ? 'cada factura tiene su fecha de pago' : 'se paga según vencimiento'}.</span>`) +
+        (edita ? '<button id="rGuardar">Guardar programación</button>' : '') : `<span class="quien">Este mes no va en letras: ${R.dist.pago === 'fecha' ? 'cada factura tiene su fecha de pago' : 'se paga según vencimiento'}.</span>`) +
       (edita ? '<button id="rFeriados">Feriados</button>' : '') +
       (R.obsAnt.length ? `<label style="margin:0;display:flex;gap:6px;align-items:center;font-weight:500;color:inherit"><input type="checkbox" id="rAnt"${resAnt ? ' checked' : ''}> Mostrar observaciones de meses anteriores sin NC (${R.obsAnt.length} · S/ ${mil(R.obsAnt.reduce((s, o) => s + (Number(o.falta) || 0), 0))})</label>` : '') +
       '<span style="flex:1"></span><button id="rExcelNc">Descargar solo notas de crédito</button><button class="pri" id="rExcel">Descargar Excel para el proveedor</button></div><div id="rMsg"></div>' +
@@ -2925,7 +2978,10 @@
       resumenFilas(R).map((f) => `<tr class="r_${f.cls}">${f.c.length ? f.c.map((v, i) => `<td${typeof v === 'number' ? ' class="num"' : ''}${f.cls === 'txt' || (f.cls === 'tit') || (i === 0 && f.c.length > 6 && String(v).length > 34 && f.cls === '') ? '' : ''}${(f.cls === 'txt' || f.cls === 'tit') ? ' colspan="7"' : ''}>${typeof v === 'number' ? mil(v) : esc(v)}</td>`).join('') : '<td colspan="7">&nbsp;</td>'}</tr>`).join('') +
       '</table></div>';
   }
-  $('gv_res').addEventListener('change', (e) => { if (e.target.id === 'rAnt') { resAnt = e.target.checked; pintarPagos(true); } });
+  $('gv_res').addEventListener('change', async (e) => {
+    if (e.target.id === 'rAnt') { resAnt = e.target.checked; return pintarPagos(true); }
+    if (e.target.id === 'rModo') { const d = pgDoc(); if (!d) return; try { await updateDoc(doc(db, 'pagos', d.id), { modo: e.target.value, act: serverTimestamp(), actPor: firma() }); pgLog('Forma de pago', (MODOS.find((x) => x[0] === e.target.value) || [])[1] || e.target.value, d.per).catch(console.error); } catch (err) { msg('rMsg', errorTexto(err)); } }
+  });
   $('gv_res').addEventListener('click', async (e) => {
     const d = pgDoc();
     if (!d) return;
@@ -3232,7 +3288,7 @@
     }
     const grandes = genCache.dists.map((d) => {
       const fs = d.filas || [], total = r2(fs.reduce((s, f) => s + (Number(f.m) || 0), 0)), di = distDe(d.dist);
-      return { tipo: 'Distribuidor', nombre: di.nombre, docs: fs.filter((f) => f.t !== 'NC').length, total, forma: di.pago === 'letras' ? (d.letras ? `${d.letras} letras` : 'Letras (sin definir)') : (di.pago === 'fecha' ? 'Fecha por factura' : 'Según vencimiento'), cuota: di.pago === 'letras' && d.letras ? r2(total / d.letras) : '' };
+      return { tipo: 'Distribuidor', nombre: di.nombre, docs: fs.filter((f) => f.t !== 'NC').length, total, forma: modoPago(d) === 'letras' ? (d.letras ? `${d.letras} letras` : 'Letras (sin definir)') : (modoPago(d) === 'fecha' ? 'Fecha por factura' : 'Según vencimiento'), cuota: di.pago === 'letras' && d.letras ? r2(total / d.letras) : '' };
     }).sort((a, b) => b.total - a.total);
     const porProv = new Map();
     genCache.cxp.forEach((f) => { const k = f.p; if (!porProv.has(k)) porProv.set(k, { tipo: 'Proveedor', nombre: k, docs: 0, total: 0, forma: f.g || '', cuota: '' }); const x = porProv.get(k); x.total = r2(x.total + (Number(f.m) || 0)); x.docs += f.n || 0; });
@@ -4415,9 +4471,9 @@
       CP_EMP.forEach((e) => {
         const d = docsP.find((x) => x.dist === di.k && x.emp === e.k);
         if (!d && e.k !== 'SOC') return;
-        const imp = d ? r2((d.filas || []).reduce((s, f) => s + (Number(f.m) || 0), 0)) : 0, n = d && di.pago === 'letras' ? (Number(d.letras) || 0) : 0;
+        const imp = d ? r2((d.filas || []).reduce((s, f) => s + (Number(f.m) || 0), 0)) : 0, pago = d ? modoPago(d) : di.pago, n = d && pago === 'letras' ? (Number(d.letras) || 0) : 0;
         const desde = d && n ? (d.desde || diasHabiles(`${per}-01`, 1).dias[0]) : '';
-        filas2.push({ sec: 'D', n: di.nombre + rpEmpTxt(e.k), imp, fa: imp, c: !d ? '' : (di.pago === 'letras' ? (n ? `${String(n).padStart(2, '0')} LETRAS` : 'FALTA DEFINIR LETRAS') : (di.pago === 'fecha' ? 'FECHA POR FACTURA' : 'SEGÚN VENCIMIENTO')), d: n ? r2(imp / n) : '', ini: rpDia(desde) });
+        filas2.push({ sec: 'D', n: di.nombre + rpEmpTxt(e.k), imp, fa: imp, c: !d ? '' : (pago === 'letras' ? (n ? `${String(n).padStart(2, '0')} LETRAS` : 'FALTA DEFINIR LETRAS') : (pago === 'fecha' ? 'FECHA POR FACTURA' : 'SEGÚN VENCIMIENTO')), d: n ? r2(imp / n) : '', ini: rpDia(desde) });
       });
     });
     // Cuentas por pagar: por plazo; con letras programadas va a LETRAS, si no a FACTURAS (pagado y saldo)
@@ -4776,6 +4832,13 @@
 
   /* =====================  H. TIPO DE DEVOLUCIÓN, REPORTE LOLFAR EN PAGOS Y SEGUIMIENTO DE ENTREGAS  ===================== */
   /* ---------- Motivos agrupados: A. devolución inmediata · B. devolución programada ---------- */
+  // Líneas que no son productos: el encabezado del Excel que se coló al importar (empresa, RUC, nombre del distribuidor)
+  function lineaBasura(p) {
+    const t = String(p ?? '').replace(/\s+/g, ' ').trim().toUpperCase();
+    if (!t) return true;
+    if (/^(FS SOCORRO|FS INNOVA|FARMACIA SOCORRO|HEALTH PREVENTIVE)\b/.test(t) || /^R\.?U\.?C\.?\s*:?\s*\d{8,11}\.?$/.test(t)) return true;
+    return pgCfg.dists.some((d) => String(d.nombre).toUpperCase().replace(/[.\s]+$/, '') === t.replace(/[.\s]+$/, ''));
+  }
   const DEV_INM = 'DEVOLUCIÓN INMEDIATA', DEV_PROG = 'DEVOLUCIÓN PROGRAMADA';
   const motNorm = (s) => String(s ?? '').trim().toLowerCase();
   function motivosProg() { return (listas.motivosProg || []).filter(Boolean); }
@@ -4829,7 +4892,8 @@
   }
 
   /* ---------- Pagos a proveedores: comparar con el reporte "Provisiones por Proveedor" de Lolfar ---------- */
-  let lf = null;
+  let lf = null, lfSel = new Set();
+  const lfK = (x) => `${x.t}|${x.s}|${x.n}`;
   async function lfSubir(e) {
     const a = e.target.files[0];
     e.target.value = '';
@@ -4872,6 +4936,7 @@
     if (!cn.rep) return;
     const dist = distDe(pgDist()), X = lfCruzar();
     lf = X; modo = 'lolfar'; abierto = null;
+    lfSel = new Set(X.falta.map(lfK)); // por defecto todas marcadas: se quitan las que no van a este mes
     $('dTit').textContent = `Reporte de Lolfar · ${dist.nombre}`;
     const tot = (l) => mil(r2(l.reduce((s, x) => s + (Number(x.m) || 0), 0))), n = X.falta.length + X.dist.length + X.ok.length;
     const provRep = [...X.provs].sort((a, b) => a[0].localeCompare(b[0])), mio = provRep.filter(([p]) => { const d = cnDestino(p); return d.tipo === 'pagos' && d.k === dist.k; }).map(([p]) => p);
@@ -4887,8 +4952,8 @@
         `<div class="kpi" style="border-color:var(--rojo)"><b>Faltan subir</b><strong class="baja">${X.falta.length}</strong><small>S/ ${tot(X.falta)}</small></div>` +
         `<div class="kpi"><b>Con otro importe</b><strong>${X.dist.length}</strong><small>revisar</small></div>` +
         `<div class="kpi"><b>Anuladas que siguen aquí</b><strong>${X.anul.length}</strong><small>revisar</small></div></div>` +
-        (X.falta.length ? `<p style="margin:0 0 4px">${puede('pagos') && pgDoc() ? `<button class="pri" id="lfPasar">Agregar las ${X.falta.length} que faltan a ${esc(perTxt(pgPer()))}</button> ` : ''}<button id="lfExp">Exportar a Excel</button> <span class="quien">Antes de guardar verás la vista previa y podrás quitar las que no correspondan a este mes.</span></p>` : '<div class="msg ok">Todo lo del reporte ya está subido.</div><p><button id="lfExp">Exportar a Excel</button></p>') +
-        tabla('Faltan subir', X.falta, base.concat([['Vence', (x) => esc(dia(x.v))]])) +
+        (X.falta.length ? `<p style="margin:0 0 4px">${puede('pagos') && pgDoc() ? `<button class="pri" id="lfPasar">Agregar las ${X.falta.length} marcadas a ${esc(perTxt(pgPer()))}</button> ` : ''}<button id="lfExp">Exportar a Excel</button> <span class="quien">Marca solo las que van a este mes; antes de guardar verás la vista previa.</span></p>` : '<div class="msg ok">Todo lo del reporte ya está subido.</div><p><button id="lfExp">Exportar a Excel</button></p>') +
+        tabla('Faltan subir', X.falta, [['<input type="checkbox" id="lfCkTodo" checked aria-label="Marcar todas">', (x) => `<input type="checkbox" class="lfCk" data-k="${esc(lfK(x))}" checked aria-label="Subir ${esc(x.s)}-${esc(x.n)}">`]].concat(base, [['Vence', (x) => esc(dia(x.v))]])) +
         tabla('Subidas con otro importe', X.dist, base.concat([['Importe aquí', (x) => mil(x.reg.f.m), 1], ['Diferencia', (x) => mil(r2(Math.abs(x.m) - Math.abs(x.reg.f.m))), 1], ['Mes a pagar', (x) => esc(perTxt(x.reg.per))]])) +
         tabla('Anuladas en Lolfar que siguen registradas aquí', X.anul, base.slice(0, 4).concat([['Importe aquí', (x) => mil(x.reg.f.m), 1], ['Mes a pagar', (x) => esc(perTxt(x.reg.per))]])) +
         tabla('Registradas aquí que no aparecen en el reporte (con fecha dentro del periodo del reporte)', X.sobra, [['Fecha', (x) => esc(dia(x.f.f))], ['Tipo', (x) => esc(x.f.t)], ['Serie', (x) => esc(x.f.s)], ['Número', (x) => `<b>${esc(x.f.n)}</b>`], ['Importe aquí', (x) => mil(x.f.m), 1], ['Mes a pagar', (x) => esc(perTxt(x.per))]]) +
@@ -4905,10 +4970,20 @@
     lfAbrir();
     try { await setDoc(doc(db, 'config', 'concilia'), { alias: cn.alias }); } catch (err) { msg('dMsg', 'No se pudo guardar la equivalencia: ' + errorTexto(err)); }
   });
+  $('dCuerpo').addEventListener('change', (e) => {
+    if (modo !== 'lolfar' || !lf) return;
+    const t = e.target;
+    if (t.id === 'lfCkTodo') { lfSel = new Set(t.checked ? lf.falta.map(lfK) : []); $('dCuerpo').querySelectorAll('.lfCk').forEach((c) => { c.checked = t.checked; }); }
+    else if (t.classList.contains('lfCk')) { if (t.checked) lfSel.add(t.dataset.k); else lfSel.delete(t.dataset.k); const todo = $('lfCkTodo'); if (todo) { todo.checked = lfSel.size === lf.falta.length; todo.indeterminate = lfSel.size > 0 && lfSel.size < lf.falta.length; } }
+    else return;
+    const b = $('lfPasar'); if (b) { const tot = r2(lf.falta.filter((x) => lfSel.has(lfK(x))).reduce((a, x) => a + (Number(x.m) || 0), 0)); b.textContent = `Agregar las ${lfSel.size} marcadas (S/ ${mil(tot)}) a ${perTxt(pgPer())}`; b.disabled = !lfSel.size; }
+  });
   $('dCuerpo').addEventListener('click', (e) => {
     if (modo !== 'lolfar' || !lf) return;
     if (e.target.id === 'lfPasar') { // pasa por "Pegar desde Excel": ahí se revisa y se guarda
-      const txt2 = lf.falta.map((x) => [dia(x.f).replace(/\//g, '-'), x.t, x.s, x.n, Number(x.m).toFixed(2)].join('\t')).join('\n');
+      const elegidas = lf.falta.filter((x) => lfSel.has(lfK(x)));
+      if (!elegidas.length) return msg('dMsg', 'Marca al menos una factura.');
+      const txt2 = elegidas.map((x) => [dia(x.f).replace(/\//g, '-'), x.t, x.s, x.n, Number(x.m).toFixed(2)].join('\t')).join('\n');
       dlgPegar(txt2);
     } else if (e.target.id === 'lfExp') {
       const sit = (k) => ({ falta: 'FALTA SUBIR', dist: 'Subida con otro importe', ok: 'Ya subida', anul: 'Anulada en Lolfar, sigue registrada' }[k]);
@@ -4949,6 +5024,7 @@
     sg.filas = out.filter((x) => { const k = x.emp + '|' + sgKey(x); if (vistos.has(k)) return false; vistos.add(k); return true; }).sort((a, b) => String(b.f).localeCompare(String(a.f)));
     sg.ent = ent; sg.avisos = avisos; sg.cargando = false;
   }
+  const sgParte = (p) => { const m = String(p ?? '').match(/^\s*(\d+(?:[.,]\d+)?)\s+(?:x\s+)?(\S.*)$/i); return m ? { q: m[1], d: m[2] } : { q: '', d: String(p ?? '').trim() }; }; // "3 Midazolam…" → cantidad 3
   const sgEnt = (x) => (sg.ent[x.emp] || {})[sgKey(x)] || null;
   const sgEntregado = (x) => { const e = sgEnt(x); return e ? e.e === true : x.conNc; }; // lo que ya tiene su NC se da por entregado
   const sgSit = (x) => (x.conNc ? 'Entregado · con NC' : (sgEntregado(x) ? 'Entregado · falta pedir NC' : 'Falta entregar'));
@@ -4982,28 +5058,28 @@
       kpi(SITS[1], 'Entregado · falta pedir NC', b, `pendiente de NC S/ ${mil(b.pend)}`, 'border-color:var(--marca)') +
       kpi(SITS[2], 'Entregado · con NC', c, `observado S/ ${mil(c.obs)}`, 'border-color:var(--ok)') + '</div>' +
       `<p class="resumen">${lista.length} factura(s) observadas · observado S/ ${mil(lista.reduce((s, x) => s + x.obs, 0))} · pendiente de NC S/ ${mil(lista.reduce((s, x) => s + x.pend, 0))}</p>` +
-      '<div class="tabla"><table><thead><tr><th>Fecha</th><th>Proveedor</th><th>Factura</th><th>¿Entregado?</th><th>Productos observados</th><th>Tipo de devolución</th><th class="num">Observado</th><th>NC aplicadas</th><th class="num">Aplicado</th><th class="num">Pendiente</th><th>Estado NC</th><th>Mes a pagar</th></tr></thead><tbody>' +
+      '<div class="tabla"><table><thead><tr><th>Fecha</th><th>Proveedor</th><th>Factura</th><th>Producto observado</th><th class="num">Cant.</th><th class="num">Monto</th><th>Tipo de devolución</th><th class="num">Observado</th><th>NC aplicadas</th><th class="num">Aplicado</th><th class="num">Pendiente</th><th>Estado NC</th><th>Entrega</th><th>Mes a pagar</th></tr></thead><tbody>' +
       (lista.map((x) => {
         const e = sgEnt(x), ok = sgEntregado(x), k = esc(x.emp + '¦' + sgKey(x));
         return `<tr><td>${esc(dia(x.f))}</td><td>${esc(x.prov)}${x.emp !== 'SOC' ? ` <span class="quien">${esc(x.emp)}</span>` : ''}</td><td><b>${esc(x.doc)}</b></td>` +
-          `<td><label class="sgChk"><input type="checkbox" class="sgE" data-k="${k}"${ok ? ' checked' : ''}${edita ? '' : ' disabled'}> ${ok ? 'Entregado' : 'Falta entregar'}</label>${e ? `<div class="quien">${esc(e.por || '')}${e.f ? ' · ' + esc(dia(e.f)) : ''}</div>` : (x.conNc ? '<div class="quien">por tener NC</div>' : '')}</td>` +
-          `<td class="larga">${x.lineas.map((l) => `${esc(l.p)}${l.m !== null && l.m !== undefined && l.m !== '' ? ` <span class="quien">(${esc(mil(l.m))})</span>` : ''}`).join('<br>')}</td>` +
+          `<td colspan="3" class="sgLin"><table>${x.lineas.map((l) => { const q = sgParte(l.p); return `<tr><td>${esc(q.d)}</td><td class="num">${esc(q.q)}</td><td class="num">${l.m !== null && l.m !== undefined && l.m !== '' ? mil(l.m) : ''}</td></tr>`; }).join('')}</table></td>` +
           `<td><span class="est ${x.tipo === DEV_INM ? 'e3' : 'e1'}">${esc(x.tipo)}</span></td><td class="num">${mil(x.obs)}</td><td>${x.ncs.map(esc).join('<br>') || '<span class="quien">—</span>'}</td><td class="num">${mil(x.aplicada)}</td><td class="num${x.pend ? ' baja' : ''}">${mil(x.pend)}</td>` +
           `<td><span class="est ${claseEst(x.est)}">${esc(x.est)}</span></td>` +
+          `<td class="sgEnt"><span class="sgDot ${x.conNc ? 'v' : (ok ? 'n' : 'r')}"></span><b>${x.conNc ? 'Entregado · con NC' : (ok ? 'Entregado · falta NC' : 'Falta entregar')}</b>${edita && !x.conNc ? (ok ? ` <button class="mini sgBtn" data-k="${k}" data-v="0">Deshacer</button>` : ` <button class="mini sgBtn si" data-k="${k}" data-v="1">✓ Entregado</button>`) : ''}${e ? `<div class="quien">${esc(e.por || '')}${e.f ? ' · ' + esc(dia(e.f)) : ''}</div>` : ''}</td>` +
           `<td>${esc(perTxt(x.per))}</td></tr>`;
-      }).join('') || '<tr><td colspan="12" class="vacio">Sin facturas en esta lista</td></tr>') + '</tbody></table></div>' +
-      '<p class="quien" style="margin:8px 0 0">Lo que ya tiene su nota de crédito completa se considera entregado. Marca "Entregado" cuando el proveedor recoja la mercadería: desde ahí solo falta pedir la NC.</p>';
+      }).join('') || '<tr><td colspan="14" class="vacio">Sin facturas en esta lista</td></tr>') + '</tbody></table></div>' +
+      '<p class="quien" style="margin:8px 0 0"><span class="sgDot r"></span>Falta entregar &nbsp; <span class="sgDot n"></span>Entregado, falta la NC &nbsp; <span class="sgDot v"></span>Entregado y con NC. Lo que ya tiene su nota de crédito completa se considera entregado. Marca "Entregado" cuando el proveedor recoja la mercadería: desde ahí solo falta pedir la NC.</p>';
   }
   $('sgFiltros').addEventListener('change', (e) => { if (e.target.id === 'sgProv') sg.prov = e.target.value; else if (e.target.id === 'sgSit') sg.sit = e.target.value; else return; sgPintar(); });
   $('sgFiltros').addEventListener('click', (e) => {
     if (e.target.id === 'sgAct') { sg.filas = null; sgPintar(); }
-    else if (e.target.id === 'sgExp') exportar('seguimiento-devoluciones', [['Fecha', (x) => dia(x.f)], ['Empresa', 'emp'], ['Proveedor', 'prov'], ['Factura', 'doc'], ['Productos observados', (x) => x.lineas.map((l) => `${l.p}${l.m ? ` (${mil(l.m)})` : ''}`).join('\n')], ['Tipo de devolución', 'tipo'], ['Monto observado', 'obs'], ['NC aplicadas', (x) => x.ncs.join(', ')], ['NC aplicada total', 'aplicada'], ['Pendiente de NC', 'pend'], ['Estado NC', 'est'], ['Situación', sgSit], ['Entregado por', (x) => (sgEnt(x) || {}).por || ''], ['Fecha de entrega', (x) => dia((sgEnt(x) || {}).f || '')], ['Mes a pagar', (x) => perTxt(x.per)]], sgVista());
+    else if (e.target.id === 'sgExp') exportar('seguimiento-devoluciones', [['Fecha', (x) => dia(x.f)], ['Empresa', 'emp'], ['Proveedor', 'prov'], ['Factura', 'doc'], ['Productos observados', (x) => x.lineas.map((l) => sgParte(l.p).d).join('\n')], ['Cantidades', (x) => x.lineas.map((l) => sgParte(l.p).q).join('\n')], ['Montos', (x) => x.lineas.map((l) => (l.m ? mil(l.m) : '')).join('\n')], ['Tipo de devolución', 'tipo'], ['Monto observado', 'obs'], ['NC aplicadas', (x) => x.ncs.join(', ')], ['NC aplicada total', 'aplicada'], ['Pendiente de NC', 'pend'], ['Estado NC', 'est'], ['Situación', sgSit], ['Entregado por', (x) => (sgEnt(x) || {}).por || ''], ['Fecha de entrega', (x) => dia((sgEnt(x) || {}).f || '')], ['Mes a pagar', (x) => perTxt(x.per)]], sgVista());
   });
   $('sgCont').addEventListener('click', (e) => { const b = e.target.closest('.sgKpi'); if (b) { sg.sit = sg.sit === b.dataset.sit ? '' : b.dataset.sit; sgPintar(); } });
-  $('sgCont').addEventListener('change', async (e) => {
-    const t = e.target;
-    if (!t.classList.contains('sgE')) return;
-    const i = t.dataset.k.indexOf('¦'), emp = t.dataset.k.slice(0, i), k = t.dataset.k.slice(i + 1), antes = (sg.ent[emp] || {})[k], val = { e: t.checked, por: firma(), f: hoy() };
+  $('sgCont').addEventListener('click', async (e) => {
+    const t = e.target.closest('.sgBtn');
+    if (!t) return;
+    const i = t.dataset.k.indexOf('¦'), emp = t.dataset.k.slice(0, i), k = t.dataset.k.slice(i + 1), antes = (sg.ent[emp] || {})[k], val = { e: t.dataset.v === '1', por: firma(), f: hoy() };
     sg.ent[emp] = { ...(sg.ent[emp] || {}), [k]: val };
     sgPintar();
     try { await setDoc(doc(db, 'devEnt', emp), { m: { [k]: val } }, { merge: true }); }
