@@ -2275,8 +2275,8 @@
   }
   function filaDetalle(f, c, edita) {
     const manual = (f.o || []).map((x, k) => (edita
-      ? `<tr><td><input class="gIn oProd" data-k="${k}" value="${esc(x.p)}" aria-label="Producto observado"></td><td><input class="gIn oCant n" data-k="${k}" value="${esc(x.q ?? '')}" aria-label="Cantidad"></td><td><input class="gIn oSin n" data-k="${k}" value="${x.m === null || x.m === undefined || x.m === '' ? '' : r2(Number(x.m) / 1.18)}" aria-label="Monto sin IGV"></td><td><input class="gIn oMonto n" data-k="${k}" value="${esc(x.m ?? '')}" aria-label="Monto con IGV"></td><td class="n"><button class="mini pel oQuitar" data-k="${k}" aria-label="Quitar">✕</button></td></tr>`
-      : `<tr><td class="larga">${esc(x.p)}</td><td class="n">${esc(x.q ?? '')}</td><td class="n">${x.m === null || x.m === undefined ? '' : esc(mil(r2(Number(x.m) / 1.18)))}</td><td class="n">${esc(mil(x.m))}</td><td></td></tr>`)).join('');
+      ? `<tr><td><input class="gIn oProd" data-k="${k}" value="${esc(x.p)}" aria-label="Producto observado"></td><td><input class="gIn oCant n" data-k="${k}" value="${esc(x.q ?? '')}" aria-label="Cantidad"></td><td><input class="gIn oMonto n" data-k="${k}" value="${esc(x.m ?? '')}" aria-label="Monto total con IGV"></td><td class="n"><button class="mini pel oQuitar" data-k="${k}" aria-label="Quitar">✕</button></td></tr>`
+      : `<tr><td class="larga">${esc(x.p)}</td><td class="n">${esc(x.q ?? '')}</td><td class="n">${esc(mil(x.m))}</td><td></td></tr>`)).join('');
     const rec = enlazadas(f);
     const pone = puede('precios');
     const recHtml = rec.length ? '<h4 style="margin-top:10px">Registrado en Observados</h4><table><tr><th>Producto</th><th class="n">Observado</th><th class="n">Devuelto</th><th>Situación</th><th class="n" style="width:110px">Precio unit.</th><th class="n">Monto</th></tr>' +
@@ -2293,7 +2293,7 @@
     const falta = r2(c.obs - c.aplicada);
     return `<tr class="det" data-d="${esc(f.i)}"><td colspan="12"><div class="detg">` +
       `<div><h4>Productos observados de ${esc(f.s)}-${esc(f.n)}</h4>` +
-      ((f.o || []).length || !rec.length ? `<table><tr><th>Producto observado (anotado a mano)</th><th class="n" style="width:80px">Cant.</th><th class="n" style="width:120px">Monto sin IGV</th><th class="n" style="width:120px">Monto con IGV</th><th style="width:40px"></th></tr>${manual}</table>` : '') +
+      ((f.o || []).length || !rec.length ? `<table><tr><th>Producto observado (anotado a mano)</th><th class="n" style="width:80px">Cant.</th><th class="n" style="width:160px">Monto total con IGV</th><th style="width:40px"></th></tr>${manual}</table>` : '') +
       `${edita ? '<button class="mini oMas">+ Agregar producto observado</button>' : ''}${recHtml}` +
       `<table style="margin-top:8px"><tr class="tot"><td>Total observado</td><td class="n" style="width:140px">${esc(mil(c.obs))}</td></tr></table></div>` +
       `<div><h4>Notas de crédito aplicadas</h4><table><tr><th>NC</th><th>Fecha</th><th class="n">Monto de la NC</th><th class="n">Aplicado aquí</th></tr>${ncs || '<tr><td colspan="4" class="quien">Ninguna todavía. Anota la serie y número en la columna "NC anotadas".</td></tr>'}` +
@@ -2552,7 +2552,7 @@
     const t = e.target;
     if (!t.matches('.oSin, .oMonto')) return;
     const otro = t.closest('tr').querySelector(t.classList.contains('oSin') ? '.oMonto' : '.oSin'), v = montoNum(t.value);
-    otro.value = v === null ? '' : String(r2(t.classList.contains('oSin') ? v * 1.18 : v / 1.18));
+    if (otro) otro.value = v === null ? '' : String(r2(t.classList.contains('oSin') ? v * 1.18 : v / 1.18));
   });
   // Seleccionar todo lo que se ve (con el filtro o la búsqueda puestos), como en una hoja de cálculo
   $('gCkTodo').addEventListener('change', (e) => { const v = filasVista(); v.forEach((f) => { if (e.target.checked) pgSel.add(f.i); else pgSel.delete(f.i); }); pintarPagos(true); });
