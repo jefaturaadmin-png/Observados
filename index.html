@@ -90,7 +90,7 @@
   #cpLado table td, #cpLado table th { padding:5px 6px; }
   .cpDos > aside { position:sticky; top:8px; margin:0; padding:14px; }
   @media (max-width:1150px) { .cpDos { grid-template-columns:1fr; } .cpDos > aside { position:static; } }
-  .rpHoja { max-width:980px; } .rpHoja table { font-size:13.5px; } .rpHoja td { border:1px solid #d9d4cc; padding:4px 9px; }
+  .rpHoja { max-width:1120px; } .rpHoja td.rpFa { color:#1f3864; } .rpHoja table { font-size:13.5px; } .rpHoja td { border:1px solid #d9d4cc; padding:4px 9px; }
   .rpHoja tr.rpTit td { background:#ffff00; color:#0070c0; font-weight:800; font-size:16px; text-align:center; text-decoration:underline; }
   .rpHoja tr.rpSec td { background:#ffff00; text-align:center; color:#b35c00; font-size:12px; } .rpHoja tr.rpSec td:first-child { background:#fff; font-size:13.5px; }
   .rpHoja td.rpNom { color:#1f3864; } .rpHoja td.rpImp { color:#1f3864; font-weight:700; } .rpHoja td.rpLet { color:#0070c0; text-align:center; font-size:12.5px; }
@@ -4281,7 +4281,7 @@
         if (!d && e.k !== 'SOC') return;
         const imp = d ? r2((d.filas || []).reduce((s, f) => s + (Number(f.m) || 0), 0)) : 0, n = d && di.pago === 'letras' ? (Number(d.letras) || 0) : 0;
         const desde = d && n ? (d.desde || diasHabiles(`${per}-01`, 1).dias[0]) : '';
-        filas2.push({ sec: 'D', n: di.nombre + rpEmpTxt(e.k), imp, c: !d ? '' : (di.pago === 'letras' ? (n ? `${String(n).padStart(2, '0')} LETRAS` : 'FALTA DEFINIR LETRAS') : (di.pago === 'fecha' ? 'FECHA POR FACTURA' : 'SEGÚN VENCIMIENTO')), d: n ? r2(imp / n) : '', ini: rpDia(desde) });
+        filas2.push({ sec: 'D', n: di.nombre + rpEmpTxt(e.k), imp, fa: imp, c: !d ? '' : (di.pago === 'letras' ? (n ? `${String(n).padStart(2, '0')} LETRAS` : 'FALTA DEFINIR LETRAS') : (di.pago === 'fecha' ? 'FECHA POR FACTURA' : 'SEGÚN VENCIMIENTO')), d: n ? r2(imp / n) : '', ini: rpDia(desde) });
       });
     });
     // Cuentas por pagar: por plazo; con letras programadas va a LETRAS, si no a FACTURAS (pagado y saldo)
@@ -4293,17 +4293,18 @@
       C.provs.forEach((p) => {
         if (emp === 'SOC' && pp === per) vistos.add(p.prov);
         const kk = emp + '|' + p.prov;
-        const A = () => { if (!acu.has(kk)) acu.set(kk, { emp, prov: p.prov, pl: '', plP: false, imp: 0, pag: 0, nL: 0, impL: 0, vs: [], hay: false }); const a = acu.get(kk); if (!a.plP) { a.pl = p.plazo === '' ? '' : p.plazo; a.plP = pp === per; } return a; };
+        const A = () => { if (!acu.has(kk)) acu.set(kk, { emp, prov: p.prov, pl: '', plP: false, imp: 0, fa: 0, pag: 0, nL: 0, impL: 0, vs: [], hay: false }); const a = acu.get(kk); if (!a.plP) { a.pl = p.plazo === '' ? '' : p.plazo; a.plP = pp === per; } return a; };
         if (pp === per) A().hay = true;
         p.cuadros.forEach((c) => {
+          const faC = c.docs.filter((f) => f.t === 'FACTURA').reduce((t, f) => t + (Number(f.m) || 0), 0);
           if (c.n) c.cuotas.forEach((q) => {
             const mes = q.v && q.v.slice(0, 7) > pp ? q.v.slice(0, 7) : pp;
             if (mes !== per) { if (pp === per) fuera++; return; }
             if (pp !== per) traidas++;
-            const a = A(); a.hay = true; a.imp += q.m; if (q.pg) a.pag += q.m; else if (q.v) a.vs.push(q.v);
+            const a = A(); a.hay = true; a.imp += q.m; a.fa += Math.abs(c.neto) > 0.005 ? faC * q.m / c.neto : faC / c.n; if (q.pg) a.pag += q.m; else if (q.v) a.vs.push(q.v);
             if (/LETRA/i.test(c.mod)) { a.nL++; a.impL += q.m; }
           });
-          else if (pp === per) { const a = A(); a.imp += c.neto; a.pag += c.pagado; c.docs.filter((f) => f.t === 'FACTURA' && !f.pg && f.v).forEach((f) => a.vs.push(f.v)); }
+          else if (pp === per) { const a = A(); a.imp += c.neto; a.fa += faC; a.pag += c.pagado; c.docs.filter((f) => f.t === 'FACTURA' && !f.pg && f.v).forEach((f) => a.vs.push(f.v)); }
         });
       });
     });
@@ -4311,29 +4312,30 @@
       if (!a.hay) return;
       if (a.emp === 'SOC') vistos.add(a.prov);
       const imp = r2(a.imp), pag = r2(a.pag), sal = r2(imp - pag), v0 = a.vs.sort()[0];
-      if (a.nL) filas2.push({ sec: 'L', pl: a.pl, n: a.prov + rpEmpTxt(a.emp), imp, c: `${String(a.nL).padStart(2, '0')} ${a.nL === 1 ? 'LETRA' : 'LETRAS'}`, d: r2(a.impL / a.nL), ini: rpDia(v0) });
-      else filas2.push({ sec: 'F', pl: a.pl, n: a.prov + rpEmpTxt(a.emp), imp, c: pag, d: sal, ini: sal > 0.05 ? rpDia(v0) : '' });
+      if (a.nL) filas2.push({ sec: 'L', pl: a.pl, n: a.prov + rpEmpTxt(a.emp), imp, fa: r2(a.fa), c: `${String(a.nL).padStart(2, '0')} ${a.nL === 1 ? 'LETRA' : 'LETRAS'}`, d: r2(a.impL / a.nL), ini: rpDia(v0) });
+      else filas2.push({ sec: 'F', pl: a.pl, n: a.prov + rpEmpTxt(a.emp), imp, fa: r2(a.fa), c: pag, d: sal, ini: sal > 0.05 ? rpDia(v0) : '' });
     });
     rp.notaMes = (fuera ? `${fuera} letra(s) o cuota(s) registradas en este mes vencen en un mes posterior y se suman allá. ` : '') + (traidas ? `${traidas} letra(s) o cuota(s) de meses anteriores vencen en este mes y se suman aquí.` : '');
-    cpCfg.provs.filter((p) => p.act !== false && !vistos.has(p.n)).forEach((p) => filas2.push({ sec: 'F', pl: cpStd(p.pl), n: p.n, imp: 0, c: 0, d: 0, ini: '' })); // habituales sin compras este mes
+    cpCfg.provs.filter((p) => p.act !== false && !vistos.has(p.n)).forEach((p) => filas2.push({ sec: 'F', pl: cpStd(p.pl), n: p.n, imp: 0, fa: 0, c: 0, d: 0, ini: '' })); // habituales sin compras este mes
     const m = man && man.exists() ? man.data() : {};
-    rp = { per, nota: rp.notaMes || '', filas: filas2, man: { cred: m.cred || RP_CRED.map((n) => ({ n, imp: '', c: '', d: '', ini: '' })), extra: m.extra || [] }, cargando: false, avisos, guardado: !!(man && man.exists()) };
+    rp = { per, nota: rp.notaMes || '', filas: filas2, man: { cred: m.cred || RP_CRED.map((n) => ({ n, imp: '', c: '', d: '', ini: '', fa: '' })), extra: m.extra || [] }, cargando: false, avisos, guardado: !!(man && man.exists()) };
   }
   function rpSecciones() { // bloques en el orden de la hoja
-    const out = [{ tit: 'CRÉDITOS BANCARIOS', color: '#ff0000', man: 'cred', cab: ['IMPORTE', 'LETRAS', 'IMPORTE', 'INICIO'], filas: rp.man.cred }];
-    out.push({ tit: 'LETRAS · DISTRIBUIDORES', color: '#ff0000', cab: ['IMPORTE', 'LETRAS', 'IMPORTE', 'INICIO'], filas: rp.filas.filter((f) => f.sec === 'D') });
+    const out = [{ tit: 'CRÉDITOS BANCARIOS', color: '#ff0000', man: 'cred', cab: ['IMPORTE', 'LETRAS', 'IMPORTE', 'INICIO', 'T. FACTURAS'], filas: rp.man.cred }];
+    out.push({ tit: 'LETRAS · DISTRIBUIDORES', color: '#ff0000', cab: ['IMPORTE', 'LETRAS', 'IMPORTE', 'INICIO', 'T. FACTURAS'], filas: rp.filas.filter((f) => f.sec === 'D') });
     const plz = (sec) => unicos(rp.filas.filter((f) => f.sec === sec).map((f) => String(f.pl))).map((x) => (x === '' ? '' : Number(x))).sort((a, b) => (b === '' ? -1 : b) - (a === '' ? -1 : a));
     const hayVacio = (sec) => rp.filas.some((f) => f.sec === sec && f.pl === '');
-    [['L', 'LETRAS', '#ed7d31', ['IMPORTE', 'LETRAS', 'IMPORTE', 'INICIO']], ['F', 'FACTURAS', '#0070c0', ['IMPORTE', 'PAGADO', 'SALDO', 'VENCE']]].forEach(([sec, nom, color, cab]) => {
+    [['L', 'LETRAS', '#ed7d31', ['IMPORTE', 'LETRAS', 'IMPORTE', 'INICIO', 'T. FACTURAS']], ['F', 'FACTURAS', '#0070c0', ['IMPORTE', 'PAGADO', 'SALDO', 'VENCE', 'T. FACTURAS']]].forEach(([sec, nom, color, cab]) => {
       plz(sec).concat(hayVacio(sec) ? [''] : []).filter((v, i, a) => a.indexOf(v) === i).forEach((pl) => {
         const fs = rp.filas.filter((f) => f.sec === sec && f.pl === pl).sort((a, b) => (b.imp !== 0) - (a.imp !== 0) || a.n.localeCompare(b.n));
         if (fs.length) out.push({ tit: pl === '' ? `${nom} SIN PLAZO` : (pl === 0 ? `${nom} AL CONTADO` : `${nom} ${pl} DIAS`), color, cab, filas: fs, esF: sec === 'F' });
       });
     });
-    out.push({ tit: 'OTROS PAGOS (SUNAT, IMPUESTOS, ETC.)', color: '#7030a0', man: 'extra', cab: ['IMPORTE', 'PAGADO', 'SALDO', 'INICIO'], filas: rp.man.extra, esF: true });
+    out.push({ tit: 'OTROS PAGOS (SUNAT, IMPUESTOS, ETC.)', color: '#7030a0', man: 'extra', cab: ['IMPORTE', 'PAGADO', 'SALDO', 'INICIO', 'T. FACTURAS'], filas: rp.man.extra, esF: true });
     return out;
   }
   const rpNum = (v) => (v === '' || v === null || v === undefined ? null : (typeof v === 'number' ? v : montoNum(v)));
+  const rpTotalFa = () => r2(rp.filas.reduce((s, f) => s + (Number(f.fa) || 0), 0) + rp.man.cred.concat(rp.man.extra).reduce((s, f) => s + (rpNum(f.fa) || 0), 0));
   const rpTotal = () => r2(rp.filas.reduce((s, f) => s + (Number(f.imp) || 0), 0) + rp.man.cred.concat(rp.man.extra).reduce((s, f) => s + (rpNum(f.imp) || 0), 0));
   function rpPintar() {
     const caja = $('cv_res'), per = cpPer();
@@ -4351,20 +4353,20 @@
       s.filas.forEach((f, k) => {
         if (s.man && edita) {
           const inp = (c, ph, cls) => `<td><input class="gIn rpIn${cls || ''}" data-s="${s.man}" data-k="${k}" data-c="${c}" value="${esc(f[c] ?? '')}" placeholder="${ph}" aria-label="${ph}"></td>`;
-          h += `<tr class="rpMan">${inp('n', 'Nombre')}${inp('imp', 'Importe', ' n')}${inp('c', s.esF ? 'Pagado' : 'Letras', s.esF ? ' n' : '')}${inp('d', s.esF ? 'Saldo' : 'Importe letra', ' n')}${inp('ini', 'Inicio')}<td class="rpX"><button class="mini pel rpQuitar" data-s="${s.man}" data-k="${k}" aria-label="Quitar">✕</button></td></tr>`;
+          h += `<tr class="rpMan">${inp('n', 'Nombre')}${inp('imp', 'Importe', ' n')}${inp('c', s.esF ? 'Pagado' : 'Letras', s.esF ? ' n' : '')}${inp('d', s.esF ? 'Saldo' : 'Importe letra', ' n')}${inp('ini', 'Inicio')}${inp('fa', 'T. facturas', ' n')}<td class="rpX"><button class="mini pel rpQuitar" data-s="${s.man}" data-k="${k}" aria-label="Quitar">✕</button></td></tr>`;
           return;
         }
         const imp = s.man ? rpNum(f.imp) : f.imp, c = s.man && s.esF ? rpNum(f.c) : f.c, d = s.man ? rpNum(f.d) : f.d;
         h += `<tr><td class="rpNom">${esc(f.n)}</td>${num(imp ?? '', 'rpImp')}` +
-          (typeof c === 'number' ? num(c, 'rpPag') : `<td class="rpLet">${esc(c ?? '')}</td>`) + num(d ?? '', s.esF ? (Number(d) > 0.05 ? 'rpSal' : 'rpCero') : 'rpCuo') + `<td class="rpIni">${esc(f.ini || '')}</td>${edita ? '<td class="rpX"></td>' : ''}</tr>`;
+          (typeof c === 'number' ? num(c, 'rpPag') : `<td class="rpLet">${esc(c ?? '')}</td>`) + num(d ?? '', s.esF ? (Number(d) > 0.05 ? 'rpSal' : 'rpCero') : 'rpCuo') + `<td class="rpIni">${esc(f.ini || '')}</td>${num((s.man ? rpNum(f.fa) : f.fa) ?? '', 'rpFa')}${edita ? '<td class="rpX"></td>' : ''}</tr>`;
       });
-      if (s.man && edita) h += `<tr><td colspan="6"><button class="mini rpMas" data-s="${s.man}">+ Agregar fila</button></td></tr>`;
-      h += `<tr class="rpBlanco"><td colspan="${edita ? 6 : 5}">&nbsp;</td></tr>`;
+      if (s.man && edita) h += `<tr><td colspan="7"><button class="mini rpMas" data-s="${s.man}">+ Agregar fila</button></td></tr>`;
+      h += `<tr class="rpBlanco"><td colspan="${edita ? 7 : 6}">&nbsp;</td></tr>`;
     });
     caja.innerHTML = (rp.avisos.length ? `<div class="msg err">${rp.avisos.map(esc).join(' ')}</div>` : '') +
       `<div class="herr"><span class="quien">Los distribuidores salen de Pagos a proveedores y los demás de Cuentas por pagar (todas las empresas). ${edita ? 'Los créditos bancarios y "Otros pagos" se escriben aquí.' : ''} ${esc(rp.nota || '')}</span><span style="flex:1"></span><button id="rpAct">Actualizar</button><button class="pri" id="rpExcel">Descargar Excel</button></div><div id="rpMsg"></div>` +
-      `<div class="tabla rpHoja"><table><tr class="rpTit"><td colspan="${edita ? 6 : 5}">RESUMEN DE PAGOS ${esc(perTxt(per))}</td></tr>${h}` +
-      `<tr class="rpTot"><td style="text-align:right">TOTAL</td><td class="num">${mil(rpTotal())}</td><td colspan="${edita ? 4 : 3}"></td></tr></table></div>`;
+      `<div class="tabla rpHoja"><table><tr class="rpTit"><td colspan="${edita ? 7 : 6}">RESUMEN DE PAGOS ${esc(perTxt(per))}</td></tr>${h}` +
+      `<tr class="rpTot"><td style="text-align:right">TOTAL</td><td class="num">${mil(rpTotal())}</td><td colspan="3"></td><td class="num rpTFa">${mil(rpTotalFa())}</td>${edita ? '<td class="rpX"></td>' : ''}</tr></table></div>`;
   }
   async function rpGuardar() {
     try { await setDoc(doc(db, 'cpRes', rp.per), { cred: rp.man.cred, extra: rp.man.extra, act: serverTimestamp(), actPor: firma() }); msg('rpMsg', ''); }
@@ -4376,29 +4378,29 @@
     const f = rp.man[t.dataset.s][Number(t.dataset.k)], c = t.dataset.c;
     f[c] = c === 'n' || c === 'ini' ? may(t.value, 80) : txt(t.value, 40);
     rpGuardar();
-    const tot = $('cv_res').querySelector('.rpTot td.num'); if (tot) tot.textContent = mil(rpTotal());
+    const tot = $('cv_res').querySelector('.rpTot td.num'); if (tot) tot.textContent = mil(rpTotal()); const tf = $('cv_res').querySelector('.rpTFa'); if (tf) tf.textContent = mil(rpTotalFa());
   });
   $('cv_res').addEventListener('click', (e) => {
     const t = e.target;
     if (t.id === 'rpAct') { rp.filas = null; return rpPintar(); }
-    if (t.classList.contains('rpMas')) { rp.man[t.dataset.s].push({ n: '', imp: '', c: '', d: '', ini: '' }); rpPintar(); const ins = $('cv_res').querySelectorAll(`.rpIn[data-s="${t.dataset.s}"][data-c="n"]`); if (ins.length) ins[ins.length - 1].focus(); return; }
+    if (t.classList.contains('rpMas')) { rp.man[t.dataset.s].push({ n: '', imp: '', c: '', d: '', ini: '', fa: '' }); rpPintar(); const ins = $('cv_res').querySelectorAll(`.rpIn[data-s="${t.dataset.s}"][data-c="n"]`); if (ins.length) ins[ins.length - 1].focus(); return; }
     if (t.classList.contains('rpQuitar')) { rp.man[t.dataset.s].splice(Number(t.dataset.k), 1); rpGuardar(); return rpPintar(); }
     if (t.id === 'rpExcel') rpExcel();
   });
   function rpExcel() { // hoja con los mismos colores del formato
     const b = 'border:1px solid #bfbfbf;', n2 = "mso-number-format:'\\#\\,\\#\\#0\\.00';text-align:right;", td = (v, st, col) => `<td${col ? ` colspan="${col}"` : ''} style="${b}font-family:Calibri;font-size:11pt;${st || ''}">${v === null || v === undefined ? '' : (typeof v === 'number' ? v.toFixed(2) : esc(v))}</td>`;
-    let h = `<tr>${td('RESUMEN DE PAGOS ' + perTxt(rp.per), 'background:#ffff00;color:#0070c0;font-weight:bold;font-size:14pt;text-align:center;text-decoration:underline;', 5)}</tr><tr>${td('', '', 5)}</tr>`;
+    let h = `<tr>${td('RESUMEN DE PAGOS ' + perTxt(rp.per), 'background:#ffff00;color:#0070c0;font-weight:bold;font-size:14pt;text-align:center;text-decoration:underline;', 6)}</tr><tr>${td('', '', 6)}</tr>`;
     rpSecciones().forEach((s) => {
       h += `<tr>${td(s.tit, `color:${s.color};text-align:center;`)}${s.cab.map((c, i) => td(c, `background:#ffff00;text-align:center;color:${i === 0 ? '#375623' : '#ed7d31'};`)).join('')}</tr>`;
       s.filas.forEach((f) => {
         const imp = s.man ? rpNum(f.imp) : f.imp, c = s.man && s.esF ? rpNum(f.c) : f.c, d = s.man ? rpNum(f.d) : f.d;
         h += `<tr>${td(f.n, 'color:#1f3864;')}${td(imp, n2 + 'color:#1f3864;font-weight:bold;')}${typeof c === 'number' ? td(c, n2 + 'color:#70ad47;') : td(c, 'color:#0070c0;text-align:center;')}` +
-          `${td(typeof d === 'number' ? d : (d || ''), n2 + `color:${s.esF ? (Number(d) > 0.05 ? '#ff0000' : '#0070c0') : '#0070c0'};`)}${td(f.ini || '', 'color:#375623;text-align:center;')}</tr>`;
+          `${td(typeof d === 'number' ? d : (d || ''), n2 + `color:${s.esF ? (Number(d) > 0.05 ? '#ff0000' : '#0070c0') : '#0070c0'};`)}${td(f.ini || '', 'color:#375623;text-align:center;')}${td((s.man ? rpNum(f.fa) : f.fa) ?? '', n2 + 'color:#1f3864;')}</tr>`;
       });
-      h += `<tr>${td('', '', 5)}</tr>`;
+      h += `<tr>${td('', '', 6)}</tr>`;
     });
-    h += `<tr>${td('TOTAL', 'text-align:right;font-weight:bold;')}${td(rpTotal(), n2 + 'background:#ffff00;font-weight:bold;font-size:12pt;border:2px solid #000;')}${td('', '', 3)}</tr>`;
-    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"></head><body><table style="border-collapse:collapse"><col width="330"><col width="120"><col width="130"><col width="120"><col width="110">${h}</table></body></html>`;
+    h += `<tr>${td('TOTAL', 'text-align:right;font-weight:bold;')}${td(rpTotal(), n2 + 'background:#ffff00;font-weight:bold;font-size:12pt;border:2px solid #000;')}${td('', '', 3)}${td(rpTotalFa(), n2 + 'font-weight:bold;')}</tr>`;
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"></head><body><table style="border-collapse:collapse"><col width="330"><col width="120"><col width="130"><col width="120"><col width="110"><col width="120">${h}</table></body></html>`;
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob(['﻿' + html], { type: 'application/vnd.ms-excel' }));
     a.download = `RESUMEN DE PAGOS ${perTxt(rp.per)}.xls`;
