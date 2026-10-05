@@ -430,6 +430,7 @@
     <!-- ===== 9. COTIZACIONES ===== -->
     <div id="vCot" class="oculto">
       <div class="subnav" id="ctSub"><button data-tv="lista">Cotizaciones</button><button data-tv="ped">Pedidos aprobados</button><button data-tv="prov">Proveedores y códigos</button></div>
+      <input type="file" id="ctArch" accept=".xls,.xlsx" class="oculto"><input type="file" id="ctArchR" accept=".xls,.xlsx" class="oculto">
       <div id="ctCont"></div>
     </div>
     <!-- ===== 8. SEGUIMIENTO DE DEVOLUCIONES ===== -->
@@ -5015,7 +5016,7 @@
     ct.sel = '';
     const t = ct.fTxt.trim().toLowerCase(), lista = ct.lista.filter((x) => (!ct.fEst || ctEstado(x).startsWith(ct.fEst)) && (!t || [x.cod, x.lab, x.prov, x.n].join(' ').toLowerCase().includes(t)));
     const cuenta = (re) => ct.lista.filter((x) => re.test(ctEstado(x))).length;
-    $('ctCont').innerHTML = '<div class="herr">' + (puede('cot') ? '<button class="pri" id="ctNueva">+ Nueva cotización</button><input type="file" id="ctArch" accept=".xls,.xlsx" class="oculto">' : '') +
+    $('ctCont').innerHTML = '<div class="herr">' + (puede('cot') ? '<button class="pri" id="ctNueva">+ Nueva cotización (subir Excel de la solicitud)</button>' : '') +
       `<select id="ctFEst" style="width:auto"><option value="">Todos los estados</option>${['ENVIADA', 'EN PROCESO', 'SIN RESPUESTA', 'RESPONDIDA', 'OBSERVADA', 'APROBADA', 'LLEGADA PARCIAL', 'RECIBIDA', 'RECHAZADA'].map((e) => `<option${e === ct.fEst ? ' selected' : ''}>${e}</option>`).join('')}</select>` +
       `<input id="ctFTxt" placeholder="Buscar código, laboratorio, proveedor…" value="${esc(ct.fTxt)}" style="flex:1;min-width:200px"></div><div id="ctMsg"></div>` +
       '<div class="kpis">' + [['Esperando respuesta', cuenta(/^ENVIADA|EN PROCESO/)], ['Vencidas sin respuesta', cuenta(/VENCIDA/)], ['Respondidas por revisar', cuenta(/^RESPONDIDA|OBSERVADA/)], ['Aprobadas por llegar', cuenta(/POR LLEGAR|PARCIAL/)]].map(([a, b]) => `<div class="kpi"><b>${a}</b><strong>${b}</strong></div>`).join('') + '</div>' +
@@ -5027,7 +5028,7 @@
   /* ---------- Nueva cotización: leer el Excel "SOLICITUD DE COTIZACIÓN" ---------- */
   function ctLeerHoja(lib) {
     const X = window.XLSX, nom = lib.SheetNames.find((n) => /^OC$/i.test(n)) || lib.SheetNames[0], ws = lib.Sheets[nom];
-    const tabla = X.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' }), r0 = ws['!ref'] ? X.utils.decode_range(ws['!ref']).s.r : 0, ocultas = ws['!rows'] || [];
+    const tabla = X.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '', blankrows: true }), r0 = ws['!ref'] ? X.utils.decode_range(ws['!ref']).s.r : 0, ocultas = ws['!rows'] || [];
     const out = { n: '', para: '', fecha: '', lab: '', items: [], hayOcultas: false };
     const junto = (r, i) => (r || []).slice(i + 1).find((x) => x !== '' && x !== null && x !== undefined);
     let cab = -1, col = {};
@@ -5064,7 +5065,7 @@
     e.target.value = '';
     if (!a) return;
     try {
-      msg('ctMsg', 'Leyendo el Excel…', 'ok');
+      msg('ctMsg', `Leyendo ${a.name}…`, 'ok');
       await cargarXlsx();
       const hoja = ctLeerHoja(window.XLSX.read(await a.arrayBuffer(), { type: 'array', cellStyles: true }));
       msg('ctMsg', '');
@@ -5073,7 +5074,7 @@
       const nLab = hoja.lab.replace(/[^A-Z0-9]/g, ''), auto = [...labs.keys()].find((l) => l && nLab.startsWith(l)) || '';
       ct.nueva = { hoja, labs, filtro: hoja.hayOcultas ? '*vis' : (auto || '*todo') };
       ctDlgNueva();
-    } catch (err) { msg('ctMsg', errorTexto(err)); }
+    } catch (err) { console.error(err); if ($('ctMsg')) msg('ctMsg', 'No se pudo leer el Excel: ' + errorTexto(err)); else alert('No se pudo leer el Excel: ' + errorTexto(err)); }
   }
   const ctItemsNueva = () => { const N = ct.nueva; return N.hoja.items.filter((x) => (N.filtro === '*todo' ? true : (N.filtro === '*vis' ? !x.oc : x.l === N.filtro))); };
   function ctDlgNueva() {
@@ -5135,7 +5136,7 @@
     const inp = (f, k, v, cls, tipo) => (edita && abierta ? `<input class="gIn ctR${cls || ''}" data-c="${esc(f.x.c)}" data-k="${k}"${tipo ? ` type="${tipo}"` : ''} value="${esc(v ?? '')}">` : esc(k === 'ven' ? dia(v) : (v ?? '')));
     const msgs = (p.chat || []).map((m) => ({ ...m, pub: true })).concat((c.notas || []).map((m) => ({ ...m, pub: false }))).sort((a, b) => String(a.f).localeCompare(String(b.f)));
     $('ctCont').innerHTML = `<div class="herr"><button id="ctVolver">← Cotizaciones</button><h2 class="sec" style="margin:0">${esc(c.cod)} · N° ${esc(c.n)}</h2><span class="est ${ctClase(e)}">${esc(e)}</span><span style="flex:1"></span>` +
-      (edita && abierta ? '<button id="ctRespXls">Cargar Excel respondido</button><input type="file" id="ctArchR" accept=".xls,.xlsx" class="oculto">' : '') +
+      (edita && abierta ? '<button id="ctRespXls">Cargar Excel respondido</button>' : '') +
       (decide ? '<button class="pri" id="ctAprobar">Aprobar lo marcado</button><button id="ctObservar">Observar</button><button class="pel" id="ctRechazar">Rechazar</button>' : '') +
       (!abierta && (puede('cot') || puede('cotAprobar')) ? '<button id="ctReabrir">Reabrir</button>' : '') + (edita ? '<button class="pel" id="ctBorrar">Eliminar</button>' : '') + '</div><div id="ctMsg"></div>' +
       `<div class="caja" style="padding:12px 16px"><div class="ctDatos"><div><b>Laboratorio</b>${esc(c.lab)}</div><div><b>Proveedor</b>${esc(c.prov)}</div><div><b>Fecha</b>${esc(dia(c.fecha))}</div><div><b>Vence</b>${esc(dia(c.vence))}</div><div><b>Respondió</b>${p.enviado ? `${esc(p.respNom || 'proveedor')} · ${esc(ctHora(p.respFecha))}` : (nResp ? `en proceso (${nResp} de ${F.length})` : 'aún no')}</div>${c.dec ? `<div><b>${esc(c.estado)}</b>${esc(c.dec.por)} · ${esc(dia(c.dec.f))}${c.entrega ? ` · entrega hasta ${esc(dia(c.entrega))}` : ''}</div>` : ''}</div>` +
@@ -5176,6 +5177,8 @@
       }
     } catch (e) { msg('ctMsg', errorTexto(e)); }
   }
+  $('ctArch').addEventListener('change', (e) => ctSubir(e, null));
+  $('ctArchR').addEventListener('change', (e) => ctSubir(e, ct.lista.find((x) => x.id === ct.sel)));
   $('ctSub').addEventListener('click', (e) => { const b = e.target.closest('button[data-tv]'); if (b) { if (b.dataset.tv === 'lista' && ct.vista === 'lista') ct.sel = ''; ct.vista = b.dataset.tv; ctPintar(true); } });
   $('ctCont').addEventListener('focusout', () => ctLuego());
   $('ctCont').addEventListener('input', (e) => { const t = e.target; if (t.id === 'ctFTxt') { ct.fTxt = t.value; ctPintarSoloLista(); } else if (t.id === 'cpgTxt') { ct.pTxt = t.value; ctPedCuerpo(); } });
@@ -5203,8 +5206,6 @@
   });
   $('ctCont').addEventListener('change', async (e) => {
     const t = e.target, c = ct.lista.find((x) => x.id === ct.sel);
-    if (t.id === 'ctArch') return ctSubir(e, null);
-    if (t.id === 'ctArchR') return ctSubir(e, c);
     if (t.id === 'ctFEst') { ct.fEst = t.value; return ctPintar(true); }
     if (t.id === 'cpgEst') { ct.pEst = t.value; return ctPedCuerpo(); }
     if (t.id === 'cpgProv') { ct.pProv = t.value; return ctPedCuerpo(); }
