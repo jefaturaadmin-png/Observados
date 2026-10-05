@@ -109,6 +109,11 @@
   .ctDatos { display:flex; gap:8px 28px; flex-wrap:wrap; } .ctDatos div b { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:var(--gris); }
   .ctTabla .gIn { width:100%; min-width:84px; padding:4px 6px; border:1px solid var(--borde); border-radius:5px; font-size:13px; } .ctTabla .gIn.n { text-align:right; } .ctTabla td { vertical-align:middle; } tr.ctNa td { background:#fbf3f2; }
   .ctChat { display:flex; flex-direction:column; gap:8px; max-height:340px; overflow:auto; } .ctMsg { background:#f4f1ec; border-radius:10px; padding:8px 12px; max-width:760px; white-space:pre-wrap; } .ctMsg.int { background:#fff8e6; border:1px dashed #e0c98a; } .ctMsg.prov { background:#e8f0fb; align-self:flex-end; }
+  tr.ctObs td { background:#fff8e6; } .ctObsT { color:#8a5a00; font-size:12.5px; font-weight:600; margin-top:2px; }
+  .pvHecho { position:fixed; inset:0; z-index:90; background:rgba(20,30,25,.72); display:flex; align-items:center; justify-content:center; padding:16px; }
+  .pvHechoC { background:#fff; border-radius:18px; padding:34px 30px; max-width:480px; width:100%; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.3); } .pvHechoC h2 { margin:14px 0 8px; font-size:24px; }
+  .pvCheck { width:92px; height:92px; border-radius:50%; background:var(--ok); color:#fff; font-size:56px; line-height:92px; margin:0 auto; font-weight:800; animation:pvPop .35s ease-out; } @keyframes pvPop { from { transform:scale(.3); opacity:0; } to { transform:scale(1); opacity:1; } }
+  @media (prefers-reduced-motion: reduce) { .pvCheck { animation:none; } }
   .pvCab { background:var(--marca); color:#fff; padding:14px 20px; font-size:15px; } .pvCuerpo { max-width:1300px; margin:0 auto; padding:16px; }
   .rpHoja { max-width:1120px; } .rpHoja td.rpFa { color:#1f3864; } .rpHoja table { font-size:13.5px; } .rpHoja td { border:1px solid #d9d4cc; padding:4px 9px; }
   .rpHoja tr.rpTit td { background:#ffff00; color:#0070c0; font-weight:800; font-size:16px; text-align:center; text-decoration:underline; }
@@ -4971,13 +4976,14 @@
   const ctProvNom = (s) => String(s || '').replace(/ /g, ' ').replace(/\s*RUC\s*:?\s*\d{11}.*$/i, '').replace(/\s+-\s*$/, '').trim().toUpperCase();
   function ctEstado(c) { // estado que se muestra, mezclando lo interno con lo que respondió el proveedor
     if (c.estado === 'APROBADA') { const t = ctRecTot(c); return t.pend === 0 ? 'RECIBIDA' : (t.lleg > 0 ? 'LLEGADA PARCIAL' : 'APROBADA · POR LLEGAR'); }
-    if (c.estado === 'RECHAZADA' || c.estado === 'OBSERVADA') return c.estado;
     const p = ctPubDe(c);
+    if (c.estado === 'OBSERVADA') return p.enviado ? 'CORREGIDA · POR REVISAR' : 'OBSERVADA';
+    if (c.estado === 'RECHAZADA') return c.estado;
     if (p.enviado) return 'RESPONDIDA';
     if (Object.keys(p.resp || {}).length) return 'EN PROCESO';
     return c.vence && c.vence < hoy() ? 'SIN RESPUESTA · VENCIDA' : 'ENVIADA';
   }
-  const ctClase = (e) => (/RECIBIDA|APROBADA/.test(e) ? 'e2' : (/RECHAZ|VENCIDA/.test(e) ? 'alerta' : (/RESPONDIDA|PARCIAL/.test(e) ? 'e3' : (/OBSERV/.test(e) ? 'e0' : ''))));
+  const ctClase = (e) => (/RECIBIDA|APROBADA/.test(e) ? 'e2' : (/RECHAZ|VENCIDA/.test(e) ? 'alerta' : (/RESPONDIDA|PARCIAL|CORREGIDA/.test(e) ? 'e3' : (/OBSERV/.test(e) ? 'e0' : ''))));
   function ctRecTot(c) { let pend = 0, lleg = 0; (c.apro || []).forEach((a) => { const r = (c.rec || {})[a.c] || {}, tot = a.q + a.b, ll = Number(r.ll) || 0; lleg += ll; if (r.ll === undefined || r.ll === '' || r.ll === null || ll < tot) pend += 1; }); return { pend, lleg }; }
   function ctUltPrecio(cod, antesDe) { // último precio aprobado de ese producto en otra cotización
     let m = null;
@@ -5017,9 +5023,9 @@
     const t = ct.fTxt.trim().toLowerCase(), lista = ct.lista.filter((x) => (!ct.fEst || ctEstado(x).startsWith(ct.fEst)) && (!t || [x.cod, x.lab, x.prov, x.n].join(' ').toLowerCase().includes(t)));
     const cuenta = (re) => ct.lista.filter((x) => re.test(ctEstado(x))).length;
     $('ctCont').innerHTML = '<div class="herr">' + (puede('cot') ? '<button class="pri" id="ctNueva">+ Nueva cotización (subir Excel de la solicitud)</button>' : '') +
-      `<select id="ctFEst" style="width:auto"><option value="">Todos los estados</option>${['ENVIADA', 'EN PROCESO', 'SIN RESPUESTA', 'RESPONDIDA', 'OBSERVADA', 'APROBADA', 'LLEGADA PARCIAL', 'RECIBIDA', 'RECHAZADA'].map((e) => `<option${e === ct.fEst ? ' selected' : ''}>${e}</option>`).join('')}</select>` +
+      `<select id="ctFEst" style="width:auto"><option value="">Todos los estados</option>${['ENVIADA', 'EN PROCESO', 'SIN RESPUESTA', 'RESPONDIDA', 'OBSERVADA', 'CORREGIDA', 'APROBADA', 'LLEGADA PARCIAL', 'RECIBIDA', 'RECHAZADA'].map((e) => `<option${e === ct.fEst ? ' selected' : ''}>${e}</option>`).join('')}</select>` +
       `<input id="ctFTxt" placeholder="Buscar código, laboratorio, proveedor…" value="${esc(ct.fTxt)}" style="flex:1;min-width:200px"></div><div id="ctMsg"></div>` +
-      '<div class="kpis">' + [['Esperando respuesta', cuenta(/^ENVIADA|EN PROCESO/)], ['Vencidas sin respuesta', cuenta(/VENCIDA/)], ['Respondidas por revisar', cuenta(/^RESPONDIDA|OBSERVADA/)], ['Aprobadas por llegar', cuenta(/POR LLEGAR|PARCIAL/)]].map(([a, b]) => `<div class="kpi"><b>${a}</b><strong>${b}</strong></div>`).join('') + '</div>' +
+      '<div class="kpis">' + [['Esperando respuesta', cuenta(/^ENVIADA|EN PROCESO/)], ['Vencidas sin respuesta', cuenta(/VENCIDA/)], ['Respondidas por revisar', cuenta(/^RESPONDIDA|^CORREGIDA/)], ['Observadas, esperando al proveedor', cuenta(/^OBSERVADA/)], ['Aprobadas por llegar', cuenta(/POR LLEGAR|PARCIAL/)]].map(([a, b]) => `<div class="kpi"><b>${a}</b><strong>${b}</strong></div>`).join('') + '</div>' +
       '<div class="tabla"><table><thead><tr><th>N°</th><th>Código</th><th>Laboratorio</th><th>Proveedor</th><th>Fecha</th><th>Vence</th><th class="num">Productos</th><th class="num">Respondidos</th><th>Estado</th><th>Creó</th></tr></thead><tbody>' +
       (lista.map((x) => { const p = ctPubDe(x), e = ctEstado(x); return `<tr class="ctFila" data-id="${esc(x.id)}" style="cursor:pointer"><td>${esc(x.n)}</td><td><b>${esc(x.cod)}</b></td><td>${esc(x.lab)}</td><td>${esc(x.prov)}</td><td>${esc(dia(x.fecha))}</td><td>${esc(dia(x.vence))}</td><td class="num">${(x.items || []).length}</td><td class="num">${Object.values(p.resp || {}).filter((r) => r.pf !== undefined && r.pf !== '' && r.pf !== null || r.na).length}</td><td><span class="est ${ctClase(e)}">${esc(e)}</span></td><td class="quien">${esc(x.por || '')}</td></tr>`; }).join('') ||
         `<tr><td colspan="10" class="vacio">${ct.listo ? 'Aún no hay cotizaciones. Usa "+ Nueva cotización" y sube el Excel de la solicitud.' : 'Cargando…'}</td></tr>`) + '</tbody></table></div>';
@@ -5126,6 +5132,21 @@
       return { x, r, aj, pf, ult, dif: pf !== null && ult ? r2(pf - ult.p) : null, corto: !!(r.ven && r.ven < lim), ap, sel: c.apro ? !!ap : (aj.no === undefined ? (pf !== null && !r.na) : !aj.no), q: ap ? `${ap.q}${ap.b ? '+' + ap.b : ''}` : (aj.q ?? x.q), p: ap ? ap.p : (ctNum(aj.p) ?? pf) };
     });
   }
+  function ctXls(d) { // d = lo público: n, cod, prov, lab, fecha, vence, items, resp
+    const F = 'font-family:Arial;font-size:10pt;', B = 'border:1px solid #000;', N = "mso-number-format:'0\\.00';text-align:right;", T = "mso-number-format:'\\@';";
+    const td = (v, st, col) => `<td${col ? ` colspan="${col}"` : ''} style="${F}${st || ''}">${v === null || v === undefined ? '' : (typeof v === 'number' ? v.toFixed(2) : esc(v))}</td>`;
+    let h = `<tr>${td('FS SOCORRO S.A.C.', 'font-weight:bold;', 2)}${td('SOLICITUD DE COTIZACIÓN', 'font-weight:bold;font-size:14pt;text-align:center;', 7)}</tr><tr>${td('RUC 20486562341', '', 9)}</tr><tr>${td('JR. LIMA N° 284 INT. 101 - HUANCAYO', '', 6)}${td('N°', 'font-weight:bold;text-align:right;')}${td(String(d.n), 'font-weight:bold;' + T, 2)}</tr><tr>${td('', '', 9)}</tr>` +
+      `<tr>${td('Para:', 'font-weight:bold;')}${td(d.prov, '', 8)}</tr><tr>${td('Fecha:', 'font-weight:bold;')}${td(dia(d.fecha), T, 2)}${td('Laboratorio:', 'font-weight:bold;', 2)}${td(d.lab, '', 4)}</tr><tr>${td('Vence:', 'font-weight:bold;')}${td(dia(d.vence), T, 2)}${td('Código:', 'font-weight:bold;', 2)}${td(d.cod, '', 4)}</tr>` +
+      (d.respNom ? `<tr>${td('Responde:', 'font-weight:bold;')}${td(`${d.respNom}${d.respFecha ? ' · ' + ctHora(d.respFecha) : ''}`, '', 8)}</tr>` : '') + `<tr>${td('', '', 9)}</tr>` +
+      `<tr>${['COD.', 'DESCRIPCIÓN', 'LAB.', 'CANT. R.', 'ESCALA SUGERIDA', 'VENCIMIENTO', 'PRECIO FINAL', 'NO ATENDIDO (MOTIVO)', 'OTROS'].map((x) => td(x, B + 'font-weight:bold;text-align:center;background:#d9e1f2;')).join('')}</tr>`;
+    (d.items || []).forEach((x) => { const r = (d.resp || {})[x.c] || {}, pf = ctNum(r.pf); h += `<tr>${td(x.c, B + T)}${td(x.d, B)}${td(x.l, B + 'text-align:center;')}${td(String(x.q), B + T + 'text-align:center;')}${td(r.esc || '', B + T + 'text-align:center;')}${td(dia(r.ven || ''), B + T + 'text-align:center;')}${td(pf === null ? '' : pf, B + N)}${td(r.na || '', B)}${td(r.ot || '', B)}</tr>`; });
+    bajarXlsHtml(`${d.n} ${d.cod}`, h, [70, 300, 55, 70, 120, 95, 95, 170, 200]);
+  }
+  function ctTextoObs(c) { // aviso corto para responder el correo cuando Gerencia observa
+    const p = ctPubDe(c), pv = ct.cfg.provs.find((x) => x.n === c.prov) || {}, nom = new Map((c.items || []).map((x) => [x.c, x.d])), o = Object.entries(p.obsI || {});
+    return `Estimado proveedor,\n\nLa cotización ${c.cod} (N° ${c.n}) fue OBSERVADA${p.nota ? ': ' + p.nota : '.'}\n` + (o.length ? `\nProductos observados:\n${o.map(([k, v]) => `• ${nom.get(k) || k}: ${v}`).join('\n')}\n` : '') +
+      `\nPor favor verifique y corrija en el mismo enlace (solo se habilitó lo observado) y vuelva a enviar:\n${ctLink(c)}\nCódigo de acceso: ${pv.cod || ''}\n\nSaludos cordiales,\nDepartamento de Compras | FS Socorro SAC`;
+  }
   function ctTextoCorreo(c) {
     const pv = ct.cfg.provs.find((x) => x.n === c.prov) || {};
     return `Estimado proveedor,\n\nLe solicitamos la cotización ${c.cod} (N° ${c.n}) de productos de ${c.lab}.\n\nPor favor respóndala en este enlace, sin modificar la estructura:\n${ctLink(c)}\nCódigo de acceso: ${pv.cod || ''}\n\nCondiciones obligatorias:\n${CT_COND.map((x) => '• ' + x).join('\n')}\n\nPlazo de respuesta: hasta el ${dia(c.vence)}.\n\nSaludos cordiales,\nDepartamento de Compras | FS Socorro SAC`;
@@ -5136,19 +5157,19 @@
     const inp = (f, k, v, cls, tipo) => (edita && abierta ? `<input class="gIn ctR${cls || ''}" data-c="${esc(f.x.c)}" data-k="${k}"${tipo ? ` type="${tipo}"` : ''} value="${esc(v ?? '')}">` : esc(k === 'ven' ? dia(v) : (v ?? '')));
     const msgs = (p.chat || []).map((m) => ({ ...m, pub: true })).concat((c.notas || []).map((m) => ({ ...m, pub: false }))).sort((a, b) => String(a.f).localeCompare(String(b.f)));
     $('ctCont').innerHTML = `<div class="herr"><button id="ctVolver">← Cotizaciones</button><h2 class="sec" style="margin:0">${esc(c.cod)} · N° ${esc(c.n)}</h2><span class="est ${ctClase(e)}">${esc(e)}</span><span style="flex:1"></span>` +
-      (edita && abierta ? '<button id="ctRespXls">Cargar Excel respondido</button>' : '') +
+      '<button id="ctBajarXls">Descargar Excel</button>' + (edita && abierta ? '<button id="ctRespXls">Cargar Excel respondido</button>' : '') + (c.estado === 'OBSERVADA' ? '<button id="ctCopObs">Copiar aviso de observación</button>' : '') +
       (decide ? '<button class="pri" id="ctAprobar">Aprobar lo marcado</button><button id="ctObservar">Observar</button><button class="pel" id="ctRechazar">Rechazar</button>' : '') +
       (!abierta && (puede('cot') || puede('cotAprobar')) ? '<button id="ctReabrir">Reabrir</button>' : '') + (edita ? '<button class="pel" id="ctBorrar">Eliminar</button>' : '') + '</div><div id="ctMsg"></div>' +
       `<div class="caja" style="padding:12px 16px"><div class="ctDatos"><div><b>Laboratorio</b>${esc(c.lab)}</div><div><b>Proveedor</b>${esc(c.prov)}</div><div><b>Fecha</b>${esc(dia(c.fecha))}</div><div><b>Vence</b>${esc(dia(c.vence))}</div><div><b>Respondió</b>${p.enviado ? `${esc(p.respNom || 'proveedor')} · ${esc(ctHora(p.respFecha))}` : (nResp ? `en proceso (${nResp} de ${F.length})` : 'aún no')}</div>${c.dec ? `<div><b>${esc(c.estado)}</b>${esc(c.dec.por)} · ${esc(dia(c.dec.f))}${c.entrega ? ` · entrega hasta ${esc(dia(c.entrega))}` : ''}</div>` : ''}</div>` +
       (c.dec && c.dec.nota ? `<p style="margin:8px 0 0"><b>Comentario:</b> ${esc(c.dec.nota)}</p>` : '') +
       `<div class="herr" style="margin:10px 0 0"><input readonly value="${esc(ctLink(c))}" style="flex:1;min-width:240px" aria-label="Enlace del proveedor"><span>Código: <b style="font-family:monospace;font-size:15px">${esc(pv.cod || '—')}</b></span><button id="ctCopLink">Copiar enlace</button><button id="ctCopCorreo">Copiar texto para el correo</button></div></div>` +
       `<p class="resumen">${F.length} producto(s) · ${nResp} respondido(s) · ${F.filter((f) => f.r.na).length} no atendido(s) · total de lo marcado S/ ${mil(tot)}</p>` +
-      '<div class="tabla"><table class="ctTabla"><thead><tr><th>Cód.</th><th>Descripción</th><th>Lab.</th><th>Cant. R.</th><th>Escala sugerida</th><th>Vencimiento</th><th class="num">Precio final</th><th>¿Atiende?</th><th>Otros</th><th class="num">Últ. precio</th><th class="num">Dif.</th><th>Aprobar</th><th>Cant. aprobada</th><th class="num">Precio aprobado</th></tr></thead><tbody>' +
-      F.map((f) => `<tr${f.r.na ? ' class="ctNa"' : ''}><td>${esc(f.x.c)}</td><td class="larga">${esc(f.x.d)}</td><td>${esc(f.x.l)}</td><td>${esc(f.x.q)}</td><td>${inp(f, 'esc', f.r.esc)}</td><td${f.corto ? ' class="baja" title="Vence en menos de 1 año"' : ''}>${inp(f, 'ven', f.r.ven, '', 'date')}</td><td class="num">${inp(f, 'pf', f.r.pf, ' n')}</td>` +
+      '<div class="tabla"><table class="ctTabla"><thead><tr><th>Cód.</th><th>Descripción</th><th>Lab.</th><th>Cant. R.</th><th>Escala sugerida</th><th>Vencimiento</th><th class="num">Precio final</th><th>¿Atiende?</th><th>Otros</th><th class="num">Últ. precio</th><th class="num">Dif.</th><th>Aprobar</th><th>Cant. aprobada</th><th class="num">Precio aprobado</th><th>Observación al proveedor</th></tr></thead><tbody>' +
+      F.map((f) => `<tr class="${f.r.na ? 'ctNa' : ''}${(p.obsI || {})[f.x.c] !== undefined && c.estado === 'OBSERVADA' ? ' ctObs' : ''}"><td>${esc(f.x.c)}</td><td class="larga">${esc(f.x.d)}</td><td>${esc(f.x.l)}</td><td>${esc(f.x.q)}</td><td>${inp(f, 'esc', f.r.esc)}</td><td${f.corto ? ' class="baja" title="Vence en menos de 1 año"' : ''}>${inp(f, 'ven', f.r.ven, '', 'date')}</td><td class="num">${inp(f, 'pf', f.r.pf, ' n')}</td>` +
         `<td>${edita && abierta ? `<select class="gIn ctR" data-c="${esc(f.x.c)}" data-k="na"><option value="">Sí</option>${CT_NA.map((m) => `<option${f.r.na === m ? ' selected' : ''}>${m}</option>`).join('')}</select>` : esc(f.r.na || (f.pf !== null ? 'Sí' : ''))}</td><td class="larga">${inp(f, 'ot', f.r.ot)}</td>` +
         `<td class="num quien"${f.ult ? ` title="${esc(f.ult.cod)} · ${esc(dia(f.ult.f))}"` : ''}>${f.ult ? mil(f.ult.p) : '—'}</td><td class="num ${f.dif > 0.005 ? 'baja' : (f.dif < -0.005 ? 'sube' : '')}">${f.dif === null || Math.abs(f.dif) < 0.005 ? '' : (f.dif > 0 ? '▲ +' : '▼ ') + mil(f.dif)}</td>` +
-        `<td style="text-align:center"><input type="checkbox" class="ctA" data-c="${esc(f.x.c)}" data-k="no"${f.sel ? ' checked' : ''}${decide ? '' : ' disabled'} aria-label="Aprobar ${esc(f.x.d)}"></td><td>${decide ? `<input class="gIn ctA" data-c="${esc(f.x.c)}" data-k="q" value="${esc(f.q)}" style="width:90px">` : esc(f.sel ? f.q : '')}</td><td class="num">${decide ? `<input class="gIn n ctA" data-c="${esc(f.x.c)}" data-k="p" value="${esc(f.p ?? '')}" style="width:90px">` : (f.sel && f.p !== null ? mil(f.p) : '')}</td></tr>`).join('') + '</tbody></table></div>' +
-      '<p class="quien" style="margin:6px 0 14px">Si el proveedor responde por correo, puedes escribir aquí sus precios o cargar su Excel. "Dif." compara con el último precio aprobado de ese producto. En cantidad puedes poner la bonificación así: 60+12.</p>' +
+        `<td style="text-align:center"><input type="checkbox" class="ctA" data-c="${esc(f.x.c)}" data-k="no"${f.sel ? ' checked' : ''}${decide ? '' : ' disabled'} aria-label="Aprobar ${esc(f.x.d)}"></td><td>${decide ? `<input class="gIn ctA" data-c="${esc(f.x.c)}" data-k="q" value="${esc(f.q)}" style="width:90px">` : esc(f.sel ? f.q : '')}</td><td class="num">${decide ? `<input class="gIn n ctA" data-c="${esc(f.x.c)}" data-k="p" value="${esc(f.p ?? '')}" style="width:90px">` : (f.sel && f.p !== null ? mil(f.p) : '')}</td><td>${decide ? `<input class="gIn ctA" data-c="${esc(f.x.c)}" data-k="ob" value="${esc(f.aj.ob || '')}" placeholder="Qué se observa" style="min-width:170px">` : esc(f.aj.ob || '')}</td></tr>`).join('') + '</tbody></table></div>' +
+      '<p class="quien" style="margin:6px 0 14px">Si el proveedor responde por correo, puedes escribir aquí sus precios o cargar su Excel. "Dif." compara con el último precio aprobado de ese producto. En cantidad puedes poner la bonificación así: 60+12. Para observar, escribe qué se observa en cada producto y pulsa "Observar": al proveedor solo se le habilitan esos productos.</p>' +
       '<div class="caja" style="padding:12px 16px"><h3 class="sub" style="margin-top:0">Conversación</h3><div class="ctChat">' + (msgs.map((m) => `<div class="ctMsg${m.pub ? '' : ' int'}${m.prov ? ' prov' : ''}"><b>${esc(m.de)}</b> <span class="quien">${esc(ctHora(m.f))}${m.pub ? (m.prov ? '' : ' · visible para el proveedor') : ' · nota interna'}</span><div>${esc(m.t)}</div></div>`).join('') || '<p class="quien" style="margin:0">Sin mensajes todavía.</p>') + '</div>' +
       ((puede('cot') || puede('cotAprobar')) ? '<div class="herr" style="margin:10px 0 0"><textarea id="ctTxt" rows="2" placeholder="Escribe un mensaje o lo que respondió Gerencia por correo…" style="flex:1;min-width:240px"></textarea><label style="margin:0;display:flex;gap:6px;align-items:center;font-weight:500;color:inherit"><input type="checkbox" id="ctVis" style="width:auto"> Visible para el proveedor</label><button class="pri" id="ctEnviarMsg">Agregar</button></div>' : '') + '</div>';
   }
@@ -5159,9 +5180,11 @@
       const mal = sel.find((f) => f.p === null || !(ctCant(f.q).q > 0));
       if (mal) return msg('ctMsg', `Falta el precio o la cantidad de ${mal.x.d}. Complétalo o quítale la marca de aprobar.`);
     }
-    const nota = prompt({ APROBADA: `Vas a aprobar ${sel.length} producto(s). Comentario (por ejemplo: "V°B° del Sr. Isaías por correo"):`, OBSERVADA: 'Qué se observa (el proveedor lo verá y podrá corregir):', RECHAZADA: 'Motivo del rechazo:' }[estado], '');
+    const obsI = {}; if (estado === 'OBSERVADA') F.forEach((f) => { if (f.aj.ob) obsI[f.x.c] = f.aj.ob; });
+    const nObs = Object.keys(obsI).length;
+    const nota = prompt({ APROBADA: `Vas a aprobar ${sel.length} producto(s). Comentario (por ejemplo: "V°B° del Sr. Isaías por correo"):`, OBSERVADA: nObs ? `Vas a observar ${nObs} producto(s): el proveedor solo podrá corregir esos. Comentario general (opcional):` : 'No escribiste observación en ningún producto, así que se le habilitará TODA la cotización. Qué se observa:', RECHAZADA: 'Motivo del rechazo:' }[estado], '');
     if (nota === null) return;
-    if (estado !== 'APROBADA' && !nota.trim()) return msg('ctMsg', 'Escribe el motivo.');
+    if (estado !== 'APROBADA' && !nota.trim() && !nObs) return msg('ctMsg', 'Escribe el motivo.');
     const dec = { por: firma(), f: hoy(), nota: txt(nota, 500) }, p = ctPubDe(c);
     try {
       if (estado === 'APROBADA') {
@@ -5170,7 +5193,7 @@
         await updateDoc(doc(db, 'cotPub', c.pub), { estado: 'cerrada', dec: estado, nota: dec.nota, apro: apro.map(({ c: cc, q, b, p: pp }) => ({ c: cc, q, b, p: pp })), decFecha: dec.f });
       } else if (estado === 'OBSERVADA') {
         await updateDoc(doc(db, 'cot', c.id), { estado, dec });
-        await updateDoc(doc(db, 'cotPub', c.pub), { dec: estado, nota: dec.nota, enviado: false, chat: (p.chat || []).concat([{ de: 'FS Socorro', t: 'OBSERVADA: ' + dec.nota, f: ctAhora() }]) });
+        await updateDoc(doc(db, 'cotPub', c.pub), { dec: estado, nota: dec.nota, enviado: false, obsI, chat: (p.chat || []).concat([{ de: 'FS Socorro', t: `OBSERVADA${dec.nota ? ': ' + dec.nota : ''}${nObs ? ` (${nObs} producto(s) por corregir)` : ''}`, f: ctAhora() }]) });
       } else {
         await updateDoc(doc(db, 'cot', c.id), { estado, dec });
         await updateDoc(doc(db, 'cotPub', c.pub), { estado: 'cerrada', dec: estado, nota: dec.nota, decFecha: dec.f });
@@ -5191,11 +5214,12 @@
     if (t.classList.contains('ctProvGen')) return ctProvGuardar(Number(t.dataset.i), { cod: ctAzar(6, 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789') }, true);
     if (!c) return;
     if (t.id === 'ctRespXls') return $('ctArchR').click();
-    if (t.id === 'ctCopLink' || t.id === 'ctCopCorreo') { try { await navigator.clipboard.writeText(t.id === 'ctCopLink' ? ctLink(c) : ctTextoCorreo(c)); const a = t.textContent; t.textContent = 'Copiado ✓'; setTimeout(() => { t.textContent = a; }, 1500); } catch (err) { msg('ctMsg', 'El navegador no dejó copiar; selecciona el enlace y cópialo a mano.'); } return; }
+    if (t.id === 'ctBajarXls') return ctXls({ ...ctPubDe(c), n: c.n, cod: c.cod, prov: c.prov, lab: c.lab, fecha: c.fecha, vence: c.vence, items: c.items });
+    if (t.id === 'ctCopLink' || t.id === 'ctCopCorreo' || t.id === 'ctCopObs') { try { await navigator.clipboard.writeText(t.id === 'ctCopLink' ? ctLink(c) : (t.id === 'ctCopObs' ? ctTextoObs(c) : ctTextoCorreo(c))); const a = t.textContent; t.textContent = 'Copiado ✓'; setTimeout(() => { t.textContent = a; }, 1500); } catch (err) { msg('ctMsg', 'El navegador no dejó copiar; selecciona el enlace y cópialo a mano.'); } return; }
     if (t.id === 'ctAprobar') return ctDecidir(c, 'APROBADA');
     if (t.id === 'ctObservar') return ctDecidir(c, 'OBSERVADA');
     if (t.id === 'ctRechazar') return ctDecidir(c, 'RECHAZADA');
-    if (t.id === 'ctReabrir') { if (!confirm('Se quitará la decisión y el proveedor podrá volver a editar. ¿Continuar?')) return; try { await updateDoc(doc(db, 'cot', c.id), { estado: 'ENVIADA', dec: null, apro: null, entrega: '' }); await updateDoc(doc(db, 'cotPub', c.pub), { estado: 'abierta', dec: '', nota: '', apro: null }); } catch (err) { msg('ctMsg', errorTexto(err)); } return; }
+    if (t.id === 'ctReabrir') { if (!confirm('Se quitará la decisión y el proveedor podrá volver a editar. ¿Continuar?')) return; try { await updateDoc(doc(db, 'cot', c.id), { estado: 'ENVIADA', dec: null, apro: null, entrega: '' }); await updateDoc(doc(db, 'cotPub', c.pub), { estado: 'abierta', dec: '', nota: '', apro: null, obsI: {} }); } catch (err) { msg('ctMsg', errorTexto(err)); } return; }
     if (t.id === 'ctBorrar') { if (!confirm(`¿Eliminar la cotización ${c.cod}? El enlace del proveedor dejará de funcionar.`)) return; try { await deleteDoc(doc(db, 'cotPub', c.pub)); await deleteDoc(doc(db, 'cot', c.id)); ct.sel = ''; ctPintar(true); } catch (err) { msg('ctMsg', errorTexto(err)); } return; }
     if (t.id === 'ctEnviarMsg') {
       const tx = txt($('ctTxt').value, 1000); if (!tx) return;
@@ -5220,7 +5244,7 @@
         await updateDoc(doc(db, 'cotPub', c.pub), { resp: p.resp });
       } else if (t.classList.contains('ctA')) {
         const k = t.dataset.k, a = { ...((c.aj || {})[t.dataset.c] || {}) };
-        if (k === 'no') a.no = !t.checked; else if (k === 'q') { if (!(ctCant(t.value).q > 0)) return msg('ctMsg', 'Escribe la cantidad como 60 o 60+12.'); a.q = t.value.replace(/\s/g, ''); } else { const n = ctNum(t.value); if (n === null) delete a.p; else a.p = n; }
+        if (k === 'no') a.no = !t.checked; else if (k === 'ob') { if (t.value.trim()) a.ob = txt(t.value, 200); else delete a.ob; } else if (k === 'q') { if (!(ctCant(t.value).q > 0)) return msg('ctMsg', 'Escribe la cantidad como 60 o 60+12.'); a.q = t.value.replace(/\s/g, ''); } else { const n = ctNum(t.value); if (n === null) delete a.p; else a.p = n; }
         c.aj = { ...(c.aj || {}), [t.dataset.c]: a };
         await updateDoc(doc(db, 'cot', c.id), { aj: c.aj });
       } else return;
@@ -5289,9 +5313,11 @@
     $('prov').classList.remove('oculto');
     document.title = 'Cotización · Farmacia Socorro';
     pvPintar();
+    let g = ''; try { g = localStorage.getItem('cot_' + pvw.id) || ''; } catch (e) { g = ''; }
+    if (g) { $('pvCod').value = g; pvEntrar(true); } // ya entró antes desde este equipo: no vuelve a pedir el código
   }
   const pvRef = () => doc(db, 'cotPub', `${pvw.id}-${pvw.cod}`);
-  async function pvEntrar() {
+  async function pvEntrar(auto) {
     const cod = may($('pvCod').value, 12).replace(/[^A-Z0-9]/g, '');
     if (cod.length < 4) return msg('pvMsg', 'Escribe el código de acceso que recibiste en el correo.');
     pvw.cod = cod; $('pvOk').disabled = true;
@@ -5299,9 +5325,10 @@
       const s = await getDoc(pvRef());
       if (!s.exists()) throw new Error('nada');
       pvw.d = s.data();
+      try { localStorage.setItem('cot_' + pvw.id, cod); } catch (e) { /* sin almacenamiento: se pedirá el código la próxima vez */ }
       pvw.baja = onSnapshot(pvRef(), (x) => { if (!x.exists()) { pvw.d = null; return pvPintar(); } const n = x.data(); if (pvw.sucio && pvw.d) { n.resp = pvw.d.resp; n.respNom = pvw.d.respNom; } pvw.d = n; const a = document.activeElement; if (!(a && $('prov').contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) && !ctAbajo) pvPintar(); });
       pvPintar();
-    } catch (e) { pvw.cod = ''; $('pvOk').disabled = false; msg('pvMsg', 'El código no corresponde a esta cotización, o el enlace ya no está disponible. Revisa el correo o consulta con Compras de FS Socorro.'); }
+    } catch (e) { pvw.cod = ''; if ($('pvOk')) $('pvOk').disabled = false; if (auto) { try { localStorage.removeItem('cot_' + pvw.id); } catch (e2) { /* nada */ } if ($('pvCod')) $('pvCod').value = ''; return; } msg('pvMsg', 'El código no corresponde a esta cotización, o el enlace ya no está disponible. Revisa el correo o consulta con Compras de FS Socorro.'); }
   }
   function pvPintar() {
     const d = pvw.d, caja = $('prov');
@@ -5310,9 +5337,10 @@
         '<label for="pvCod">Código de acceso</label><input id="pvCod" autocomplete="off" style="font-family:monospace;font-size:18px;letter-spacing:.12em;text-transform:uppercase" maxlength="12"><p style="margin-top:14px"><button class="pri" id="pvOk">Ver cotización</button></p></div>';
       return;
     }
+    const obsI = d.obsI || {}, nObs = Object.keys(obsI).length, libre = d.estado === 'abierta' && !d.enviado, corrige = libre && d.dec === 'OBSERVADA' && nObs > 0, edita = (x) => libre && (!corrige || obsI[x.c] !== undefined);
     const ab = d.estado === 'abierta', lim = ctMas(d.fecha || hoy(), 365), vencida = ab && d.vence && d.vence < hoy();
-    const fila = (x) => { const r = (d.resp || {})[x.c] || {}; return `<tr data-c="${esc(x.c)}"${r.na ? ' class="ctNa"' : ''}><td>${esc(x.c)}</td><td class="larga"><b>${esc(x.d)}</b></td><td>${esc(x.l)}</td><td>${esc(x.q)}</td>` +
-      (ab ? `<td><input class="gIn pvR" data-k="esc" value="${esc(r.esc || '')}" placeholder="Ej. 24+2" aria-label="Escala sugerida"></td><td><input class="gIn pvR" data-k="ven" type="date" value="${esc(r.ven || '')}" aria-label="Vencimiento"></td><td><input class="gIn n pvR" data-k="pf" inputmode="decimal" value="${esc(r.pf ?? '')}" placeholder="0.00" aria-label="Precio final con IGV"></td><td><select class="gIn pvR" data-k="na" aria-label="¿Atiende?"><option value="">Sí atiendo</option>${CT_NA.map((m) => `<option${r.na === m ? ' selected' : ''}>${m}</option>`).join('')}</select></td><td><input class="gIn pvR" data-k="ot" value="${esc(r.ot || '')}" aria-label="Otros"></td>`
+    const fila = (x) => { const r = (d.resp || {})[x.c] || {}; const ob = d.dec === 'OBSERVADA' && ab ? obsI[x.c] : undefined; return `<tr data-c="${esc(x.c)}" class="${r.na ? 'ctNa' : ''}${ob !== undefined ? ' ctObs' : ''}"><td>${esc(x.c)}</td><td class="larga"><b>${esc(x.d)}</b>${ob !== undefined ? `<div class="ctObsT">Observación: ${esc(ob)}</div>` : ''}</td><td>${esc(x.l)}</td><td>${esc(x.q)}</td>` +
+      (edita(x) ? `<td><input class="gIn pvR" data-k="esc" value="${esc(r.esc || '')}" placeholder="Ej. 24+2" aria-label="Escala sugerida"></td><td><input class="gIn pvR" data-k="ven" type="date" value="${esc(r.ven || '')}" aria-label="Vencimiento"></td><td><input class="gIn n pvR" data-k="pf" inputmode="decimal" value="${esc(r.pf ?? '')}" placeholder="0.00" aria-label="Precio final con IGV"></td><td><select class="gIn pvR" data-k="na" aria-label="¿Atiende?"><option value="">Sí atiendo</option>${CT_NA.map((m) => `<option${r.na === m ? ' selected' : ''}>${m}</option>`).join('')}</select></td><td><input class="gIn pvR" data-k="ot" value="${esc(r.ot || '')}" aria-label="Otros"></td>`
         : `<td>${esc(r.esc || '')}</td><td${r.ven && r.ven < lim ? ' class="baja"' : ''}>${esc(dia(r.ven || ''))}</td><td class="num">${r.pf !== undefined && r.pf !== '' ? mil(Number(r.pf)) : ''}</td><td>${esc(r.na || '')}</td><td>${esc(r.ot || '')}</td>`) + '</tr>'; };
     const apro = d.dec === 'APROBADA' && d.apro ? d.apro : null, nomDe = new Map((d.items || []).map((x) => [x.c, x]));
     caja.innerHTML = '<div class="pvCab"><b>Farmacia Socorro</b> · FS SOCORRO S.A.C. · RUC 20486562341 · Jr. Lima N° 284 Int. 101, Huancayo</div><div class="pvCuerpo">' +
@@ -5320,24 +5348,26 @@
       `<details style="margin-top:10px"${ab && !d.enviado ? ' open' : ''}><summary style="cursor:pointer;font-weight:700">Condiciones obligatorias</summary><ul style="margin:8px 0 0;padding-left:20px">${CT_COND.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></details></div>` +
       (apro ? `<div class="msg ok"><b>Cotización APROBADA el ${esc(dia(d.decFecha))}.</b> Puede atender y facturar únicamente lo detallado en "Pedido aprobado". La mercadería debe llegar en un máximo de 5 días.${d.nota ? ' Comentario: ' + esc(d.nota) : ''}</div>` : '') +
       (d.dec === 'RECHAZADA' ? `<div class="msg err"><b>Cotización no aprobada.</b> ${esc(d.nota || '')} No facturar.</div>` : '') +
-      (ab && d.dec === 'OBSERVADA' ? `<div class="msg" style="background:#fff8e6;color:#6b4a00"><b>Cotización observada:</b> ${esc(d.nota || '')} Corrija y vuelva a enviar.</div>` : '') +
-      (ab && d.enviado ? '<div class="msg ok">Cotización enviada. Puede corregirla y volver a enviarla mientras siga abierta. <b>No facture hasta recibir la conformidad.</b></div>' : '') +
+      (libre && d.dec === 'OBSERVADA' ? `<div class="msg" style="background:#fff8e6;color:#6b4a00"><b>Cotización observada por FS Socorro.</b> ${esc(d.nota || '')} ${corrige ? `Corrija los ${nObs} producto(s) resaltados (lo demás no se puede modificar) y pulse "Enviar corrección".` : 'Corrija y vuelva a enviar.'}</div>` : '') +
+      (ab && d.enviado ? `<div class="msg ok"><b>✓ Cotización enviada${d.respFecha ? ' el ' + esc(ctHora(d.respFecha)) : ''}.</b> Ya no se puede modificar; si FS Socorro observa algún producto, se habilitará aquí mismo para corregirlo. <b>No facture hasta recibir la conformidad.</b></div>` : '') +
       (vencida && !d.enviado ? '<div class="msg err">El plazo de respuesta ya venció. Envíela cuanto antes.</div>' : '') + '<div id="pvMsg"></div>' +
       (apro ? `<h3 class="sub">Pedido aprobado</h3><div class="tabla"><table><tr><th>Cód.</th><th>Descripción</th><th class="num">Cantidad</th><th class="num">Bonif.</th><th class="num">Precio final</th><th class="num">Total S/</th></tr>${apro.map((a) => `<tr><td>${esc(a.c)}</td><td><b>${esc((nomDe.get(a.c) || {}).d || '')}</b></td><td class="num">${a.q}</td><td class="num">${a.b || ''}</td><td class="num">${mil(a.p)}</td><td class="num">${mil(r2(a.q * a.p))}</td></tr>`).join('')}<tr class="tot"><td colspan="5">Total</td><td class="num">${mil(r2(apro.reduce((s, a) => s + a.q * a.p, 0)))}</td></tr></table></div><h3 class="sub">Su cotización</h3>` : '') +
       `<div class="tabla"><table class="ctTabla"><thead><tr><th>Cód.</th><th>Descripción</th><th>Lab.</th><th>Cant. R.</th><th>Escala sugerida</th><th>Vencimiento</th><th class="num">Precio final (con IGV)</th><th>¿Atiende?</th><th>Otros</th></tr></thead><tbody>${(d.items || []).map(fila).join('')}</tbody></table></div>` +
-      (ab ? `<div class="herr" style="margin-top:12px"><label style="margin:0" for="pvNom">Nombre de quien responde</label><input id="pvNom" value="${esc(d.respNom || '')}" style="max-width:300px"><span style="flex:1"></span><button id="pvGuardar">Guardar avance</button><button class="pri" id="pvEnviar">Enviar cotización</button></div>` : '') +
+      (libre ? `<div class="herr" style="margin-top:12px"><label style="margin:0" for="pvNom">Nombre de quien responde</label><input id="pvNom" value="${esc(d.respNom || '')}" style="max-width:300px"><span style="flex:1"></span><button id="pvXls">Descargar Excel</button><button id="pvGuardar">Guardar avance</button><button class="pri" id="pvEnviar">${corrige ? 'Enviar corrección' : 'Enviar cotización'}</button></div>` : '<div class="herr" style="margin-top:12px"><span style="flex:1"></span><button class="pri" id="pvXls">Descargar Excel de la cotización</button></div>') +
       `<div class="caja" style="padding:12px 16px;margin-top:14px"><h3 class="sub" style="margin-top:0">Mensajes con Compras</h3><div class="ctChat">${(d.chat || []).map((m) => `<div class="ctMsg${m.prov ? ' prov' : ''}"><b>${esc(m.de)}</b> <span class="quien">${esc(ctHora(m.f))}</span><div>${esc(m.t)}</div></div>`).join('') || '<p class="quien" style="margin:0">Sin mensajes.</p>'}</div>` +
       (ab ? '<div class="herr" style="margin:10px 0 0"><textarea id="pvTxt" rows="2" placeholder="Escriba una consulta o aclaración…" style="flex:1;min-width:220px"></textarea><button id="pvMsgOk">Enviar mensaje</button></div>' : '') + '</div></div>';
   }
   function pvLeer() { // pasa lo escrito en la tabla a pvw.d.resp
-    const resp = {}; let mal = '';
+    const resp = { ...(pvw.d.resp || {}) }; let mal = '';
     $('prov').querySelectorAll('tr[data-c]').forEach((tr) => {
+      if (!tr.querySelector('[data-k="pf"]')) return; // fila bloqueada: queda como estaba
+      delete resp[tr.dataset.c];
       const r = {}, v = (k) => tr.querySelector(`[data-k="${k}"]`).value.trim();
       if (v('pf')) { const n = ctNum(v('pf')); if (n === null || n < 0) mal = mal || tr.children[1].textContent; else r.pf = n; }
       if (v('esc')) r.esc = txt(v('esc'), 120); if (v('ven')) r.ven = v('ven'); if (v('na')) r.na = v('na'); if (v('ot')) r.ot = txt(v('ot'), 200);
       if (Object.keys(r).length) resp[tr.dataset.c] = r;
     });
-    pvw.d.resp = resp; pvw.d.respNom = txt($('pvNom').value, 80);
+    pvw.d.resp = resp; if ($('pvNom')) pvw.d.respNom = txt($('pvNom').value, 80);
     return mal;
   }
   async function pvGuardar(enviar) {
@@ -5347,12 +5377,21 @@
     if (enviar) {
       if (!d.respNom) return msg('pvMsg', 'Escriba el nombre de quien responde.');
       if (sin.length && !confirm(`Hay ${sin.length} producto(s) sin precio y sin motivo de no atención. ¿Enviar de todos modos?`)) return;
+      if (!confirm('Al enviar, la cotización ya no se podrá modificar (salvo que FS Socorro la observe). ¿Enviar ahora?')) return;
     }
     try {
       await updateDoc(pvRef(), { resp: d.resp, respNom: d.respNom, respFecha: ctAhora(), ...(enviar ? { enviado: true } : {}) });
-      pvw.sucio = false; if (enviar) d.enviado = true;
-      pvPintar(); if (!enviar) msg('pvMsg', 'Avance guardado. Aún falta enviar la cotización.', 'ok'); else window.scrollTo(0, 0);
+      pvw.sucio = false; if (enviar) d.enviado = true; d.respFecha = ctAhora();
+      pvPintar(); if (!enviar) msg('pvMsg', 'Avance guardado. Aún falta enviar la cotización.', 'ok'); else { window.scrollTo(0, 0); pvHecho(); }
     } catch (e) { msg('pvMsg', e.code === 'permission-denied' ? 'La cotización ya fue cerrada por FS Socorro y no admite cambios.' : errorTexto(e)); }
+  }
+  function pvHecho() { // confirmación a pantalla completa, como la de un pago
+    const o = document.createElement('div');
+    o.className = 'pvHecho'; o.id = 'pvHecho';
+    o.innerHTML = `<div class="pvHechoC" role="dialog" aria-label="Cotización enviada"><div class="pvCheck">✓</div><h2>Cotización enviada</h2><p>FS Socorro ya recibió su cotización <b>${esc(pvw.d.cod)}</b>.<br>Quedó registrada el ${esc(ctHora(pvw.d.respFecha || ctAhora()))}.</p><p class="quien">Descargue el Excel para adjuntarlo a su respuesta por correo. No facture hasta recibir la conformidad.</p><p><button class="pri" id="pvHechoXls">Descargar Excel</button> <button id="pvHechoOk">Cerrar</button></p></div>`;
+    document.body.appendChild(o);
+    o.addEventListener('click', (e) => { if (e.target.id === 'pvHechoXls') ctXls(pvw.d); else if (e.target.id === 'pvHechoOk' || e.target === o) o.remove(); });
+    $('pvHechoXls').focus();
   }
   $('prov').addEventListener('input', (e) => { if (e.target.classList.contains('pvR') || e.target.id === 'pvNom') pvw.sucio = true; });
   $('prov').addEventListener('change', (e) => { if (pvw.d && pvw.d.estado === 'abierta' && (e.target.classList.contains('pvR') || e.target.id === 'pvNom')) { pvw.sucio = true; pvLeer(); if (e.target.dataset.k === 'na') e.target.closest('tr').classList.toggle('ctNa', !!e.target.value); } });
@@ -5362,9 +5401,10 @@
     if (t.id === 'pvOk') return pvEntrar();
     if (t.id === 'pvGuardar') return pvGuardar(false);
     if (t.id === 'pvEnviar') return pvGuardar(true);
+    if (t.id === 'pvXls') { if (pvw.d.estado === 'abierta' && !pvw.d.enviado) pvLeer(); return ctXls(pvw.d); }
     if (t.id === 'pvMsgOk') {
       const tx = txt($('pvTxt').value, 1000); if (!tx) return;
-      pvLeer();
+      if (!pvw.d.enviado) pvLeer();
       const chat = (pvw.d.chat || []).concat([{ de: pvw.d.respNom || pvw.d.prov, t: tx, f: ctAhora(), prov: true }]);
       try { await updateDoc(pvRef(), { chat }); pvw.d.chat = chat; pvPintar(); } catch (err) { msg('pvMsg', errorTexto(err)); }
     }
