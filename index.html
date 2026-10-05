@@ -106,6 +106,10 @@
   .hoja tr.r_fobs td:nth-child(5), .hoja tr.r_fobs td:nth-child(6) { color:#1f4e96; font-weight:600; }
   button.sgKpi { text-align:left; cursor:pointer; font:inherit; } button.sgKpi.sel { background:var(--suave); box-shadow:0 0 0 2px var(--marca) inset; } .sgChk { display:flex; gap:6px; align-items:center; margin:0; font-weight:600; color:inherit; white-space:nowrap; } .sgChk input { width:auto; }
   #sgFiltros select { width:auto; max-width:340px; }
+  .ctDatos { display:flex; gap:8px 28px; flex-wrap:wrap; } .ctDatos div b { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:var(--gris); }
+  .ctTabla .gIn { width:100%; min-width:84px; padding:4px 6px; border:1px solid var(--borde); border-radius:5px; font-size:13px; } .ctTabla .gIn.n { text-align:right; } .ctTabla td { vertical-align:middle; } tr.ctNa td { background:#fbf3f2; }
+  .ctChat { display:flex; flex-direction:column; gap:8px; max-height:340px; overflow:auto; } .ctMsg { background:#f4f1ec; border-radius:10px; padding:8px 12px; max-width:760px; white-space:pre-wrap; } .ctMsg.int { background:#fff8e6; border:1px dashed #e0c98a; } .ctMsg.prov { background:#e8f0fb; align-self:flex-end; }
+  .pvCab { background:var(--marca); color:#fff; padding:14px 20px; font-size:15px; } .pvCuerpo { max-width:1300px; margin:0 auto; padding:16px; }
   .rpHoja { max-width:1120px; } .rpHoja td.rpFa { color:#1f3864; } .rpHoja table { font-size:13.5px; } .rpHoja td { border:1px solid #d9d4cc; padding:4px 9px; }
   .rpHoja tr.rpTit td { background:#ffff00; color:#0070c0; font-weight:800; font-size:16px; text-align:center; text-decoration:underline; }
   .rpHoja tr.rpSec td { background:#ffff00; text-align:center; color:#b35c00; font-size:12px; } .rpHoja tr.rpSec td:first-child { background:#fff; font-size:13.5px; }
@@ -211,6 +215,7 @@
   </div>
 </section>
 
+<section id="prov" class="oculto"></section>
 <section id="login" class="centro oculto">
   <div class="caja">
     <!-- El logo se toma del archivo logo.png que esté junto a esta página. Si no existe, se muestra el nombre. -->
@@ -251,6 +256,7 @@
     <button data-v="vDev">Devueltos y NC<span class="cuenta oculto" id="nDev"></span></button>
     <button data-v="vPagos" id="tabPagos">Pagos a proveedores</button>
     <button data-v="vCxp" id="tabCxp">Cuentas por pagar</button>
+    <button data-v="vCot" id="tabCot">Cotizaciones</button>
     <button data-v="vSeg" id="tabSeg">Seguimiento de devoluciones</button>
     <button data-v="vDash" id="tabDash">Dashboard</button>
     <button data-v="vUsuarios" id="tabUsuarios">Usuarios</button>
@@ -421,6 +427,11 @@
       <div id="gv_gen" class="oculto"></div>
     </div>
 
+    <!-- ===== 9. COTIZACIONES ===== -->
+    <div id="vCot" class="oculto">
+      <div class="subnav" id="ctSub"><button data-tv="lista">Cotizaciones</button><button data-tv="ped">Pedidos aprobados</button><button data-tv="prov">Proveedores y códigos</button></div>
+      <div id="ctCont"></div>
+    </div>
     <!-- ===== 8. SEGUIMIENTO DE DEVOLUCIONES ===== -->
     <div id="vSeg" class="oculto">
       <div class="herr" id="sgFiltros"></div>
@@ -580,17 +591,18 @@
     ['Pagos a proveedores', [['verPagos', 'Ver pagos: facturas, NC, dashboard y resúmenes'], ['pagos', 'Registrar y corregir facturas, NC y programación'], ['pagosBorrar', 'Eliminar o mover facturas y NC']]],
     ['Cuentas por pagar', [['verCxp', 'Ver el registro y el detalle del mes'], ['cxp', 'Registrar documentos y programar pagos'], ['cxpBorrar', 'Eliminar documentos']]],
     ['Dashboard', [['verDash', 'Ver el dashboard general de compras (todas las empresas)']]],
-    ['Seguimiento de devoluciones', [['verEnt', 'Ver las facturas observadas y si ya se entregaron'], ['ent', 'Marcar entregado / falta entregar']]]
+    ['Seguimiento de devoluciones', [['verEnt', 'Ver las facturas observadas y si ya se entregaron'], ['ent', 'Marcar entregado / falta entregar']]],
+    ['Cotizaciones', [['verCot', 'Ver las cotizaciones y los pedidos aprobados'], ['cot', 'Crear cotizaciones, registrar respuestas y decisiones'], ['cotAprobar', 'Aprobar, observar o rechazar (Gerencia)'], ['cotRec', 'Marcar la llegada de los pedidos (Recepción)']]]
   ];
   const PERMISOS = GRUPOS.flatMap((g) => g[1]);
   // Para poder hacer algo en una interfaz hay que poder verla
   const REQUIERE = { pedidos: ['verPedidos'], conformidad: ['verPedidos'], devolver: ['verPend'], decidir: ['verPend'],
-    verPrecios: ['verDev'], parcial: ['verDev'], precios: ['verDev', 'verPrecios'], pagos: ['verPagos'], pagosBorrar: ['verPagos', 'pagos'], precioObs: ['observar'], observarCerrada: ['observar'], cxp: ['verCxp'], cxpBorrar: ['verCxp', 'cxp'], ent: ['verEnt'] };
+    verPrecios: ['verDev'], parcial: ['verDev'], precios: ['verDev', 'verPrecios'], pagos: ['verPagos'], pagosBorrar: ['verPagos', 'pagos'], precioObs: ['observar'], observarCerrada: ['observar'], cxp: ['verCxp'], cxpBorrar: ['verCxp', 'cxp'], ent: ['verEnt'], cot: ['verCot'], cotAprobar: ['verCot'], cotRec: ['verCot'] };
   const POR_AREA = { // lo que viene marcado al elegir el área; el administrador puede cambiarlo
     RECEPCION: ['verPedidos', 'pedidos', 'observar', 'verPend', 'devolver', 'verDev'],
     COMPRAS: ['verPedidos', 'conformidad', 'observar', 'precioObs', 'verPend', 'decidir', 'verDev', 'verPrecios', 'parcial', 'precios'],
     GERENCIA: ['verPedidos', 'verPend', 'decidir', 'verDev', 'verPrecios', 'parcial'],
-    PAGOS: ['verDev', 'verPrecios', 'precios', 'verPagos', 'pagos', 'pagosBorrar', 'verCxp', 'cxp', 'cxpBorrar', 'verDash', 'verEnt', 'ent'],
+    PAGOS: ['verDev', 'verPrecios', 'precios', 'verPagos', 'pagos', 'pagosBorrar', 'verCxp', 'cxp', 'cxpBorrar', 'verDash', 'verEnt', 'ent', 'verCot', 'cot', 'cotAprobar', 'cotRec'],
     ADMIN: PERMISOS.map((p) => p[0])
   };
   const ESTADOS = ['Por devolver', 'Devuelto', 'NC recibida', 'Se queda', 'Anulado'];
@@ -652,7 +664,8 @@
     if (c === 'permission-denied') return 'No tienes permiso para hacer esto. Si la página se acaba de actualizar, revisa que las reglas nuevas de Firestore estén publicadas y que el administrador haya ingresado una vez.';
     return (e && e.message) || String(e);
   };
-  const pantalla = (id) => ['aviso', 'inicio', 'login', 'cambio', 'app'].forEach((x) => $(x).classList.toggle('oculto', x !== id));
+  const MODO_PROV = new URLSearchParams(location.search).get('cot') || ''; // enlace de cotización para un proveedor: no pide iniciar sesión
+  const pantalla = (id) => { if (MODO_PROV) return; ['aviso', 'inicio', 'login', 'cambio', 'app'].forEach((x) => $(x).classList.toggle('oculto', x !== id)); };
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
@@ -774,7 +787,7 @@
 
   function aplicarPermisos() {
     const admin = yo.area === 'ADMIN';
-    const tabs = { vPedidos: puede('verPedidos'), vNuevo: puede('observar'), vPend: puede('verPend'), vDev: puede('verDev'), vPagos: puede('verPagos'), vCxp: puede('verCxp'), vDash: puede('verDash'), vSeg: puede('verEnt'),
+    const tabs = { vPedidos: puede('verPedidos'), vNuevo: puede('observar'), vPend: puede('verPend'), vDev: puede('verDev'), vPagos: puede('verPagos'), vCxp: puede('verCxp'), vDash: puede('verDash'), vSeg: puede('verEnt'), vCot: puede('verCot'),
       vUsuarios: admin, vCat: admin, vListas: admin };
     $('quien').textContent = `${yo.nombre} · ${yo.area}`;
     Object.entries(tabs).forEach(([v, ok]) => document.querySelector(`nav button[data-v="${v}"]`).classList.toggle('oculto', !ok));
@@ -804,6 +817,7 @@
     ver('vPedidos');
     pgIniciar();
     cpIniciar();
+    ctIniciar();
     aplicarPermisos();
 
     // Mis propios datos: si el administrador cambia mis permisos, se aplican al momento
@@ -867,7 +881,7 @@
   }
 
   /* ---------- Navegación ---------- */
-  const VISTAS = ['vPedidos', 'vNuevo', 'vPend', 'vDev', 'vPagos', 'vCxp', 'vDash', 'vSeg', 'vUsuarios', 'vCat', 'vListas', 'vNada'];
+  const VISTAS = ['vPedidos', 'vNuevo', 'vPend', 'vDev', 'vPagos', 'vCxp', 'vDash', 'vSeg', 'vCot', 'vUsuarios', 'vCat', 'vListas', 'vNada'];
   document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => ver(b.dataset.v)));
   function ver(v) {
     vista = v;
@@ -877,6 +891,7 @@
     if (v === 'vCxp') cpPintar(true);
     if (v === 'vDash') dgPintar();
     if (v === 'vSeg') sgPintar();
+    if (v === 'vCot') ctPintar(true);
   }
   const contador = (id, n) => { $(id).textContent = n; $(id).classList.toggle('oculto', !n); };
 
@@ -4928,6 +4943,432 @@
     try { await setDoc(doc(db, 'devEnt', emp), { m: { [k]: val } }, { merge: true }); }
     catch (err) { if (antes) sg.ent[emp][k] = antes; else delete sg.ent[emp][k]; sgPintar(); $('sgCont').insertAdjacentHTML('afterbegin', `<div class="msg err">${esc(errorTexto(err))}</div>`); }
   });
+
+  /* =====================  I. COTIZACIONES A PROVEEDORES  =====================
+     Compras sube la solicitud (el Excel de Lolfar), se genera un enlace y el proveedor responde en la web con su código.
+     Aquí se comparan precios, Gerencia aprueba u observa, y lo aprobado queda como pedido para marcar su llegada.
+     cot/{id}     → lo interno (decisión, notas internas, cantidades aprobadas, recepción)
+     cotPub/{id-código} → lo que ve y llena el proveedor (se lee sin iniciar sesión, solo sabiendo enlace + código) */
+  const CT_NA = ['Agotado en distribuidor', 'Agotado en laboratorio', 'Descontinuado'];
+  const CT_COND = ['Plazo de respuesta: la cotización debe ser respondida como máximo un (1) día después de recibida.',
+    'Plazo de entrega: una vez aprobada la orden, la mercadería debe llegar a nuestros almacenes en un máximo de cinco (5) días.',
+    'Productos no atendidos: si no cuenta con algún ítem, indique el motivo (agotado en distribuidor, agotado en laboratorio o descontinuado).',
+    'Precios con IGV: coloque el precio final con el IGV ya prorrateado.',
+    'Fechas de vencimiento: informe si hay productos con caducidad menor a 1 año.',
+    'Escalas y promociones: detalle si aplican mejores escalas de precio por volumen o alguna promoción vigente.',
+    'Facturación: no facturar bajo ninguna circunstancia antes de recibir la conformidad formal y por escrito.',
+    'Protocolos obligatorios: adjuntar los protocolos de análisis; producto sin protocolo no será recibido en el almacén.'];
+  let ct = { lista: [], pub: new Map(), cfg: { provs: [], seq: 0 }, sel: '', vista: 'lista', nueva: null, fEst: '', fTxt: '', pEst: 'PEN', pProv: '', pTxt: '', listo: false };
+  const ctAzar = (n, abc) => Array.from(crypto.getRandomValues(new Uint8Array(n)), (b) => abc[b % abc.length]).join('');
+  const ctAhora = () => new Date().toISOString();
+  const ctHora = (iso) => { if (!iso) return ''; const d = new Date(iso); return isNaN(d) ? '' : `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+  const ctMas = (iso, n) => { const d = new Date(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10) + n, 12); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const ctCant = (q) => { const m = String(q ?? '').replace(/\s/g, '').match(/^(\d+(?:\.\d+)?)(?:\+(\d+(?:\.\d+)?))?$/); return m ? { q: +m[1], b: +(m[2] || 0) } : { q: 0, b: 0 }; };
+  const ctNum = (v) => { if (v === '' || v === null || v === undefined) return null; const n = typeof v === 'number' ? v : montoNum(v); return n === null || isNaN(n) ? null : n; };
+  const ctLink = (c) => `${location.origin}${location.pathname}?cot=${c.id}`;
+  const ctPubDe = (c) => ct.pub.get(c.pub) || { resp: {}, chat: [] };
+  const ctProvNom = (s) => String(s || '').replace(/ /g, ' ').replace(/\s*RUC\s*:?\s*\d{11}.*$/i, '').replace(/\s+-\s*$/, '').trim().toUpperCase();
+  function ctEstado(c) { // estado que se muestra, mezclando lo interno con lo que respondió el proveedor
+    if (c.estado === 'APROBADA') { const t = ctRecTot(c); return t.pend === 0 ? 'RECIBIDA' : (t.lleg > 0 ? 'LLEGADA PARCIAL' : 'APROBADA · POR LLEGAR'); }
+    if (c.estado === 'RECHAZADA' || c.estado === 'OBSERVADA') return c.estado;
+    const p = ctPubDe(c);
+    if (p.enviado) return 'RESPONDIDA';
+    if (Object.keys(p.resp || {}).length) return 'EN PROCESO';
+    return c.vence && c.vence < hoy() ? 'SIN RESPUESTA · VENCIDA' : 'ENVIADA';
+  }
+  const ctClase = (e) => (/RECIBIDA|APROBADA/.test(e) ? 'e2' : (/RECHAZ|VENCIDA/.test(e) ? 'alerta' : (/RESPONDIDA|PARCIAL/.test(e) ? 'e3' : (/OBSERV/.test(e) ? 'e0' : ''))));
+  function ctRecTot(c) { let pend = 0, lleg = 0; (c.apro || []).forEach((a) => { const r = (c.rec || {})[a.c] || {}, tot = a.q + a.b, ll = Number(r.ll) || 0; lleg += ll; if (r.ll === undefined || r.ll === '' || r.ll === null || ll < tot) pend += 1; }); return { pend, lleg }; }
+  function ctUltPrecio(cod, antesDe) { // último precio aprobado de ese producto en otra cotización
+    let m = null;
+    ct.lista.forEach((c) => { if (c.id === antesDe.id || c.estado !== 'APROBADA') return; const a = (c.apro || []).find((x) => x.c === cod); if (a && a.p !== null && (!m || String(c.dec.f) > String(m.f))) m = { p: a.p, f: c.dec.f, cod: c.cod }; });
+    return m;
+  }
+  function ctIniciar() {
+    ct.lista = []; ct.pub = new Map(); ct.sel = ''; ct.listo = false;
+    if (!puede('verCot')) return;
+    const err = (e) => { if ($('ctCont')) $('ctCont').innerHTML = `<div class="msg err">${esc(errorTexto(e))}</div>`; };
+    bajas.push(onSnapshot(doc(db, 'config', 'cot'), (s) => { const d = s.exists() ? s.data() : {}; ct.cfg = { provs: d.provs || [], seq: Number(d.seq) || 0 }; ctLuego(); }, err));
+    bajas.push(onSnapshot(collection(db, 'cot'), (s) => { ct.lista = s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => String(b.creado).localeCompare(String(a.creado))); ct.listo = true; ctLuego(); }, err));
+    bajas.push(onSnapshot(collection(db, 'cotPub'), (s) => { ct.pub = new Map(s.docs.map((d) => [d.id, d.data()])); ctLuego(); }, err));
+  }
+  // Los repintados van con una pequeña espera y nunca en medio de un clic ni mientras se escribe: así no se pierde el clic ni lo escrito
+  let ctT = null, ctAbajo = false;
+  document.addEventListener('pointerdown', () => { ctAbajo = true; }, true);
+  document.addEventListener('pointerup', () => { ctAbajo = false; }, true);
+  function ctLuego() {
+    clearTimeout(ctT);
+    ctT = setTimeout(() => {
+      if (vista !== 'vCot' || MODO_PROV) return;
+      if (ctAbajo) return ctLuego();
+      if (ctTyping()) return;
+      if (ct.vista === 'ped' && $('cpgCuerpo')) ctPedCuerpo(); else ctPintar(true);
+    }, 160);
+  }
+  const ctTyping = () => { const a = document.activeElement; return a && $('ctCont').contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName) && a.type !== 'checkbox' && a.type !== 'file'; };
+  function ctPintar(forzar) {
+    document.querySelectorAll('#ctSub button').forEach((b) => b.classList.toggle('act', b.dataset.tv === ct.vista));
+    if (!forzar && ctTyping()) return; // no borrar lo que se está escribiendo
+    if (ct.vista === 'ped') return ctPintarPed();
+    if (ct.vista === 'prov') return ctPintarProv();
+    const c = ct.sel && ct.lista.find((x) => x.id === ct.sel);
+    if (c) return ctPintarDet(c);
+    ct.sel = '';
+    const t = ct.fTxt.trim().toLowerCase(), lista = ct.lista.filter((x) => (!ct.fEst || ctEstado(x).startsWith(ct.fEst)) && (!t || [x.cod, x.lab, x.prov, x.n].join(' ').toLowerCase().includes(t)));
+    const cuenta = (re) => ct.lista.filter((x) => re.test(ctEstado(x))).length;
+    $('ctCont').innerHTML = '<div class="herr">' + (puede('cot') ? '<button class="pri" id="ctNueva">+ Nueva cotización</button><input type="file" id="ctArch" accept=".xls,.xlsx" class="oculto">' : '') +
+      `<select id="ctFEst" style="width:auto"><option value="">Todos los estados</option>${['ENVIADA', 'EN PROCESO', 'SIN RESPUESTA', 'RESPONDIDA', 'OBSERVADA', 'APROBADA', 'LLEGADA PARCIAL', 'RECIBIDA', 'RECHAZADA'].map((e) => `<option${e === ct.fEst ? ' selected' : ''}>${e}</option>`).join('')}</select>` +
+      `<input id="ctFTxt" placeholder="Buscar código, laboratorio, proveedor…" value="${esc(ct.fTxt)}" style="flex:1;min-width:200px"></div><div id="ctMsg"></div>` +
+      '<div class="kpis">' + [['Esperando respuesta', cuenta(/^ENVIADA|EN PROCESO/)], ['Vencidas sin respuesta', cuenta(/VENCIDA/)], ['Respondidas por revisar', cuenta(/^RESPONDIDA|OBSERVADA/)], ['Aprobadas por llegar', cuenta(/POR LLEGAR|PARCIAL/)]].map(([a, b]) => `<div class="kpi"><b>${a}</b><strong>${b}</strong></div>`).join('') + '</div>' +
+      '<div class="tabla"><table><thead><tr><th>N°</th><th>Código</th><th>Laboratorio</th><th>Proveedor</th><th>Fecha</th><th>Vence</th><th class="num">Productos</th><th class="num">Respondidos</th><th>Estado</th><th>Creó</th></tr></thead><tbody>' +
+      (lista.map((x) => { const p = ctPubDe(x), e = ctEstado(x); return `<tr class="ctFila" data-id="${esc(x.id)}" style="cursor:pointer"><td>${esc(x.n)}</td><td><b>${esc(x.cod)}</b></td><td>${esc(x.lab)}</td><td>${esc(x.prov)}</td><td>${esc(dia(x.fecha))}</td><td>${esc(dia(x.vence))}</td><td class="num">${(x.items || []).length}</td><td class="num">${Object.values(p.resp || {}).filter((r) => r.pf !== undefined && r.pf !== '' && r.pf !== null || r.na).length}</td><td><span class="est ${ctClase(e)}">${esc(e)}</span></td><td class="quien">${esc(x.por || '')}</td></tr>`; }).join('') ||
+        `<tr><td colspan="10" class="vacio">${ct.listo ? 'Aún no hay cotizaciones. Usa "+ Nueva cotización" y sube el Excel de la solicitud.' : 'Cargando…'}</td></tr>`) + '</tbody></table></div>';
+  }
+
+  /* ---------- Nueva cotización: leer el Excel "SOLICITUD DE COTIZACIÓN" ---------- */
+  function ctLeerHoja(lib) {
+    const X = window.XLSX, nom = lib.SheetNames.find((n) => /^OC$/i.test(n)) || lib.SheetNames[0], ws = lib.Sheets[nom];
+    const tabla = X.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' }), r0 = ws['!ref'] ? X.utils.decode_range(ws['!ref']).s.r : 0, ocultas = ws['!rows'] || [];
+    const out = { n: '', para: '', fecha: '', lab: '', items: [], hayOcultas: false };
+    const junto = (r, i) => (r || []).slice(i + 1).find((x) => x !== '' && x !== null && x !== undefined);
+    let cab = -1, col = {};
+    tabla.forEach((r, i) => {
+      if (cab >= 0) return;
+      (r || []).forEach((v, j) => {
+        const s = String(v ?? '').trim();
+        if (/^N[°º]$/i.test(s)) out.n = String(junto(r, j) ?? '');
+        else if (/^Para:?$/i.test(s)) out.para = String(junto(r, j) ?? '');
+        else if (/^Fecha:?$/i.test(s)) out.fecha = cpFecha(junto(r, j)) || '';
+        else if (/^Laboratorio:?$/i.test(s)) out.lab = String(junto(r, j) ?? '').trim().toUpperCase();
+      });
+      const txt2 = (r || []).map((v) => String(v ?? '').trim().toUpperCase());
+      if (txt2.some((v) => /^COD/.test(v)) && txt2.some((v) => /^DESCRIP/.test(v))) {
+        cab = i;
+        const busca = (re) => txt2.findIndex((v) => re.test(v));
+        col = { c: busca(/^COD/), d: busca(/^DESCRIP/), l: busca(/^LAB/), q: busca(/^CANT/), esc: busca(/^ESCALA/), ven: busca(/^VENC/), pf: busca(/^PRECIO/), ot: busca(/^OTROS/) };
+      }
+    });
+    if (cab < 0) throw new Error('No encontré la tabla de productos (columnas COD. y DESCRIPCIÓN). Debe ser el Excel de la solicitud de cotización.');
+    tabla.slice(cab + 1).forEach((r, k) => {
+      const c = String(r[col.c] ?? '').trim(), d = String(r[col.d] ?? '').trim();
+      if (!c && !d) return;
+      const oc = !!(ocultas[r0 + cab + 1 + k] && ocultas[r0 + cab + 1 + k].hidden);
+      if (oc) out.hayOcultas = true;
+      const v = (i) => (i >= 0 ? r[i] : '');
+      out.items.push({ c, d: txt(d, 120), l: may(v(col.l), 20), q: String(v(col.q) ?? '').trim(), oc, esc: txt(v(col.esc), 120), ven: cpFecha(v(col.ven)) || '', pf: ctNum(v(col.pf)), ot: txt(v(col.ot), 200) });
+    });
+    if (!out.items.length) throw new Error('El Excel no tiene productos.');
+    return out;
+  }
+  async function ctSubir(e, destino) {
+    const a = e.target.files[0];
+    e.target.value = '';
+    if (!a) return;
+    try {
+      msg('ctMsg', 'Leyendo el Excel…', 'ok');
+      await cargarXlsx();
+      const hoja = ctLeerHoja(window.XLSX.read(await a.arrayBuffer(), { type: 'array', cellStyles: true }));
+      msg('ctMsg', '');
+      if (destino) return ctCargarResp(destino, hoja);
+      const labs = new Map(); hoja.items.forEach((x) => labs.set(x.l, (labs.get(x.l) || 0) + 1));
+      const nLab = hoja.lab.replace(/[^A-Z0-9]/g, ''), auto = [...labs.keys()].find((l) => l && nLab.startsWith(l)) || '';
+      ct.nueva = { hoja, labs, filtro: hoja.hayOcultas ? '*vis' : (auto || '*todo') };
+      ctDlgNueva();
+    } catch (err) { msg('ctMsg', errorTexto(err)); }
+  }
+  const ctItemsNueva = () => { const N = ct.nueva; return N.hoja.items.filter((x) => (N.filtro === '*todo' ? true : (N.filtro === '*vis' ? !x.oc : x.l === N.filtro))); };
+  function ctDlgNueva() {
+    const N = ct.nueva, h = N.hoja, f = h.fecha || hoy(), it = ctItemsNueva(), lab = h.lab || (it[0] ? it[0].l : '');
+    modo = 'cotNueva'; abierto = null;
+    $('dTit').textContent = 'Nueva cotización';
+    const v = (id, d) => ($(id) ? $(id).value : d);
+    $('dCuerpo').innerHTML = '<div id="dMsg"></div><div class="rejilla">' +
+      `<div class="campo"><label for="cnN">N°</label><input id="cnN" value="${esc(v('cnN', h.n || String(ct.cfg.seq + 1)))}"></div>` +
+      `<div class="campo"><label for="cnLab">Laboratorio</label><input id="cnLab" value="${esc(v('cnLab', lab))}"></div>` +
+      `<div class="campo"><label for="cnFecha">Fecha</label><input id="cnFecha" type="date" value="${esc(v('cnFecha', f))}"></div>` +
+      `<div class="campo"><label for="cnVence">Vence (plazo de respuesta)</label><input id="cnVence" type="date" value="${esc(v('cnVence', ctMas(f, 1)))}"></div>` +
+      `<div class="campo ancho"><label for="cnProv">Proveedor que cotiza</label><input id="cnProv" list="cnProvs" value="${esc(v('cnProv', ctProvNom(h.para)))}"><datalist id="cnProvs">${ct.cfg.provs.map((p) => `<option value="${esc(p.n)}">`).join('')}</datalist></div>` +
+      `<div class="campo ancho"><label for="cnFil">Productos a cotizar</label><select id="cnFil">${N.hoja.hayOcultas ? `<option value="*vis"${N.filtro === '*vis' ? ' selected' : ''}>Solo las filas visibles del Excel (${h.items.filter((x) => !x.oc).length})</option>` : ''}<option value="*todo"${N.filtro === '*todo' ? ' selected' : ''}>Todas las filas (${h.items.length})</option>${[...N.labs].sort().map(([l, n]) => `<option value="${esc(l)}"${N.filtro === l ? ' selected' : ''}>Laboratorio ${esc(l || '(sin código)')} (${n})</option>`).join('')}</select></div></div>` +
+      `<div class="tabla" style="max-height:34vh;overflow:auto"><table style="font-size:13px"><tr><th>Cód.</th><th>Descripción</th><th>Lab.</th><th>Cant. R.</th></tr>${it.slice(0, 200).map((x) => `<tr><td>${esc(x.c)}</td><td>${esc(x.d)}</td><td>${esc(x.l)}</td><td>${esc(x.q)}</td></tr>`).join('')}</table></div>` +
+      `<p style="margin-top:12px"><button class="pri" id="cnOk"${it.length ? '' : ' disabled'}>Crear cotización con ${it.length} producto(s)</button> <span class="quien">Se generará el enlace y el código de acceso del proveedor.</span></p>`;
+    if (!$('dlg').open) $('dlg').showModal();
+  }
+  async function ctCrear() {
+    const it = ctItemsNueva(), n = txt($('cnN').value, 12), lab = may($('cnLab').value, 60), prov = may($('cnProv').value, 100), fecha = $('cnFecha').value, vence = $('cnVence').value;
+    if (!lab || !prov || !fecha || !vence) return msg('dMsg', 'Completa laboratorio, proveedor, fecha y vencimiento.');
+    if (it.length > 600) return msg('dMsg', 'Son demasiados productos para una sola cotización (máximo 600). Elige un laboratorio.');
+    const cod = `${lab.replace(/[^A-Z0-9]/g, '')}${fecha.slice(8, 10)}${fecha.slice(5, 7)}${fecha.slice(0, 4)}`;
+    let pv = ct.cfg.provs.find((p) => p.n === prov);
+    const provs = ct.cfg.provs.slice();
+    if (!pv) { pv = { n: prov, cod: ctAzar(6, 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'), correo: '', contacto: '' }; provs.push(pv); }
+    const id = ctAzar(12, 'abcdefghijkmnpqrstuvwxyz23456789'), pub = `${id}-${pv.cod}`, items = it.map((x) => ({ c: x.c, d: x.d, l: x.l, q: x.q }));
+    $('cnOk').disabled = true;
+    try {
+      await setDoc(doc(db, 'config', 'cot'), { provs, seq: Math.max(ct.cfg.seq, Number(n) || 0) }, { merge: true });
+      await setDoc(doc(db, 'cotPub', pub), { cot: id, cod, n, lab, prov, fecha, vence, estado: 'abierta', items, resp: {}, chat: [], enviado: false });
+      await setDoc(doc(db, 'cot', id), { cod, n, lab, prov, fecha, vence, estado: 'ENVIADA', items, pub, creado: ctAhora(), por: firma(), notas: [], aj: {}, rec: {} });
+      $('dlg').close(); ct.sel = id; ct.vista = 'lista'; ctPintar(true);
+    } catch (e) { $('cnOk').disabled = false; msg('dMsg', errorTexto(e)); }
+  }
+  async function ctCargarResp(c, hoja) { // el proveedor devolvió el Excel lleno: pasa sus respuestas a la cotización
+    const p = ctPubDe(c), resp = { ...(p.resp || {}) }; let n = 0;
+    const cods = new Set((c.items || []).map((x) => x.c));
+    hoja.items.forEach((x) => { if (!cods.has(x.c) || (x.pf === null && !x.esc && !x.ven && !x.ot)) return; resp[x.c] = { ...(resp[x.c] || {}), ...(x.pf !== null ? { pf: x.pf } : {}), ...(x.esc ? { esc: x.esc } : {}), ...(x.ven ? { ven: x.ven } : {}), ...(x.ot ? { ot: x.ot } : {}) }; n += 1; });
+    if (!n) return msg('ctMsg', 'Ese Excel no trae precios ni datos para los productos de esta cotización.');
+    try { await updateDoc(doc(db, 'cotPub', c.pub), { resp, enviado: true, respFecha: ctAhora(), respNom: 'Cargado por ' + firma() }); msg('ctMsg', `Se cargaron las respuestas de ${n} producto(s).`, 'ok'); } catch (e) { msg('ctMsg', errorTexto(e)); }
+  }
+
+  /* ---------- Detalle de una cotización ---------- */
+  function ctFilasDet(c) {
+    const p = ctPubDe(c), lim = ctMas(c.fecha || hoy(), 365);
+    return (c.items || []).map((x) => {
+      const r = (p.resp || {})[x.c] || {}, aj = (c.aj || {})[x.c] || {}, pf = ctNum(r.pf), ult = ctUltPrecio(x.c, c), ap = (c.apro || []).find((a) => a.c === x.c);
+      return { x, r, aj, pf, ult, dif: pf !== null && ult ? r2(pf - ult.p) : null, corto: !!(r.ven && r.ven < lim), ap, sel: c.apro ? !!ap : (aj.no === undefined ? (pf !== null && !r.na) : !aj.no), q: ap ? `${ap.q}${ap.b ? '+' + ap.b : ''}` : (aj.q ?? x.q), p: ap ? ap.p : (ctNum(aj.p) ?? pf) };
+    });
+  }
+  function ctTextoCorreo(c) {
+    const pv = ct.cfg.provs.find((x) => x.n === c.prov) || {};
+    return `Estimado proveedor,\n\nLe solicitamos la cotización ${c.cod} (N° ${c.n}) de productos de ${c.lab}.\n\nPor favor respóndala en este enlace, sin modificar la estructura:\n${ctLink(c)}\nCódigo de acceso: ${pv.cod || ''}\n\nCondiciones obligatorias:\n${CT_COND.map((x) => '• ' + x).join('\n')}\n\nPlazo de respuesta: hasta el ${dia(c.vence)}.\n\nSaludos cordiales,\nDepartamento de Compras | FS Socorro SAC`;
+  }
+  function ctPintarDet(c) {
+    const p = ctPubDe(c), e = ctEstado(c), F = ctFilasDet(c), edita = puede('cot'), abierta = !c.apro && c.estado !== 'RECHAZADA', decide = (puede('cot') || puede('cotAprobar')) && abierta, pv = ct.cfg.provs.find((x) => x.n === c.prov) || {};
+    const tot = r2(F.filter((f) => f.sel && f.p !== null).reduce((s, f) => s + ctCant(f.q).q * f.p, 0)), nResp = F.filter((f) => f.pf !== null || f.r.na).length;
+    const inp = (f, k, v, cls, tipo) => (edita && abierta ? `<input class="gIn ctR${cls || ''}" data-c="${esc(f.x.c)}" data-k="${k}"${tipo ? ` type="${tipo}"` : ''} value="${esc(v ?? '')}">` : esc(k === 'ven' ? dia(v) : (v ?? '')));
+    const msgs = (p.chat || []).map((m) => ({ ...m, pub: true })).concat((c.notas || []).map((m) => ({ ...m, pub: false }))).sort((a, b) => String(a.f).localeCompare(String(b.f)));
+    $('ctCont').innerHTML = `<div class="herr"><button id="ctVolver">← Cotizaciones</button><h2 class="sec" style="margin:0">${esc(c.cod)} · N° ${esc(c.n)}</h2><span class="est ${ctClase(e)}">${esc(e)}</span><span style="flex:1"></span>` +
+      (edita && abierta ? '<button id="ctRespXls">Cargar Excel respondido</button><input type="file" id="ctArchR" accept=".xls,.xlsx" class="oculto">' : '') +
+      (decide ? '<button class="pri" id="ctAprobar">Aprobar lo marcado</button><button id="ctObservar">Observar</button><button class="pel" id="ctRechazar">Rechazar</button>' : '') +
+      (!abierta && (puede('cot') || puede('cotAprobar')) ? '<button id="ctReabrir">Reabrir</button>' : '') + (edita ? '<button class="pel" id="ctBorrar">Eliminar</button>' : '') + '</div><div id="ctMsg"></div>' +
+      `<div class="caja" style="padding:12px 16px"><div class="ctDatos"><div><b>Laboratorio</b>${esc(c.lab)}</div><div><b>Proveedor</b>${esc(c.prov)}</div><div><b>Fecha</b>${esc(dia(c.fecha))}</div><div><b>Vence</b>${esc(dia(c.vence))}</div><div><b>Respondió</b>${p.enviado ? `${esc(p.respNom || 'proveedor')} · ${esc(ctHora(p.respFecha))}` : (nResp ? `en proceso (${nResp} de ${F.length})` : 'aún no')}</div>${c.dec ? `<div><b>${esc(c.estado)}</b>${esc(c.dec.por)} · ${esc(dia(c.dec.f))}${c.entrega ? ` · entrega hasta ${esc(dia(c.entrega))}` : ''}</div>` : ''}</div>` +
+      (c.dec && c.dec.nota ? `<p style="margin:8px 0 0"><b>Comentario:</b> ${esc(c.dec.nota)}</p>` : '') +
+      `<div class="herr" style="margin:10px 0 0"><input readonly value="${esc(ctLink(c))}" style="flex:1;min-width:240px" aria-label="Enlace del proveedor"><span>Código: <b style="font-family:monospace;font-size:15px">${esc(pv.cod || '—')}</b></span><button id="ctCopLink">Copiar enlace</button><button id="ctCopCorreo">Copiar texto para el correo</button></div></div>` +
+      `<p class="resumen">${F.length} producto(s) · ${nResp} respondido(s) · ${F.filter((f) => f.r.na).length} no atendido(s) · total de lo marcado S/ ${mil(tot)}</p>` +
+      '<div class="tabla"><table class="ctTabla"><thead><tr><th>Cód.</th><th>Descripción</th><th>Lab.</th><th>Cant. R.</th><th>Escala sugerida</th><th>Vencimiento</th><th class="num">Precio final</th><th>¿Atiende?</th><th>Otros</th><th class="num">Últ. precio</th><th class="num">Dif.</th><th>Aprobar</th><th>Cant. aprobada</th><th class="num">Precio aprobado</th></tr></thead><tbody>' +
+      F.map((f) => `<tr${f.r.na ? ' class="ctNa"' : ''}><td>${esc(f.x.c)}</td><td class="larga">${esc(f.x.d)}</td><td>${esc(f.x.l)}</td><td>${esc(f.x.q)}</td><td>${inp(f, 'esc', f.r.esc)}</td><td${f.corto ? ' class="baja" title="Vence en menos de 1 año"' : ''}>${inp(f, 'ven', f.r.ven, '', 'date')}</td><td class="num">${inp(f, 'pf', f.r.pf, ' n')}</td>` +
+        `<td>${edita && abierta ? `<select class="gIn ctR" data-c="${esc(f.x.c)}" data-k="na"><option value="">Sí</option>${CT_NA.map((m) => `<option${f.r.na === m ? ' selected' : ''}>${m}</option>`).join('')}</select>` : esc(f.r.na || (f.pf !== null ? 'Sí' : ''))}</td><td class="larga">${inp(f, 'ot', f.r.ot)}</td>` +
+        `<td class="num quien"${f.ult ? ` title="${esc(f.ult.cod)} · ${esc(dia(f.ult.f))}"` : ''}>${f.ult ? mil(f.ult.p) : '—'}</td><td class="num ${f.dif > 0.005 ? 'baja' : (f.dif < -0.005 ? 'sube' : '')}">${f.dif === null || Math.abs(f.dif) < 0.005 ? '' : (f.dif > 0 ? '▲ +' : '▼ ') + mil(f.dif)}</td>` +
+        `<td style="text-align:center"><input type="checkbox" class="ctA" data-c="${esc(f.x.c)}" data-k="no"${f.sel ? ' checked' : ''}${decide ? '' : ' disabled'} aria-label="Aprobar ${esc(f.x.d)}"></td><td>${decide ? `<input class="gIn ctA" data-c="${esc(f.x.c)}" data-k="q" value="${esc(f.q)}" style="width:90px">` : esc(f.sel ? f.q : '')}</td><td class="num">${decide ? `<input class="gIn n ctA" data-c="${esc(f.x.c)}" data-k="p" value="${esc(f.p ?? '')}" style="width:90px">` : (f.sel && f.p !== null ? mil(f.p) : '')}</td></tr>`).join('') + '</tbody></table></div>' +
+      '<p class="quien" style="margin:6px 0 14px">Si el proveedor responde por correo, puedes escribir aquí sus precios o cargar su Excel. "Dif." compara con el último precio aprobado de ese producto. En cantidad puedes poner la bonificación así: 60+12.</p>' +
+      '<div class="caja" style="padding:12px 16px"><h3 class="sub" style="margin-top:0">Conversación</h3><div class="ctChat">' + (msgs.map((m) => `<div class="ctMsg${m.pub ? '' : ' int'}${m.prov ? ' prov' : ''}"><b>${esc(m.de)}</b> <span class="quien">${esc(ctHora(m.f))}${m.pub ? (m.prov ? '' : ' · visible para el proveedor') : ' · nota interna'}</span><div>${esc(m.t)}</div></div>`).join('') || '<p class="quien" style="margin:0">Sin mensajes todavía.</p>') + '</div>' +
+      ((puede('cot') || puede('cotAprobar')) ? '<div class="herr" style="margin:10px 0 0"><textarea id="ctTxt" rows="2" placeholder="Escribe un mensaje o lo que respondió Gerencia por correo…" style="flex:1;min-width:240px"></textarea><label style="margin:0;display:flex;gap:6px;align-items:center;font-weight:500;color:inherit"><input type="checkbox" id="ctVis" style="width:auto"> Visible para el proveedor</label><button class="pri" id="ctEnviarMsg">Agregar</button></div>' : '') + '</div>';
+  }
+  async function ctDecidir(c, estado) {
+    const F = ctFilasDet(c), sel = F.filter((f) => f.sel);
+    if (estado === 'APROBADA') {
+      if (!sel.length) return msg('ctMsg', 'Marca al menos un producto para aprobar.');
+      const mal = sel.find((f) => f.p === null || !(ctCant(f.q).q > 0));
+      if (mal) return msg('ctMsg', `Falta el precio o la cantidad de ${mal.x.d}. Complétalo o quítale la marca de aprobar.`);
+    }
+    const nota = prompt({ APROBADA: `Vas a aprobar ${sel.length} producto(s). Comentario (por ejemplo: "V°B° del Sr. Isaías por correo"):`, OBSERVADA: 'Qué se observa (el proveedor lo verá y podrá corregir):', RECHAZADA: 'Motivo del rechazo:' }[estado], '');
+    if (nota === null) return;
+    if (estado !== 'APROBADA' && !nota.trim()) return msg('ctMsg', 'Escribe el motivo.');
+    const dec = { por: firma(), f: hoy(), nota: txt(nota, 500) }, p = ctPubDe(c);
+    try {
+      if (estado === 'APROBADA') {
+        const apro = sel.map((f) => ({ c: f.x.c, d: f.x.d, l: f.x.l, ...ctCant(f.q), p: f.p, esc: f.r.esc || '' }));
+        await updateDoc(doc(db, 'cot', c.id), { estado, dec, apro, entrega: ctMas(hoy(), 5) });
+        await updateDoc(doc(db, 'cotPub', c.pub), { estado: 'cerrada', dec: estado, nota: dec.nota, apro: apro.map(({ c: cc, q, b, p: pp }) => ({ c: cc, q, b, p: pp })), decFecha: dec.f });
+      } else if (estado === 'OBSERVADA') {
+        await updateDoc(doc(db, 'cot', c.id), { estado, dec });
+        await updateDoc(doc(db, 'cotPub', c.pub), { dec: estado, nota: dec.nota, enviado: false, chat: (p.chat || []).concat([{ de: 'FS Socorro', t: 'OBSERVADA: ' + dec.nota, f: ctAhora() }]) });
+      } else {
+        await updateDoc(doc(db, 'cot', c.id), { estado, dec });
+        await updateDoc(doc(db, 'cotPub', c.pub), { estado: 'cerrada', dec: estado, nota: dec.nota, decFecha: dec.f });
+      }
+    } catch (e) { msg('ctMsg', errorTexto(e)); }
+  }
+  $('ctSub').addEventListener('click', (e) => { const b = e.target.closest('button[data-tv]'); if (b) { if (b.dataset.tv === 'lista' && ct.vista === 'lista') ct.sel = ''; ct.vista = b.dataset.tv; ctPintar(true); } });
+  $('ctCont').addEventListener('focusout', () => ctLuego());
+  $('ctCont').addEventListener('input', (e) => { const t = e.target; if (t.id === 'ctFTxt') { ct.fTxt = t.value; ctPintarSoloLista(); } else if (t.id === 'cpgTxt') { ct.pTxt = t.value; ctPedCuerpo(); } });
+  function ctPintarSoloLista() { const v = $('ctFTxt').value, pos = $('ctFTxt').selectionStart; ctPintar(true); const i = $('ctFTxt'); if (i) { i.focus(); i.value = v; i.setSelectionRange(pos, pos); } }
+  $('ctCont').addEventListener('click', async (e) => {
+    const t = e.target, c = ct.lista.find((x) => x.id === ct.sel);
+    if (t.id === 'ctNueva') return $('ctArch').click();
+    const fila = t.closest('.ctFila'); if (fila) { ct.sel = fila.dataset.id; return ctPintar(true); }
+    if (t.id === 'ctVolver') { ct.sel = ''; return ctPintar(true); }
+    if (t.classList.contains('ctProvGen')) return ctProvGuardar(Number(t.dataset.i), { cod: ctAzar(6, 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789') }, true);
+    if (!c) return;
+    if (t.id === 'ctRespXls') return $('ctArchR').click();
+    if (t.id === 'ctCopLink' || t.id === 'ctCopCorreo') { try { await navigator.clipboard.writeText(t.id === 'ctCopLink' ? ctLink(c) : ctTextoCorreo(c)); const a = t.textContent; t.textContent = 'Copiado ✓'; setTimeout(() => { t.textContent = a; }, 1500); } catch (err) { msg('ctMsg', 'El navegador no dejó copiar; selecciona el enlace y cópialo a mano.'); } return; }
+    if (t.id === 'ctAprobar') return ctDecidir(c, 'APROBADA');
+    if (t.id === 'ctObservar') return ctDecidir(c, 'OBSERVADA');
+    if (t.id === 'ctRechazar') return ctDecidir(c, 'RECHAZADA');
+    if (t.id === 'ctReabrir') { if (!confirm('Se quitará la decisión y el proveedor podrá volver a editar. ¿Continuar?')) return; try { await updateDoc(doc(db, 'cot', c.id), { estado: 'ENVIADA', dec: null, apro: null, entrega: '' }); await updateDoc(doc(db, 'cotPub', c.pub), { estado: 'abierta', dec: '', nota: '', apro: null }); } catch (err) { msg('ctMsg', errorTexto(err)); } return; }
+    if (t.id === 'ctBorrar') { if (!confirm(`¿Eliminar la cotización ${c.cod}? El enlace del proveedor dejará de funcionar.`)) return; try { await deleteDoc(doc(db, 'cotPub', c.pub)); await deleteDoc(doc(db, 'cot', c.id)); ct.sel = ''; ctPintar(true); } catch (err) { msg('ctMsg', errorTexto(err)); } return; }
+    if (t.id === 'ctEnviarMsg') {
+      const tx = txt($('ctTxt').value, 1000); if (!tx) return;
+      const m = { de: firma(), t: tx, f: ctAhora() }, vis = $('ctVis').checked;
+      $('ctTxt').value = '';
+      try { if (vis) await updateDoc(doc(db, 'cotPub', c.pub), { chat: (ctPubDe(c).chat || []).concat([m]) }); else await updateDoc(doc(db, 'cot', c.id), { notas: (c.notas || []).concat([m]) }); ctPintar(true); } catch (err) { msg('ctMsg', errorTexto(err)); }
+    }
+  });
+  $('ctCont').addEventListener('change', async (e) => {
+    const t = e.target, c = ct.lista.find((x) => x.id === ct.sel);
+    if (t.id === 'ctArch') return ctSubir(e, null);
+    if (t.id === 'ctArchR') return ctSubir(e, c);
+    if (t.id === 'ctFEst') { ct.fEst = t.value; return ctPintar(true); }
+    if (t.id === 'cpgEst') { ct.pEst = t.value; return ctPedCuerpo(); }
+    if (t.id === 'cpgProv') { ct.pProv = t.value; return ctPedCuerpo(); }
+    if (t.classList.contains('ctPv')) return ctProvGuardar(Number(t.dataset.i), { [t.dataset.k]: t.dataset.k === 'cod' ? may(t.value, 12).replace(/[^A-Z0-9]/g, '') : txt(t.value, 120) }, t.dataset.k === 'cod');
+    if (t.classList.contains('ctLl')) return ctRecGuardar(t);
+    if (!c) return;
+    try {
+      if (t.classList.contains('ctR')) { // respuesta del proveedor escrita por Compras
+        const p = ctPubDe(c), k = t.dataset.k, r = { ...((p.resp || {})[t.dataset.c] || {}) };
+        if (k === 'pf') { const n = ctNum(t.value); if (t.value.trim() && n === null) return msg('ctMsg', 'Ese precio no es un número.'); if (n === null) delete r.pf; else r.pf = n; } else if (t.value) r[k] = txt(t.value, 200); else delete r[k];
+        p.resp = { ...(p.resp || {}), [t.dataset.c]: r };
+        await updateDoc(doc(db, 'cotPub', c.pub), { resp: p.resp });
+      } else if (t.classList.contains('ctA')) {
+        const k = t.dataset.k, a = { ...((c.aj || {})[t.dataset.c] || {}) };
+        if (k === 'no') a.no = !t.checked; else if (k === 'q') { if (!(ctCant(t.value).q > 0)) return msg('ctMsg', 'Escribe la cantidad como 60 o 60+12.'); a.q = t.value.replace(/\s/g, ''); } else { const n = ctNum(t.value); if (n === null) delete a.p; else a.p = n; }
+        c.aj = { ...(c.aj || {}), [t.dataset.c]: a };
+        await updateDoc(doc(db, 'cot', c.id), { aj: c.aj });
+      } else return;
+      msg('ctMsg', ''); ctLuego();
+    } catch (err) { msg('ctMsg', errorTexto(err)); }
+  });
+  $('dCuerpo').addEventListener('change', (e) => { if (modo === 'cotNueva' && e.target.id === 'cnFil') { ct.nueva.filtro = e.target.value; ctDlgNueva(); } else if (modo === 'cotNueva' && e.target.id === 'cnFecha' && e.target.value) $('cnVence').value = ctMas(e.target.value, 1); });
+  $('dCuerpo').addEventListener('click', (e) => { if (modo === 'cotNueva' && e.target.id === 'cnOk') ctCrear(); });
+
+  /* ---------- Pedidos aprobados: lo que antes se copiaba al Sheets; Recepción marca cuánto llegó ---------- */
+  function ctPedFilas() {
+    const out = [];
+    ct.lista.forEach((c) => { if (c.estado !== 'APROBADA') return; (c.apro || []).forEach((a) => { const r = (c.rec || {})[a.c] || {}, tot = a.q + a.b, sin = r.ll === undefined || r.ll === '' || r.ll === null, ll = Number(r.ll) || 0; out.push({ c, a, r, tot, ll, sin, obs: sin ? 'PENDIENTE' : (ll === tot ? 'COMPLETO' : (ll < tot ? `FALTA ${tot - ll}` : `SOBRA ${ll - tot}`)), tarde: sin && c.entrega && c.entrega < hoy() }); }); });
+    return out;
+  }
+  const ctPedVista = () => { const t = ct.pTxt.trim().toLowerCase(); return ctPedFilas().filter((x) => (!ct.pProv || x.c.prov === ct.pProv) && (!ct.pEst || (ct.pEst === 'PEN' ? x.obs !== 'COMPLETO' : (ct.pEst === 'FAL' ? /^FALTA/.test(x.obs) : x.obs === 'COMPLETO'))) && (!t || [x.a.c, x.a.d, x.a.l, x.c.cod, x.c.n, x.r.fac].join(' ').toLowerCase().includes(t))); };
+  function ctPintarPed() {
+    const provs = unicos(ct.lista.filter((c) => c.estado === 'APROBADA').map((c) => c.prov)).sort();
+    $('ctCont').innerHTML = `<div class="herr"><select id="cpgProv" style="width:auto"><option value="">Todos los proveedores</option>${provs.map((p) => `<option${p === ct.pProv ? ' selected' : ''}>${esc(p)}</option>`).join('')}</select>` +
+      `<select id="cpgEst" style="width:auto">${[['PEN', 'Por llegar o con faltante'], ['FAL', 'Solo con faltante'], ['COM', 'Completos'], ['', 'Todos']].map(([v, n]) => `<option value="${v}"${v === ct.pEst ? ' selected' : ''}>${n}</option>`).join('')}</select>` +
+      `<input id="cpgTxt" placeholder="Buscar código, producto, factura, cotización…" value="${esc(ct.pTxt)}" style="flex:1;min-width:200px"><button id="cpgExp">Exportar a Excel</button></div><div id="ctMsg"></div><p class="resumen" id="cpgRes"></p>` +
+      '<div class="tabla"><table class="ctTabla"><thead><tr><th>Cód.</th><th>Producto</th><th>Lab.</th><th class="num">Cant.</th><th class="num">Bonif.</th><th class="num">Total</th><th class="num">Llegó</th><th>Obs.</th><th>Factura</th><th>Distribuidor</th><th>Aprobado</th><th>Recepción</th><th>Cotización</th><th class="num">P. unit.</th><th class="num">Total S/</th><th>Motivo</th></tr></thead><tbody id="cpgCuerpo"></tbody></table></div>';
+    $('cpgExp').addEventListener('click', () => exportar('pedidos-aprobados', [['Cód.', (x) => x.a.c], ['Producto', (x) => x.a.d], ['Lab.', (x) => x.a.l], ['Cant.', (x) => x.a.q], ['Bonif.', (x) => x.a.b], ['Total', 'tot'], ['Llegó', (x) => (x.sin ? '' : x.ll)], ['Obs.', 'obs'], ['Factura', (x) => x.r.fac || ''], ['Distribuidor', (x) => x.c.prov], ['Aprobado', (x) => dia(x.c.dec.f)], ['Recepción', (x) => dia(x.r.fr || '')], ['Cotización', (x) => `${x.c.n} · ${x.c.cod}`], ['P. unit.', (x) => x.a.p], ['Total S/', (x) => r2(x.a.q * x.a.p)], ['Motivo', (x) => x.r.mot || '']], ctPedVista()));
+    ctPedCuerpo();
+  }
+  function ctPedCuerpo() {
+    const l = ctPedVista(), ed = puede('cotRec') || puede('cot');
+    $('cpgRes').textContent = `${l.length} producto(s) · ${l.filter((x) => x.sin).length} por llegar · ${l.filter((x) => /^FALTA/.test(x.obs)).length} con faltante · ${l.filter((x) => x.tarde).length} fuera del plazo de entrega`;
+    const inp = (x, k, v, tipo, w) => (ed ? `<input class="gIn ctLl${tipo === 'number' ? ' n' : ''}" data-id="${esc(x.c.id)}" data-c="${esc(x.a.c)}" data-k="${k}" type="${tipo || 'text'}"${tipo === 'number' ? ' min="0" step="any"' : ''} value="${esc(v ?? '')}" style="width:${w}px">` : esc(k === 'fr' ? dia(v) : (v ?? '')));
+    $('cpgCuerpo').innerHTML = l.map((x) => `<tr><td>${esc(x.a.c)}</td><td class="larga">${esc(x.a.d)}</td><td>${esc(x.a.l)}</td><td class="num">${x.a.q}</td><td class="num">${x.a.b || ''}</td><td class="num"><b>${x.tot}</b></td><td class="num">${inp(x, 'll', x.sin ? '' : x.ll, 'number', 74)}</td>` +
+      `<td><span class="est ${x.obs === 'COMPLETO' ? 'e2' : (x.sin ? (x.tarde ? 'alerta' : '') : 'alerta')}">${esc(x.obs)}${x.tarde ? ' · atrasado' : ''}</span></td><td>${inp(x, 'fac', x.r.fac, 'text', 120)}</td><td>${esc(x.c.prov)}</td><td>${esc(dia(x.c.dec.f))}</td><td>${inp(x, 'fr', x.r.fr, 'date', 140)}</td><td class="quien">${esc(x.c.n)} · ${esc(x.c.cod)}</td><td class="num">${mil(x.a.p)}</td><td class="num">${mil(r2(x.a.q * x.a.p))}</td><td>${inp(x, 'mot', x.r.mot, 'text', 150)}</td></tr>`).join('') ||
+      '<tr><td colspan="16" class="vacio">No hay productos en esta lista. Aparecen aquí cuando una cotización se aprueba.</td></tr>';
+  }
+  async function ctRecGuardar(t) { // una transacción por cambio, para que dos personas de Recepción no se pisen
+    const id = t.dataset.id, cod = t.dataset.c, k = t.dataset.k, c = ct.lista.find((x) => x.id === id);
+    let v = t.value;
+    if (k === 'll') { if (v !== '' && !(Number(v) >= 0)) return msg('ctMsg', 'La cantidad que llegó debe ser un número.'); v = v === '' ? '' : Number(v); } else if (k === 'fac') v = refDoc(v) || may(v, 30); else v = txt(v, 200);
+    const cambio = (r) => { const o = { ...(r[cod] || {}), [k]: v }; if (k === 'll' && v !== '' && !o.fr) o.fr = hoy(); if (k === 'll') o.por = firma(); return { ...r, [cod]: o }; };
+    if (c) c.rec = cambio(c.rec || {});
+    try { await runTransaction(db, async (tx) => { const s = await tx.get(doc(db, 'cot', id)); if (!s.exists()) throw new Error('Esa cotización ya no existe.'); tx.update(doc(db, 'cot', id), { rec: cambio(s.data().rec || {}) }); }); msg('ctMsg', ''); ctLuego(); }
+    catch (e) { msg('ctMsg', errorTexto(e)); }
+  }
+
+  /* ---------- Proveedores y sus códigos de acceso ---------- */
+  function ctPintarProv() {
+    const ed = puede('cot');
+    $('ctCont').innerHTML = '<div id="ctMsg"></div><p class="quien" style="margin:0 0 8px">Cada proveedor tiene un código fijo. Para responder una cotización necesita el enlace de esa cotización y su código. Si cambias el código, las cotizaciones ya creadas siguen abriendo con el código anterior.</p>' +
+      '<div class="tabla"><table><thead><tr><th>Proveedor</th><th>Código de acceso</th><th>Contacto</th><th>Correo</th><th></th></tr></thead><tbody>' +
+      (ct.cfg.provs.map((p, i) => `<tr><td><b>${esc(p.n)}</b></td><td>${ed ? `<input class="gIn ctPv" data-i="${i}" data-k="cod" value="${esc(p.cod)}" style="width:120px;font-family:monospace">` : esc(p.cod)}</td><td>${ed ? `<input class="gIn ctPv" data-i="${i}" data-k="contacto" value="${esc(p.contacto || '')}">` : esc(p.contacto || '')}</td><td>${ed ? `<input class="gIn ctPv" data-i="${i}" data-k="correo" value="${esc(p.correo || '')}">` : esc(p.correo || '')}</td><td>${ed ? `<button class="mini ctProvGen" data-i="${i}">Nuevo código</button>` : ''}</td></tr>`).join('') ||
+        '<tr><td colspan="5" class="vacio">Los proveedores se agregan solos al crear su primera cotización.</td></tr>') + '</tbody></table></div>';
+  }
+  async function ctProvGuardar(i, cambio, confirma) {
+    const provs = ct.cfg.provs.map((p) => ({ ...p }));
+    if (!provs[i]) return;
+    if (cambio.cod !== undefined && cambio.cod.length < 4) { msg('ctMsg', 'El código debe tener al menos 4 letras o números.'); return ctPintar(true); }
+    if (confirma && !confirm(`¿Cambiar el código de ${provs[i].n}? Se usará en las próximas cotizaciones.`)) return ctPintar(true);
+    Object.assign(provs[i], cambio);
+    try { await setDoc(doc(db, 'config', 'cot'), { provs }, { merge: true }); msg('ctMsg', 'Guardado.', 'ok'); } catch (e) { msg('ctMsg', errorTexto(e)); }
+  }
+
+  /* =====================  Vista del PROVEEDOR (enlace ?cot=…, sin iniciar sesión)  ===================== */
+  let pvw = { id: '', cod: '', d: null, baja: null, sucio: false };
+  function pvIniciar() {
+    pvw.id = MODO_PROV;
+    ['aviso', 'inicio', 'login', 'cambio', 'app'].forEach((x) => $(x).classList.add('oculto'));
+    $('prov').classList.remove('oculto');
+    document.title = 'Cotización · Farmacia Socorro';
+    pvPintar();
+  }
+  const pvRef = () => doc(db, 'cotPub', `${pvw.id}-${pvw.cod}`);
+  async function pvEntrar() {
+    const cod = may($('pvCod').value, 12).replace(/[^A-Z0-9]/g, '');
+    if (cod.length < 4) return msg('pvMsg', 'Escribe el código de acceso que recibiste en el correo.');
+    pvw.cod = cod; $('pvOk').disabled = true;
+    try {
+      const s = await getDoc(pvRef());
+      if (!s.exists()) throw new Error('nada');
+      pvw.d = s.data();
+      pvw.baja = onSnapshot(pvRef(), (x) => { if (!x.exists()) { pvw.d = null; return pvPintar(); } const n = x.data(); if (pvw.sucio && pvw.d) { n.resp = pvw.d.resp; n.respNom = pvw.d.respNom; } pvw.d = n; const a = document.activeElement; if (!(a && $('prov').contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) && !ctAbajo) pvPintar(); });
+      pvPintar();
+    } catch (e) { pvw.cod = ''; $('pvOk').disabled = false; msg('pvMsg', 'El código no corresponde a esta cotización, o el enlace ya no está disponible. Revisa el correo o consulta con Compras de FS Socorro.'); }
+  }
+  function pvPintar() {
+    const d = pvw.d, caja = $('prov');
+    if (!d) {
+      caja.innerHTML = '<div class="pvCab"><b>Farmacia Socorro</b> · Solicitud de cotización</div><div class="caja" style="max-width:440px;margin:40px auto"><h2 class="sec" style="margin-top:0">Ingresa tu código de acceso</h2><p class="quien">Es el código que te enviamos en el correo junto con este enlace.</p><div id="pvMsg"></div>' +
+        '<label for="pvCod">Código de acceso</label><input id="pvCod" autocomplete="off" style="font-family:monospace;font-size:18px;letter-spacing:.12em;text-transform:uppercase" maxlength="12"><p style="margin-top:14px"><button class="pri" id="pvOk">Ver cotización</button></p></div>';
+      return;
+    }
+    const ab = d.estado === 'abierta', lim = ctMas(d.fecha || hoy(), 365), vencida = ab && d.vence && d.vence < hoy();
+    const fila = (x) => { const r = (d.resp || {})[x.c] || {}; return `<tr data-c="${esc(x.c)}"${r.na ? ' class="ctNa"' : ''}><td>${esc(x.c)}</td><td class="larga"><b>${esc(x.d)}</b></td><td>${esc(x.l)}</td><td>${esc(x.q)}</td>` +
+      (ab ? `<td><input class="gIn pvR" data-k="esc" value="${esc(r.esc || '')}" placeholder="Ej. 24+2" aria-label="Escala sugerida"></td><td><input class="gIn pvR" data-k="ven" type="date" value="${esc(r.ven || '')}" aria-label="Vencimiento"></td><td><input class="gIn n pvR" data-k="pf" inputmode="decimal" value="${esc(r.pf ?? '')}" placeholder="0.00" aria-label="Precio final con IGV"></td><td><select class="gIn pvR" data-k="na" aria-label="¿Atiende?"><option value="">Sí atiendo</option>${CT_NA.map((m) => `<option${r.na === m ? ' selected' : ''}>${m}</option>`).join('')}</select></td><td><input class="gIn pvR" data-k="ot" value="${esc(r.ot || '')}" aria-label="Otros"></td>`
+        : `<td>${esc(r.esc || '')}</td><td${r.ven && r.ven < lim ? ' class="baja"' : ''}>${esc(dia(r.ven || ''))}</td><td class="num">${r.pf !== undefined && r.pf !== '' ? mil(Number(r.pf)) : ''}</td><td>${esc(r.na || '')}</td><td>${esc(r.ot || '')}</td>`) + '</tr>'; };
+    const apro = d.dec === 'APROBADA' && d.apro ? d.apro : null, nomDe = new Map((d.items || []).map((x) => [x.c, x]));
+    caja.innerHTML = '<div class="pvCab"><b>Farmacia Socorro</b> · FS SOCORRO S.A.C. · RUC 20486562341 · Jr. Lima N° 284 Int. 101, Huancayo</div><div class="pvCuerpo">' +
+      `<div class="caja" style="padding:14px 18px"><h2 class="sec" style="margin:0 0 8px">SOLICITUD DE COTIZACIÓN N° ${esc(d.n)} · ${esc(d.cod)}</h2><div class="ctDatos"><div><b>Para</b>${esc(d.prov)}</div><div><b>Laboratorio</b>${esc(d.lab)}</div><div><b>Fecha</b>${esc(dia(d.fecha))}</div><div><b>Responder hasta</b>${esc(dia(d.vence))}</div></div>` +
+      `<details style="margin-top:10px"${ab && !d.enviado ? ' open' : ''}><summary style="cursor:pointer;font-weight:700">Condiciones obligatorias</summary><ul style="margin:8px 0 0;padding-left:20px">${CT_COND.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></details></div>` +
+      (apro ? `<div class="msg ok"><b>Cotización APROBADA el ${esc(dia(d.decFecha))}.</b> Puede atender y facturar únicamente lo detallado en "Pedido aprobado". La mercadería debe llegar en un máximo de 5 días.${d.nota ? ' Comentario: ' + esc(d.nota) : ''}</div>` : '') +
+      (d.dec === 'RECHAZADA' ? `<div class="msg err"><b>Cotización no aprobada.</b> ${esc(d.nota || '')} No facturar.</div>` : '') +
+      (ab && d.dec === 'OBSERVADA' ? `<div class="msg" style="background:#fff8e6;color:#6b4a00"><b>Cotización observada:</b> ${esc(d.nota || '')} Corrija y vuelva a enviar.</div>` : '') +
+      (ab && d.enviado ? '<div class="msg ok">Cotización enviada. Puede corregirla y volver a enviarla mientras siga abierta. <b>No facture hasta recibir la conformidad.</b></div>' : '') +
+      (vencida && !d.enviado ? '<div class="msg err">El plazo de respuesta ya venció. Envíela cuanto antes.</div>' : '') + '<div id="pvMsg"></div>' +
+      (apro ? `<h3 class="sub">Pedido aprobado</h3><div class="tabla"><table><tr><th>Cód.</th><th>Descripción</th><th class="num">Cantidad</th><th class="num">Bonif.</th><th class="num">Precio final</th><th class="num">Total S/</th></tr>${apro.map((a) => `<tr><td>${esc(a.c)}</td><td><b>${esc((nomDe.get(a.c) || {}).d || '')}</b></td><td class="num">${a.q}</td><td class="num">${a.b || ''}</td><td class="num">${mil(a.p)}</td><td class="num">${mil(r2(a.q * a.p))}</td></tr>`).join('')}<tr class="tot"><td colspan="5">Total</td><td class="num">${mil(r2(apro.reduce((s, a) => s + a.q * a.p, 0)))}</td></tr></table></div><h3 class="sub">Su cotización</h3>` : '') +
+      `<div class="tabla"><table class="ctTabla"><thead><tr><th>Cód.</th><th>Descripción</th><th>Lab.</th><th>Cant. R.</th><th>Escala sugerida</th><th>Vencimiento</th><th class="num">Precio final (con IGV)</th><th>¿Atiende?</th><th>Otros</th></tr></thead><tbody>${(d.items || []).map(fila).join('')}</tbody></table></div>` +
+      (ab ? `<div class="herr" style="margin-top:12px"><label style="margin:0" for="pvNom">Nombre de quien responde</label><input id="pvNom" value="${esc(d.respNom || '')}" style="max-width:300px"><span style="flex:1"></span><button id="pvGuardar">Guardar avance</button><button class="pri" id="pvEnviar">Enviar cotización</button></div>` : '') +
+      `<div class="caja" style="padding:12px 16px;margin-top:14px"><h3 class="sub" style="margin-top:0">Mensajes con Compras</h3><div class="ctChat">${(d.chat || []).map((m) => `<div class="ctMsg${m.prov ? ' prov' : ''}"><b>${esc(m.de)}</b> <span class="quien">${esc(ctHora(m.f))}</span><div>${esc(m.t)}</div></div>`).join('') || '<p class="quien" style="margin:0">Sin mensajes.</p>'}</div>` +
+      (ab ? '<div class="herr" style="margin:10px 0 0"><textarea id="pvTxt" rows="2" placeholder="Escriba una consulta o aclaración…" style="flex:1;min-width:220px"></textarea><button id="pvMsgOk">Enviar mensaje</button></div>' : '') + '</div></div>';
+  }
+  function pvLeer() { // pasa lo escrito en la tabla a pvw.d.resp
+    const resp = {}; let mal = '';
+    $('prov').querySelectorAll('tr[data-c]').forEach((tr) => {
+      const r = {}, v = (k) => tr.querySelector(`[data-k="${k}"]`).value.trim();
+      if (v('pf')) { const n = ctNum(v('pf')); if (n === null || n < 0) mal = mal || tr.children[1].textContent; else r.pf = n; }
+      if (v('esc')) r.esc = txt(v('esc'), 120); if (v('ven')) r.ven = v('ven'); if (v('na')) r.na = v('na'); if (v('ot')) r.ot = txt(v('ot'), 200);
+      if (Object.keys(r).length) resp[tr.dataset.c] = r;
+    });
+    pvw.d.resp = resp; pvw.d.respNom = txt($('pvNom').value, 80);
+    return mal;
+  }
+  async function pvGuardar(enviar) {
+    const mal = pvLeer();
+    if (mal) return msg('pvMsg', `El precio de "${mal}" no es un número válido.`);
+    const d = pvw.d, sin = (d.items || []).filter((x) => { const r = d.resp[x.c] || {}; return r.pf === undefined && !r.na; });
+    if (enviar) {
+      if (!d.respNom) return msg('pvMsg', 'Escriba el nombre de quien responde.');
+      if (sin.length && !confirm(`Hay ${sin.length} producto(s) sin precio y sin motivo de no atención. ¿Enviar de todos modos?`)) return;
+    }
+    try {
+      await updateDoc(pvRef(), { resp: d.resp, respNom: d.respNom, respFecha: ctAhora(), ...(enviar ? { enviado: true } : {}) });
+      pvw.sucio = false; if (enviar) d.enviado = true;
+      pvPintar(); if (!enviar) msg('pvMsg', 'Avance guardado. Aún falta enviar la cotización.', 'ok'); else window.scrollTo(0, 0);
+    } catch (e) { msg('pvMsg', e.code === 'permission-denied' ? 'La cotización ya fue cerrada por FS Socorro y no admite cambios.' : errorTexto(e)); }
+  }
+  $('prov').addEventListener('input', (e) => { if (e.target.classList.contains('pvR') || e.target.id === 'pvNom') pvw.sucio = true; });
+  $('prov').addEventListener('change', (e) => { if (pvw.d && pvw.d.estado === 'abierta' && (e.target.classList.contains('pvR') || e.target.id === 'pvNom')) { pvw.sucio = true; pvLeer(); if (e.target.dataset.k === 'na') e.target.closest('tr').classList.toggle('ctNa', !!e.target.value); } });
+  $('prov').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.id === 'pvCod') pvEntrar(); });
+  $('prov').addEventListener('click', async (e) => {
+    const t = e.target;
+    if (t.id === 'pvOk') return pvEntrar();
+    if (t.id === 'pvGuardar') return pvGuardar(false);
+    if (t.id === 'pvEnviar') return pvGuardar(true);
+    if (t.id === 'pvMsgOk') {
+      const tx = txt($('pvTxt').value, 1000); if (!tx) return;
+      pvLeer();
+      const chat = (pvw.d.chat || []).concat([{ de: pvw.d.respNom || pvw.d.prov, t: tx, f: ctAhora(), prov: true }]);
+      try { await updateDoc(pvRef(), { chat }); pvw.d.chat = chat; pvPintar(); } catch (err) { msg('pvMsg', errorTexto(err)); }
+    }
+  });
+  if (MODO_PROV) pvIniciar();
 </script>
 </body>
 </html>
