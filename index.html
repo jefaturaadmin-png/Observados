@@ -4267,7 +4267,10 @@
   async function rpCargar(per) {
     rp.cargando = true;
     const lee = (p) => p.catch(() => null);
-    const [pg, man, ...cps] = await Promise.all([lee(getDocs(query(collection(db, 'pagos'), where('per', '==', per)))), lee(getDoc(doc(db, 'cpRes', per))), ...CP_EMP.map((e) => lee(getDoc(doc(db, 'cpm', `${e.k}_${per}`))))]);
+    const pers = []; // el mes y los 8 anteriores: sus letras o cuotas pueden vencer en este mes
+    for (let k = 0, y = Number(per.slice(0, 4)), m = Number(per.slice(5, 7)); k <= 8; k++) { pers.push(`${y}-${String(m).padStart(2, '0')}`); m--; if (!m) { m = 12; y--; } }
+    const pares = pers.flatMap((pp) => CP_EMP.map((e) => ({ emp: e.k, pp })));
+    const [pg, man, ...cps] = await Promise.all([lee(getDocs(query(collection(db, 'pagos'), where('per', '==', per)))), lee(getDoc(doc(db, 'cpRes', per))), ...pares.map((x) => lee(getDoc(doc(db, 'cpm', `${x.emp}_${x.pp}`))))]);
     const filas2 = [], avisos = [];
     // Distribuidores (Pagos a proveedores): total a pagar del mes, letras, cuota e inicio
     if (!pg) avisos.push('No se pudo leer Pagos a proveedores (falta el permiso para verlo): los distribuidores no aparecen.');
@@ -4282,21 +4285,39 @@
       });
     });
     // Cuentas por pagar: por plazo; con letras programadas va a LETRAS, si no a FACTURAS (pagado y saldo)
-    const vistos = new Set();
+    // Cada letra o cuota cuenta en el mes en que vence: si vence en un mes posterior al de su registro, pasa a ese mes.
+    const vistos = new Set(), acu = new Map(); let fuera = 0, traidas = 0;
     cps.forEach((s, k) => {
       if (!s || !s.exists()) return;
-      const emp = CP_EMP[k].k, C = cpCalc(s.data());
+      const emp = pares[k].emp, pp = pares[k].pp, C = cpCalc(s.data());
       C.provs.forEach((p) => {
-        if (emp === 'SOC') vistos.add(p.prov);
-        const conL = p.cuadros.filter((c) => c.n > 0 && /LETRA/i.test(c.mod)), nL = conL.reduce((a, c) => a + c.n, 0), pl = p.plazo === '' ? '' : p.plazo;
-        const vs = p.cuadros.flatMap((c) => (c.n ? c.cuotas.filter((q) => !q.pg).map((q) => q.v) : c.docs.filter((f) => f.t === 'FACTURA' && !f.pg).map((f) => f.v))).filter(Boolean).sort();
-        if (nL) filas2.push({ sec: 'L', pl, n: p.prov + rpEmpTxt(emp), imp: p.neto, c: `${String(nL).padStart(2, '0')} LETRAS`, d: r2(conL.reduce((a, c) => a + c.neto, 0) / nL), ini: rpDia(vs[0]) });
-        else filas2.push({ sec: 'F', pl, n: p.prov + rpEmpTxt(emp), imp: p.neto, c: p.pagado, d: p.saldo, ini: p.saldo > 0.05 ? rpDia(vs[0]) : '' });
+        if (emp === 'SOC' && pp === per) vistos.add(p.prov);
+        const kk = emp + '|' + p.prov;
+        const A = () => { if (!acu.has(kk)) acu.set(kk, { emp, prov: p.prov, pl: '', plP: false, imp: 0, pag: 0, nL: 0, impL: 0, vs: [], hay: false }); const a = acu.get(kk); if (!a.plP) { a.pl = p.plazo === '' ? '' : p.plazo; a.plP = pp === per; } return a; };
+        if (pp === per) A().hay = true;
+        p.cuadros.forEach((c) => {
+          if (c.n) c.cuotas.forEach((q) => {
+            const mes = q.v && q.v.slice(0, 7) > pp ? q.v.slice(0, 7) : pp;
+            if (mes !== per) { if (pp === per) fuera++; return; }
+            if (pp !== per) traidas++;
+            const a = A(); a.hay = true; a.imp += q.m; if (q.pg) a.pag += q.m; else if (q.v) a.vs.push(q.v);
+            if (/LETRA/i.test(c.mod)) { a.nL++; a.impL += q.m; }
+          });
+          else if (pp === per) { const a = A(); a.imp += c.neto; a.pag += c.pagado; c.docs.filter((f) => f.t === 'FACTURA' && !f.pg && f.v).forEach((f) => a.vs.push(f.v)); }
+        });
       });
     });
+    acu.forEach((a) => {
+      if (!a.hay) return;
+      if (a.emp === 'SOC') vistos.add(a.prov);
+      const imp = r2(a.imp), pag = r2(a.pag), sal = r2(imp - pag), v0 = a.vs.sort()[0];
+      if (a.nL) filas2.push({ sec: 'L', pl: a.pl, n: a.prov + rpEmpTxt(a.emp), imp, c: `${String(a.nL).padStart(2, '0')} ${a.nL === 1 ? 'LETRA' : 'LETRAS'}`, d: r2(a.impL / a.nL), ini: rpDia(v0) });
+      else filas2.push({ sec: 'F', pl: a.pl, n: a.prov + rpEmpTxt(a.emp), imp, c: pag, d: sal, ini: sal > 0.05 ? rpDia(v0) : '' });
+    });
+    rp.notaMes = (fuera ? `${fuera} letra(s) o cuota(s) registradas en este mes vencen en un mes posterior y se suman allá. ` : '') + (traidas ? `${traidas} letra(s) o cuota(s) de meses anteriores vencen en este mes y se suman aquí.` : '');
     cpCfg.provs.filter((p) => p.act !== false && !vistos.has(p.n)).forEach((p) => filas2.push({ sec: 'F', pl: cpStd(p.pl), n: p.n, imp: 0, c: 0, d: 0, ini: '' })); // habituales sin compras este mes
     const m = man && man.exists() ? man.data() : {};
-    rp = { per, filas: filas2, man: { cred: m.cred || RP_CRED.map((n) => ({ n, imp: '', c: '', d: '', ini: '' })), extra: m.extra || [] }, cargando: false, avisos, guardado: !!(man && man.exists()) };
+    rp = { per, nota: rp.notaMes || '', filas: filas2, man: { cred: m.cred || RP_CRED.map((n) => ({ n, imp: '', c: '', d: '', ini: '' })), extra: m.extra || [] }, cargando: false, avisos, guardado: !!(man && man.exists()) };
   }
   function rpSecciones() { // bloques en el orden de la hoja
     const out = [{ tit: 'CRÉDITOS BANCARIOS', color: '#ff0000', man: 'cred', cab: ['IMPORTE', 'LETRAS', 'IMPORTE', 'INICIO'], filas: rp.man.cred }];
@@ -4341,7 +4362,7 @@
       h += `<tr class="rpBlanco"><td colspan="${edita ? 6 : 5}">&nbsp;</td></tr>`;
     });
     caja.innerHTML = (rp.avisos.length ? `<div class="msg err">${rp.avisos.map(esc).join(' ')}</div>` : '') +
-      `<div class="herr"><span class="quien">Los distribuidores salen de Pagos a proveedores y los demás de Cuentas por pagar (todas las empresas). ${edita ? 'Los créditos bancarios y "Otros pagos" se escriben aquí.' : ''}</span><span style="flex:1"></span><button id="rpAct">Actualizar</button><button class="pri" id="rpExcel">Descargar Excel</button></div><div id="rpMsg"></div>` +
+      `<div class="herr"><span class="quien">Los distribuidores salen de Pagos a proveedores y los demás de Cuentas por pagar (todas las empresas). ${edita ? 'Los créditos bancarios y "Otros pagos" se escriben aquí.' : ''} ${esc(rp.nota || '')}</span><span style="flex:1"></span><button id="rpAct">Actualizar</button><button class="pri" id="rpExcel">Descargar Excel</button></div><div id="rpMsg"></div>` +
       `<div class="tabla rpHoja"><table><tr class="rpTit"><td colspan="${edita ? 6 : 5}">RESUMEN DE PAGOS ${esc(perTxt(per))}</td></tr>${h}` +
       `<tr class="rpTot"><td style="text-align:right">TOTAL</td><td class="num">${mil(rpTotal())}</td><td colspan="${edita ? 4 : 3}"></td></tr></table></div>`;
   }
