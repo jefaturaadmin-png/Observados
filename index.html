@@ -443,7 +443,7 @@
         <input type="month" id="gMes" aria-label="Mes a pagar" class="oculto">
       </div>
       <div class="subnav" id="gSub">
-        <button data-gv="grid">Facturas y NC</button><button data-gv="dash">Dashboard compras</button><button data-gv="res">Resumen de pago</button>
+        <button data-gv="grid">Facturas y NC</button><button data-gv="dash" class="oculto">Dashboard compras</button><button data-gv="res">Resumen de pago</button>
         <button data-gv="cruce">Cruce observaciones</button><button data-gv="ncp">NC pendientes</button>
         <button data-gv="gen">Resumen general</button>
       </div>
@@ -1046,9 +1046,12 @@
   buscadorProveedor('peProv'); buscadorProveedor('nProv');
   // Al escribir el precio unitario se muestra el total de la línea, para no confundir precio unitario con importe
   $('lineas').addEventListener('input', (e) => {
-    if (!e.target.matches('.lCant, .lPrecio')) return;
-    const l = e.target.closest('.linea'), c = Number(l.querySelector('.lCant').value), p = l.querySelector('.lPrecio').value;
-    l.querySelector('.lTot').textContent = (p !== '' && c > 0 && Number(p) >= 0) ? `Total: ${c} × S/ ${Number(p).toFixed(2)} = S/ ${(c * Number(p)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '';
+    if (!e.target.matches('.lCant, .lPrecio, .lPrecioS')) return;
+    const l = e.target.closest('.linea'), c = Number(l.querySelector('.lCant').value), r4 = (x) => String(Math.round(x * 10000) / 10000);
+    if (e.target.matches('.lPrecioS')) l.querySelector('.lPrecio').value = e.target.value === '' ? '' : r4(Number(e.target.value) * 1.18); // sin IGV → con IGV
+    if (e.target.matches('.lPrecio')) l.querySelector('.lPrecioS').value = e.target.value === '' ? '' : r4(Number(e.target.value) / 1.18);  // con IGV → sin IGV
+    const p = l.querySelector('.lPrecio').value;
+    l.querySelector('.lTot').textContent = (p !== '' && c > 0 && Number(p) >= 0) ? `Total con IGV: ${c} × S/ ${Number(p).toFixed(2)} = S/ ${(c * Number(p)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '';
   });
   // Devuelve el proveedor escrito. Solo valen los de la lista oficial; el administrador puede agregar uno nuevo al momento.
   async function proveedorDe(id, idMsg) {
@@ -1270,7 +1273,8 @@
       '<div class="campo"><label>Vencimiento</label><input class="lVence" type="date"></div>' +
       '<div class="campo"><label>Cantidad *</label><input class="lCant" type="number" min="0.01" step="any"></div>' +
       '<div class="campo"><label>Motivo *</label><select class="lMot"></select></div>' +
-      '<div class="campo cPO"><label>Precio unitario (S/)</label><input class="lPrecio" type="number" min="0" step="any" placeholder="Opcional"><div class="quien lTot" style="margin-top:4px"></div></div>' +
+      '<div class="campo cPO"><label>Precio unit. sin IGV (S/)</label><input class="lPrecioS" type="number" min="0" step="any" placeholder="Opcional"></div>' +
+      '<div class="campo cPO"><label>Precio unit. con IGV (S/)</label><input class="lPrecio" type="number" min="0" step="any" placeholder="Opcional"><div class="quien lTot" style="margin-top:4px"></div></div>' +
       '<div class="campo ancho"><label>Observación</label><input class="lObs" maxlength="500"></div>' +
       '</div>';
     d.dataset.cod = '';
@@ -2044,7 +2048,7 @@
   const obsTexto = (o) => `${o.producto} (${o.estado === 'Por devolver' ? 'por devolver: ' + (o.cantidad ?? '') : 'devuelto: ' + (o.cantDevuelta ?? '')})`;
   // Lo observado de una factura: las líneas escritas a mano más lo registrado en Observados (devuelto o por devolver)
   function lineasDe(f) {
-    const manual = (f.o || []).filter((l) => !lineaBasura(l.p)).map((l) => ({ p: l.p, m: l.m, origen: 'manual' }));
+    const manual = (f.o || []).filter((l) => !lineaBasura(l.p)).map((l) => ({ p: l.p, m: l.m, q: l.q ?? null, origen: 'manual' }));
     const rec = enlazadas(f).filter(obsCuenta).map((o) => ({ p: obsTexto(o), m: montoObs(o), origen: 'recepcion', id: o._id }));
     return manual.concat(rec);
   }
@@ -2097,6 +2101,7 @@
     $('gDist').classList.toggle('oculto', !porDist || v === 'dash'); // el dashboard tiene su propio filtro de distribuidor
     $('gPer').classList.toggle('oculto', !['grid', 'res'].includes(v));
     $('gNuevoPer').classList.toggle('oculto', v !== 'grid' || !puede('pagos'));
+    $('gEditPer').classList.toggle('oculto', v !== 'grid' || !puede('pagos'));
     $('gMes').classList.toggle('oculto', porDist);
     if (v === 'cxp') cxSuscribir();
     pintarPagos(true);
@@ -2267,8 +2272,8 @@
   }
   function filaDetalle(f, c, edita) {
     const manual = (f.o || []).map((x, k) => (edita
-      ? `<tr><td><input class="gIn oProd" data-k="${k}" value="${esc(x.p)}" aria-label="Producto observado"></td><td><input class="gIn oMonto n" data-k="${k}" value="${esc(x.m ?? '')}" aria-label="Monto"></td><td class="n"><button class="mini pel oQuitar" data-k="${k}" aria-label="Quitar">✕</button></td></tr>`
-      : `<tr><td class="larga">${esc(x.p)}</td><td class="n">${esc(mil(x.m))}</td><td></td></tr>`)).join('');
+      ? `<tr><td><input class="gIn oProd" data-k="${k}" value="${esc(x.p)}" aria-label="Producto observado"></td><td><input class="gIn oCant n" data-k="${k}" value="${esc(x.q ?? '')}" aria-label="Cantidad"></td><td><input class="gIn oSin n" data-k="${k}" value="${x.m === null || x.m === undefined || x.m === '' ? '' : r2(Number(x.m) / 1.18)}" aria-label="Monto sin IGV"></td><td><input class="gIn oMonto n" data-k="${k}" value="${esc(x.m ?? '')}" aria-label="Monto con IGV"></td><td class="n"><button class="mini pel oQuitar" data-k="${k}" aria-label="Quitar">✕</button></td></tr>`
+      : `<tr><td class="larga">${esc(x.p)}</td><td class="n">${esc(x.q ?? '')}</td><td class="n">${x.m === null || x.m === undefined ? '' : esc(mil(r2(Number(x.m) / 1.18)))}</td><td class="n">${esc(mil(x.m))}</td><td></td></tr>`)).join('');
     const rec = enlazadas(f);
     const pone = puede('precios');
     const recHtml = rec.length ? '<h4 style="margin-top:10px">Registrado en Observados</h4><table><tr><th>Producto</th><th class="n">Observado</th><th class="n">Devuelto</th><th>Situación</th><th class="n" style="width:110px">Precio unit.</th><th class="n">Monto</th></tr>' +
@@ -2285,7 +2290,7 @@
     const falta = r2(c.obs - c.aplicada);
     return `<tr class="det" data-d="${esc(f.i)}"><td colspan="12"><div class="detg">` +
       `<div><h4>Productos observados de ${esc(f.s)}-${esc(f.n)}</h4>` +
-      ((f.o || []).length || !rec.length ? `<table><tr><th>Producto observado (anotado a mano)</th><th class="n" style="width:120px">Monto</th><th style="width:40px"></th></tr>${manual}</table>` : '') +
+      ((f.o || []).length || !rec.length ? `<table><tr><th>Producto observado (anotado a mano)</th><th class="n" style="width:80px">Cant.</th><th class="n" style="width:120px">Monto sin IGV</th><th class="n" style="width:120px">Monto con IGV</th><th style="width:40px"></th></tr>${manual}</table>` : '') +
       `${edita ? '<button class="mini oMas">+ Agregar producto observado</button>' : ''}${recHtml}` +
       `<table style="margin-top:8px"><tr class="tot"><td>Total observado</td><td class="n" style="width:140px">${esc(mil(c.obs))}</td></tr></table></div>` +
       `<div><h4>Notas de crédito aplicadas</h4><table><tr><th>NC</th><th>Fecha</th><th class="n">Monto de la NC</th><th class="n">Aplicado aquí</th></tr>${ncs || '<tr><td colspan="4" class="quien">Ninguna todavía. Anota la serie y número en la columna "NC anotadas".</td></tr>'}` +
@@ -2437,7 +2442,7 @@
   async function guardarObservados(tr) { // toma las líneas tal como están en pantalla
     const id = tr.dataset.d, f = pgFila(id);
     if (!f) return;
-    const o = [...tr.querySelectorAll('.oProd')].map((inp) => ({ p: txt(inp.value, 140), m: montoNum(tr.querySelector(`.oMonto[data-k="${inp.dataset.k}"]`).value) }));
+    const o = [...tr.querySelectorAll('.oProd')].map((inp) => { const q = montoNum(tr.querySelector(`.oCant[data-k="${inp.dataset.k}"]`).value), o1 = { p: txt(inp.value, 140), m: montoNum(tr.querySelector(`.oMonto[data-k="${inp.dataset.k}"]`).value) }; if (q !== null) o1.q = q; return o1; });
     try { await pgGuardar(pgPer(), (lista) => { const x = lista.find((y) => y.i === id); if (x) x.o = o; }, 'Observación', `${f.s}-${f.n}: ${o.length} producto(s), S/ ${mil(o.reduce((s, x) => s + (x.m || 0), 0))}`); }
     catch (e) { pgError(e); }
   }
@@ -2484,7 +2489,7 @@
   });
   $('gCuerpo').addEventListener('change', async (e) => {
     const t = e.target;
-    if (t.matches('.oProd, .oMonto')) return guardarObservados(t.closest('tr.det'));
+    if (t.matches('.oProd, .oMonto, .oSin, .oCant')) return guardarObservados(t.closest('tr.det'));
     if (t.matches('.lpPrecio')) { // precio de un producto devuelto: se guarda en el módulo de observados
       const p = t.value.trim() === '' ? null : montoNum(t.value);
       if (t.value.trim() !== '' && (p === null || p < 0)) return msg('gMsg', 'Precio no válido.');
@@ -2539,6 +2544,13 @@
     } catch (err) { pgError(err); }
   });
 
+  // Monto sin IGV y con IGV: se escribe cualquiera de los dos y el otro se llena solo (IGV 18%)
+  $('gCuerpo').addEventListener('input', (e) => {
+    const t = e.target;
+    if (!t.matches('.oSin, .oMonto')) return;
+    const otro = t.closest('tr').querySelector(t.classList.contains('oSin') ? '.oMonto' : '.oSin'), v = montoNum(t.value);
+    otro.value = v === null ? '' : String(r2(t.classList.contains('oSin') ? v * 1.18 : v / 1.18));
+  });
   // Seleccionar todo lo que se ve (con el filtro o la búsqueda puestos), como en una hoja de cálculo
   $('gCkTodo').addEventListener('change', (e) => { const v = filasVista(); v.forEach((f) => { if (e.target.checked) pgSel.add(f.i); else pgSel.delete(f.i); }); pintarPagos(true); });
   // Nuevo mes a pagar (o editar el que está abierto): se elige el mes y de qué mes son las compras
@@ -2705,7 +2717,7 @@
         if (!mapa.has(r)) mapa.set(r, []);
         mapa.get(r).push(o);
       });
-      const lin = (f) => (f.o || []).filter((l) => !lineaBasura(l.p)).map((l) => ({ p: l.p, m: l.m }))
+      const lin = (f) => (f.o || []).filter((l) => !lineaBasura(l.p)).map((l) => ({ p: l.p, m: l.m, q: l.q ?? null }))
         .concat((mapa.get(`${f.s}-${f.n}`) || []).filter(obsCuenta).map((o) => ({ p: obsTexto(o), m: montoObs(o) })));
       const cr = cruzar(docs, lin), ncDev = new Set(), tmp = [];
       docs.forEach((d) => (d.filas || []).forEach((f) => {
@@ -5001,7 +5013,7 @@
   });
 
   /* ---------- Seguimiento de devoluciones: todas las facturas observadas, si ya se entregó al proveedor y si ya tiene NC ---------- */
-  let sg = { filas: null, ent: {}, cargando: false, avisos: [], prov: '', sit: '', txt: '' };
+  let sg = { filas: null, ent: {}, cargando: false, avisos: [], prov: '', sit: 'PEND', txt: '' }; // al abrir: lo que aún no tiene su NC completa
   const sgKey = (x) => `${x.src}|${x.provK}|${x.doc}`;
   async function sgCargar() {
     const lee = (p) => p.catch(() => null);
@@ -5038,7 +5050,7 @@
   const sgSit = (x) => (x.conNc ? 'Entregado · con NC' : (sgEntregado(x) ? 'Entregado · falta pedir NC' : 'Falta entregar'));
   function sgVista() {
     const t = sg.txt.trim().toLowerCase();
-    return sg.filas.filter((x) => (!sg.prov || x.prov === sg.prov) && (!sg.sit || sgSit(x) === sg.sit) && (!t || [x.doc, x.prov, x.lineas.map((l) => l.p).join(' '), x.ncs.join(' ')].join(' ').toLowerCase().includes(t)));
+    return sg.filas.filter((x) => (!sg.prov || x.prov === sg.prov) && (!sg.sit || (sg.sit === 'PEND' ? !x.conNc : sgSit(x) === sg.sit)) && (!t || [x.doc, x.prov, x.lineas.map((l) => l.p).join(' '), x.ncs.join(' ')].join(' ').toLowerCase().includes(t)));
   }
   function sgPintar() {
     const caja = $('sgCont');
@@ -5056,7 +5068,7 @@
       $('sgTxt').addEventListener('input', () => { sg.txt = $('sgTxt').value; sgPintar(); });
     }
     $('sgProv').innerHTML = `<option value="">Todos los proveedores</option>${provs.map((p) => `<option value="${esc(p)}"${p === sg.prov ? ' selected' : ''}>${esc(p)}</option>`).join('')}`;
-    $('sgSit').innerHTML = `<option value="">Todas las situaciones</option>${SITS.map((s) => `<option${s === sg.sit ? ' selected' : ''}>${s}</option>`).join('')}`;
+    $('sgSit').innerHTML = `<option value="PEND"${sg.sit === 'PEND' ? ' selected' : ''}>Sin conciliar (NC pendiente o parcial)</option><option value=""${sg.sit === '' ? ' selected' : ''}>Todas las situaciones</option>${SITS.map((s) => `<option${s === sg.sit ? ' selected' : ''}>${s}</option>`).join('')}`;
     const base = sg.filas.filter((x) => !sg.prov || x.prov === sg.prov), lista = sgVista(), edita = puede('ent');
     const cuenta = (s) => { const l = base.filter((x) => sgSit(x) === s); return { n: l.length, obs: r2(l.reduce((a, x) => a + x.obs, 0)), pend: r2(l.reduce((a, x) => a + x.pend, 0)) }; };
     const a = cuenta(SITS[0]), b = cuenta(SITS[1]), c = cuenta(SITS[2]);
@@ -5070,7 +5082,7 @@
       (lista.map((x) => {
         const e = sgEnt(x), ok = sgEntregado(x), k = esc(x.emp + '¦' + sgKey(x));
         return `<tr><td>${esc(dia(x.f))}</td><td>${esc(x.prov)}${x.emp !== 'SOC' ? ` <span class="quien">${esc(x.emp)}</span>` : ''}</td><td><b>${esc(x.doc)}</b></td>` +
-          `<td colspan="3" class="sgLin"><table>${x.lineas.map((l) => { const q = sgParte(l.p); return `<tr><td>${esc(q.d)}</td><td class="num">${esc(q.q)}</td><td class="num">${l.m !== null && l.m !== undefined && l.m !== '' ? mil(l.m) : ''}</td></tr>`; }).join('')}</table></td>` +
+          `<td colspan="3" class="sgLin"><table>${x.lineas.map((l) => { const q = l.q !== null && l.q !== undefined && l.q !== '' ? { q: String(l.q), d: l.p } : sgParte(l.p); return `<tr><td>${esc(q.d)}</td><td class="num">${esc(q.q)}</td><td class="num">${l.m !== null && l.m !== undefined && l.m !== '' ? mil(l.m) : ''}</td></tr>`; }).join('')}</table></td>` +
           `<td><span class="est ${x.tipo === DEV_INM ? 'e3' : 'e1'}">${esc(x.tipo)}</span></td><td class="num">${mil(x.obs)}</td><td>${x.ncs.map(esc).join('<br>') || '<span class="quien">—</span>'}</td><td class="num">${mil(x.aplicada)}</td><td class="num${x.pend ? ' baja' : ''}">${mil(x.pend)}</td>` +
           `<td><span class="est ${claseEst(x.est)}">${esc(x.est)}</span></td>` +
           `<td class="sgEnt"><span class="sgDot ${x.conNc ? 'v' : (ok ? 'n' : 'r')}"></span><b>${x.conNc ? '✓ Entregado · con NC' : (ok ? '✓ Entregado · falta NC' : 'Falta entregar')}</b>${edita && !x.conNc ? (ok ? ` <button class="mini sgBtn" data-k="${k}" data-v="0">Deshacer</button>` : ` <button class="mini sgBtn si" data-k="${k}" data-v="1" title="Pulsa cuando el proveedor recoja la mercadería">Marcar entregado</button>`) : ''}${e ? `<div class="quien">${esc(e.por || '')}${e.f ? ' · ' + esc(dia(e.f)) : ''}</div>` : ''}</td>` +
@@ -5083,7 +5095,7 @@
     if (e.target.id === 'sgAct') { sg.filas = null; sgPintar(); }
     else if (e.target.id === 'sgExp') exportar('seguimiento-devoluciones', [['Fecha', (x) => dia(x.f)], ['Empresa', 'emp'], ['Proveedor', 'prov'], ['Factura', 'doc'], ['Productos observados', (x) => x.lineas.map((l) => sgParte(l.p).d).join('\n')], ['Cantidades', (x) => x.lineas.map((l) => sgParte(l.p).q).join('\n')], ['Montos', (x) => x.lineas.map((l) => (l.m ? mil(l.m) : '')).join('\n')], ['Tipo de devolución', 'tipo'], ['Monto observado', 'obs'], ['NC aplicadas', (x) => x.ncs.join(', ')], ['NC aplicada total', 'aplicada'], ['Pendiente de NC', 'pend'], ['Estado NC', 'est'], ['Situación', sgSit], ['Entregado por', (x) => (sgEnt(x) || {}).por || ''], ['Fecha de entrega', (x) => dia((sgEnt(x) || {}).f || '')], ['Mes a pagar', (x) => perTxt(x.per)]], sgVista());
   });
-  $('sgCont').addEventListener('click', (e) => { const b = e.target.closest('.sgKpi'); if (b) { sg.sit = sg.sit === b.dataset.sit ? '' : b.dataset.sit; sgPintar(); } });
+  $('sgCont').addEventListener('click', (e) => { const b = e.target.closest('.sgKpi'); if (b) { sg.sit = sg.sit === b.dataset.sit ? 'PEND' : b.dataset.sit; sgPintar(); } });
   $('sgCont').addEventListener('click', async (e) => {
     const t = e.target.closest('.sgBtn');
     if (!t) return;
