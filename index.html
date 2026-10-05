@@ -1051,7 +1051,9 @@
     if (e.target.matches('.lPrecioS')) l.querySelector('.lPrecio').value = e.target.value === '' ? '' : r4(Number(e.target.value) * 1.18); // sin IGV → con IGV
     if (e.target.matches('.lPrecio')) l.querySelector('.lPrecioS').value = e.target.value === '' ? '' : r4(Number(e.target.value) / 1.18);  // con IGV → sin IGV
     const p = l.querySelector('.lPrecio').value;
-    l.querySelector('.lTot').textContent = (p !== '' && c > 0 && Number(p) >= 0) ? `Total con IGV: ${c} × S/ ${Number(p).toFixed(2)} = S/ ${(c * Number(p)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '';
+    const hay = p !== '' && c > 0 && Number(p) >= 0, tot = hay ? Math.round(c * Number(p) * 100) / 100 : 0, f2 = (x) => x.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    l.querySelector('.lTotal').value = hay ? f2(tot) : '';
+    l.querySelector('.lTot').textContent = hay ? `sin IGV: S/ ${f2(Math.round(tot / 1.18 * 100) / 100)}` : '';
   });
   // Devuelve el proveedor escrito. Solo valen los de la lista oficial; el administrador puede agregar uno nuevo al momento.
   async function proveedorDe(id, idMsg) {
@@ -1274,7 +1276,8 @@
       '<div class="campo"><label>Cantidad *</label><input class="lCant" type="number" min="0.01" step="any"></div>' +
       '<div class="campo"><label>Motivo *</label><select class="lMot"></select></div>' +
       '<div class="campo cPO"><label>Precio unit. sin IGV (S/)</label><input class="lPrecioS" type="number" min="0" step="any" placeholder="Opcional"></div>' +
-      '<div class="campo cPO"><label>Precio unit. con IGV (S/)</label><input class="lPrecio" type="number" min="0" step="any" placeholder="Opcional"><div class="quien lTot" style="margin-top:4px"></div></div>' +
+      '<div class="campo cPO"><label>Precio unit. con IGV (S/)</label><input class="lPrecio" type="number" min="0" step="any" placeholder="Opcional"></div>' +
+      '<div class="campo cPO"><label>Monto total con IGV (S/)</label><input class="lTotal" readonly tabindex="-1" placeholder="Cantidad × precio" style="background:#f6f3ef;font-weight:700"><div class="quien lTot" style="margin-top:4px"></div></div>' +
       '<div class="campo ancho"><label>Observación</label><input class="lObs" maxlength="500"></div>' +
       '</div>';
     d.dataset.cod = '';
