@@ -452,6 +452,7 @@
           <button class="pri" id="gAdd">+ Fila</button>
           <button id="gPegar">Pegar desde Excel</button>
           <button id="gQr">Traer del registro de escaneo</button>
+          <button id="gXml" class="oculto">Subir XML de facturas</button><input type="file" id="gXmlArch" accept=".xml,text/xml,application/xml" multiple class="oculto">
           <button id="gRep">Comparar con reporte Lolfar</button><input type="file" id="gRepArch" accept=".xls,.xlsx" class="oculto">
           <button class="pel" id="gDel">Eliminar seleccionadas (0)</button>
           <select id="gMover" aria-label="Mover seleccionadas a otro mes"></select>
@@ -530,6 +531,7 @@
           <button class="pri" id="cpAdd">+ Documento</button>
           <button id="cpPegar">Pegar desde Excel</button>
           <button class="pel" id="cpDel">Eliminar seleccionadas (0)</button>
+          <button id="cpHist">Eliminados e historial</button>
           <button id="cpProvs">Proveedores</button>
           <button id="cpImp">Importar libro de Sheets</button><input type="file" id="cpImpArch" accept=".xlsx,.csv" multiple class="oculto">
         </div>
@@ -3695,7 +3697,7 @@
 
   /* ---------- Guardar: una transacción por mes, en fila, con índice de duplicados e historial ---------- */
   let cpCola = Promise.resolve();
-  function cpGuardar(cambio, accion, detalle) {
+  function cpGuardar(cambio, accion, detalle, extra) {
     const emp = cpEmp(), per = cpPer();
     const turno = cpCola.then(async () => {
       const ref = doc(db, 'cpm', `${emp}_${per}`);
@@ -3707,7 +3709,7 @@
         tx.set(doc(db, 'cpIdx', `${emp}_${per.slice(0, 4)}`), { m: { [per.slice(5)]: cpIdxDe(est.filas) } }, { merge: true });
       });
       const id = String(9999999999999 - Date.now()) + Math.random().toString(36).slice(2, 6);
-      setDoc(doc(db, 'pagosLog', id), { clave: `${emp}|CXP`, per, accion, detalle: String(detalle).slice(0, 400), quien: firma(), ts: serverTimestamp() }).catch(console.error);
+      setDoc(doc(db, 'pagosLog', id), { clave: `${emp}|CXP`, per, accion, detalle: String(detalle).slice(0, 400), quien: firma(), ts: serverTimestamp(), ...(extra || {}) }).catch(console.error);
     });
     cpCola = turno.catch(() => {});
     return turno;
@@ -3817,7 +3819,7 @@
     const ids = [...cpSel], fs = ((cpDoc || {}).filas || []).filter((f) => ids.includes(f.i));
     if (!fs.length) return msg('cpMsg', 'Marca primero las filas que quieres eliminar.');
     if (!confirm(`¿Eliminar ${fs.length} documento(s)?\n${fs.slice(0, 8).map((f) => `${f.p}  ${f.d}  ${mil(f.m)}`).join('\n')}${fs.length > 8 ? '\n…' : ''}`)) return;
-    try { await cpGuardar((est) => { est.filas = est.filas.filter((f) => !ids.includes(f.i)); }, 'Eliminó', fs.map((f) => `${f.p} ${f.d} (${mil(f.m)})`).join(', ')); cpSel.clear(); msg('cpMsg', `${fs.length} documento(s) eliminado(s).`, 'ok'); }
+    try { await cpGuardar((est) => { est.filas = est.filas.filter((f) => !ids.includes(f.i)); }, 'Eliminó', fs.map((f) => `${f.p} ${f.d} (${mil(f.m)})`).join(', '), { filas: fs.map((f) => ({ ...f })) }); cpSel.clear(); msg('cpMsg', `${fs.length} documento(s) eliminado(s). Si fue un error, recupéralos en "Eliminados e historial".`, 'ok'); } // se guarda la fila completa para poder restaurarla
     catch (e) { cpError(e); }
   });
   $('cpExp').addEventListener('click', () => {
@@ -4214,6 +4216,62 @@
       msg('cpMsg', `Importación terminada: ${nDocs} documentos en ${meses.length} meses y ${L.provs.length} proveedores.`, 'ok');
     } catch (err) { cpError(err); }
   });
+
+  /* ---------- Eliminados e historial: ver lo que se borró (de cualquier mes) y restaurarlo ---------- */
+  let cpH = { lista: [], solo: true };
+  function cpHFilas(x) { // filas de una eliminación: completas si se guardaron; si es antigua, se reconstruyen del texto (proveedor, documento, importe)
+    if (Array.isArray(x.filas) && x.filas.length) return x.filas.map((f) => ({ f, completo: true }));
+    return String(x.detalle || '').split(/\),\s*/).map((t) => { const m = t.replace(/\)$/, '').match(/^(.*\S)\s+(\S+)\s+\(([-\d.,]+)$/); const mm = m ? montoNum(m[3]) : null; return m && mm !== null ? { f: { p: m[1], d: m[2], m: Math.abs(mm), t: 'FACTURA' }, completo: false } : null; }).filter(Boolean);
+  }
+  async function cpHAbrir() {
+    modo = 'cpHist'; abierto = null;
+    $('dTit').textContent = `Eliminados e historial · ${(CP_EMP.find((e) => e.k === cpEmp()) || {}).nombre || ''}`;
+    $('dCuerpo').innerHTML = '<p class="quien">Cargando…</p>';
+    if (!$('dlg').open) $('dlg').showModal();
+    try {
+      const s = await getDocs(query(collection(db, 'pagosLog'), where('clave', '==', `${cpEmp()}|CXP`), limit(400)));
+      cpH.lista = s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) })).sort((a, b) => String(a.id).localeCompare(String(b.id)));
+      cpHPintar();
+    } catch (err) { $('dCuerpo').innerHTML = `<div class="msg err">${esc(errorTexto(err))}</div>`; }
+  }
+  function cpHPintar() {
+    const lista = cpH.lista.filter((x) => !cpH.solo || x.accion === 'Eliminó'), puedo = puede('cxp');
+    $('dCuerpo').innerHTML = '<div id="dMsg"></div>' +
+      `<div class="herr"><label style="margin:0;display:flex;gap:6px;align-items:center;font-weight:500;color:inherit"><input type="checkbox" id="cpHSolo" style="width:auto"${cpH.solo ? ' checked' : ''}> Solo lo eliminado</label><span class="quien">Se muestran los últimos cambios de todos los meses de esta empresa.</span></div>` +
+      (lista.length ? '<div class="tabla" style="max-height:62vh;overflow:auto"><table style="font-size:13px"><tr><th>Cuándo</th><th>Quién</th><th>Mes de pago</th><th>Acción</th><th>Detalle</th><th></th></tr>' +
+        lista.map((x) => {
+          if (x.accion !== 'Eliminó') return `<tr><td>${esc(fecha(x.ts))}</td><td>${esc(x.quien)}</td><td>${esc(perTxt(x.per))}</td><td>${esc(x.accion)}</td><td class="larga">${esc(x.detalle)}</td><td></td></tr>`;
+          const fs = cpHFilas(x), ya = new Set(x.rest || []);
+          return fs.map((o, k) => `<tr>${k === 0 ? `<td rowspan="${fs.length}">${esc(fecha(x.ts))}</td><td rowspan="${fs.length}">${esc(x.quien)}</td><td rowspan="${fs.length}"><b>${esc(perTxt(x.per))}</b></td><td rowspan="${fs.length}"><span class="est alerta">Eliminó</span></td>` : ''}` +
+            `<td class="larga"><b>${esc(o.f.p)}</b> · ${esc(o.f.t || 'FACTURA')} ${esc(o.f.d || '')} · S/ ${mil(o.f.m)}${o.f.f ? ' · emitida ' + esc(dia(o.f.f)) : ''}${o.completo ? '' : ' <span class="quien">(solo se conserva proveedor, documento e importe)</span>'}</td>` +
+            `<td>${ya.has(k) ? '<span class="est e2">Restaurada</span>' : (puedo ? `<button class="mini cpHRest" data-id="${esc(x.id)}" data-k="${k}">Restaurar en ${esc(perTxt(x.per))}</button>` : '')}</td></tr>`).join('') ||
+            `<tr><td>${esc(fecha(x.ts))}</td><td>${esc(x.quien)}</td><td>${esc(perTxt(x.per))}</td><td>Eliminó</td><td class="larga">${esc(x.detalle)}</td><td></td></tr>`;
+        }).join('') + '</table></div>' : '<p class="quien">No hay eliminaciones registradas en esta empresa.</p>') +
+      '<p class="quien" style="margin:8px 0 0">Lo eliminado desde hoy se restaura completo. De lo eliminado antes solo quedó el proveedor, el número y el importe: al restaurarlo vuelve como FACTURA sin fechas y hay que completarlo en la grilla.</p>';
+  }
+  async function cpHRestaurar(id, k) {
+    const x = cpH.lista.find((y) => y.id === id), o = x && cpHFilas(x)[k];
+    if (!o) return;
+    const emp = cpEmp(), per = x.per, f = o.completo ? { ...o.f } : { i: idNuevo(), p: o.f.p, t: 'FACTURA', f: '', d: o.f.d, ref: 'RESTAURADA: completar fechas y tipo', af: '', v: '', m: o.f.m, ar: false, e: '', pg: false, fp: '', op: '', x: '' };
+    try {
+      let repetida = false;
+      await runTransaction(db, async (tx) => {
+        const ref = doc(db, 'cpm', `${emp}_${per}`), s = await tx.get(ref), d = s.exists() ? s.data() : { filas: [], prog: [] }, filas2 = (d.filas || []).slice();
+        repetida = filas2.some((y) => y.i === f.i || (y.p === f.p && cpDocNorm(y.d) === cpDocNorm(f.d) && y.t === f.t && Math.abs((Number(y.m) || 0) - (Number(f.m) || 0)) < 0.005));
+        if (repetida) return;
+        filas2.push(f);
+        tx.set(ref, { emp, per, filas: filas2, prog: d.prog || [], act: serverTimestamp(), actPor: firma() });
+        tx.set(doc(db, 'cpIdx', `${emp}_${per.slice(0, 4)}`), { m: { [per.slice(5)]: cpIdxDe(filas2) } }, { merge: true });
+      });
+      if (repetida) return msg('dMsg', `${f.p} ${f.d} ya está en ${perTxt(per)}: no se volvió a agregar.`);
+      x.rest = (x.rest || []).concat([k]);
+      setDoc(doc(db, 'pagosLog', String(9999999999999 - Date.now()) + Math.random().toString(36).slice(2, 6)), { clave: `${emp}|CXP`, per, accion: 'Restauró', detalle: `${f.p} ${f.d} (${mil(f.m)})`, quien: firma(), ts: serverTimestamp() }).catch(console.error);
+      cpHPintar(); msg('dMsg', `Restaurada ${f.p} ${f.d} en ${perTxt(per)}.`, 'ok');
+    } catch (e) { msg('dMsg', errorTexto(e)); }
+  }
+  $('cpHist').addEventListener('click', cpHAbrir);
+  $('dCuerpo').addEventListener('change', (e) => { if (modo === 'cpHist' && e.target.id === 'cpHSolo') { cpH.solo = e.target.checked; cpHPintar(); } });
+  $('dCuerpo').addEventListener('click', (e) => { if (modo === 'cpHist' && e.target.classList.contains('cpHRest')) cpHRestaurar(e.target.dataset.id, Number(e.target.dataset.k)); });
 
   /* =====================  D. CONCILIAR CON EL REPORTE "PROVISIONES POR PROVEEDOR" DEL SISTEMA  =====================
      Se sube el Excel del sistema y se compara con lo registrado en Pagos a proveedores y en Cuentas por pagar:
@@ -5154,8 +5212,8 @@
       qrCargar(qrCsv(await r.text()));
     } catch (e) { msg('dMsg', 'No pude leer la hoja directamente (debe estar compartida como "cualquier persona con el enlace puede ver"). También puedes copiar las filas en Sheets y pegarlas en el cuadro de abajo.'); }
   }
-  function qrCargar(tabla) {
-    const filas2 = qrFilas(tabla);
+  function qrCargar(tabla, listas) {
+    const filas2 = listas || qrFilas(tabla);
     if (!filas2.length) return msg('dMsg', 'No encontré facturas en esos datos. Deben venir las columnas de la hoja de registros, desde la A.');
     const dk = pgDist(); let g = ''; try { g = localStorage.getItem('rucDe_' + dk) || ''; } catch (e) { g = ''; }
     qr.filas = filas2;
@@ -5170,17 +5228,51 @@
     return qr.filas.filter((x) => x.ruc === qr.ruc && (!x.rec || !rucEmp || x.rec === rucEmp)).filter((x) => { const k = qrK(x); if (vistos.has(k)) return false; vistos.add(k); return true; })
       .map((x) => ({ ...x, per: reg.get(qrK(x)) || '' })).sort((a, b) => String(a.f).localeCompare(String(b.f)) || String(a.n).localeCompare(String(b.n), undefined, { numeric: true }));
   }
-  function qrAbrir() {
+  function qrAbrir(deXml) {
     if (!pgDist()) return msg('gMsg', 'Elige el distribuidor.');
-    modo = 'qr'; abierto = null; qr.filas = [];
+    modo = 'qr'; abierto = null; if (!deXml) qr.filas = [];
     let u = ''; try { u = localStorage.getItem('hojaQR') || ''; } catch (e) { u = ''; }
-    $('dTit').textContent = `Registro de escaneo · ${distDe(pgDist()).nombre}`;
+    $('dTit').textContent = `${deXml ? 'Facturas en XML' : 'Registro de escaneo'} · ${distDe(pgDist()).nombre}`;
     $('dCuerpo').innerHTML = '<div id="dMsg"></div><p class="quien" style="margin-top:0">Trae las facturas y notas de crédito que se escanearon con el celular y muestra cuáles aún no están subidas aquí.</p>' +
       '<div class="herr"><button id="qrOk">↻ Volver a leer la hoja</button><span class="quien">Se lee sola cada vez que abres esta ventana, con lo último que se haya escaneado.</span></div>' +
       `<details style="margin:6px 0 10px"><summary class="quien" style="cursor:pointer">Opciones (cambiar de hoja o pegar filas a mano)</summary><label for="qrUrl" style="margin-top:8px">Enlace de la hoja de registros</label><input id="qrUrl" value="${esc(u || QR_HOJA)}"><label for="qrTexto" style="margin-top:8px">O pega aquí filas copiadas de la hoja</label><textarea id="qrTexto" rows="4" placeholder="Selecciona las filas en Sheets (desde la columna A), copia y pega aquí" style="font-family:monospace;font-size:12px;white-space:pre;margin-top:6px"></textarea></details><div id="qrCont"></div>`;
     if (!$('dlg').open) $('dlg').showModal();
-    qrLeer();
+    if (deXml) { $('dCuerpo').querySelector('.herr').classList.add('oculto'); $('dCuerpo').querySelector('details').classList.add('oculto'); $('dCuerpo').querySelector('p.quien').textContent = deXml; }
+    else qrLeer();
   }
+  /* ---------- Subir los XML de las facturas electrónicas (UBL 2.1 de SUNAT): traen el total exacto, los RUC y, en las NC, la factura que afectan ---------- */
+  function xmlFactura(texto, nombre) {
+    const d = new DOMParser().parseFromString(texto, 'application/xml'), raiz = d.documentElement;
+    if (!raiz || d.getElementsByTagName('parsererror').length) throw new Error('no es un XML válido');
+    const hijo = (el, n) => (el ? [...el.children].find((c) => c.localName === n) : null) || null;
+    const ruta = (el, ...ns) => ns.reduce((e, n) => hijo(e, n), el), tx = (el) => (el ? el.textContent.trim() : '');
+    const dentro = (el, n) => (el ? [...el.getElementsByTagNameNS('*', n)] : []);
+    const tipoRaiz = raiz.localName;
+    if (!['Invoice', 'CreditNote', 'DebitNote'].includes(tipoRaiz)) throw new Error('no es una factura ni una nota de crédito');
+    const rucDe = (parte) => { const p = hijo(hijo(raiz, parte), 'Party'); const cs = [tx(ruta(p, 'PartyIdentification', 'ID')), ...dentro(p, 'CompanyID').map(tx), ...dentro(p, 'CustomerAssignedAccountID').map(tx), tx(hijo(hijo(raiz, parte), 'CustomerAssignedAccountID'))].map((x) => x.replace(/\D/g, '')); return cs.find((x) => x.length === 11) || ''; };
+    const id = tx(hijo(raiz, 'ID')), m = id.toUpperCase().match(/^([A-Z0-9]{2,5})\s*-\s*0*(\d+)$/);
+    if (!m) throw new Error(`el número "${id}" no tiene la forma SERIE-NÚMERO`);
+    const tot = hijo(raiz, 'LegalMonetaryTotal') || hijo(raiz, 'RequestedMonetaryTotal'), total = montoNum(tx(hijo(tot, 'PayableAmount')) || tx(hijo(tot, 'TaxInclusiveAmount')));
+    if (total === null) throw new Error('no trae el importe total');
+    const nc = tipoRaiz === 'CreditNote' || /^0?7$/.test(tx(hijo(raiz, 'InvoiceTypeCode')));
+    const ref = nc ? (dentro(raiz, 'InvoiceDocumentReference').map((x) => tx(hijo(x, 'ID')))[0] || tx(ruta(raiz, 'DiscrepancyResponse', 'ReferenceID'))) : '';
+    return { ruc: rucDe('AccountingSupplierParty'), t: nc ? 'NC' : (tipoRaiz === 'DebitNote' ? 'ND' : 'FA'), s: serDoc(m[1]), n: numDoc(m[2]), m: nc ? -Math.abs(total) : Math.abs(total), calc: false, f: fechaIso(tx(hijo(raiz, 'IssueDate')).slice(0, 10)) || '', rec: rucDe('AccountingCustomerParty'), l: '', ref: refDoc(ref) || ref, mon: tx(hijo(raiz, 'DocumentCurrencyCode')), arch: nombre };
+  }
+  async function xmlSubir(e) {
+    const arch = [...e.target.files];
+    e.target.value = '';
+    if (!arch.length) return;
+    if (!pgDist()) return msg('gMsg', 'Elige el distribuidor.');
+    const ok = [], mal = [];
+    for (const a of arch) { try { ok.push(xmlFactura(await a.text(), a.name)); } catch (err) { mal.push(`${a.name}: ${err.message}`); } }
+    if (!ok.length) return msg('gMsg', `No pude leer ningún XML. ${mal.slice(0, 3).join(' · ')}`);
+    const otra = ok.filter((x) => x.mon && x.mon !== 'PEN').length, rucEmp = empDe(pgEmp()).ruc || '', ajenas = rucEmp ? ok.filter((x) => x.rec && x.rec !== rucEmp).length : 0;
+    msg('gMsg', '');
+    qrAbrir(`${ok.length} XML leído(s) con su total exacto.${mal.length ? ` No se pudieron leer ${mal.length}: ${mal.slice(0, 3).join(' · ')}.` : ''}${otra ? ` ${otra} no están en soles: revisa el importe.` : ''}${ajenas ? ` ${ajenas} son de otra empresa (otro RUC de cliente) y no se muestran aquí.` : ''}`);
+    qrCargar(null, ok);
+  }
+  $('gXml').addEventListener('click', () => { if (!pgDist()) return msg('gMsg', 'Elige el distribuidor.'); $('gXmlArch').click(); });
+  $('gXmlArch').addEventListener('change', xmlSubir);
   function qrPintar() {
     msg('dMsg', '');
     const rucs = new Map(); qr.filas.forEach((x) => rucs.set(x.ruc, (rucs.get(x.ruc) || 0) + 1));
