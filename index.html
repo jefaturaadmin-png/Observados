@@ -444,6 +444,7 @@
         <div class="herr" id="gHerr">
           <button class="pri" id="gAdd">+ Fila</button>
           <button id="gPegar">Pegar desde Excel</button>
+          <button id="gQr">Traer del registro de escaneo</button>
           <button id="gRep">Comparar con reporte Lolfar</button><input type="file" id="gRepArch" accept=".xls,.xlsx" class="oculto">
           <button class="pel" id="gDel">Eliminar seleccionadas (0)</button>
           <select id="gMover" aria-label="Mover seleccionadas a otro mes"></select>
@@ -5084,6 +5085,112 @@
     sgPintar();
     try { await setDoc(doc(db, 'devEnt', emp), { m: { [k]: val } }, { merge: true }); }
     catch (err) { if (antes) sg.ent[emp][k] = antes; else delete sg.ent[emp][k]; sgPintar(); $('sgCont').insertAdjacentHTML('afterbegin', `<div class="msg err">${esc(errorTexto(err))}</div>`); }
+  });
+
+  /* ---------- Pagos a proveedores: traer facturas del registro de escaneo (hoja de Google donde caen los QR leídos con el celular) ----------
+     Columnas de esa hoja: A fecha de escaneo · B RUC emisor · C tipo (1 factura, 7 NC) · D serie · E número · F IGV · G total · H fecha · J RUC receptor · N laboratorio */
+  const QR_HOJA = 'https://docs.google.com/spreadsheets/d/1o4Ral4qBrT0OQshFcns5H8x2TRBJ6e9lWv7PAiz-6oA/edit?gid=356263379';
+  const QR_RUC = { 20108983583: 'ALFARO', 20100220700: 'DIMEXA', 20262996329: 'FARMINDUSTRIA', 20608557190: 'FPMAYORISTA' };
+  let qr = { filas: [], ruc: '', sel: new Set(), ver: 'nuevas' };
+  function qrCsv(t) { // CSV con comillas y saltos de línea dentro de una celda
+    const out = []; let fila = [], c = '', q = false;
+    for (let i = 0; i < t.length; i += 1) {
+      const ch = t[i];
+      if (q) { if (ch === '"') { if (t[i + 1] === '"') { c += '"'; i += 1; } else q = false; } else c += ch; }
+      else if (ch === '"') q = true;
+      else if (ch === ',') { fila.push(c); c = ''; }
+      else if (ch === '\n') { fila.push(c); out.push(fila); fila = []; c = ''; }
+      else if (ch !== '\r') c += ch;
+    }
+    if (c !== '' || fila.length) { fila.push(c); out.push(fila); }
+    return out;
+  }
+  function qrFilas(tabla) {
+    const out = [];
+    tabla.forEach((r) => {
+      const c = (r || []).map((x) => String(x ?? '').trim());
+      let b = c.findIndex((x, i) => i <= 2 && /^\d{11}$/.test(x));
+      if (b < 0) { if (/^[A-Z]{1,3}\d{1,4}$/i.test(c[3] || '') && /^\d+$/.test(c[4] || '')) b = 1; else return; } // fila escrita a mano, sin RUC
+      const s = serDoc(c[b + 2]), n = numDoc(c[b + 3]);
+      if (!s || !/^\d+$/.test(n)) return;
+      const igv = montoNum(c[b + 4]), tot0 = montoNum(c[b + 5]);
+      let m = tot0, calc = false;
+      if ((m === null || m === 0) && igv) { m = r2(igv * 118 / 18); calc = true; } // el QR no trajo el total: sale del IGV
+      const t = /^0?7$/.test(c[b + 1]) || (m !== null && m < 0) ? 'NC' : 'FA';
+      out.push({ ruc: /^\d{11}$/.test(c[b]) ? c[b] : '', t, s, n, m: m === null ? null : (t === 'NC' ? -Math.abs(m) : Math.abs(m)), calc, f: fechaIso(c[b + 6]) || '', rec: c[b + 8] || '', l: may(c[b + 12] || '', 60), ref: txt(c[b + 11] || c[b + 10] || '', 120) });
+    });
+    return out;
+  }
+  async function qrLeer() {
+    const url = $('qrUrl').value.trim(), m = url.match(/\/d\/([\w-]{20,})/), g = url.match(/[#&?]gid=(\d+)/);
+    if (!m) return msg('dMsg', 'Ese enlace no es de una hoja de Google.');
+    try { localStorage.setItem('hojaQR', url); } catch (e) { /* nada */ }
+    msg('dMsg', 'Leyendo la hoja…', 'ok');
+    try {
+      const r = await fetch(`https://docs.google.com/spreadsheets/d/${m[1]}/gviz/tq?tqx=out:csv&headers=0${g ? '&gid=' + g[1] : ''}`);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      qrCargar(qrCsv(await r.text()));
+    } catch (e) { msg('dMsg', 'No pude leer la hoja directamente (debe estar compartida como "cualquier persona con el enlace puede ver"). También puedes copiar las filas en Sheets y pegarlas en el cuadro de abajo.'); }
+  }
+  function qrCargar(tabla) {
+    const filas2 = qrFilas(tabla);
+    if (!filas2.length) return msg('dMsg', 'No encontré facturas en esos datos. Deben venir las columnas de la hoja de registros, desde la A.');
+    const dk = pgDist(); let g = ''; try { g = localStorage.getItem('rucDe_' + dk) || ''; } catch (e) { g = ''; }
+    qr.filas = filas2;
+    qr.ruc = g && filas2.some((x) => x.ruc === g) ? g : (Object.keys(QR_RUC).find((k) => QR_RUC[k] === dk && filas2.some((x) => x.ruc === k)) || '');
+    qr.ver = 'nuevas'; qr.sel = null;
+    qrPintar();
+  }
+  const qrK = (x) => `${x.t}|${x.s}|${x.n}`;
+  function qrVista() {
+    const reg = new Map(); pgDocs.forEach((d) => (d.filas || []).forEach((f) => { if (f.n) reg.set(claveFila(f), d.per); }));
+    const rucEmp = empDe(pgEmp()).ruc || '', vistos = new Set();
+    return qr.filas.filter((x) => x.ruc === qr.ruc && (!x.rec || !rucEmp || x.rec === rucEmp)).filter((x) => { const k = qrK(x); if (vistos.has(k)) return false; vistos.add(k); return true; })
+      .map((x) => ({ ...x, per: reg.get(qrK(x)) || '' })).sort((a, b) => String(a.f).localeCompare(String(b.f)) || String(a.n).localeCompare(String(b.n), undefined, { numeric: true }));
+  }
+  function qrAbrir() {
+    if (!pgDist()) return msg('gMsg', 'Elige el distribuidor.');
+    modo = 'qr'; abierto = null; qr.filas = [];
+    let u = ''; try { u = localStorage.getItem('hojaQR') || ''; } catch (e) { u = ''; }
+    $('dTit').textContent = `Registro de escaneo · ${distDe(pgDist()).nombre}`;
+    $('dCuerpo').innerHTML = '<div id="dMsg"></div><p class="quien" style="margin-top:0">Trae las facturas y notas de crédito que se escanearon con el celular y muestra cuáles aún no están subidas aquí.</p>' +
+      '<div class="herr"><button id="qrOk">↻ Volver a leer la hoja</button><span class="quien">Se lee sola cada vez que abres esta ventana, con lo último que se haya escaneado.</span></div>' +
+      `<details style="margin:6px 0 10px"><summary class="quien" style="cursor:pointer">Opciones (cambiar de hoja o pegar filas a mano)</summary><label for="qrUrl" style="margin-top:8px">Enlace de la hoja de registros</label><input id="qrUrl" value="${esc(u || QR_HOJA)}"><label for="qrTexto" style="margin-top:8px">O pega aquí filas copiadas de la hoja</label><textarea id="qrTexto" rows="4" placeholder="Selecciona las filas en Sheets (desde la columna A), copia y pega aquí" style="font-family:monospace;font-size:12px;white-space:pre;margin-top:6px"></textarea></details><div id="qrCont"></div>`;
+    if (!$('dlg').open) $('dlg').showModal();
+    qrLeer();
+  }
+  function qrPintar() {
+    msg('dMsg', '');
+    const rucs = new Map(); qr.filas.forEach((x) => rucs.set(x.ruc, (rucs.get(x.ruc) || 0) + 1));
+    const V = qrVista(), nuevas = V.filter((x) => !x.per), lista = qr.ver === 'nuevas' ? nuevas : V;
+    if (!qr.sel) qr.sel = new Set(nuevas.filter((x) => x.m !== null && x.f).map(qrK));
+    const nSel = nuevas.filter((x) => qr.sel.has(qrK(x))).length;
+    $('qrCont').innerHTML = `<div class="herr"><label style="margin:0" for="qrRuc">RUC de ${esc(distDe(pgDist()).nombre)}</label><select id="qrRuc" style="width:auto"><option value="">— elige —</option>${[...rucs].sort((a, b) => b[1] - a[1]).map(([r, n]) => `<option value="${esc(r)}"${r === qr.ruc ? ' selected' : ''}>${esc(r || '(filas sin RUC)')} · ${n} filas${QR_RUC[r] ? ' · ' + esc(distDe(QR_RUC[r]).nombre) : ''}</option>`).join('')}</select>` +
+      `<select id="qrVer" style="width:auto"><option value="nuevas"${qr.ver === 'nuevas' ? ' selected' : ''}>Solo las que faltan subir (${nuevas.length})</option><option value="todas"${qr.ver === 'todas' ? ' selected' : ''}>Todas (${V.length})</option></select></div>` +
+      (!qr.ruc && qr.ruc !== '' ? '' : (!V.length ? '<p class="quien">Elige el RUC que corresponde a este distribuidor; quedará recordado en este equipo.</p>' :
+        `<div class="tabla" style="max-height:44vh;overflow:auto"><table style="font-size:13px"><tr><th><input type="checkbox" id="qrTodo"${nSel && nSel === nuevas.length ? ' checked' : ''} aria-label="Marcar todas"></th><th>Fecha</th><th>Tipo</th><th>Serie</th><th>Número</th><th class="num">Total</th><th>Laboratorio</th><th>Situación</th></tr>` +
+        lista.map((x) => `<tr${x.t === 'NC' ? ' class="esnc"' : ''}><td>${x.per ? '' : `<input type="checkbox" class="qrCk" data-k="${esc(qrK(x))}"${qr.sel.has(qrK(x)) ? ' checked' : ''}${x.m === null || !x.f ? ' disabled' : ''}>`}</td><td>${esc(dia(x.f))}</td><td>${x.t}</td><td>${esc(x.s)}</td><td><b>${esc(x.n)}</b></td><td class="num">${x.m === null ? '<span class="est alerta">sin total</span>' : mil(x.m)}${x.calc ? ' <span class="est e0" title="El QR no trajo el total: se calculó a partir del IGV. Verifícalo.">≈ del IGV</span>' : ''}</td><td>${esc(x.l)}</td><td>${x.per ? `<span class="est e2">Ya está en ${esc(perTxt(x.per))}</span>` : '<span class="est alerta">Falta subir</span>'}</td></tr>`).join('') + '</table></div>' +
+        `<p style="margin-top:12px">${puede('pagos') && pgDoc() ? `<button class="pri" id="qrPasar"${nSel ? '' : ' disabled'}>Agregar las ${nSel} marcadas a ${esc(perTxt(pgPer()))}</button> ` : ''}<span class="quien">Las marcadas "≈ del IGV" tienen el total calculado (puede variar unos céntimos): revísalo en la grilla. Las que salen "sin total" hay que escribirlas a mano.</span></p>`));
+  }
+  $('gQr').addEventListener('click', qrAbrir);
+  $('dCuerpo').addEventListener('input', (e) => { if (modo === 'qr' && e.target.id === 'qrTexto' && e.target.value.trim()) qrCargar(e.target.value.split(/\r?\n/).map((l) => l.split('\t'))); });
+  $('dCuerpo').addEventListener('change', (e) => {
+    if (modo !== 'qr') return;
+    const t = e.target;
+    if (t.id === 'qrRuc') { qr.ruc = t.value; qr.sel = null; try { localStorage.setItem('rucDe_' + pgDist(), t.value); } catch (err) { /* nada */ } }
+    else if (t.id === 'qrVer') qr.ver = t.value;
+    else if (t.id === 'qrTodo') qr.sel = new Set(t.checked ? qrVista().filter((x) => !x.per && x.m !== null && x.f).map(qrK) : []);
+    else if (t.classList.contains('qrCk')) { if (t.checked) qr.sel.add(t.dataset.k); else qr.sel.delete(t.dataset.k); }
+    else return;
+    qrPintar();
+  });
+  $('dCuerpo').addEventListener('click', (e) => {
+    if (modo !== 'qr') return;
+    if (e.target.id === 'qrOk') return qrLeer();
+    if (e.target.id === 'qrPasar') {
+      const el = qrVista().filter((x) => !x.per && qr.sel.has(qrK(x)));
+      if (el.length) dlgPegar(el.map((x) => [dia(x.f).replace(/\//g, '-'), x.t, x.s, x.n, Number(x.m).toFixed(2), x.l].join('\t')).join('\n'));
+    }
   });
 
   /* =====================  I. COTIZACIONES A PROVEEDORES  =====================
