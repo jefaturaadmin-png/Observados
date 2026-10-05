@@ -212,7 +212,7 @@
   .ladoMarca { height:60px; display:flex; align-items:center; gap:10px; padding:0 16px; border-bottom:1px solid rgba(255,255,255,.1); font-weight:800; font-size:15px; white-space:nowrap; overflow:hidden; flex:none; }
   .ladoMarca img { width:30px; height:30px; border-radius:8px; object-fit:contain; background:#fff; flex:none; }
   #lado nav { display:block; flex:1; overflow-y:auto; overflow-x:hidden; padding:10px 10px 16px; background:none; border:none; }
-  .navGrupo:not(:has(button:not(.oculto))) { display:none; }
+  .navGrupo:not(:has(> button:not(.oculto))) { display:none; }
   .navG { font-size:11px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; color:rgba(255,255,255,.45); padding:14px 10px 6px; white-space:nowrap; }
   #lado nav button { display:flex; align-items:center; gap:11px; width:100%; text-align:left; border:none; border-radius:8px; background:transparent; color:rgba(255,255,255,.74); font-weight:600; font-size:13.5px; padding:8px 10px; margin:1px 0; white-space:nowrap; }
   #lado nav button.oculto { display:none; }
@@ -230,7 +230,14 @@
   #app header button { border-color:rgba(255,255,255,.28); border-radius:8px; white-space:nowrap; }
   #app header button:hover { background:rgba(255,255,255,.1); }
   #bMenu { width:40px; height:40px; padding:0; display:flex; align-items:center; justify-content:center; border:none !important; flex:none; }
-  main { padding:22px 24px 40px; max-width:1860px; }
+  main { padding:18px 22px 40px; max-width:none; margin:0; }
+  /* Las ventanas de cada módulo se eligen en el menú de la izquierda; la barra de pestañas solo queda si el menú está encogido */
+  .navSub { display:none; margin:2px 0 6px 19px; padding-left:10px; border-left:1px solid rgba(255,255,255,.18); }
+  #lado nav button.act + .navSub { display:block; }
+  #lado nav .navSub button { font-size:13px; font-weight:500; padding:6px 10px; color:rgba(255,255,255,.66); }
+  #lado nav .navSub button.on { color:#fff; font-weight:700; background:rgba(254,110,0,.22); box-shadow:inset 3px 0 0 var(--marca); }
+  body:not(.menuMin) #gSub, body:not(.menuMin) #ctSub, body:not(.menuMin) #cpSub { display:none; }
+  body.menuMin .navSub { display:none !important; }
   body.menuMin #lado { width:64px; } body.menuMin .navT, body.menuMin .navG, body.menuMin .ladoMarca b { display:none; } body.menuMin .ladoMarca { padding:0 17px; }
   body.menuMin #lado nav button { justify-content:center; padding:10px 0; position:relative; } body.menuMin #lado nav .cuenta { position:absolute; top:2px; right:4px; padding:0 5px; font-size:10px; }
   body.menuMin .navGrupo + .navGrupo { border-top:1px solid rgba(255,255,255,.1); margin-top:6px; padding-top:6px; }
@@ -239,7 +246,7 @@
     #lado { position:fixed; left:0; top:0; transform:translateX(-102%); transition:transform .2s cubic-bezier(.4,0,.2,1); width:264px !important; box-shadow:0 0 40px rgba(0,0,0,.4); }
     body.menuAbierto #lado { transform:none; } body.menuAbierto #velo { display:block; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:25; }
     body.menuMin .navT, body.menuMin .ladoMarca b { display:inline; } body.menuMin .navG { display:block; } body.menuMin #lado nav button { justify-content:flex-start; padding:8px 10px; }
-    #quien, #bClave { display:none; } main { padding:14px 12px 30px; }
+    #quien, #bClave { display:none; } main { padding:14px 12px 30px; } #gSub, #ctSub, #cpSub { display:none !important; } body.menuMin #lado nav button.act + .navSub { display:block !important; }
   }
   @media (prefers-reduced-motion: reduce) { #lado { transition:none; } }
   .caja, .kpi { border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04); }
@@ -954,7 +961,7 @@
   document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => ver(b.dataset.v)));
   function ver(v) {
     vista = v;
-    { const bt = document.querySelector(`nav button[data-v="${v}"] .navT`); $('tituloVista').textContent = bt ? bt.textContent : 'Farmacia Socorro'; document.body.classList.remove('menuAbierto'); window.scrollTo(0, 0); }
+    { const bt = document.querySelector(`nav button[data-v="${v}"] .navT`); $('tituloVista').dataset.mod = bt ? bt.textContent : 'Farmacia Socorro'; document.body.classList.remove('menuAbierto'); window.scrollTo(0, 0); menuSubPintar(); }
     if (v === 'vInicio') inPintar();
     VISTAS.forEach((x) => $(x).classList.toggle('oculto', x !== v));
     document.querySelectorAll('nav button').forEach((b) => b.classList.toggle('act', b.dataset.v === v));
@@ -5674,7 +5681,7 @@
       K.push(['vCot', e.filter((x) => /POR LLEGAR|PARCIAL/.test(x)).length, 'Pedidos aprobados por llegar', false]);
     }
     const f = new Date(), fecha = `${DIAS[f.getDay()].toLowerCase()} ${f.getDate()} de ${MESES[f.getMonth() + 1].toLowerCase()} de ${f.getFullYear()}`;
-    const grupos = [...document.querySelectorAll('#lado .navGrupo')].map((g) => ({ t: (g.querySelector('.navG') || {}).textContent || '', vs: [...g.querySelectorAll('button:not(.oculto)')].map((b) => b.dataset.v).filter((v) => v !== 'vInicio') })).filter((g) => g.vs.length);
+    const grupos = [...document.querySelectorAll('#lado .navGrupo')].map((g) => ({ t: (g.querySelector('.navG') || {}).textContent || '', vs: [...g.querySelectorAll('button:not(.oculto)')].map((b) => b.dataset.v).filter((v) => v && v !== 'vInicio') })).filter((g) => g.vs.length);
     caja.innerHTML = `<div class="inHola"><h2>Hola, ${esc(String(yo.nombre || '').split(' ')[0])}</h2><span>${esc(fecha)} · ${esc(yo.area)}</span></div>` +
       (K.length ? '<p class="inSec">Por atender</p><div class="inKpis">' + K.map(([v, n, t, av]) => `<button type="button" class="inKpi${av && n ? ' aviso' : ''}" data-ir="${v}"><div class="inKpiA">${ico(v)}<strong>${n}</strong></div><div class="inKpiB">${esc(t)}</div><div class="inKpiC"><span>Abrir ${esc(nom(v))}</span><span aria-hidden="true">→</span></div></button>`).join('') + '</div>' : '') +
       '<p class="inSec">Módulos</p><div class="inMods">' + grupos.map((g) => `<div class="inGrupo"><h3>${esc(g.t)}</h3>${g.vs.map((v) => `<button type="button" class="inMod" data-ir="${v}"><i>${ico(v)}</i><span><b>${esc(nom(v))}</b><small>${esc(IN_DESC[v] || '')}</small></span></button>`).join('')}</div>`).join('') + '</div>' +
@@ -5694,6 +5701,33 @@
     try { localStorage.setItem('menuMin', m ? '1' : '0'); } catch (e) { /* nada */ }
   });
   $('velo').addEventListener('click', () => document.body.classList.remove('menuAbierto'));
+
+  /* ---------- Ventanas de cada módulo dentro del menú (Pagos, Cuentas por pagar y Cotizaciones) ---------- */
+  const MENU_SUB = { vPagos: 'gSub', vCxp: 'cpSub', vCot: 'ctSub' };
+  function menuSubPintar() {
+    Object.entries(MENU_SUB).forEach(([v, id]) => {
+      const bot = document.querySelector(`#lado nav button[data-v="${v}"]`), orig = $(id);
+      if (!bot || !orig) return;
+      let caja = bot.nextElementSibling;
+      if (!caja || !caja.classList.contains('navSub')) { caja = document.createElement('div'); caja.className = 'navSub'; caja.dataset.de = v; bot.after(caja); }
+      const bs = [...orig.querySelectorAll('button')];
+      const h = bs.map((b, i) => (b.classList.contains('oculto') || b.style.display === 'none' ? '' : `<button type="button" class="navS${b.classList.contains('act') ? ' on' : ''}" data-i="${i}">${esc(b.textContent.trim())}</button>`)).join('');
+      if (caja.innerHTML !== h) caja.innerHTML = h;
+    });
+    const tv = $('tituloVista'), id = MENU_SUB[vista], act = id ? $(id).querySelector('button.act') : null;
+    tv.textContent = (tv.dataset.mod || 'Farmacia Socorro') + (act ? ' · ' + act.textContent.trim() : '');
+  }
+  document.querySelector('#lado nav').addEventListener('click', (e) => {
+    const b = e.target.closest('.navS');
+    if (!b) return;
+    const v = b.parentElement.dataset.de, orig = $(MENU_SUB[v]).querySelectorAll('button')[Number(b.dataset.i)];
+    if (vista !== v) ver(v);
+    if (orig) orig.click();
+    document.body.classList.remove('menuAbierto');
+    menuSubPintar();
+  });
+  Object.values(MENU_SUB).forEach((id) => new MutationObserver(() => menuSubPintar()).observe($(id), { subtree: true, attributes: true, attributeFilter: ['class', 'style'], childList: true }));
+  menuSubPintar();
 </script>
 </body>
 </html>
