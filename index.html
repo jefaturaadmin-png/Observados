@@ -6648,7 +6648,10 @@
       } catch (e) { xl.errores.push(`${a.name}: ${e.message}`); }
     }
     const leidos = [];
-    cola.forEach((x) => { try { const d1 = xlLeer(xlTexto(x.datos), x.nombre); if (!/^\d{4}-\d{2}-\d{2}$/.test(d1.fecha)) throw new Error('no trae fecha de emisión'); if (leidos.some((y) => xlKey(y) === xlKey(d1))) xl.avisos.push(`${d1.id}: venía repetido en lo que subiste`); else leidos.push(d1); } catch (e) { xl.errores.push(`${x.nombre}: ${e.message}`); } });
+    let guias = 0, cdrs = 0; // en los ZIP también vienen guías de remisión (tipo 09) y constancias de SUNAT: no son comprobantes de pago
+    cola.forEach((x) => { const t0 = xlTexto(x.datos).slice(0, 4000); if (/<(\w+:)?DespatchAdvice[\s>]/.test(t0)) { guias += 1; x.omitir = true; } else if (/<(\w+:)?ApplicationResponse[\s>]/.test(t0)) { cdrs += 1; x.omitir = true; } });
+    if (guias || cdrs) xl.avisos.push(`No se guardan ${[guias ? `${guias} guía(s) de remisión` : '', cdrs ? `${cdrs} constancia(s) de SUNAT (CDR)` : ''].filter(Boolean).join(' ni ')} que venían en los archivos: no son facturas ni notas de crédito.`);
+    cola.filter((x) => !x.omitir).forEach((x) => { try { const d1 = xlLeer(xlTexto(x.datos), x.nombre); if (!/^\d{4}-\d{2}-\d{2}$/.test(d1.fecha)) throw new Error('no trae fecha de emisión'); if (leidos.some((y) => xlKey(y) === xlKey(d1))) xl.avisos.push(`${d1.id}: venía repetido en lo que subiste`); else leidos.push(d1); } catch (e) { xl.errores.push(`${x.nombre}: ${e.message}`); } });
     let nuevos = 0, ya = 0;
     $('xlCont').innerHTML = `<p class="resumen">Guardando la información de ${leidos.length} documento(s)…</p>`;
     for (const d1 of leidos) { // se guarda solo lo leído; si ya estaba, no se toca
