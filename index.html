@@ -514,14 +514,32 @@
       <div class="herr">
         <select id="ciEmp" aria-label="Empresa" style="width:auto"></select>
         <label for="ciMes" style="margin:0">Mes de pago</label><input type="month" id="ciMes" style="max-width:170px">
-        <select id="ciProv" aria-label="Proveedor" style="width:auto;max-width:320px"></select>
-        <select id="ciVer" aria-label="Qué mostrar" style="width:auto"><option value="pend">Solo lo pendiente</option><option value="todo">Todo</option></select>
         <span style="flex:1"></span>
         <button id="ciLf">Subir reporte de Lolfar</button><input type="file" id="ciLfArch" accept=".xls,.xlsx" class="oculto">
         <button id="ciQr">Volver a leer los QR</button>
+        <button id="ciLimpiar">Quitar filtros</button>
         <button id="ciExp">Exportar a Excel</button>
       </div>
       <div id="ciCont"></div>
+      <div class="tabla"><table class="rgTab">
+        <thead>
+          <tr><th></th><th>Proveedor</th><th>Tipo</th><th>Número</th><th>Emisión</th><th class="num">Aquí</th><th class="num">Factura real</th><th class="num">Lolfar</th><th class="num">Diferencia</th><th class="num">Observado</th><th>Qué falta</th></tr>
+          <tr class="rgFil ciFil">
+            <th></th>
+            <th><input data-f="prov" placeholder="Buscar" aria-label="Buscar proveedor"></th>
+            <th><select data-f="tipo" aria-label="Tipo"><option value="">Todos</option><option value="FA">Factura</option><option value="NC">NC</option></select></th>
+            <th><input data-f="num" placeholder="Buscar" aria-label="Buscar número"></th>
+            <th><input data-f="emi" placeholder="dd/mm/aaaa" aria-label="Buscar emisión"></th>
+            <th><input data-f="aqui" placeholder="Buscar" aria-label="Buscar total registrado"></th>
+            <th><input data-f="real" placeholder="xml, qr…" aria-label="Buscar factura real"></th>
+            <th><input data-f="lf" placeholder="Buscar" aria-label="Buscar Lolfar"></th>
+            <th><select data-f="dif" aria-label="Diferencia"><option value="">Todas</option><option value="si">Con diferencia</option><option value="no">Sin diferencia</option></select></th>
+            <th><input data-f="obs" placeholder="Buscar" aria-label="Buscar observado"></th>
+            <th><select data-f="est" aria-label="Qué falta"><option value="pend">Pendientes</option><option value="r">Sin registrar</option><option value="a">Por revisar</option><option value="v">Listas</option><option value="">Todas</option></select></th>
+          </tr>
+        </thead>
+        <tbody id="ciCuerpo"></tbody>
+      </table></div>
     </div>
 
     <!-- ===== REGISTRO DE FACTURAS Y NC (desde los XML, todos los proveedores) ===== -->
@@ -5249,7 +5267,7 @@
        XML (fecha, total y productos reales) · QR escaneado (la factura física llegó) · Lolfar (lo ingresado; su fecha no es confiable) · lo registrado.
      Si Lolfar tiene menos que la factura, la diferencia son productos que no llegaron: se observan para pedir la NC y se paga la factura completa.
      El RUC de cada proveedor se detecta solo cruzando sus facturas registradas con los QR y XML; también se puede escribir (queda en config/concilia). */
-  let ci = { emp: '', per: '', carg: false, listo: false, avisos: [], pg: [], cp: [], rucs: {}, qr: null, qrErr: '', qrCargando: false, xml: [], xmlErr: '', ver: 'pend', prov: '', vista: [], fila: null, lineas: [] };
+  let ci = { ab: new Set(), emp: '', per: '', carg: false, listo: false, avisos: [], pg: [], cp: [], rucs: {}, qr: null, qrErr: '', qrCargando: false, xml: [], xmlErr: '', ver: 'pend', prov: '', vista: [], fila: null, lineas: [] };
   const CI_T = { FACTURA: 'FA', 'NOTA DE CRÉDITO': 'NC', 'NOTA DE DÉBITO': 'ND' };
   const ciMesAnt = (per, n) => { let y = +per.slice(0, 4), m = +per.slice(5) - n; while (m < 1) { m += 12; y -= 1; } return `${y}-${String(m).padStart(2, '0')}`; };
   const ciDocCp = (d) => { const m = cpDocNorm(d).match(/^([A-Z0-9]+)-0*(\d+)$/); return m ? { s: serDoc(m[1]), n: numDoc(m[2]) } : null; };
@@ -5407,26 +5425,37 @@
     });
     return { filas: filasCi, provs, desde, hasta };
   }
+  const ciFil = () => Object.fromEntries([...document.querySelectorAll('#vCierre .ciFil [data-f]')].map((x) => [x.dataset.f, x.value.trim().toLowerCase()]));
   function ciPintar() {
-    const caja = $('ciCont');
+    const caja = $('ciCont'), cuerpo = $('ciCuerpo');
     if (!caja || vista !== 'vCierre') return;
-    if (!puede('verPagos') && !puede('verCxp')) { caja.innerHTML = '<div class="caja"><p class="resumen" style="margin:0">Necesitas permiso para ver Pagos a proveedores o Cuentas por pagar.</p></div>'; return; }
-    if (ci.carg || !ci.listo) { caja.innerHTML = '<p class="resumen">Cargando lo registrado del mes…</p>'; return; }
-    const A = ciArmar(), V0 = A.filas;
-    // Selector de proveedor: los que tienen documentos en este cierre
-    const pv = [...new Set(V0.map((r) => r.P.key))].map((k) => A.provs.get(k)).sort((a, b) => a.nombre.localeCompare(b.nombre));
-    const sel = $('ciProv'), antes = ci.prov;
-    sel.innerHTML = '<option value="">Todos los proveedores</option>' + pv.map((P) => `<option value="${esc(P.key)}">${esc(P.nombre)}${P.tipo === 'D' ? ' (distribuidor)' : ''}</option>`).join('');
-    sel.value = pv.some((P) => P.key === antes) ? antes : '';
-    ci.prov = sel.value;
-    const V = ci.prov ? V0.filter((r) => r.P.key === ci.prov) : V0, n = (e) => V.filter((r) => r.est === e).length;
-    const fas = V.filter((r) => r.f && r.t === 'FA'), conXml = fas.filter((r) => r.x).length, falta = r2(V.reduce((s, r) => s + (r.dif !== null && r.dif > TOL_NC && !r.cuadra ? Math.max(0, r.dif - r.obs) : 0), 0));
-    const sinReg = V.filter((r) => !r.f && (r.real || r.l)), pv2 = [...new Set(V.map((r) => r.P.key))].map((k) => A.provs.get(k));
-    const sinRuc = pv2.filter((P) => !P.ruc);
+    if (!puede('verPagos') && !puede('verCxp')) { caja.innerHTML = '<div class="caja"><p class="resumen" style="margin:0">Necesitas permiso para ver Pagos a proveedores o Cuentas por pagar.</p></div>'; cuerpo.innerHTML = ''; return; }
+    if (ci.carg || !ci.listo) { caja.innerHTML = '<p class="resumen">Cargando lo registrado del mes…</p>'; cuerpo.innerHTML = ''; return; }
+    const A = ciArmar(), V0 = A.filas, F = ciFil(), tiene = (v, q) => !q || String(v).toLowerCase().includes(q);
+    const fe = (r) => String((r.real || {}).f || (r.f || {}).f || (r.l || {}).f || ''), ordE = { r: 0, a: 1, v: 2 };
+    const V = V0.filter((r) => tiene(`${r.P.nombre} ${r.P.ruc || ''}`, F.prov) && (!F.tipo || (F.tipo === 'NC' ? r.t === 'NC' : r.t !== 'NC')) && tiene(`${r.s}-${r.n} ${r.lab || ''}`, F.num) &&
+      tiene(dia(fe(r)), F.emi) && tiene(r.f ? `${mil(r.aqui)} ${r.aqui}` : '', F.aqui) && tiene(r.real ? `${mil(r.real.m)} ${r.real.m} ${r.real.de}` : 'sin xml ni qr', F.real) &&
+      tiene(r.l ? `${mil(r.l.m)} ${r.l.m}` : '', F.lf) && (!F.dif || (F.dif === 'si' ? (r.dif !== null && Math.abs(r.dif) > TOL_NC) : !(r.dif !== null && Math.abs(r.dif) > TOL_NC))) &&
+      tiene(r.obs ? `${mil(r.obs)} ${r.obs}` : '', F.obs) && (!F.est || (F.est === 'pend' ? r.est !== 'v' : r.est === F.est)))
+      .sort((a, b) => ordE[a.est] - ordE[b.est] || a.P.nombre.localeCompare(b.P.nombre) || fe(a).localeCompare(fe(b)) || String(a.n).localeCompare(String(b.n), undefined, { numeric: true }));
+    ci.vista = V0; ci.vis = V;
+    const n = (e) => V0.filter((r) => r.est === e).length, fas = V0.filter((r) => r.f && r.t === 'FA'), conXml = fas.filter((r) => r.x).length;
+    const falta = r2(V0.reduce((s2, r) => s2 + (r.dif !== null && r.dif > TOL_NC && !r.cuadra ? Math.max(0, r.dif - r.obs) : 0), 0));
+    const sinReg = V.filter((r) => !r.f && (r.real || r.l) && (r.mod === 'D' ? puede('pagos') : puede('cxp')));
+    const provs = [...A.provs.values()].filter((P) => V0.some((r) => r.P === P)).sort((a, b) => (!!a.ruc - !!b.ruc) || a.nombre.localeCompare(b.nombre)), sinRuc = provs.filter((P) => !P.ruc).length;
     const fuentes = [
       cn.rep ? `<span class="est e2">Lolfar ✓</span> <span class="quien">${esc(cn.info || '')}${cn.rep.desde ? ` · del ${esc(dia(cn.rep.desde))} al ${esc(dia(cn.rep.hasta))}` : ''}</span>` : '<span class="est alerta">Falta subir el reporte de Lolfar</span>',
       ci.qrCargando ? '<span class="est e0">QR: leyendo…</span>' : ci.qr ? `<span class="est e2">QR ✓</span> <span class="quien">${ci.qr.length} escaneos</span>` : `<span class="est alerta">QR sin leer</span> <span class="quien">${esc(ci.qrErr)}</span>`,
       !puede('verXml') ? '<span class="est e4">XML: sin permiso</span>' : ci.xmlErr ? `<span class="est alerta">XML</span> <span class="quien">${esc(ci.xmlErr)}</span>` : `<span class="est e2">XML ✓</span> <span class="quien">${ci.xml.length} documentos de esos meses</span>`];
+    caja.innerHTML = (ci.avisos.length ? `<div class="msg err">${ci.avisos.map(esc).join(' ')}</div>` : '') + '<div id="ciMsg"></div>' +
+      '<div class="herr" style="gap:14px;margin-bottom:6px">' + fuentes.map((x) => `<span>${x}</span>`).join('') + '</div>' +
+      `<p class="resumen">${esc(perTxt(ci.per))}: ${V0.length} documentos · <b class="sube">${n('v')} listas para programar</b> · <b>${n('a')} por revisar</b> · <b class="${n('r') ? 'baja' : ''}">${n('r')} sin registrar</b>` +
+      `${falta ? ` · faltan observar S/ ${mil(falta)}` : ''} · ${fas.length ? Math.round(conXml / fas.length * 100) : 0}% de facturas con XML${V.length !== V0.length ? ` · <b>se ven ${V.length}</b> con los filtros` : ''}</p>` +
+      `<p class="quien" style="margin:0 0 8px">Lo registrado en Pagos a proveedores y Cuentas por pagar para este mes de pago. Las facturas sin registrar se buscan con fecha del ${esc(dia(A.desde))} al ${esc(dia(A.hasta))}${cn.rep ? ' (periodo del reporte de Lolfar)' : ''}; las que ya están en otro mes no se repiten. Clic en una fila para ver sus productos.</p>` +
+      (sinReg.length ? `<p style="margin:0 0 8px"><button class="pri ciAgTodas">Agregar las ${sinReg.length} sin registrar que se ven a ${esc(perTxt(ci.per))}</button></p>` : '') +
+      (provs.length ? `<details class="caja" style="padding:8px 14px;margin-bottom:10px"><summary style="cursor:pointer"><b>RUC de los proveedores</b> <span class="quien">${sinRuc ? `${sinRuc} sin RUC: no se cruzan con los QR ni los XML. Escríbelo aquí (queda guardado para todos).` : 'todos tienen RUC'}</span></summary>` +
+        `<div class="tabla" style="max-height:40vh;overflow:auto;margin-top:8px"><table class="rgTab" style="font-size:13px"><tr><th>Proveedor</th><th>Módulo</th><th>RUC</th><th>Cómo se obtuvo</th></tr>` +
+        provs.map((P) => `<tr><td>${esc(P.nombre)}</td><td>${esc(P.tipo === 'D' ? 'Pagos a proveedores' : 'Cuentas por pagar')}</td><td><input class="ciRuc" data-p="${esc(P.key)}" value="${esc(P.ruc)}" placeholder="20xxxxxxxxx" style="width:140px;padding:4px 7px" aria-label="RUC de ${esc(P.nombre)}"></td><td class="quien">${esc(P.rucDe || 'falta')}</td></tr>`).join('') + '</table></div></details>' : '');
     const puedeMod = (r) => (r.mod === 'D' ? puede('pagos') : puede('cxp'));
     const acc = (r) => (!puedeMod(r) ? '' : r.acc.map((a) => ({
       agregar: `<button class="mini ciAg" data-k="${esc(r.k)}">Agregar al mes</button>`,
@@ -5434,37 +5463,16 @@
       fecha: `<button class="mini ciFe" data-k="${esc(r.k)}">Usar fecha real</button>`,
       obs: `<button class="mini pri ciObs" data-k="${esc(r.k)}">Marcar lo que no llegó</button>`
     }[a])).join(''));
-    const sem = { r: '<span class="sgDot r" title="Bloqueada"></span>', a: '<span class="sgDot n" title="Por revisar"></span>', v: '<span class="sgDot v" title="Lista"></span>' };
-    const fila = (r) => `<tr${r.t === 'NC' ? ' class="esnc"' : ''}><td>${sem[r.est]}</td><td><b>${esc(r.t)} ${esc(r.s)}-${esc(r.n)}</b>${r.lab ? `<div class="quien">${esc(r.lab)}</div>` : ''}</td>` +
-      `<td>${esc(dia((r.real || {}).f || (r.f || {}).f || (r.l || {}).f || ''))}</td><td class="num">${r.f ? mil(r.aqui) : '<span class="quien">—</span>'}</td>` +
+    const sem = { r: '<span class="sgDot r" title="Sin registrar"></span>', a: '<span class="sgDot n" title="Por revisar"></span>', v: '<span class="sgDot v" title="Lista"></span>' };
+    cuerpo.innerHTML = V.map((r) => `<tr class="rgFila${r.t === 'NC' ? ' esnc' : ''}" data-k="${esc(r.k)}" title="Clic para ver los productos"><td>${sem[r.est]}</td>` +
+      `<td>${esc(r.P.nombre)}<div><span class="est ${r.mod === 'D' ? 'e1' : 'e3'}" style="font-size:10.5px">${r.mod === 'D' ? 'Pagos' : 'CxP'}</span></div></td><td>${esc(r.t)}</td>` +
+      `<td><b>${esc(r.s)}-${esc(r.n)}</b>${r.lab ? `<div class="quien">${esc(r.lab)}</div>` : ''}</td><td>${esc(dia(fe(r)))}</td>` +
+      `<td class="num">${r.f ? mil(r.aqui) : '<span class="quien">—</span>'}</td>` +
       `<td class="num">${r.real ? `${mil(r.real.m)} <span class="quien">${esc(r.real.de)}</span>` : '<span class="quien">sin XML ni QR</span>'}</td><td class="num">${r.l ? mil(r.l.m) : ''}</td>` +
       `<td class="num">${r.dif === null ? '' : `<span class="${Math.abs(r.dif) > TOL_NC && !r.cuadra ? 'baja' : ''}">${mil(r.dif)}</span>`}</td><td class="num">${r.obs ? mil(r.obs) : ''}${r.cuadra ? ' <span class="est e2">✓ cuadra</span>' : ''}</td>` +
-      `<td class="larga">${r.prob.map((p) => `<div class="baja">${esc(p)}</div>`).join('')}${r.aviso.map((p) => `<div class="quien">${esc(p)}</div>`).join('')}${!r.prob.length && !r.aviso.length ? '<span class="sube">Todo cuadra</span>' : ''}</td>` +
-      `<td style="white-space:normal"><div style="display:flex;flex-direction:column;gap:4px;align-items:stretch">${acc(r)}</div></td></tr>`;
-    const ordP = (P) => { const fs = V.filter((r) => r.P === P); return fs.some((r) => r.est === 'r') ? 0 : fs.some((r) => r.est === 'a') ? 1 : 2; };
-    const ordE = { r: 0, a: 1, v: 2 }, fe = (r) => String((r.real || {}).f || (r.f || {}).f || (r.l || {}).f || '');
-    const grupos = pv2.sort((a, b) => ordP(a) - ordP(b) || a.nombre.localeCompare(b.nombre)).map((P) => {
-      const todas = V.filter((r) => r.P === P), ls = (ci.ver === 'todo' ? todas : todas.filter((r) => r.est !== 'v')).sort((a, b) => ordE[a.est] - ordE[b.est] || fe(a).localeCompare(fe(b)) || String(a.n).localeCompare(String(b.n), undefined, { numeric: true }));
-      if (!ls.length) return '';
-      const c = (e) => todas.filter((r) => r.est === e).length, nsr = todas.filter((r) => !r.f && (r.real || r.l)).length;
-      return `<tr class="grupo"><td colspan="10"><div class="gtit"><b>${esc(P.nombre)}</b><span class="est ${P.tipo === 'D' ? 'e1' : 'e3'}">${P.tipo === 'D' ? 'Pagos a proveedores' : 'Cuentas por pagar'}</span>` +
-        `<span class="quien">${c('v')} listas · ${c('a')} por revisar · ${c('r')} bloqueadas</span>` +
-        `<span class="quien">RUC</span><input class="gIn ciRuc" data-p="${esc(P.key)}" value="${esc(P.ruc)}" placeholder="20xxxxxxxxx" style="width:130px" title="${esc(P.rucDe ? 'RUC ' + P.rucDe : 'Escribe el RUC del proveedor para cruzar con QR y XML')}" aria-label="RUC de ${esc(P.nombre)}">${P.rucDe && P.rucDe !== 'manual' ? `<span class="quien">${esc(P.rucDe)}</span>` : ''}` +
-        (nsr && (P.tipo === 'D' ? puede('pagos') : puede('cxp')) ? `<button class="mini ciAgP" data-p="${esc(P.key)}">Agregar las ${nsr} no registradas</button>` : '') + '</div></td></tr>' + ls.map(fila).join('');
-    }).join('');
-    caja.innerHTML = (ci.avisos.length ? `<div class="msg err">${ci.avisos.map(esc).join(' ')}</div>` : '') + '<div id="ciMsg"></div>' +
-      '<div class="herr" style="gap:14px">' + fuentes.map((x) => `<span>${x}</span>`).join('') + '</div>' +
-      '<div class="kpis">' +
-      `<div class="kpi" style="border-color:var(--ok);background:var(--ok2)"><b>Listas para programar</b><strong>${n('v')}</strong><small>de ${V.length} documentos</small></div>` +
-      `<div class="kpi"><b>Por revisar</b><strong>${n('a')}</strong><small>total o fecha distintos, o productos sin observar</small></div>` +
-      `<div class="kpi" style="border-color:var(--rojo)"><b>Bloqueadas</b><strong class="${n('r') ? 'baja' : ''}">${n('r')}</strong><small>en Lolfar o XML pero no registradas: ¿llegó la factura?</small></div>` +
-      `<div class="kpi"><b>Faltan observar (NC)</b><strong>S/ ${mil(falta)}</strong><small>diferencia con Lolfar sin observar</small></div>` +
-      `<div class="kpi"><b>Facturas con XML</b><strong>${fas.length ? Math.round(conXml / fas.length * 100) : 0}%</strong><small>${conXml} de ${fas.length}</small></div></div>` +
-      (sinRuc.length ? `<div class="msg" style="background:#fff8e6;color:#6b4a00">${sinRuc.length} proveedor(es) sin RUC: no se pueden cruzar con los QR ni los XML. Escribe su RUC en la fila gris del proveedor (queda guardado para todos).</div>` : '') +
-      `<p class="quien" style="margin:0 0 8px">${esc(perTxt(ci.per))}: lo registrado en Pagos a proveedores y Cuentas por pagar. Las facturas sin registrar se buscan con fecha del ${esc(dia(A.desde))} al ${esc(dia(A.hasta))}${cn.rep ? ' (periodo del reporte de Lolfar)' : ''}; las que ya están en otro mes no se repiten.${sinReg.length ? ` Hay ${sinReg.length} sin registrar.` : ''}</p>` +
-      '<div class="tabla"><table><thead><tr><th></th><th>Documento</th><th>Fecha real</th><th class="num">Aquí</th><th class="num">Factura real</th><th class="num">Lolfar</th><th class="num">Diferencia</th><th class="num">Observado</th><th>Qué falta</th><th></th></tr></thead><tbody>' +
-      (grupos || `<tr><td colspan="10" class="vacio">${V.length ? 'Todo está listo para programar.' : 'Sin documentos en este mes de pago.'}</td></tr>`) + '</tbody></table></div>';
-    ci.vista = V;
+      `<td style="white-space:normal;min-width:230px">${r.prob.map((p2) => `<div class="baja">${esc(p2)}</div>`).join('')}${r.aviso.map((p2) => `<div class="quien">${esc(p2)}</div>`).join('')}${!r.prob.length && !r.aviso.length ? '<span class="sube">Todo cuadra</span>' : ''}${r.acc.length && puedeMod(r) ? `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:5px">${acc(r)}</div>` : ''}</td></tr>` +
+      (ci.ab.has(r.k) ? (r.x ? rgDetalle(r.x, 11) : '<tr class="det"><td colspan="11"><p class="quien" style="margin:0">Sin XML: no hay detalle de productos de este documento.</p></td></tr>') : '')).join('') ||
+      `<tr><td colspan="11" class="vacio">${V0.length ? 'Nada coincide con los buscadores.' : 'Sin documentos en este mes de pago.'}</td></tr>`;
   }
   const ciDe = (k) => (ci.vista || []).find((r) => r.k === k);
   // Guardar en el documento que corresponde: el mes del distribuidor (pagos) o el mes de Cuentas por pagar (cpm)
@@ -5566,21 +5574,27 @@
     } catch (err) { msg('ciMsg', errorTexto(err)); }
   }
   ['ciEmp', 'ciMes'].forEach((id) => $(id).addEventListener('change', () => ciCargar()));
-  $('ciProv').addEventListener('change', (e) => { ci.prov = e.target.value; ciPintar(); });
-  $('ciVer').addEventListener('change', (e) => { ci.ver = e.target.value; ciPintar(); });
+  document.querySelectorAll('#vCierre .ciFil [data-f]').forEach((x) => x.addEventListener(x.tagName === 'SELECT' ? 'change' : 'input', () => ciPintar()));
+  $('ciLimpiar').addEventListener('click', () => { document.querySelectorAll('#vCierre .ciFil [data-f]').forEach((x) => { x.value = x.dataset.f === 'est' ? 'pend' : ''; }); ciPintar(); });
+  flechasFiltros($('vCierre').querySelector('.ciFil'));
+  $('ciCuerpo').addEventListener('click', (e) => {
+    const t = e.target, r = t.dataset.k ? ciDe(t.dataset.k) : null;
+    if (r && t.classList.contains('ciAg')) return ciAgregar([r]);
+    if (r && t.classList.contains('ciTot')) return ciCorregir(r, 'm');
+    if (r && t.classList.contains('ciFe')) return ciCorregir(r, 'f');
+    if (r && t.classList.contains('ciObs')) return ciObsAbrir(r);
+    if (t.closest('input, button, a, tr.det')) return;
+    const tr = t.closest('tr.rgFila');
+    if (!tr) return;
+    if (ci.ab.has(tr.dataset.k)) ci.ab.delete(tr.dataset.k); else ci.ab.add(tr.dataset.k);
+    ciPintar();
+  });
   $('ciLf').addEventListener('click', () => $('ciLfArch').click());
   $('ciLfArch').addEventListener('change', ciSubirLf);
   $('ciQr').addEventListener('click', () => { ci.qr = null; ci.qrErr = ''; ciCargarQr(); ciPintar(); });
   $('ciExp').addEventListener('click', () => exportar(`cierre-${ci.emp}-${ci.per}`, [['Proveedor', (x) => x.P.nombre], ['Módulo', (x) => (x.mod === 'D' ? 'Pagos a proveedores' : 'Cuentas por pagar')], ['Estado', (x) => ({ r: 'Bloqueada', a: 'Por revisar', v: 'Lista' }[x.est])], ['Tipo', 't'], ['Serie', 's'], ['Número', 'n'], ['Fecha real', (x) => dia((x.real || {}).f || '')], ['Total aquí', (x) => x.aqui ?? ''], ['Total real', (x) => (x.real ? x.real.m : '')], ['Fuente', (x) => (x.real ? x.real.de : '')], ['Lolfar', (x) => (x.l ? x.l.m : '')], ['Diferencia', (x) => x.dif ?? ''], ['Observado', 'obs'], ['Qué falta', (x) => x.prob.concat(x.aviso).join(' · ')]], ci.vista || []));
   $('ciCont').addEventListener('click', (e) => {
-    const t = e.target;
-    if (t.classList.contains('ciAgP')) return ciAgregar((ci.vista || []).filter((r) => r.P.key === t.dataset.p));
-    const r = t.dataset.k ? ciDe(t.dataset.k) : null;
-    if (!r) return;
-    if (t.classList.contains('ciAg')) ciAgregar([r]);
-    else if (t.classList.contains('ciTot')) ciCorregir(r, 'm');
-    else if (t.classList.contains('ciFe')) ciCorregir(r, 'f');
-    else if (t.classList.contains('ciObs')) ciObsAbrir(r);
+    if (e.target.classList.contains('ciAgTodas')) ciAgregar(ci.vis || []);
   });
   $('ciCont').addEventListener('change', async (e) => {
     if (!e.target.classList.contains('ciRuc')) return;
@@ -5588,6 +5602,7 @@
     if (e.target.value.trim() && !r) return msg('ciMsg', 'El RUC debe tener 11 dígitos.');
     if (r) ci.rucs[k] = r; else delete ci.rucs[k];
     ciPintar();
+    { const d = $('ciCont').querySelector('details'); if (d) d.open = true; }
     try { await setDoc(doc(db, 'config', 'concilia'), { rucs: { [k]: r || null } }, { merge: true }); } catch (err) { msg('ciMsg', 'No se pudo guardar el RUC: ' + errorTexto(err)); }
   });
   $('dCuerpo').addEventListener('input', (e) => { if (modo === 'ciObs' && e.target.classList.contains('ciQ')) ciObsSuma(); });
@@ -5759,9 +5774,9 @@
       (rg.ab.has(r.id) ? rgDetalle(r.x) : '')).join('') ||
       `<tr><td colspan="9" class="vacio">${todos.length ? 'Nada coincide con los buscadores.' : 'No hay XML de compras de esta empresa en esos meses.'}</td></tr>`;
   }
-  function rgDetalle(x) { // productos del XML, como en el Lector de XML
+  function rgDetalle(x, cols = 9) { // productos del XML, como en el Lector de XML
     const ls = x.lineas || [];
-    return `<tr class="det"><td colspan="9"><div class="ctDatos" style="margin-bottom:8px"><div><b>Valor de venta</b>${xlN(x.base)}</div><div><b>IGV</b>${xlN(x.igv)}</div><div><b>Total</b>${x.moneda && x.moneda !== 'PEN' ? esc(x.moneda) + ' ' : ''}${xlN(x.total)}</div>` +
+    return `<tr class="det"><td colspan="${cols}"><div class="ctDatos" style="margin-bottom:8px"><div><b>Valor de venta</b>${xlN(x.base)}</div><div><b>IGV</b>${xlN(x.igv)}</div><div><b>Total</b>${x.moneda && x.moneda !== 'PEN' ? esc(x.moneda) + ' ' : ''}${xlN(x.total)}</div>` +
       `${x.forma ? `<div><b>Pago</b>${esc(x.forma)}</div>` : ''}${(x.cuotas || []).length ? `<div><b>Cuotas</b>${x.cuotas.map((c) => `${xlN(c.m)} al ${esc(dia(c.v))}`).join(' · ')}</div>` : ''}${x.motivo ? `<div><b>Motivo</b>${esc(x.motivo)}</div>` : ''}</div>` +
       (ls.length ? `<table style="background:#fff;font-size:13px;width:auto;min-width:60%;max-width:100%"><tr><th>#</th><th>Código</th><th>Descripción</th><th class="num">Cant.</th><th>Und.</th><th class="num">P. unit. con IGV</th><th class="num">Total</th></tr>` +
         ls.map((l) => `<tr><td>${esc(l.n)}</td><td>${esc(l.cod)}</td><td style="white-space:normal;min-width:260px">${esc(l.desc)}</td><td class="num">${l.cant ?? ''}</td><td>${esc(l.um || '')}</td><td class="num">${xlN(l.puIgv ?? (l.cant ? (Number(l.total) || 0) / l.cant : null), 4)}</td><td class="num"><b>${xlN(l.total)}</b></td></tr>`).join('') +
@@ -5775,18 +5790,21 @@
     if (rg.ab.has(tr.dataset.id)) rg.ab.delete(tr.dataset.id); else rg.ab.add(tr.dataset.id);
     rgPintar();
   });
-  // 2) En los buscadores, ← y → pasan al anterior o al siguiente (cuando el cursor está al borde del texto)
-  $('vRegFac').querySelector('.rgFil').addEventListener('keydown', (e) => {
-    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-    const c = e.target, todos = [...$('vRegFac').querySelectorAll('.rgFil [data-f]')], i = todos.indexOf(c);
-    if (i < 0) return;
-    const izq = e.key === 'ArrowLeft';
-    if (c.tagName === 'INPUT' && (izq ? c.selectionStart > 0 || c.selectionEnd > 0 : c.selectionEnd < c.value.length)) return;
-    const sig = todos[i + (izq ? -1 : 1)];
-    if (!sig) return;
-    e.preventDefault(); sig.focus();
-    if (sig.tagName === 'INPUT') { const p = izq ? sig.value.length : 0; sig.setSelectionRange(p, p); }
-  });
+  // En los buscadores de una tabla, ← y → pasan al anterior o al siguiente (cuando el cursor está al borde del texto)
+  function flechasFiltros(fila) {
+    fila.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      const c = e.target, todos = [...fila.querySelectorAll('[data-f]')], i = todos.indexOf(c);
+      if (i < 0) return;
+      const izq = e.key === 'ArrowLeft';
+      if (c.tagName === 'INPUT' && (izq ? c.selectionStart > 0 || c.selectionEnd > 0 : c.selectionEnd < c.value.length)) return;
+      const sig = todos[i + (izq ? -1 : 1)];
+      if (!sig) return;
+      e.preventDefault(); sig.focus();
+      if (sig.tagName === 'INPUT') { const p = izq ? sig.value.length : 0; sig.setSelectionRange(p, p); }
+    });
+  }
+  flechasFiltros($('vRegFac').querySelector('.rgFil'));
   $('rgEmp').addEventListener('change', () => rgPintar());
   ['rgDesde', 'rgHasta'].forEach((id) => $(id).addEventListener('change', () => rgCargar()));
   document.querySelectorAll('#vRegFac .rgFil [data-f]').forEach((x) => x.addEventListener(x.tagName === 'SELECT' ? 'change' : 'input', () => rgPintar()));
