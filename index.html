@@ -615,7 +615,7 @@
         <span class="quien">Se pueden subir varios a la vez. Se guarda solo la información leída (datos y productos), no el archivo. Si un documento ya estaba guardado, no se repite.</span>
         <button class="pri" id="xlElegir">Elegir archivos</button><input type="file" id="xlArch" accept=".xml,.zip,text/xml,application/xml,application/zip" multiple class="oculto">
       </div>
-      <div class="herr" id="xlAcc"><label for="xlMes" style="margin:0">Mes de emisión</label><input type="month" id="xlMes" style="max-width:170px"><input id="xlTxt" placeholder="Buscar por número, proveedor, RUC o producto" style="flex:1;min-width:220px"><button id="xlAbrir">Abrir o cerrar todos</button><button id="xlExpDoc">Excel de documentos</button><button id="xlExpDet">Excel del detalle de productos</button></div>
+      <div class="herr" id="xlAcc"><input id="xlTxt" placeholder="Buscar por número, proveedor, RUC o producto" style="flex:1;min-width:220px"><button id="xlAbrir">Abrir o cerrar todos</button><button id="xlExpDoc">Excel de documentos</button><button id="xlExpDet">Excel del detalle de productos</button></div>
       <div id="xlCont"></div>
     </div>
     <!-- ===== 9. COTIZACIONES ===== -->
@@ -6891,15 +6891,15 @@
       letras: hijos(raiz, 'Note').map(tx).find((x) => /^SON/i.test(x)) || '', lineas };
   }
   async function xlCargar() { // lo guardado del mes elegido (por fecha de emisión)
-    if (!puede('verXml') || !xl.mes) return;
+    if (!puede('verXml')) return;
     xl.cargando = true; xlPintar();
     try {
-      const s = await getDocs(query(collection(db, 'xmlf'), where('ym', '==', xl.mes)));
-      xl.docs = s.docs.map((d) => ({ k: d.id, ...d.data() })).sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)) || String(a.id).localeCompare(String(b.id), undefined, { numeric: true }));
+      const s = await getDocs(collection(db, 'xmlf')); // todos, sin límite de fechas
+      xl.docs = s.docs.map((d) => ({ k: d.id, ...d.data() })).sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)) || String(a.id).localeCompare(String(b.id), undefined, { numeric: true }));
     } catch (e) { xl.errores.push('No se pudo leer lo guardado: ' + errorTexto(e)); xl.docs = []; }
     xl.cargando = false; xl.listo = true; xlPintar();
   }
-  function xlAbrirVista() { if (!xl.mes) { xl.mes = hoy().slice(0, 7); $('xlMes').value = xl.mes; } $('xlZona').classList.toggle('oculto', !puede('xml')); xlCargar(); xbVisto(); }
+  function xlAbrirVista() { $('xlZona').classList.toggle('oculto', !puede('xml')); xlCargar(); xbVisto(); }
   async function xlSubir(archivos) {
     const cola = []; xl.errores = []; xl.avisos = [];
     for (const a of archivos) {
@@ -6926,8 +6926,7 @@
       } catch (e) { xl.errores.push(`${d1.id}: no se pudo guardar (${errorTexto(e)})`); }
     }
     if (leidos.length) xl.avisos.unshift(`${nuevos} documento(s) guardado(s)${ya ? ` · ${ya} ya estaba(n) guardado(s) y no se repitieron` : ''}.`);
-    const meses = unicos(leidos.map((x) => x.fecha.slice(0, 7))).sort();
-    if (meses.length && !meses.includes(xl.mes)) { xl.mes = meses[meses.length - 1]; $('xlMes').value = xl.mes; if (meses.length > 1) xl.avisos.push(`Lo subido es de varios meses (${meses.map(perTxt).join(', ')}): cambia el mes para ver los demás.`); }
+    // se ven todos los meses: no hace falta cambiar de mes
     if (leidos.length === 1) xl.abiertos.add(xlKey(leidos[0]));
     await xlCargar();
   }
@@ -6936,8 +6935,8 @@
   function xlPintar() {
     const t = xl.txt.trim().toLowerCase(), D = xl.docs.filter((x) => !t || [x.id, x.emisor.nom, x.emisor.ruc, x.cliente.nom, x.cliente.ruc, x.ref, x.lineas.map((l) => l.desc).join(' ')].join(' ').toLowerCase().includes(t)), sg2 = (x) => (x.tipo === 'NOTA DE CRÉDITO' ? -1 : 1), suma = (k) => r2(D.reduce((s, x) => s + sg2(x) * (Number(x[k]) || 0), 0));
     if (!rg.t && !rg.carg && (puede('verPagos') || puede('verCxp'))) rgCargarBase().then(() => { if (vista === 'vXml') xlPintar(); });
-    $('xlCont').innerHTML = rgBarra('xl', D) + (xl.avisos.length ? `<div class="msg ok">${xl.avisos.map(esc).join('<br>')}</div>` : '') + (xl.errores.length ? `<div class="msg err">${xl.errores.map(esc).join('<br>')}</div>` : '') + (xl.cargando ? '<p class="resumen">Cargando…</p>' : !D.length ? `<div class="caja"><p class="resumen" style="margin:0">${xl.docs.length ? 'Nada coincide con la búsqueda.' : `No hay documentos guardados con fecha de ${esc(perTxt(xl.mes))}. Sube los XML o cambia de mes.`}</p></div>` :
-      '<div class="kpis">' + [[`Documentos de ${perTxt(xl.mes)}`, String(D.length), `${D.filter((x) => x.tipo === 'FACTURA').length} facturas · ${D.filter((x) => x.tipo !== 'FACTURA').length} notas`], ['Valor de venta (sin IGV)', 'S/ ' + mil(suma('base')), 'las NC restan'], ['IGV', 'S/ ' + mil(suma('igv')), ''], ['Total', 'S/ ' + mil(suma('total')), `${D.reduce((s, x) => s + x.lineas.length, 0)} líneas de producto`]].map(([a, b, c], i) => `<div class="kpi"${i === 3 ? ' style="border-color:var(--marca);background:var(--suave)"' : ''}><b>${a}</b><strong>${b}</strong><small>${c}</small></div>`).join('') + '</div>' +
+    $('xlCont').innerHTML = rgBarra('xl', D) + (xl.avisos.length ? `<div class="msg ok">${xl.avisos.map(esc).join('<br>')}</div>` : '') + (xl.errores.length ? `<div class="msg err">${xl.errores.map(esc).join('<br>')}</div>` : '') + (xl.cargando ? '<p class="resumen">Cargando…</p>' : !D.length ? `<div class="caja"><p class="resumen" style="margin:0">${xl.docs.length ? 'Nada coincide con la búsqueda.' : `Aún no hay documentos guardados. Sube los XML o los ZIP de las facturas.`}</p></div>` :
+      '<div class="kpis">' + [[xl.txt.trim() ? 'Documentos encontrados' : 'Documentos guardados', String(D.length), `${D.filter((x) => x.tipo === 'FACTURA').length} facturas · ${D.filter((x) => x.tipo !== 'FACTURA').length} notas`], ['Valor de venta (sin IGV)', 'S/ ' + mil(suma('base')), 'las NC restan'], ['IGV', 'S/ ' + mil(suma('igv')), ''], ['Total', 'S/ ' + mil(suma('total')), `${D.reduce((s, x) => s + x.lineas.length, 0)} líneas de producto`]].map(([a, b, c], i) => `<div class="kpi"${i === 3 ? ' style="border-color:var(--marca);background:var(--suave)"' : ''}><b>${a}</b><strong>${b}</strong><small>${c}</small></div>`).join('') + '</div>' +
       '<div class="tabla"><table><thead><tr><th></th><th>Tipo</th><th>Número</th><th>Emisión</th><th>Emisor</th><th>Cliente</th><th class="num">Valor venta</th><th class="num">IGV</th><th class="num">Total</th><th>Pago</th><th>Vence</th><th class="num">Ítems</th><th>En pagos</th></tr></thead><tbody>' +
       D.map((x, i) => {
         const ab = xl.abiertos.has(x.k);
@@ -6957,7 +6956,6 @@
   $('xlElegir').addEventListener('click', () => $('xlArch').click());
   $('xlArch').addEventListener('change', (e) => { const a = [...e.target.files]; e.target.value = ''; if (a.length) xlSubir(a); });
   { const z = $('xlZona'); ['dragenter', 'dragover'].forEach((n) => z.addEventListener(n, (e) => { e.preventDefault(); z.classList.add('sobre'); })); ['dragleave', 'drop'].forEach((n) => z.addEventListener(n, (e) => { e.preventDefault(); z.classList.remove('sobre'); })); z.addEventListener('drop', (e) => { const a = [...e.dataTransfer.files]; if (a.length) xlSubir(a); }); }
-  $('xlMes').addEventListener('change', (e) => { if (!e.target.value) return; xl.mes = e.target.value; xl.avisos = []; xl.errores = []; xl.abiertos.clear(); xlCargar(); });
   $('xlTxt').addEventListener('input', (e) => { xl.txt = e.target.value; xlPintar(); });
   $('xlAbrir').addEventListener('click', () => { xl.abiertos = xl.abiertos.size >= (xl.vista || []).length && xl.abiertos.size ? new Set() : new Set((xl.vista || []).map((x) => x.k)); xlPintar(); });
   $('xlCont').addEventListener('click', async (e) => {
@@ -7040,7 +7038,7 @@
     if (re) { re.disabled = true; try { await updateDoc(doc(db, 'xmlBuzon', re.dataset.id), { estado: 'nuevo', error: deleteField() }); } catch (err) { alert(errorTexto(err)); re.disabled = false; } return; }
     const tr = e.target.closest('tr.xbIr');
     if (!tr || !/^\d{4}-\d{2}/.test(tr.dataset.f)) return;
-    xl.mes = tr.dataset.f.slice(0, 7); $('xlMes').value = xl.mes; xl.txt = ''; $('xlTxt').value = ''; xl.avisos = []; xl.errores = [];
+    xl.txt = ''; $('xlTxt').value = ''; xl.avisos = []; xl.errores = [];
     xl.abiertos.add(tr.dataset.k);
     await xlCargar();
     const fila = document.querySelector(`#xlCont tr.xlFila[data-k="${CSS.escape(tr.dataset.k)}"]`);
