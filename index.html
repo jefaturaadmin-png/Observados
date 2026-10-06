@@ -615,7 +615,7 @@
         <span class="quien">Se pueden subir varios a la vez. Se guarda solo la información leída (datos y productos), no el archivo. Si un documento ya estaba guardado, no se repite.</span>
         <button class="pri" id="xlElegir">Elegir archivos</button><input type="file" id="xlArch" accept=".xml,.zip,text/xml,application/xml,application/zip" multiple class="oculto">
       </div>
-      <div class="herr" id="xlAcc"><input id="xlTxt" placeholder="Buscar por número, proveedor, RUC o producto" style="flex:1;min-width:220px"><button id="xlAbrir">Abrir o cerrar todos</button><button id="xlExpDoc">Excel de documentos</button><button id="xlExpDet">Excel del detalle de productos</button></div>
+      <div class="herr" id="xlAcc"><input id="xlTxt" placeholder="Buscar por número, proveedor, RUC o producto" style="flex:1;min-width:220px"><button id="xlQuitar">Quitar filtros</button><button id="xlAbrir">Abrir o cerrar todos</button><button id="xlExpDoc">Excel de documentos</button><button id="xlExpDet">Excel del detalle de productos</button></div>
       <div id="xlCont"></div>
     </div>
     <!-- ===== 9. COTIZACIONES ===== -->
@@ -6933,11 +6933,11 @@
   const xlMia = (ruc) => { const e = pgCfg.empresas.find((x) => x.ruc === ruc); return e ? ` <span class="est e3">${esc(e.k)}</span>` : ''; };
   const xlN = (v, dec) => (v === null || v === undefined ? '' : (dec ? Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: dec }) : mil(v)));
   function xlPintar() {
-    const t = xl.txt.trim().toLowerCase(), D = xl.docs.filter((x) => !t || [x.id, x.emisor.nom, x.emisor.ruc, x.cliente.nom, x.cliente.ruc, x.ref, x.lineas.map((l) => l.desc).join(' ')].join(' ').toLowerCase().includes(t)), sg2 = (x) => (x.tipo === 'NOTA DE CRÉDITO' ? -1 : 1), suma = (k) => r2(D.reduce((s, x) => s + sg2(x) * (Number(x[k]) || 0), 0));
+    const t = xl.txt.trim().toLowerCase(), D0 = xl.docs.filter((x) => !t || [x.id, x.emisor.nom, x.emisor.ruc, x.cliente.nom, x.cliente.ruc, x.ref, x.lineas.map((l) => l.desc).join(' ')].join(' ').toLowerCase().includes(t)), F = xl.f || (xl.f = {}), D = D0.filter((x) => xlPasa(x, F)), sg2 = (x) => (x.tipo === 'NOTA DE CRÉDITO' ? -1 : 1), suma = (k) => r2(D.reduce((s, x) => s + sg2(x) * (Number(x[k]) || 0), 0));
     if (!rg.t && !rg.carg && (puede('verPagos') || puede('verCxp'))) rgCargarBase().then(() => { if (vista === 'vXml') xlPintar(); });
-    $('xlCont').innerHTML = rgBarra('xl', D) + (xl.avisos.length ? `<div class="msg ok">${xl.avisos.map(esc).join('<br>')}</div>` : '') + (xl.errores.length ? `<div class="msg err">${xl.errores.map(esc).join('<br>')}</div>` : '') + (xl.cargando ? '<p class="resumen">Cargando…</p>' : !D.length ? `<div class="caja"><p class="resumen" style="margin:0">${xl.docs.length ? 'Nada coincide con la búsqueda.' : `Aún no hay documentos guardados. Sube los XML o los ZIP de las facturas.`}</p></div>` :
+    $('xlCont').innerHTML = rgBarra('xl', D) + (xl.avisos.length ? `<div class="msg ok">${xl.avisos.map(esc).join('<br>')}</div>` : '') + (xl.errores.length ? `<div class="msg err">${xl.errores.map(esc).join('<br>')}</div>` : '') + (xl.cargando ? '<p class="resumen">Cargando…</p>' : !xl.docs.length ? `<div class="caja"><p class="resumen" style="margin:0">${xl.docs.length ? 'Nada coincide con la búsqueda.' : `Aún no hay documentos guardados. Sube los XML o los ZIP de las facturas.`}</p></div>` :
       '<div class="kpis">' + [[xl.txt.trim() ? 'Documentos encontrados' : 'Documentos guardados', String(D.length), `${D.filter((x) => x.tipo === 'FACTURA').length} facturas · ${D.filter((x) => x.tipo !== 'FACTURA').length} notas`], ['Valor de venta (sin IGV)', 'S/ ' + mil(suma('base')), 'las NC restan'], ['IGV', 'S/ ' + mil(suma('igv')), ''], ['Total', 'S/ ' + mil(suma('total')), `${D.reduce((s, x) => s + x.lineas.length, 0)} líneas de producto`]].map(([a, b, c], i) => `<div class="kpi"${i === 3 ? ' style="border-color:var(--marca);background:var(--suave)"' : ''}><b>${a}</b><strong>${b}</strong><small>${c}</small></div>`).join('') + '</div>' +
-      '<div class="tabla"><table><thead><tr><th></th><th>Tipo</th><th>Número</th><th>Emisión</th><th>Emisor</th><th>Cliente</th><th class="num">Valor venta</th><th class="num">IGV</th><th class="num">Total</th><th>Pago</th><th>Vence</th><th class="num">Ítems</th><th>En pagos</th></tr></thead><tbody>' +
+      '<div class="tabla"><table><thead><tr><th></th><th>Tipo</th><th>Número</th><th>Emisión</th><th>Emisor</th><th>Cliente</th><th class="num">Valor venta</th><th class="num">IGV</th><th class="num">Total</th><th>Pago</th><th>Vence</th><th class="num">Ítems</th><th>En pagos</th></tr>' + xlFiltros(D0, F) + '</thead><tbody>' +
       D.map((x, i) => {
         const ab = xl.abiertos.has(x.k);
         return `<tr class="xlFila${x.tipo === 'NOTA DE CRÉDITO' ? ' esnc' : ''}" data-k="${esc(x.k)}" style="cursor:pointer"><td>${ab ? '▾' : '▸'}</td><td>${esc(x.tipo)}</td><td><b>${esc(x.id)}</b>${x.ref ? `<div class="quien">afecta a ${esc(x.ref)}</div>` : ''}</td><td>${esc(dia(x.fecha))}${x.hora ? ` <span class="quien">${esc(x.hora)}</span>` : ''}</td>` +
@@ -6950,13 +6950,50 @@
             `<table><tr><th>#</th><th>Código</th><th>Descripción</th><th class="num">Cant.</th><th>Und.</th><th class="num">P. unit. sin IGV</th><th class="num">P. unit. con IGV</th><th class="num">Valor</th><th class="num">IGV</th><th class="num">Total</th></tr>` +
             x.lineas.map((l) => `<tr><td>${esc(l.n)}</td><td>${esc(l.cod)}</td><td>${esc(l.desc)}</td><td class="num">${l.cant === null ? '' : l.cant}</td><td>${esc(l.um)}</td><td class="num">${xlN(l.pu, 4)}</td><td class="num">${xlN(l.puIgv, 4)}</td><td class="num">${xlN(l.valor)}</td><td class="num">${xlN(l.igv)}</td><td class="num"><b>${xlN(l.total)}</b></td></tr>`).join('') +
             `<tr class="tot"><td colspan="7">Totales del documento</td><td class="num">${xlN(x.base)}</td><td class="num">${xlN(x.igv)}</td><td class="num">${xlN(x.total)}</td></tr></table></div></td></tr>` : '');
-      }).join('') + '</tbody></table></div>');
+      }).join('') + (D.length ? '' : '<tr><td colspan="13" class="vacio">Nada coincide con los filtros. <button class="mini xlLimpiar">Quitar filtros</button></td></tr>') + '</tbody></table></div>');
     xl.vista = D;
+    if (xl.foco) { const el = $('xlCont').querySelector(`.xlFil [data-f="${xl.foco.f}"]`); if (el) { el.focus(); if (el.tagName === 'INPUT') el.setSelectionRange(xl.foco.p, xl.foco.p); } xl.foco = null; }
   }
+  // Filtros por columna, como el autofiltro de Excel: listas para lo que tiene pocos valores, texto para lo demás
+  const xlTipoC = (x) => (x.tipo === 'FACTURA' ? 'Factura' : x.tipo === 'NOTA DE CRÉDITO' ? 'Nota de crédito' : 'Nota de débito');
+  function xlEnPagos(x) {
+    if (!rg.t || !x.cliente) return '';
+    if (!rgEmpDeRuc(x.cliente.ruc)) return x.emisor && rgEmpDeRuc(x.emisor.ruc) ? 'Venta' : '';
+    const r = rgDonde(x);
+    return !r ? 'Falta registrar' : (r.dif ? 'Registrado con otro total' : 'Registrado');
+  }
+  function xlPasa(x, F) {
+    const tiene = (v, q) => !q || String(v ?? '').toLowerCase().includes(String(q).toLowerCase());
+    return (!F.tipo || xlTipoC(x) === F.tipo) && tiene(`${x.id} ${x.ref || ''}`, F.num) && tiene(dia(x.fecha), F.emi) && (!F.emisor || x.emisor.nom === F.emisor) &&
+      (!F.cliente || x.cliente.nom === F.cliente) && tiene(`${xlN(x.base)} ${x.base}`, F.base) && tiene(`${xlN(x.igv)} ${x.igv}`, F.igv) && tiene(`${xlN(x.total)} ${x.total}`, F.tot) &&
+      (!F.pago || (x.forma || '(vacío)') === F.pago) && tiene(dia(x.vence || ''), F.ven) && tiene(String(x.lineas.length), F.items) && (!F.enp || xlEnPagos(x) === F.enp);
+  }
+  function xlFiltros(D0, F) {
+    const lista = (f, vals) => `<select data-f="${f}"><option value="">Todos</option>${unicos(vals).map((v) => `<option${F[f] === v ? ' selected' : ''}>${esc(v)}</option>`).join('')}</select>`;
+    const texto = (f, ph) => `<input data-f="${f}" value="${esc(F[f] || '')}" placeholder="${ph}">`;
+    return '<tr class="rgFil xlFil"><th></th>' +
+      `<th>${lista('tipo', D0.map(xlTipoC))}</th><th>${texto('num', 'Buscar')}</th><th>${texto('emi', 'dd/mm/aaaa')}</th>` +
+      `<th>${lista('emisor', D0.map((x) => x.emisor.nom))}</th><th>${lista('cliente', D0.map((x) => x.cliente.nom))}</th>` +
+      `<th>${texto('base', 'Buscar')}</th><th>${texto('igv', 'Buscar')}</th><th>${texto('tot', 'Buscar')}</th>` +
+      `<th>${lista('pago', D0.map((x) => x.forma || '(vacío)'))}</th><th>${texto('ven', 'dd/mm/aaaa')}</th><th>${texto('items', '#')}</th>` +
+      `<th>${lista('enp', D0.map(xlEnPagos).filter(Boolean))}</th></tr>`;
+  }
+  $('xlCont').addEventListener('input', (e) => { const c = e.target.closest('.xlFil [data-f]'); if (!c || c.tagName !== 'INPUT') return; xl.f[c.dataset.f] = c.value; xl.foco = { f: c.dataset.f, p: c.selectionStart }; xlPintar(); });
+  $('xlCont').addEventListener('change', (e) => { const c = e.target.closest('.xlFil [data-f]'); if (!c || c.tagName !== 'SELECT') return; xl.f[c.dataset.f] = c.value; xl.foco = { f: c.dataset.f, p: 0 }; xlPintar(); });
+  $('xlCont').addEventListener('click', (e) => { if (e.target.classList.contains('xlLimpiar')) { xl.f = {}; xlPintar(); } });
+  $('xlCont').addEventListener('keydown', (e) => { // ← → entre filtros
+    const c = e.target.closest('.xlFil [data-f]');
+    if (!c || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+    const todos = [...$('xlCont').querySelectorAll('.xlFil [data-f]')], i = todos.indexOf(c), izq = e.key === 'ArrowLeft';
+    if (c.tagName === 'INPUT' && (izq ? c.selectionStart > 0 || c.selectionEnd > 0 : c.selectionEnd < c.value.length)) return;
+    const sig = todos[i + (izq ? -1 : 1)]; if (!sig) return;
+    e.preventDefault(); sig.focus(); if (sig.tagName === 'INPUT') { const q = izq ? sig.value.length : 0; sig.setSelectionRange(q, q); }
+  });
   $('xlElegir').addEventListener('click', () => $('xlArch').click());
   $('xlArch').addEventListener('change', (e) => { const a = [...e.target.files]; e.target.value = ''; if (a.length) xlSubir(a); });
   { const z = $('xlZona'); ['dragenter', 'dragover'].forEach((n) => z.addEventListener(n, (e) => { e.preventDefault(); z.classList.add('sobre'); })); ['dragleave', 'drop'].forEach((n) => z.addEventListener(n, (e) => { e.preventDefault(); z.classList.remove('sobre'); })); z.addEventListener('drop', (e) => { const a = [...e.dataTransfer.files]; if (a.length) xlSubir(a); }); }
   $('xlTxt').addEventListener('input', (e) => { xl.txt = e.target.value; xlPintar(); });
+  $('xlQuitar').addEventListener('click', () => { xl.f = {}; xl.txt = ''; $('xlTxt').value = ''; xlPintar(); });
   $('xlAbrir').addEventListener('click', () => { xl.abiertos = xl.abiertos.size >= (xl.vista || []).length && xl.abiertos.size ? new Set() : new Set((xl.vista || []).map((x) => x.k)); xlPintar(); });
   $('xlCont').addEventListener('click', async (e) => {
     const b = e.target.closest('.xlBorrar');
