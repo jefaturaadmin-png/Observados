@@ -86,7 +86,8 @@
   .sinPrecios .cPrecio { display:none; }
   .sinPO .cPO { display:none; }
   .grid tr.dupo td { background:#fff3d6; }
-  .cpDos { display:grid; grid-template-columns:minmax(0, 1fr) 480px; gap:16px; align-items:start; }
+  .cpDos { display:grid; grid-template-columns:minmax(0, 1fr); gap:16px; align-items:start; }
+  dialog #cpLado { position:static; border:none; box-shadow:none; padding:0; margin:0; }
   #cpLado table td, #cpLado table th { padding:5px 6px; }
   .cpDos > aside { position:sticky; top:8px; margin:0; padding:14px; }
   @media (max-width:1150px) { .cpDos { grid-template-columns:1fr; } .cpDos > aside { position:static; } }
@@ -619,6 +620,8 @@
           <button id="cpHist">Eliminados e historial</button>
           <button id="cpProvs">Proveedores</button>
           <button id="cpImp">Importar libro de Sheets</button><input type="file" id="cpImpArch" accept=".xlsx,.csv" multiple class="oculto">
+          <button id="cpRepSis" title="Provisiones por Proveedor: muestra las facturas que aún no están registradas">Subir reporte del sistema</button><input type="file" id="cpRepArch" accept=".xls,.xlsx" class="oculto">
+          <button id="cpRepVer" class="oculto">Ver reporte del sistema</button>
         </div>
         <div class="herr">
           <select id="cpFiltro" aria-label="Qué mostrar">
@@ -633,7 +636,7 @@
           <thead><tr><th class="nf"></th><th></th><th>Proveedor</th><th>Tipo doc.</th><th>Emisión</th><th>N° documento</th><th>Referencia / detalle</th><th>Factura que afecta</th><th>Vence</th><th class="n">Importe S/</th><th class="n">Observado</th><th>Conciliada</th><th class="n">Plazo</th><th>Ret.</th><th class="n">Ret. 3%</th><th class="n">Neto</th><th>Estado</th><th>Pagado</th><th>Fecha pago</th><th>N° operación</th><th>Situación</th><th>Observaciones</th></tr></thead>
           <tbody id="cpCuerpo"></tbody>
         </table></div>
-      </div><aside class="caja" id="cpLado"></aside></div></div>
+      </div><aside class="caja oculto" id="cpLado"></aside></div></div>
       <div id="cv_det" class="oculto"></div>
       <div id="cv_con" class="oculto"></div>
       <div id="cv_res" class="oculto"></div>
@@ -4739,7 +4742,7 @@
   async function cnSubir(e) {
     const a = e.target.files[0];
     if (!a) return;
-    const idMsg = e.target.id === 'cnArch2' ? 'cnLadoMsg' : 'cnMsg';
+    const idMsg = e.target.id === 'cpRepArch' ? 'cpMsg' : 'cnMsg';
     try {
       msg(idMsg, 'Leyendo el reporte…', 'ok');
       await cargarXlsx();
@@ -4783,12 +4786,13 @@
   }
   function cpLadoPintar() {
     const caja = $('cpLado');
-    caja.classList.toggle('oculto', !puede('cxp'));
+    $('cpRepSis').classList.toggle('oculto', !puede('cxp'));
+    $('cpRepVer').classList.toggle('oculto', !puede('cxp') || !cn.rep);
+    caja.classList.toggle('oculto', !puede('cxp') || !caja.closest('dialog'));
     if (!puede('cxp')) return;
-    if (!$('cnArch2')) {
-      caja.innerHTML = '<h2 class="sec" style="margin-bottom:6px">Reporte del sistema</h2><p class="quien" style="margin:0 0 8px">Sube "Provisiones por Proveedor". Elige un proveedor y verás sus facturas que aún no están registradas; con <b>Insertar</b> pasan al mes que tienes abierto.</p>' +
-        '<input type="file" id="cnArch2" accept=".xls,.xlsx"><div id="cnLadoMsg" style="margin-top:8px"></div><div id="cnLadoCont"></div>';
-      $('cnArch2').addEventListener('change', cnSubir);
+    if (!$('cnLadoCont')) {
+      caja.innerHTML = '<p class="quien" style="margin:0 0 8px">Elige un proveedor y verás sus facturas del reporte que aún no están registradas; con <b>Insertar</b> pasan al mes que tienes abierto.</p>' +
+        '<div id="cnLadoMsg" style="margin-top:8px"></div><div id="cnLadoCont"></div>';
     }
     const cont = $('cnLadoCont');
     if (!cn.rep) { cont.innerHTML = ''; return; }
@@ -4836,6 +4840,21 @@
       msg('cpMsg', `Se insertaron ${docs.length} factura(s) en ${perTxt(cpDoc.per)}.`, 'ok');
     } catch (e) { const ids = new Set(docs.map((f) => f.i)); cpDoc.filas = (cpDoc.filas || []).filter((f) => !ids.has(f.i)); cn.sis = null; cpError(e); cpPintar(true); }
   }
+  // Reporte del sistema en Cuentas por pagar: se sube desde la barra de arriba y lo faltante se ve en una ventana
+  function cpRepAbrir() {
+    if (!cn.rep) return;
+    modo = 'cpRep'; abierto = null;
+    $('dTit').textContent = `Reporte del sistema · ${(CP_EMP.find((x) => x.k === cpEmp()) || {}).nombre || ''}`;
+    $('dlg').style.width = 'min(1100px, 96vw)'; $('dlg').style.maxWidth = '96vw';
+    $('dCuerpo').innerHTML = '';
+    $('dCuerpo').appendChild($('cpLado'));
+    if (!$('dlg').open) $('dlg').showModal();
+    cpLadoPintar();
+  }
+  $('dlg').addEventListener('close', () => { const c = $('cpLado'); if (c && c.closest('dialog')) { c.classList.add('oculto'); document.querySelector('#cv_reg .cpDos').appendChild(c); } });
+  $('cpRepSis').addEventListener('click', () => $('cpRepArch').click());
+  $('cpRepVer').addEventListener('click', cpRepAbrir);
+  $('cpRepArch').addEventListener('change', async (e) => { await cnSubir(e); e.target.value = ''; if (cn.rep) cpRepAbrir(); });
   $('cpLado').addEventListener('change', (e) => {
     const t = e.target;
     if (t.id === 'cnLadoSelP') { cnLadoProv = t.value; cnLadoSel.clear(); return cpLadoPintar(); }
