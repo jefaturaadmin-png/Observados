@@ -693,6 +693,8 @@
             <div class="campo"><label for="tMot">A. Motivos de DEVOLUCIÓN INMEDIATA (uno por línea)</label><textarea id="tMot" rows="10"></textarea></div>
             <div class="campo"><label for="tMotP">B. Motivos de DEVOLUCIÓN PROGRAMADA (uno por línea)</label><textarea id="tMotP" rows="10"></textarea></div>
           </div>
+          <div class="campo" style="max-width:520px"><label for="tTol">Margen de diferencia (S/)</label><input id="tTol" type="number" min="0" max="10" step="0.01" style="max-width:160px">
+            <div class="quien" style="margin-top:4px">Hasta cuánto de diferencia se consideran iguales dos montos: al cruzar NC con lo observado y al comparar con el XML, Lolfar y el reporte. Por ejemplo 0.05 = cinco céntimos.</div></div>
           <button class="pri" type="submit">Guardar listas</button>
         </form>
       </div>
@@ -996,6 +998,7 @@
 
     bajas.push(onSnapshot(doc(db, 'config', 'listas'), (s) => {
       listas = { ...LISTAS_INI, ...(s.exists() ? s.data() : {}) };
+      { const t = Number(listas.tolNc); const nuevo = listas.tolNc !== undefined && listas.tolNc !== null && t >= 0 ? t : 0.5; if (nuevo !== TOL_NC) { TOL_NC = nuevo; if (vista === 'vPagos') pintarPagos(true); if (vista === 'vCxp') cpPintar(true); } }
       pintarListas(); pintarFiltros();
     }, errorEscucha));
 
@@ -1075,6 +1078,7 @@
       $('tLab').value = listas.laboratorios.join('\n');
       $('tMot').value = motivosInm().join('\n');
       $('tMotP').value = motivosProg().join('\n');
+      $('tTol').value = String(TOL_NC);
     }
   }
   function pintarFiltros() {
@@ -1092,7 +1096,8 @@
     msg('listasMsg', ''); ocupado(f, true);
     try {
       await setDoc(doc(db, 'config', 'listas'), {
-        proveedores: lineas('tProv', true), laboratorios: lineas('tLab', true), motivos: lineas('tMot', false), motivosProg: lineas('tMotP', false)
+        proveedores: lineas('tProv', true), laboratorios: lineas('tLab', true), motivos: lineas('tMot', false), motivosProg: lineas('tMotP', false),
+        tolNc: Math.max(0, Math.min(10, Number($('tTol').value) >= 0 && $('tTol').value !== '' ? Math.round(Number($('tTol').value) * 100) / 100 : 0.5))
       });
       msg('listasMsg', 'Listas guardadas.', 'ok');
     } catch (err) { msg('listasMsg', errorTexto(err)); }
@@ -1944,7 +1949,7 @@
        5) Sobrante de una NC ya usada que coincide con lo que le falta a otra observación (automático)
      Solo se cruzan NC de productos: las de rebate no entran. Una NC que cubre
      varias facturas se reparte según lo observado en cada una. */
-  const TOL_NC = 0.5;      // diferencia máxima (S/) para considerar iguales dos montos
+  let TOL_NC = 0.5;        // diferencia máxima (S/) para considerar iguales dos montos; se cambia en Listas ("Margen de diferencia")
   const DIAS_NC = 180;     // plazo máximo entre la factura y una NC encontrada automáticamente
   const r2 = (n) => Math.round(Number(n) * 100) / 100;
   const diasEntre = (a, b) => ((!a || !b) ? null : Math.round((Date.parse(b) - Date.parse(a)) / 86400000));
@@ -1959,12 +1964,26 @@
   };
   const rebTxt = (f) => { const r = rebDe(f); return !r ? '' : (/^\s*(RB|REB)/i.test(r) ? r : 'REBATE ' + r); };
 
+  // Lo que dice el XML de una NC: a qué factura afecta y qué productos trae (si su XML está cargado)
+  function ncXmlInfo(f) {
+    if (typeof czXml === 'undefined') return null;
+    const xs = czXml.idx.get(`NC|${serDoc(f.s)}|${numDoc(f.n)}`) || [];
+    const e = xs.find((x) => Math.abs(x.m - Math.abs(Number(f.m) || 0)) <= TOL_NC) || xs[0];
+    if (!e || !e.x) return null;
+    return { ref: refDoc(e.x.ref) || '', prods: (e.x.lineas || []).map((l) => ({ cod: soloAlfa(l.cod), desc: soloAlfa(l.desc) })) };
+  }
+  // ¿Un producto observado está entre los productos de la NC? Por código o por el inicio de la descripción
+  const prodCoincide = (p, prods) => {
+    const t = soloAlfa(p), cod = (String(p || '').trim().match(/^([A-Za-z0-9-]{3,})\s/) || [])[1];
+    return prods.some((q) => (q.cod && cod && soloAlfa(cod) === q.cod) || (q.desc.length >= 6 && t.length >= 6 && (t.includes(q.desc.slice(0, 18)) || q.desc.includes(t.replace(/^\d+/, '').slice(0, 18)))));
+  };
   function cruzar(docs, lineasDe) {
     const ncs = new Map(), porNum = new Map(), usos = new Map(), facturas = [], rebs = new Set();
     docs.forEach((d) => (d.filas || []).forEach((f) => {
       if (f.t === 'NC' && rebDe(f)) { rebs.add(`${f.s}-${f.n}`); rebs.add(String(f.n)); return; } // los rebates quedan fuera del cruce
       if (f.t === 'NC') {
-        const o = { f, per: d.per, k: `${f.s}-${f.n}`, resto: Math.abs(Number(f.m) || 0), libre: true };
+        const xi = ncXmlInfo(f);
+        const o = { f, per: d.per, k: `${f.s}-${f.n}`, resto: Math.abs(Number(f.m) || 0), libre: true, ref: f.r || (xi && xi.ref) || '', prods: xi ? xi.prods : [] };
         ncs.set(o.k, o);
         if (!porNum.has(f.n)) porNum.set(f.n, []);
         porNum.get(f.n).push(o);
@@ -1980,7 +1999,10 @@
       return [...cand].sort((a, b) => dist(a) - dist(b))[0];
     };
     const refs = new Map();
-    ncs.forEach((o) => { if (o.f.r) { if (!refs.has(o.f.r)) refs.set(o.f.r, []); refs.get(o.f.r).push(o); } });
+    ncs.forEach((o) => { if (o.ref) { if (!refs.has(o.ref)) refs.set(o.ref, []); refs.get(o.ref).push(o); } });
+    // Una NC que dice a qué factura afecta (anotado o en su XML) no se cruza sola con otra; si trae productos, deben coincidir con lo observado
+    const deOtra = (o, x) => !!o.ref && o.ref !== `${x.f.s}-${x.f.n}` && o.ref !== String(x.f.n);
+    const concuerda = (o, ls) => !o.prods.length || !ls.some((l) => String(l.p || '').trim()) || ls.some((l) => prodCoincide(l.p, o.prods));
     const lista = facturas.filter((x) => x.lineas.length || (x.f.nc || []).length).map((x) => {
       const mias = [], faltan = [];
       (x.f.nc || []).forEach((k) => { if (rebs.has(k) && !ncs.has(k) && !(porNum.get(String(k).split('-').pop()) || []).length) return; const o = hallar(k, x.f); if (o) { if (!mias.some((l) => l.o === o)) mias.push({ o, tipo: 'anotada' }); } else faltan.push(k); });
@@ -2005,10 +2027,10 @@
     });
     // Pasos 3 y 4: búsqueda automática por monto, solo si la factura no tiene ninguna NC aplicada
     const candidatas = () => [...ncs.values()].filter((o) => o.libre && o.resto > 0);
-    const buscar = (x, monto) => {
+    const buscar = (x, monto, ls) => {
       let mejor = null;
       candidatas().forEach((o) => {
-        if (Math.abs(o.resto - monto) > TOL_NC) return;
+        if (Math.abs(o.resto - monto) > TOL_NC || deOtra(o, x) || !concuerda(o, ls)) return;
         const d = diasEntre(x.f.f, o.f.f);
         if (d !== null && (d < 0 || d > DIAS_NC)) return;
         if (!mejor || String(o.f.f).localeCompare(String(mejor.f.f)) < 0) mejor = o;
@@ -2024,12 +2046,12 @@
     lista.forEach((x) => {
       const c = res.get(`${x.per}|${x.f.i}`);
       if (c.aplicada > 0 || c.obs <= 1) return; // montos mínimos no se cruzan solos: coincidirían con cualquier cosa
-      const total = buscar(x, c.obs);
+      const total = buscar(x, c.obs, x.lineas);
       if (total) { aplicarAuto(x, c, total, 'auto: monto total'); c.auto = 'Monto total'; return; }
       const conMonto = x.lineas.filter((l) => Number(l.m) > 0);
       if (conMonto.length < 2) return;
       let n = 0;
-      conMonto.forEach((l) => { if (Number(l.m) <= 1) return; const o = buscar(x, Number(l.m)); if (o) { aplicarAuto(x, c, o, 'auto: por producto'); n += 1; } });
+      conMonto.forEach((l) => { if (Number(l.m) <= 1) return; const o = buscar(x, Number(l.m), [l]); if (o) { aplicarAuto(x, c, o, 'auto: por producto'); n += 1; } });
       if (n) c.auto = `Por producto (${n} de ${conMonto.length})`;
     });
     // Paso 5: el sobrante de una NC ya usada cubre otra observación a la que le falta justo ese monto
@@ -2038,7 +2060,7 @@
         let mejor = null;
         lista.forEach((x) => {
           const c = res.get(`${x.per}|${x.f.i}`), falta = r2(c.obs - c.aplicada);
-          if (c.obs <= 0 || falta <= TOL_NC || Math.abs(falta - o.resto) > TOL_NC || c.det.some((d) => d.k === o.k)) return;
+          if (c.obs <= 0 || falta <= TOL_NC || Math.abs(falta - o.resto) > TOL_NC || c.det.some((d) => d.k === o.k) || deOtra(o, x) || !concuerda(o, x.lineas)) return;
           const d = diasEntre(x.f.f, o.f.f);
           if (d !== null && (d < 0 || d > DIAS_NC)) return;
           if (!mejor || String(x.f.f).localeCompare(String(mejor.x.f.f)) < 0) mejor = { x, c };
@@ -2313,7 +2335,7 @@
     }
     const vista = filasVista(), reponer = conservarNueva(cuerpo), czColG = [];
     pintarOtrosMeses();
-    czAsegurar((d.filas || []).map((f) => String(f.f || '').slice(0, 7)), () => pintarPagos());
+    czAsegurar((d.filas || []).concat(...pgDocs.map((x) => (x.filas || []).filter((f) => f.t === 'NC'))).map((f) => String(f.f || '').slice(0, 7)), () => pintarPagos(true)); // con las NC de todos los meses: su XML dice a qué factura afectan
     { const ct2 = $('gCkTodo'); if (ct2) { const n = vista.filter((f) => pgSel.has(f.i)).length; ct2.checked = vista.length > 0 && n === vista.length; ct2.indeterminate = n > 0 && n < vista.length; ct2.disabled = !vista.length; } }
     let h = '';
     vista.forEach((f, n) => {
@@ -2321,7 +2343,8 @@
       const ed = edita ? ' class="ed"' : '', deRec = enlazadas(f).length;
       let colNc = '';
       if (f.t === 'NC') {
-        colNc = rebDe(f) ? `<span class="est e3">${esc(rebTxt(f))}</span>` : (f.r ? `→ factura ${esc(f.r)}` : (ncSinAsignar(f) ? '<span class="est e0">Sin asignar a factura</span>' : '<span class="quien">Aplicada a una factura</span>'));
+        const xr = !f.r && !rebDe(f) ? (ncXmlInfo(f) || {}).ref : '';
+        colNc = rebDe(f) ? `<span class="est e3">${esc(rebTxt(f))}</span>` : (f.r ? `→ factura ${esc(f.r)}` : xr ? `→ factura ${esc(xr)} <span class="quien">(según su XML)</span>` : (ncSinAsignar(f) ? '<span class="est e0">Sin asignar a factura</span>' : '<span class="quien">Aplicada a una factura</span>'));
       } else colNc = esc((f.nc || []).join(', ')) + (c.faltan.length ? ` <span class="est alerta" title="No está en la lista">falta ${esc(c.faltan.join(', '))}</span>` : '');
       h += `<tr data-i="${esc(f.i)}" class="${pgSel.has(f.i) ? 'sel ' : ''}${f.t === 'NC' ? 'esnc' : ''}">` +
         `<td class="nf">${n + 1}</td><td class="ck"><input type="checkbox" class="gCk"${pgSel.has(f.i) ? ' checked' : ''} aria-label="Seleccionar fila ${n + 1}"></td>` +
@@ -3768,7 +3791,7 @@
   }
   function czXmlDe(k, monto, prov) { // el XML de esa factura: el que tiene el mismo total o, si no, el del mismo proveedor
     const xs = czXml.idx.get(k) || [];
-    const igual = xs.find((x) => Math.abs(x.m - Math.abs(Number(monto) || 0)) <= 0.05);
+    const igual = xs.find((x) => Math.abs(x.m - Math.abs(Number(monto) || 0)) <= TOL_NC);
     if (igual) return { ...igual, igual: true };
     const suyo = xs.find((x) => czNomOk(x.nom, prov));
     return suyo ? { ...suyo, igual: false } : null;
@@ -5482,7 +5505,7 @@
       const r = { k: `${P.key}|${dk}|${it.per || ''}`, per: it.per || '', P, mod: it.mod, t, s: s2, n, f, aqui, x, q, l, real, obs, dif, lab: f ? (f.l || '') : (q ? q.l : ''), prob: [], aviso: [], acc: [] };
       if (!f) { r.prob.push('No está registrada en este mes'); r.acc.push('agregar'); }
       else {
-        if (real && Math.abs(Math.abs(aqui) - Math.abs(real.m)) > 0.05) { r.prob.push(`Total aquí S/ ${mil(aqui)}; la factura dice S/ ${mil(real.m)}`); r.acc.push('total'); }
+        if (real && Math.abs(Math.abs(aqui) - Math.abs(real.m)) > TOL_NC) { r.prob.push(`Total aquí S/ ${mil(aqui)}; la factura dice S/ ${mil(real.m)}`); r.acc.push('total'); }
         if (real && real.f && f.f !== real.f) { r.prob.push(`Fecha aquí ${dia(f.f) || '(vacía)'}; la real es ${dia(real.f)} (cambia el vencimiento)`); r.acc.push('fecha'); }
       }
       if (dif !== null && dif > TOL_NC) {
@@ -5722,8 +5745,8 @@
     const k = rgKey(x), emp = rgEmpDeRuc((x.cliente || {}).ruc);
     const c = (rg.idx.get(k) || []).filter((r) => !emp || r.emp === emp);
     if (!c.length) return null;
-    const r = c.find((y) => czNomOk(y.prov, (x.emisor || {}).nom)) || c.find((y) => Math.abs(y.m - Math.abs(Number(x.total) || 0)) <= 0.05) || (c.length === 1 ? c[0] : null);
-    return r ? { ...r, dif: Math.abs(r.m - Math.abs(Number(x.total) || 0)) > 0.05 } : null;
+    const r = c.find((y) => czNomOk(y.prov, (x.emisor || {}).nom)) || c.find((y) => Math.abs(y.m - Math.abs(Number(x.total) || 0)) <= TOL_NC) || (c.length === 1 ? c[0] : null);
+    return r ? { ...r, dif: Math.abs(r.m - Math.abs(Number(x.total) || 0)) > TOL_NC } : null;
   }
   function rgDestino(x) { // a quién va lo que falta registrar: un distribuidor (Pagos) o un proveedor de Cuentas por pagar
     const ruc = (x.emisor || {}).ruc, nom = (x.emisor || {}).nom || '';
