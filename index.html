@@ -513,7 +513,7 @@
     <div id="vCierre" class="oculto">
       <div class="herr">
         <select id="ciEmp" aria-label="Empresa" style="width:auto"></select>
-        <label for="ciMes" style="margin:0">Mes de pago</label><input type="month" id="ciMes" style="max-width:170px">
+        <label for="ciDesde" style="margin:0">Mes de pago desde</label><input type="month" id="ciDesde" style="max-width:165px"><label for="ciHasta" style="margin:0">hasta</label><input type="month" id="ciHasta" style="max-width:165px">
         <span style="flex:1"></span>
         <button id="ciLf">Subir reporte de Lolfar</button><input type="file" id="ciLfArch" accept=".xls,.xlsx" class="oculto">
         <button id="ciQr">Volver a leer los QR</button>
@@ -523,10 +523,11 @@
       <div id="ciCont"></div>
       <div class="tabla"><table class="rgTab">
         <thead>
-          <tr><th></th><th>Proveedor</th><th>Tipo</th><th>Número</th><th>Emisión</th><th class="num">Aquí</th><th class="num">Factura real</th><th class="num">Lolfar</th><th class="num">Diferencia</th><th class="num">Observado</th><th>Qué falta</th></tr>
+          <tr><th></th><th>Proveedor</th><th>Mes de pago</th><th>Tipo</th><th>Número</th><th>Emisión</th><th class="num">Aquí</th><th class="num">Factura real</th><th class="num">Lolfar</th><th class="num">Diferencia</th><th class="num">Observado</th><th>Qué falta</th></tr>
           <tr class="rgFil ciFil">
             <th></th>
             <th><input data-f="prov" placeholder="Buscar" aria-label="Buscar proveedor"></th>
+            <th><input data-f="mes" placeholder="octubre…" aria-label="Buscar mes de pago"></th>
             <th><select data-f="tipo" aria-label="Tipo"><option value="">Todos</option><option value="FA">Factura</option><option value="NC">NC</option></select></th>
             <th><input data-f="num" placeholder="Buscar" aria-label="Buscar número"></th>
             <th><input data-f="emi" placeholder="dd/mm/aaaa" aria-label="Buscar emisión"></th>
@@ -5274,15 +5275,17 @@
   function ciAbrir() {
     if (!$('ciEmp').options.length) {
       $('ciEmp').innerHTML = CP_EMP.map((x) => `<option value="${x.k}">${esc(x.nombre)}</option>`).join('');
-      $('ciMes').value = hoy().slice(0, 7);
+      $('ciDesde').value = hoy().slice(0, 7); $('ciHasta').value = hoy().slice(0, 7);
     }
     ciCargar();
   }
   async function ciCargar(forzar) { // lo registrado de la empresa (todos los meses), equivalencias, RUC y XML
-    const emp = $('ciEmp').value, per = $('ciMes').value;
-    if (!emp || !/^\d{4}-\d{2}$/.test(per)) return ciPintar();
-    if (!forzar && ci.emp === emp && ci.per === per && (ci.listo || ci.carg)) return ciPintar();
-    ci.emp = emp; ci.per = per; ci.carg = true; ci.listo = false; ci.avisos = [];
+    const emp = $('ciEmp').value, desde = $('ciDesde').value, per = $('ciHasta').value;
+    if (/^\d{4}-\d{2}$/.test(desde) && /^\d{4}-\d{2}$/.test(per) && desde > per) { $('ciCont').innerHTML = '<div class="msg err">"Desde" no puede ser después de "hasta".</div>'; $('ciCuerpo').innerHTML = ''; return; }
+    if (!emp || !/^\d{4}-\d{2}$/.test(per) || !/^\d{4}-\d{2}$/.test(desde)) return ciPintar();
+    if (!forzar && ci.emp === emp && ci.per === per && ci.desde === desde && (ci.listo || ci.carg)) return ciPintar();
+    if (ci.per !== per) ci.perAg = per;
+    ci.emp = emp; ci.per = per; ci.desde = desde; ci.carg = true; ci.listo = false; ci.avisos = [];
     if (ci.qr === null && !ci.qrCargando) ciCargarQr();
     ciPintar();
     const lee = (p) => p.catch(() => null);
@@ -5290,7 +5293,7 @@
       puede('verPagos') ? lee(getDocs(query(collection(db, 'pagos'), where('emp', '==', emp)))) : null,
       puede('verCxp') ? lee(getDocs(query(collection(db, 'cpm'), where('emp', '==', emp)))) : null,
       lee(getDoc(doc(db, 'config', 'concilia')))]);
-    if (ci.emp !== emp || ci.per !== per) return;
+    if (ci.emp !== emp || ci.per !== per || ci.desde !== desde) return;
     if (puede('verPagos') && !sp) ci.avisos.push('No se pudo leer Pagos a proveedores.');
     if (puede('verCxp') && !sc) ci.avisos.push('No se pudo leer Cuentas por pagar.');
     ci.pg = sp ? sp.docs.map((d) => d.data()) : [];
@@ -5299,9 +5302,10 @@
     cn.alias = al.alias || cn.alias || {};
     ci.rucs = al.rucs || {};
     // XML: los meses de las facturas de este mes de pago y los dos anteriores
-    const meses = new Set([per, ciMesAnt(per, 1), ciMesAnt(per, 2)]);
-    ci.pg.filter((d) => d.per === per).forEach((d) => (d.filas || []).forEach((f) => { if (f.f) meses.add(f.f.slice(0, 7)); }));
-    ci.cp.filter((d) => d.per === per).forEach((d) => (d.filas || []).forEach((f) => { if (f.f) meses.add(f.f.slice(0, 7)); }));
+    const enRango = (d) => d.per >= desde && d.per <= per, meses = new Set([ciMesAnt(desde, 1), ciMesAnt(desde, 2)]);
+    for (let m = per; m >= desde; m = ciMesAnt(m, 1)) meses.add(m);
+    ci.pg.filter(enRango).forEach((d) => (d.filas || []).forEach((f) => { if (f.f) meses.add(f.f.slice(0, 7)); }));
+    ci.cp.filter(enRango).forEach((d) => (d.filas || []).forEach((f) => { if (f.f) meses.add(f.f.slice(0, 7)); }));
     ci.xml = []; ci.xmlErr = '';
     if (puede('verXml')) {
       const ms = [...meses].filter((m) => /^\d{4}-\d{2}$/.test(m));
@@ -5326,7 +5330,7 @@
     if (vista === 'vCierre') ciPintar();
   }
   function ciArmar() {
-    const emp = ci.emp, per = ci.per, rucEmp = (pgCfg.empresas.find((x) => x.k === emp) || {}).ruc || '';
+    const emp = ci.emp, per = ci.per, desdeM = ci.desde || per, enRango = (p) => p >= desdeM && p <= per, rucEmp = (pgCfg.empresas.find((x) => x.k === emp) || {}).ruc || '';
     const provs = new Map(), regAll = new Map(), filasMes = [];
     const prov = (key, tipo, k, nombre) => { if (!provs.has(key)) provs.set(key, { key, tipo, k, nombre, filas: [], docs: new Set() }); return provs.get(key); };
     // Lo registrado: distribuidores (Pagos) y proveedores (Cuentas por pagar), en todos los meses
@@ -5336,7 +5340,7 @@
         if (!f.n || !['FA', 'NC', 'ND'].includes(f.t)) return;
         const dk = `${f.t}|${serDoc(f.s)}|${numDoc(f.n)}`; P.docs.add(dk);
         if (!regAll.has(P.key + '|' + dk)) regAll.set(P.key + '|' + dk, d.per);
-        if (d.per === per) filasMes.push({ P, dk, f, mod: 'D', per: d.per });
+        if (enRango(d.per)) filasMes.push({ P, dk, f, mod: 'D', per: d.per });
       });
     });
     ci.cp.forEach((d) => (d.filas || []).forEach((f) => {
@@ -5344,7 +5348,7 @@
       if (!x) return;
       const P = prov('C:' + f.p, 'C', f.p, f.p), dk = `${t}|${x.s}|${x.n}`; P.docs.add(dk);
       if (!regAll.has(P.key + '|' + dk)) regAll.set(P.key + '|' + dk, d.per);
-      if (d.per === per) filasMes.push({ P, dk, f, mod: 'C', per: d.per });
+      if (enRango(d.per)) filasMes.push({ P, dk, f, mod: 'C', per: d.per });
     }));
     // QR y XML de esta empresa, por RUC del emisor
     const Q = new Map(), X = new Map(), rucDocs = new Map(), qrRucs = new Set(), nomRuc = new Map();
@@ -5393,7 +5397,7 @@
       const real = x ? { m: t === 'NC' ? -Math.abs(Number(x.total)) : Number(x.total), f: x.fecha, de: 'XML' } : (q && q.m !== null ? { m: q.m, f: q.f, de: q.calc ? 'QR ≈' : 'QR' } : null);
       const obs = obsDe(it), base = real ? Math.abs(real.m) : (aqui !== null ? Math.abs(aqui) : null);
       const dif = (t === 'FA' && l && base !== null) ? r2(base - Math.abs(l.m)) : null;
-      const r = { k: P.key + '|' + dk, P, mod: it.mod, t, s: s2, n, f, aqui, x, q, l, real, obs, dif, lab: f ? (f.l || '') : (q ? q.l : ''), prob: [], aviso: [], acc: [] };
+      const r = { k: `${P.key}|${dk}|${it.per || ''}`, per: it.per || '', P, mod: it.mod, t, s: s2, n, f, aqui, x, q, l, real, obs, dif, lab: f ? (f.l || '') : (q ? q.l : ''), prob: [], aviso: [], acc: [] };
       if (!f) { r.prob.push('No está registrada en este mes'); r.acc.push('agregar'); }
       else {
         if (real && Math.abs(Math.abs(aqui) - Math.abs(real.m)) > 0.05) { r.prob.push(`Total aquí S/ ${mil(aqui)}; la factura dice S/ ${mil(real.m)}`); r.acc.push('total'); }
@@ -5415,7 +5419,7 @@
     const vistas = new Set();
     filasMes.forEach((it) => { vistas.add(it.P.key + '|' + it.dk); una(it); });
     // Lo que falta registrar: del reporte de Lolfar y de los QR/XML de proveedores conocidos, con fecha del periodo
-    const desde = cn.rep && cn.rep.desde ? cn.rep.desde.slice(0, 10) : ciMesAnt(per, 1) + '-01', hasta = cn.rep && cn.rep.hasta ? cn.rep.hasta.slice(0, 10) : per + '-31';
+    const desde = cn.rep && cn.rep.desde ? cn.rep.desde.slice(0, 10) : ciMesAnt(desdeM, 1) + '-01', hasta = cn.rep && cn.rep.hasta ? cn.rep.hasta.slice(0, 10) : per + '-31';
     const cand = new Map();
     L.forEach((v, k) => { const i = k.indexOf('|', 2); cand.set(k, { key: k.slice(0, i), dk: k.slice(i + 1), fe: v.f }); });
     [...Q.entries(), ...X.entries()].forEach(([k, v]) => { const i = k.indexOf('|'), P = rucProv.get(k.slice(0, i)); if (P) { const kk = P.key + '|' + k.slice(i + 1); if (!cand.has(kk)) cand.set(kk, { key: P.key, dk: k.slice(i + 1), fe: v.fecha || v.f }); } });
@@ -5433,7 +5437,7 @@
     if (ci.carg || !ci.listo) { caja.innerHTML = '<p class="resumen">Cargando lo registrado del mes…</p>'; cuerpo.innerHTML = ''; return; }
     const A = ciArmar(), V0 = A.filas, F = ciFil(), tiene = (v, q) => !q || String(v).toLowerCase().includes(q);
     const fe = (r) => String((r.real || {}).f || (r.f || {}).f || (r.l || {}).f || ''), ordE = { r: 0, a: 1, v: 2 };
-    const V = V0.filter((r) => tiene(`${r.P.nombre} ${r.P.ruc || ''}`, F.prov) && (!F.tipo || (F.tipo === 'NC' ? r.t === 'NC' : r.t !== 'NC')) && tiene(`${r.s}-${r.n} ${r.lab || ''}`, F.num) &&
+    const V = V0.filter((r) => tiene(`${r.P.nombre} ${r.P.ruc || ''}`, F.prov) && tiene(r.per ? perTxt(r.per) : 'sin registrar', F.mes) && (!F.tipo || (F.tipo === 'NC' ? r.t === 'NC' : r.t !== 'NC')) && tiene(`${r.s}-${r.n} ${r.lab || ''}`, F.num) &&
       tiene(dia(fe(r)), F.emi) && tiene(r.f ? `${mil(r.aqui)} ${r.aqui}` : '', F.aqui) && tiene(r.real ? `${mil(r.real.m)} ${r.real.m} ${r.real.de}` : 'sin xml ni qr', F.real) &&
       tiene(r.l ? `${mil(r.l.m)} ${r.l.m}` : '', F.lf) && (!F.dif || (F.dif === 'si' ? (r.dif !== null && Math.abs(r.dif) > TOL_NC) : !(r.dif !== null && Math.abs(r.dif) > TOL_NC))) &&
       tiene(r.obs ? `${mil(r.obs)} ${r.obs}` : '', F.obs) && (!F.est || (F.est === 'pend' ? r.est !== 'v' : r.est === F.est)))
@@ -5449,10 +5453,10 @@
       !puede('verXml') ? '<span class="est e4">XML: sin permiso</span>' : ci.xmlErr ? `<span class="est alerta">XML</span> <span class="quien">${esc(ci.xmlErr)}</span>` : `<span class="est e2">XML ✓</span> <span class="quien">${ci.xml.length} documentos de esos meses</span>`];
     caja.innerHTML = (ci.avisos.length ? `<div class="msg err">${ci.avisos.map(esc).join(' ')}</div>` : '') + '<div id="ciMsg"></div>' +
       '<div class="herr" style="gap:14px;margin-bottom:6px">' + fuentes.map((x) => `<span>${x}</span>`).join('') + '</div>' +
-      `<p class="resumen">${esc(perTxt(ci.per))}: ${V0.length} documentos · <b class="sube">${n('v')} listas para programar</b> · <b>${n('a')} por revisar</b> · <b class="${n('r') ? 'baja' : ''}">${n('r')} sin registrar</b>` +
+      `<p class="resumen">${esc(ci.desde && ci.desde !== ci.per ? `${perTxt(ci.desde)} a ${perTxt(ci.per)}` : perTxt(ci.per))}: ${V0.length} documentos · <b class="sube">${n('v')} listas para programar</b> · <b>${n('a')} por revisar</b> · <b class="${n('r') ? 'baja' : ''}">${n('r')} sin registrar</b>` +
       `${falta ? ` · faltan observar S/ ${mil(falta)}` : ''} · ${fas.length ? Math.round(conXml / fas.length * 100) : 0}% de facturas con XML${V.length !== V0.length ? ` · <b>se ven ${V.length}</b> con los filtros` : ''}</p>` +
-      `<p class="quien" style="margin:0 0 8px">Lo registrado en Pagos a proveedores y Cuentas por pagar para este mes de pago. Las facturas sin registrar se buscan con fecha del ${esc(dia(A.desde))} al ${esc(dia(A.hasta))}${cn.rep ? ' (periodo del reporte de Lolfar)' : ''}; las que ya están en otro mes no se repiten. Clic en una fila para ver sus productos.</p>` +
-      (sinReg.length ? `<p style="margin:0 0 8px"><button class="pri ciAgTodas">Agregar las ${sinReg.length} sin registrar que se ven a ${esc(perTxt(ci.per))}</button></p>` : '') +
+      `<p class="quien" style="margin:0 0 8px">Lo registrado en Pagos a proveedores y Cuentas por pagar en esos meses de pago. Las facturas sin registrar se buscan con fecha del ${esc(dia(A.desde))} al ${esc(dia(A.hasta))}${cn.rep ? ' (periodo del reporte de Lolfar)' : ''}; las que ya están en otro mes no se repiten. Clic en una fila para ver sus productos.</p>` +
+      (sinReg.length ? `<div class="herr" style="margin:0 0 8px"><span>${sinReg.length} sin registrar en lo que se ve.</span><label for="ciPerAg" style="margin:0">Agregar al mes de pago</label><input type="month" id="ciPerAg" value="${esc(ci.perAg || ci.per)}" style="max-width:165px"><button class="pri ciAgTodas">Agregar las ${sinReg.length}</button><span class="quien">El botón "Agregar al mes" de cada fila también usa este mes.</span></div>` : '') +
       (provs.length ? `<details class="caja" style="padding:8px 14px;margin-bottom:10px"><summary style="cursor:pointer"><b>RUC de los proveedores</b> <span class="quien">${sinRuc ? `${sinRuc} sin RUC: no se cruzan con los QR ni los XML. Escríbelo aquí (queda guardado para todos).` : 'todos tienen RUC'}</span></summary>` +
         `<div class="tabla" style="max-height:40vh;overflow:auto;margin-top:8px"><table class="rgTab" style="font-size:13px"><tr><th>Proveedor</th><th>Módulo</th><th>RUC</th><th>Cómo se obtuvo</th></tr>` +
         provs.map((P) => `<tr><td>${esc(P.nombre)}</td><td>${esc(P.tipo === 'D' ? 'Pagos a proveedores' : 'Cuentas por pagar')}</td><td><input class="ciRuc" data-p="${esc(P.key)}" value="${esc(P.ruc)}" placeholder="20xxxxxxxxx" style="width:140px;padding:4px 7px" aria-label="RUC de ${esc(P.nombre)}"></td><td class="quien">${esc(P.rucDe || 'falta')}</td></tr>`).join('') + '</table></div></details>' : '');
@@ -5465,14 +5469,14 @@
     }[a])).join(''));
     const sem = { r: '<span class="sgDot r" title="Sin registrar"></span>', a: '<span class="sgDot n" title="Por revisar"></span>', v: '<span class="sgDot v" title="Lista"></span>' };
     cuerpo.innerHTML = V.map((r) => `<tr class="rgFila${r.t === 'NC' ? ' esnc' : ''}" data-k="${esc(r.k)}" title="Clic para ver los productos"><td>${sem[r.est]}</td>` +
-      `<td>${esc(r.P.nombre)}<div><span class="est ${r.mod === 'D' ? 'e1' : 'e3'}" style="font-size:10.5px">${r.mod === 'D' ? 'Pagos' : 'CxP'}</span></div></td><td>${esc(r.t)}</td>` +
+      `<td>${esc(r.P.nombre)}<div><span class="est ${r.mod === 'D' ? 'e1' : 'e3'}" style="font-size:10.5px">${r.mod === 'D' ? 'Pagos' : 'CxP'}</span></div></td><td>${r.per ? esc(perTxt(r.per)) : '<span class="quien">—</span>'}</td><td>${esc(r.t)}</td>` +
       `<td><b>${esc(r.s)}-${esc(r.n)}</b>${r.lab ? `<div class="quien">${esc(r.lab)}</div>` : ''}</td><td>${esc(dia(fe(r)))}</td>` +
       `<td class="num">${r.f ? mil(r.aqui) : '<span class="quien">—</span>'}</td>` +
       `<td class="num">${r.real ? `${mil(r.real.m)} <span class="quien">${esc(r.real.de)}</span>` : '<span class="quien">sin XML ni QR</span>'}</td><td class="num">${r.l ? mil(r.l.m) : ''}</td>` +
       `<td class="num">${r.dif === null ? '' : `<span class="${Math.abs(r.dif) > TOL_NC && !r.cuadra ? 'baja' : ''}">${mil(r.dif)}</span>`}</td><td class="num">${r.obs ? mil(r.obs) : ''}${r.cuadra ? ' <span class="est e2">✓ cuadra</span>' : ''}</td>` +
       `<td style="white-space:normal;min-width:230px">${r.prob.map((p2) => `<div class="baja">${esc(p2)}</div>`).join('')}${r.aviso.map((p2) => `<div class="quien">${esc(p2)}</div>`).join('')}${!r.prob.length && !r.aviso.length ? '<span class="sube">Todo cuadra</span>' : ''}${r.acc.length && puedeMod(r) ? `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:5px">${acc(r)}</div>` : ''}</td></tr>` +
-      (ci.ab.has(r.k) ? (r.x ? rgDetalle(r.x, 11) : '<tr class="det"><td colspan="11"><p class="quien" style="margin:0">Sin XML: no hay detalle de productos de este documento.</p></td></tr>') : '')).join('') ||
-      `<tr><td colspan="11" class="vacio">${V0.length ? 'Nada coincide con los buscadores.' : 'Sin documentos en este mes de pago.'}</td></tr>`;
+      (ci.ab.has(r.k) ? (r.x ? rgDetalle(r.x, 12) : '<tr class="det"><td colspan="12"><p class="quien" style="margin:0">Sin XML: no hay detalle de productos de este documento.</p></td></tr>') : '')).join('') ||
+      `<tr><td colspan="12" class="vacio">${V0.length ? 'Nada coincide con los buscadores.' : 'Sin documentos en esos meses de pago.'}</td></tr>`;
   }
   const ciDe = (k) => (ci.vista || []).find((r) => r.k === k);
   // Guardar en el documento que corresponde: el mes del distribuidor (pagos) o el mes de Cuentas por pagar (cpm)
@@ -5488,8 +5492,8 @@
     setDoc(doc(db, 'pagosLog', String(9999999999999 - Date.now()) + Math.random().toString(36).slice(2, 6)), { clave: `${emp}|CXP`, per, accion, detalle: String(detalle).slice(0, 400), quien: firma(), ts: serverTimestamp() }).catch(console.error);
   }
   async function ciGuardar(r, cambiar, accion, detalle) { // cambiar(fila) sobre la fila de r en su documento
-    if (r.mod === 'D') await pgGuardarYa(ci.emp, r.P.k, ci.per, (lista) => { const x = lista.find((y) => y.i === r.f.i); if (!x) throw new Error('La fila ya no existe.'); cambiar(x); }, accion, detalle);
-    else await ciGuardarCp(ci.emp, ci.per, (lista) => { const x = lista.find((y) => y.i === r.f.i); if (!x) throw new Error('La fila ya no existe.'); cambiar(x); }, accion, detalle);
+    if (r.mod === 'D') await pgGuardarYa(ci.emp, r.P.k, r.per, (lista) => { const x = lista.find((y) => y.i === r.f.i); if (!x) throw new Error('La fila ya no existe.'); cambiar(x); }, accion, detalle);
+    else await ciGuardarCp(ci.emp, r.per, (lista) => { const x = lista.find((y) => y.i === r.f.i); if (!x) throw new Error('La fila ya no existe.'); cambiar(x); }, accion, detalle);
   }
   async function ciCorregir(r, campo) {
     const nuevo = campo === 'm' ? (r.mod === 'C' ? Math.abs(r.real.m) : r.real.m) : r.real.f, antes = r.f[campo];
@@ -5502,7 +5506,9 @@
     rs = rs.filter((r) => !r.f && (r.real || r.l) && (r.mod === 'D' ? puede('pagos') : puede('cxp')));
     if (!rs.length) return;
     const tot = r2(rs.reduce((a, r) => a + Math.abs((r.real || r.l).m), 0));
-    if (!confirm(`¿Agregar ${rs.length} documento(s) por S/ ${mil(tot)} a ${perTxt(ci.per)}?\nSe usan la fecha y el total de la factura real (XML o QR) o, si no hay, los de Lolfar.`)) return;
+    const per = ci.perAg || ci.per;
+    if (!/^\d{4}-\d{2}$/.test(per)) return msg('ciMsg', 'Elige el mes de pago al que se agregan.');
+    if (!confirm(`¿Agregar ${rs.length} documento(s) por S/ ${mil(tot)} a ${perTxt(per)}?\nSe usan la fecha y el total de la factura real (XML o QR) o, si no hay, los de Lolfar.`)) return;
     const porDest = new Map();
     rs.forEach((r) => { const k = r.P.key; if (!porDest.has(k)) porDest.set(k, []); porDest.get(k).push(r); });
     const errores = [];
@@ -5510,12 +5516,12 @@
       const P = lista[0].P, fecha = (r) => ((r.real || {}).f || (r.l || {}).f || ''), monto = (r) => (r.real || r.l).m;
       try {
         if (P.tipo === 'D') {
-          if (!ci.pg.some((d) => d.dist === P.k && d.per === ci.per)) throw new Error(`primero crea el mes a pagar ${perTxt(ci.per)} de ${P.nombre} en Pagos a proveedores`);
+          if (!ci.pg.some((d) => d.dist === P.k && d.per === per)) throw new Error(`primero crea el mes a pagar ${perTxt(per)} de ${P.nombre} en Pagos a proveedores`);
           const nuevas = lista.map((r) => { const f = { i: idNuevo(), f: fecha(r), t: r.t, s: r.s, n: r.n, m: r.t === 'NC' ? -Math.abs(monto(r)) : Math.abs(monto(r)), ...(r.lab ? { l: may(r.lab, 60) } : {}) }; if (r.real) czPoner(f, r.real.de.startsWith('QR') ? 'QR' : 'XML'); return f; });
-          await pgGuardarYa(ci.emp, P.k, ci.per, (l) => { nuevas.forEach((f) => { if (!l.some((x) => claveFila(x) === claveFila(f))) l.push(f); }); }, 'Agregó', `${nuevas.length} documento(s) desde el cierre del mes: ${nuevas.map((f) => `${f.s}-${f.n}`).join(', ')}`);
+          await pgGuardarYa(ci.emp, P.k, per, (l) => { nuevas.forEach((f) => { if (!l.some((x) => claveFila(x) === claveFila(f))) l.push(f); }); }, 'Agregó', `${nuevas.length} documento(s) desde el cierre del mes: ${nuevas.map((f) => `${f.s}-${f.n}`).join(', ')}`);
         } else {
           const pv = cpProv(P.k), nuevas = lista.map((r) => { const f = { i: idNuevo(), p: P.k, t: r.t === 'NC' ? 'NOTA DE CRÉDITO' : 'FACTURA', f: fecha(r), d: `${r.s}-${r.n}`, ref: '', af: '', v: (r.l || {}).v || '', m: Math.abs(monto(r)), e: r.t === 'NC' ? 'APLICADA' : '', pg: false, fp: '', op: '', x: '', ar: pv ? pv.ret === true : false }; if (r.real) czPoner(f, r.real.de.startsWith('QR') ? 'QR' : 'XML'); return f; });
-          await ciGuardarCp(ci.emp, ci.per, (l) => { nuevas.forEach((f) => { if (!l.some((x) => cpClaveFac(x) && cpClaveFac(x) === cpClaveFac(f))) l.push(f); }); }, 'Agregó', `${P.k}: ${nuevas.length} documento(s) desde el cierre del mes: ${nuevas.map((f) => f.d).join(', ')}`);
+          await ciGuardarCp(ci.emp, per, (l) => { nuevas.forEach((f) => { if (!l.some((x) => cpClaveFac(x) && cpClaveFac(x) === cpClaveFac(f))) l.push(f); }); }, 'Agregó', `${P.k}: ${nuevas.length} documento(s) desde el cierre del mes: ${nuevas.map((f) => f.d).join(', ')}`);
           if (!pv) await setDoc(doc(db, 'config', 'cxp'), { provs: cpCfg.provs.concat([{ n: P.k, pl: '', ret: false, cta: '', act: true }]) }, { merge: true }).catch(console.error);
         }
       } catch (e) { errores.push(`${P.nombre}: ${e.message || errorTexto(e)}`); }
@@ -5573,7 +5579,7 @@
       ciPintar();
     } catch (err) { msg('ciMsg', errorTexto(err)); }
   }
-  ['ciEmp', 'ciMes'].forEach((id) => $(id).addEventListener('change', () => ciCargar()));
+  ['ciEmp', 'ciDesde', 'ciHasta'].forEach((id) => $(id).addEventListener('change', () => ciCargar()));
   document.querySelectorAll('#vCierre .ciFil [data-f]').forEach((x) => x.addEventListener(x.tagName === 'SELECT' ? 'change' : 'input', () => ciPintar()));
   $('ciLimpiar').addEventListener('click', () => { document.querySelectorAll('#vCierre .ciFil [data-f]').forEach((x) => { x.value = x.dataset.f === 'est' ? 'pend' : ''; }); ciPintar(); });
   flechasFiltros($('vCierre').querySelector('.ciFil'));
@@ -5592,10 +5598,11 @@
   $('ciLf').addEventListener('click', () => $('ciLfArch').click());
   $('ciLfArch').addEventListener('change', ciSubirLf);
   $('ciQr').addEventListener('click', () => { ci.qr = null; ci.qrErr = ''; ciCargarQr(); ciPintar(); });
-  $('ciExp').addEventListener('click', () => exportar(`cierre-${ci.emp}-${ci.per}`, [['Proveedor', (x) => x.P.nombre], ['Módulo', (x) => (x.mod === 'D' ? 'Pagos a proveedores' : 'Cuentas por pagar')], ['Estado', (x) => ({ r: 'Bloqueada', a: 'Por revisar', v: 'Lista' }[x.est])], ['Tipo', 't'], ['Serie', 's'], ['Número', 'n'], ['Fecha real', (x) => dia((x.real || {}).f || '')], ['Total aquí', (x) => x.aqui ?? ''], ['Total real', (x) => (x.real ? x.real.m : '')], ['Fuente', (x) => (x.real ? x.real.de : '')], ['Lolfar', (x) => (x.l ? x.l.m : '')], ['Diferencia', (x) => x.dif ?? ''], ['Observado', 'obs'], ['Qué falta', (x) => x.prob.concat(x.aviso).join(' · ')]], ci.vista || []));
+  $('ciExp').addEventListener('click', () => exportar(`cierre-${ci.emp}-${ci.desde || ci.per}-a-${ci.per}`, [['Proveedor', (x) => x.P.nombre], ['Mes de pago', (x) => (x.per ? perTxt(x.per) : '')], ['Módulo', (x) => (x.mod === 'D' ? 'Pagos a proveedores' : 'Cuentas por pagar')], ['Estado', (x) => ({ r: 'Bloqueada', a: 'Por revisar', v: 'Lista' }[x.est])], ['Tipo', 't'], ['Serie', 's'], ['Número', 'n'], ['Fecha real', (x) => dia((x.real || {}).f || '')], ['Total aquí', (x) => x.aqui ?? ''], ['Total real', (x) => (x.real ? x.real.m : '')], ['Fuente', (x) => (x.real ? x.real.de : '')], ['Lolfar', (x) => (x.l ? x.l.m : '')], ['Diferencia', (x) => x.dif ?? ''], ['Observado', 'obs'], ['Qué falta', (x) => x.prob.concat(x.aviso).join(' · ')]], ci.vista || []));
   $('ciCont').addEventListener('click', (e) => {
     if (e.target.classList.contains('ciAgTodas')) ciAgregar(ci.vis || []);
   });
+  $('ciCont').addEventListener('input', (e) => { if (e.target.id === 'ciPerAg') ci.perAg = e.target.value; });
   $('ciCont').addEventListener('change', async (e) => {
     if (!e.target.classList.contains('ciRuc')) return;
     const k = e.target.dataset.p, r = (e.target.value.match(/\d{11}/g) || [])[0] || '';
