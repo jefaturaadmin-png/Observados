@@ -122,6 +122,7 @@
   tr.cpHDoble td { background:#fff1e0; } tr.cpHFalta td { background:#fdf0ee; }
   .xlZona { border:2px dashed #d6cfc6; border-radius:14px; background:#fff; padding:26px 20px; display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center; margin-bottom:14px; } .xlZona.sobre { border-color:var(--marca); background:var(--suave); } .xlZona b { font-size:16px; }
   .xlDet { padding:10px 6px 14px; position:sticky; left:0; width:calc(100vw - 320px); max-width:100%; overflow:auto; box-sizing:border-box; } body.menuMin .xlDet { width:calc(100vw - 136px); } @media (max-width:900px) { .xlDet { width:calc(100vw - 40px); } } #vXml .tabla > table > thead th, tr.xlFila td { white-space:nowrap; } tr.xlFila td:nth-child(5), tr.xlFila td:nth-child(6) { white-space:normal; min-width:170px; } .xlDet table { width:100%; font-size:13px; background:#fff; } tr.xlFila:hover td { background:#faf6f1; }
+  .rgFil th { background:#fff; padding:5px 6px; } .rgFil input, .rgFil select { padding:5px 7px; font-size:12.5px; min-width:80px; font-weight:400; }
   .rpHoja { max-width:1120px; } .rpHoja td.rpFa { color:#1f3864; } .rpHoja table { font-size:13.5px; } .rpHoja td { border:1px solid #d9d4cc; padding:4px 9px; }
   .rpHoja tr.rpTit td { background:#ffff00; color:#0070c0; font-weight:800; font-size:16px; text-align:center; text-decoration:underline; }
   .rpHoja tr.rpSec td { background:#ffff00; text-align:center; color:#b35c00; font-size:12px; } .rpHoja tr.rpSec td:first-child { background:#fff; font-size:13.5px; }
@@ -525,15 +526,30 @@
     <div id="vRegFac" class="oculto">
       <div class="herr">
         <select id="rgEmp" aria-label="Empresa" style="width:auto"></select>
-        <label for="rgDesde" style="margin:0">Emitidas desde</label><input type="month" id="rgDesde" style="max-width:165px">
-        <label for="rgHasta" style="margin:0">hasta</label><input type="month" id="rgHasta" style="max-width:165px">
-        <select id="rgProv" aria-label="Proveedor" style="width:auto;max-width:300px"></select>
-        <select id="rgTipo" aria-label="Tipo" style="width:auto"><option value="">Facturas y NC</option><option value="FA">Solo facturas</option><option value="NC">Solo notas de crédito</option></select>
-        <select id="rgEst" aria-label="Estado" style="width:auto"><option value="falta">Falta registrar</option><option value="dif">Registradas con otro total</option><option value="reg">Ya registradas</option><option value="">Todas</option></select>
-        <input id="rgTxt" placeholder="Buscar número o proveedor" style="flex:1;min-width:160px">
+        <label for="rgDesde" style="margin:0">Desde</label><input type="month" id="rgDesde" style="max-width:165px">
+        <label for="rgHasta" style="margin:0">Hasta</label><input type="month" id="rgHasta" style="max-width:165px">
+        <span style="flex:1"></span>
+        <button id="rgLimpiar">Quitar filtros</button>
         <button id="rgExp">Exportar a Excel</button>
       </div>
       <div id="rgCont"></div>
+      <div class="tabla"><table>
+        <thead>
+          <tr><th class="ck"><input type="checkbox" id="rgCkTodo" title="Marcar todas las que faltan registrar (de lo que se ve)" aria-label="Marcar todas"></th><th>Proveedor</th><th>Tipo</th><th>Número</th><th>Emisión</th><th class="num">Total</th><th>Vence</th><th>Registrada en</th><th>Estado</th></tr>
+          <tr class="rgFil">
+            <th></th>
+            <th><input data-f="prov" class="gIn" placeholder="Buscar" aria-label="Buscar proveedor"></th>
+            <th><select data-f="tipo" class="gIn" aria-label="Tipo"><option value="">Todos</option><option value="FA">Factura</option><option value="NC">NC</option></select></th>
+            <th><input data-f="num" class="gIn" placeholder="Buscar" aria-label="Buscar número"></th>
+            <th><input data-f="emi" class="gIn" placeholder="dd/mm/aaaa" aria-label="Buscar emisión"></th>
+            <th><input data-f="tot" class="gIn" placeholder="Buscar" aria-label="Buscar total"></th>
+            <th><input data-f="ven" class="gIn" placeholder="dd/mm/aaaa" aria-label="Buscar vencimiento"></th>
+            <th><input data-f="reg" class="gIn" placeholder="mes, proveedor…" aria-label="Buscar dónde está registrada"></th>
+            <th><select data-f="est" class="gIn" aria-label="Estado"><option value="">Todos</option><option value="falta">Falta registrar</option><option value="dif">Otro total</option><option value="ok">Mismo total</option></select></th>
+          </tr>
+        </thead>
+        <tbody id="rgCuerpo"></tbody>
+      </table></div>
     </div>
 
     <!-- ===== 10. LECTOR DE XML ===== -->
@@ -5709,48 +5725,45 @@
     await rgCargarBase(forzar);
     rgPintar();
   }
+  const rgFil = () => Object.fromEntries([...document.querySelectorAll('#vRegFac .rgFil [data-f]')].map((x) => [x.dataset.f, x.value.trim().toLowerCase()]));
+  const rgRegTxt = (r) => (r.reg ? `${rgModTxt(r.reg.mod)} · ${r.reg.prov} · ${perTxt(r.reg.per)}` : `Falta registrar → ${r.dest.nombre} (${rgModTxt(r.dest.tipo)})`);
   function rgPintar() {
-    const caja = $('rgCont');
+    const caja = $('rgCont'), cuerpo = $('rgCuerpo');
     if (vista !== 'vRegFac') return;
-    if (rg.xmlCarg || !rg.t) { caja.innerHTML = '<p class="resumen">Cargando los XML y lo registrado…</p>'; return; }
+    if (rg.xmlCarg || !rg.t) { caja.innerHTML = '<p class="resumen">Cargando los XML y lo registrado…</p>'; cuerpo.innerHTML = ''; return; }
     const emp = $('rgEmp').value, rucEmp = (pgCfg.empresas.find((e) => e.k === emp) || {}).ruc || '';
-    if (!rucEmp) { caja.innerHTML = '<div class="msg err">Esta empresa no tiene RUC configurado en Pagos a proveedores: no se puede saber qué XML son suyos.</div>'; return; }
+    if (!rucEmp) { caja.innerHTML = '<div class="msg err">Esta empresa no tiene RUC configurado en Pagos a proveedores: no se puede saber qué XML son suyos.</div>'; cuerpo.innerHTML = ''; return; }
     const todos = rgArmar(rg.xml.filter((x) => x.cliente && x.cliente.ruc === rucEmp));
     rg.vista = todos;
-    const provs = [...new Map(todos.map((r) => [r.x.emisor.ruc, r.x.emisor.nom])).entries()].sort((a, b) => String(a[1]).localeCompare(String(b[1])));
-    const ps = $('rgProv'), pv = ps.value;
-    ps.innerHTML = '<option value="">Todos los proveedores</option>' + provs.map(([r, n]) => `<option value="${esc(r)}">${esc(n)}</option>`).join('');
-    ps.value = provs.some(([r]) => r === pv) ? pv : '';
-    const tipo = $('rgTipo').value, est = $('rgEst').value, q = $('rgTxt').value.trim().toLowerCase();
-    const V = todos.filter((r) => (!ps.value || r.x.emisor.ruc === ps.value) && (!tipo || (tipo === 'NC' ? r.t === 'NC' : r.t !== 'NC')) &&
-      (!est || (est === 'falta' ? !r.reg : est === 'dif' ? (r.reg && r.reg.dif) : !!r.reg)) && (!q || [r.x.id, r.x.emisor.nom, r.x.emisor.ruc, r.x.ref].join(' ').toLowerCase().includes(q)));
-    const n = { falta: todos.filter((r) => !r.reg).length, dif: todos.filter((r) => r.reg && r.reg.dif).length, reg: todos.filter((r) => r.reg).length };
+    const F = rgFil(), tiene = (v, q) => !q || String(v).toLowerCase().includes(q);
+    const V = todos.filter((r) => tiene(`${r.x.emisor.nom} ${r.x.emisor.ruc}`, F.prov) && (!F.tipo || (F.tipo === 'NC' ? r.t === 'NC' : r.t !== 'NC')) &&
+      tiene(`${r.x.id} ${r.x.ref || ''}`, F.num) && tiene(dia(r.x.fecha), F.emi) && tiene(`${mil(Math.abs(Number(r.x.total) || 0))} ${r.x.total}`, F.tot) && tiene(dia(r.x.vence || ''), F.ven) &&
+      tiene(rgRegTxt(r), F.reg) && (!F.est || (F.est === 'falta' ? !r.reg : F.est === 'dif' ? (r.reg && r.reg.dif) : (r.reg && !r.reg.dif))))
+      .sort((a, b) => String(a.x.emisor.nom).localeCompare(String(b.x.emisor.nom)) || String(a.x.fecha).localeCompare(String(b.x.fecha)) || String(a.x.id).localeCompare(String(b.x.id)));
+    rg.vis = V;
     const sum = (l) => mil(r2(l.reduce((a, r) => a + (r.t === 'NC' ? -1 : 1) * Math.abs(Number(r.x.total) || 0), 0)));
-    const grupos = new Map(); V.forEach((r) => { const k = r.x.emisor.ruc; if (!grupos.has(k)) grupos.set(k, []); grupos.get(k).push(r); });
-    const fila = (r) => `<tr${r.t === 'NC' ? ' class="esnc"' : ''}><td>${r.reg ? '' : `<input type="checkbox" class="rgCk" data-id="${esc(r.id)}"${rg.sel.has(r.id) ? ' checked' : ''} aria-label="Marcar ${esc(r.x.id)}">`}</td>` +
-      `<td>${esc(r.t === 'NC' ? 'NC' : r.t === 'ND' ? 'ND' : 'Factura')}</td><td><b>${esc(r.x.id)}</b>${r.x.ref ? `<div class="quien">afecta a ${esc(r.x.ref)}</div>` : ''}</td><td>${esc(dia(r.x.fecha))}</td><td>${esc(dia(r.x.vence || ''))}</td>` +
-      `<td class="num"><b>${r.t === 'NC' ? '-' : ''}${mil(Math.abs(Number(r.x.total) || 0))}</b></td>` +
-      `<td>${r.reg ? `<button class="mini rgIr" data-mod="${r.reg.mod}" data-emp="${esc(r.reg.emp)}" data-k="${esc(r.reg.k)}" data-per="${esc(r.reg.per)}" data-i="${esc(r.reg.i)}" title="Ir a la fila">${esc(rgModTxt(r.reg.mod))} · ${esc(r.reg.prov)} · <b>${esc(perTxt(r.reg.per))}</b></button>` : `<span class="est alerta">Falta registrar</span> <span class="quien">→ ${esc(r.dest.nombre)} (${esc(rgModTxt(r.dest.tipo))}${r.dest.nuevo ? ', nuevo' : ''})</span>`}</td>` +
-      `<td>${!r.reg ? '' : r.reg.dif ? `<span class="est alerta">Registrada por S/ ${mil(r.reg.m)}</span>` : '<span class="est e2">✓ Mismo total</span>'}</td></tr>`;
+    const nF = todos.filter((r) => !r.reg).length, nD = todos.filter((r) => r.reg && r.reg.dif).length;
     caja.innerHTML = (rg.xmlErr ? `<div class="msg err">No se pudieron leer los XML: ${esc(rg.xmlErr)}</div>` : '') +
-      '<div class="kpis">' +
-      `<div class="kpi"><b>XML de compras</b><strong>${todos.length}</strong><small>S/ ${sum(todos)} · ${esc(perTxt($('rgDesde').value))} a ${esc(perTxt($('rgHasta').value))}</small></div>` +
-      `<div class="kpi" style="border-color:var(--rojo)"><b>Falta registrar</b><strong class="${n.falta ? 'baja' : ''}">${n.falta}</strong><small>S/ ${sum(todos.filter((r) => !r.reg))}</small></div>` +
-      `<div class="kpi"><b>Registradas con otro total</b><strong>${n.dif}</strong><small>el XML dice otro monto</small></div>` +
-      `<div class="kpi" style="border-color:var(--ok);background:var(--ok2)"><b>Ya registradas</b><strong>${n.reg}</strong><small>en Pagos o Cuentas por pagar</small></div></div>` +
-      rgBarra('rg', V.map((r) => r.x)) +
-      '<div class="tabla" style="margin-top:10px"><table><thead><tr><th></th><th>Tipo</th><th>Número</th><th>Emisión</th><th>Vence</th><th class="num">Total</th><th>Registrada en</th><th>Total</th></tr></thead><tbody>' +
-      ([...grupos.values()].map((rs) => { const x0 = rs[0].x, f = rs.filter((r) => !r.reg).length;
-        return `<tr class="grupo"><td colspan="8"><div class="gtit"><b>${esc(x0.emisor.nom)}</b><span class="quien">RUC ${esc(x0.emisor.ruc)}</span><span class="quien">${rs.length} documento(s) · S/ ${sum(rs)}</span>${f ? `<span class="est alerta">${f} falta(n) registrar</span><button class="mini rgGrupo" data-ruc="${esc(x0.emisor.ruc)}">Marcar las ${f}</button>` : '<span class="est e2">Todo registrado</span>'}</div></td></tr>` +
-          rs.sort((a, b) => String(a.x.fecha).localeCompare(String(b.x.fecha)) || String(a.x.id).localeCompare(String(b.x.id))).map(fila).join(''); }).join('') ||
-        `<tr><td colspan="8" class="vacio">${todos.length ? 'Nada con estos filtros.' : 'No hay XML de compras de esta empresa en esos meses.'}</td></tr>`) + '</tbody></table></div>';
+      `<p class="resumen">${todos.length} comprobantes de compra con XML (S/ ${sum(todos)}) · <b class="${nF ? 'baja' : 'sube'}">${nF} falta(n) registrar</b>${nF ? ` (S/ ${sum(todos.filter((r) => !r.reg))})` : ''} · ${nD} con otro total · ${todos.length - nF} ya registrados${V.length !== todos.length ? ` · <b>se ven ${V.length}</b> con los filtros` : ''}</p>` +
+      rgBarra('rg', V.map((r) => r.x));
+    const faltaV = V.filter((r) => !r.reg), ck = $('rgCkTodo'), nSel = faltaV.filter((r) => rg.sel.has(r.id)).length;
+    ck.disabled = !faltaV.length; ck.checked = !!faltaV.length && nSel === faltaV.length; ck.indeterminate = nSel > 0 && nSel < faltaV.length;
+    cuerpo.innerHTML = V.map((r) => `<tr${r.t === 'NC' ? ' class="esnc"' : ''}><td class="ck">${r.reg ? '' : `<input type="checkbox" class="rgCk" data-id="${esc(r.id)}"${rg.sel.has(r.id) ? ' checked' : ''} aria-label="Marcar ${esc(r.x.id)}">`}</td>` +
+      `<td>${esc(r.x.emisor.nom)}<div class="quien">RUC ${esc(r.x.emisor.ruc)}</div></td><td>${r.t === 'NC' ? 'NC' : r.t === 'ND' ? 'ND' : 'FA'}</td>` +
+      `<td><b>${esc(r.x.id)}</b>${r.x.ref ? `<div class="quien">afecta a ${esc(r.x.ref)}</div>` : ''}</td><td>${esc(dia(r.x.fecha))}</td>` +
+      `<td class="num"><b>${r.t === 'NC' ? '-' : ''}${mil(Math.abs(Number(r.x.total) || 0))}</b></td><td>${esc(dia(r.x.vence || ''))}</td>` +
+      `<td>${r.reg ? `<button class="mini rgIr" data-mod="${r.reg.mod}" data-emp="${esc(r.reg.emp)}" data-k="${esc(r.reg.k)}" data-per="${esc(r.reg.per)}" data-i="${esc(r.reg.i)}" title="Ir a la fila">${esc(rgModTxt(r.reg.mod))} · ${esc(r.reg.prov)} · <b>${esc(perTxt(r.reg.per))}</b></button>` : `<span class="quien">irá a ${esc(r.dest.nombre)} (${esc(rgModTxt(r.dest.tipo))}${r.dest.nuevo ? ', nuevo' : ''})</span>`}</td>` +
+      `<td>${!r.reg ? '<span class="est alerta">Falta registrar</span>' : r.reg.dif ? `<span class="est e0">Otro total: S/ ${mil(r.reg.m)}</span>` : '<span class="est e2">✓ Mismo total</span>'}</td></tr>`).join('') ||
+      `<tr><td colspan="9" class="vacio">${todos.length ? 'Nada coincide con los buscadores.' : 'No hay XML de compras de esta empresa en esos meses.'}</td></tr>`;
   }
-  ['rgEmp', 'rgProv', 'rgTipo', 'rgEst'].forEach((id) => $(id).addEventListener('change', () => rgPintar()));
+  $('rgEmp').addEventListener('change', () => rgPintar());
   ['rgDesde', 'rgHasta'].forEach((id) => $(id).addEventListener('change', () => rgCargar()));
-  $('rgTxt').addEventListener('input', () => rgPintar());
-  $('rgExp').addEventListener('click', () => exportar(`registro-xml-${$('rgEmp').value}`, [['Proveedor', (r) => r.x.emisor.nom], ['RUC', (r) => r.x.emisor.ruc], ['Tipo', 't'], ['Número', (r) => r.x.id], ['Emisión', (r) => dia(r.x.fecha)], ['Vence', (r) => dia(r.x.vence || '')], ['Total', (r) => (r.t === 'NC' ? -1 : 1) * Math.abs(Number(r.x.total) || 0)], ['Afecta a', (r) => r.x.ref || ''], ['Registrada en', (r) => (r.reg ? `${rgModTxt(r.reg.mod)} · ${r.reg.prov}` : 'FALTA REGISTRAR')], ['Mes de pago', (r) => (r.reg ? perTxt(r.reg.per) : '')], ['Total registrado', (r) => (r.reg ? r.reg.m : '')], ['Va a', (r) => (r.dest ? `${r.dest.nombre} (${rgModTxt(r.dest.tipo)})` : '')]], rg.vista || []));
+  document.querySelectorAll('#vRegFac .rgFil [data-f]').forEach((x) => x.addEventListener(x.tagName === 'SELECT' ? 'change' : 'input', () => rgPintar()));
+  $('rgLimpiar').addEventListener('click', () => { document.querySelectorAll('#vRegFac .rgFil [data-f]').forEach((x) => { x.value = ''; }); rgPintar(); });
+  $('rgCkTodo').addEventListener('change', (e) => { (rg.vis || []).filter((r) => !r.reg).forEach((r) => (e.target.checked ? rg.sel.add(r.id) : rg.sel.delete(r.id))); rgPintar(); });
+  $('rgExp').addEventListener('click', () => exportar(`registro-xml-${$('rgEmp').value}`, [['Proveedor', (r) => r.x.emisor.nom], ['RUC', (r) => r.x.emisor.ruc], ['Tipo', 't'], ['Número', (r) => r.x.id], ['Emisión', (r) => dia(r.x.fecha)], ['Total', (r) => (r.t === 'NC' ? -1 : 1) * Math.abs(Number(r.x.total) || 0)], ['Vence', (r) => dia(r.x.vence || '')], ['Afecta a', (r) => r.x.ref || ''], ['Registrada en', (r) => (r.reg ? `${rgModTxt(r.reg.mod)} · ${r.reg.prov}` : 'FALTA REGISTRAR')], ['Mes de pago', (r) => (r.reg ? perTxt(r.reg.per) : '')], ['Total registrado', (r) => (r.reg ? r.reg.m : '')], ['Va a', (r) => (r.dest ? `${r.dest.nombre} (${rgModTxt(r.dest.tipo)})` : '')]], rg.vis || []));
   // Eventos comunes (Registro y Lector de XML)
-  ['rgCont', 'xlCont'].forEach((id) => {
+  ['rgCont', 'rgCuerpo', 'xlCont'].forEach((id) => {
     const repinta = () => (id === 'xlCont' ? xlPintar() : rgPintar());
     $(id).addEventListener('change', (e) => {
       const t = e.target;
@@ -5758,12 +5771,11 @@
       else if (t.classList.contains('rgPer')) rg.per = t.value;
     });
     $(id).addEventListener('click', (e) => {
-      const b = e.target.closest('.rgIr, .rgTodas, .rgLlevar, .rgGrupo');
+      const b = e.target.closest('.rgIr, .rgTodas, .rgLlevar');
       if (!b) return;
       if (b.classList.contains('rgIr')) return rgIr(b);
-      const falta = (rg.vista || []).filter((r) => !r.reg && (id === 'rgCont' || (xl.vista || []).some((x) => rgId(x) === r.id)));
+      const falta = id === 'xlCont' ? (rg.vista || []).filter((r) => !r.reg && (xl.vista || []).some((x) => rgId(x) === r.id)) : (rg.vis || []).filter((r) => !r.reg);
       if (b.classList.contains('rgTodas')) { const todas = falta.every((r) => rg.sel.has(r.id)); falta.forEach((r) => (todas ? rg.sel.delete(r.id) : rg.sel.add(r.id))); return repinta(); }
-      if (b.classList.contains('rgGrupo')) { falta.filter((r) => r.x.emisor.ruc === b.dataset.ruc).forEach((r) => rg.sel.add(r.id)); return repinta(); }
       if (b.classList.contains('rgLlevar')) { const inp = $(b.dataset.pre + 'Per'); rg.per = inp ? inp.value : rg.per; rgLlevar(rg.per); }
     });
   });
