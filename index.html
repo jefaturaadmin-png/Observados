@@ -1970,7 +1970,7 @@
     const xs = czXml.idx.get(`NC|${serDoc(f.s)}|${numDoc(f.n)}`) || [];
     const e = xs.find((x) => Math.abs(x.m - Math.abs(Number(f.m) || 0)) <= TOL_NC) || xs[0];
     if (!e || !e.x) return null;
-    return { ref: refDoc(e.x.ref) || '', prods: (e.x.lineas || []).map((l) => ({ cod: soloAlfa(l.cod), desc: soloAlfa(l.desc) })) };
+    return { ref: refDoc(e.x.ref) || '', prods: (e.x.lineas || []).map((l) => ({ cod: soloAlfa(l.cod), desc: soloAlfa(l.desc), m: Math.abs(Number(l.total) || 0) })).filter((q) => q.m > 0.02) };
   }
   // ¿Un producto observado está entre los productos de la NC? Por código o por el inicio de la descripción
   const prodCoincide = (p, prods) => {
@@ -1999,9 +1999,9 @@
       return [...cand].sort((a, b) => dist(a) - dist(b))[0];
     };
     const refs = new Map();
-    ncs.forEach((o) => { if (o.ref) { if (!refs.has(o.ref)) refs.set(o.ref, []); refs.get(o.ref).push(o); } });
-    // Una NC que dice a qué factura afecta (anotado o en su XML) no se cruza sola con otra; si trae productos, deben coincidir con lo observado
-    const deOtra = (o, x) => !!o.ref && o.ref !== `${x.f.s}-${x.f.n}` && o.ref !== String(x.f.n);
+    // Referencia: la anotada en la NC, o la de su XML si el XML no trae productos (con productos se reparte por producto, abajo)
+    ncs.forEach((o) => { const r = o.f.r || (o.prods.length ? '' : o.ref); if (r) { if (!refs.has(r)) refs.set(r, []); refs.get(r).push(o); } });
+    // Si la NC trae productos (XML), solo se cruza por monto donde algún producto coincide con lo observado
     const concuerda = (o, ls) => !o.prods.length || !ls.some((l) => String(l.p || '').trim()) || ls.some((l) => prodCoincide(l.p, o.prods));
     const lista = facturas.filter((x) => x.lineas.length || (x.f.nc || []).length).map((x) => {
       const mias = [], faltan = [];
@@ -2025,12 +2025,37 @@
       });
       res.set(`${x.per}|${x.f.i}`, { obs, aplicada, det, faltan: x.faltan, lineas: x.lineas, auto: '' });
     });
+    // Paso 2b: NC con XML de productos. Cada producto de la NC va a la factura donde se observó ese producto
+    // (primero la de su referencia; si no, la más antigua dentro del plazo). Una NC puede cubrir varias facturas.
+    [...ncs.values()].filter((o) => o.prods.length && o.resto > TOL_NC).sort((p, q) => String(p.f.f).localeCompare(String(q.f.f))).forEach((o) => {
+      o.prods.forEach((q) => {
+        if (o.resto <= TOL_NC) return;
+        let mejor = null;
+        lista.forEach((x) => {
+          const c = res.get(`${x.per}|${x.f.i}`), falta = r2(c.obs - c.aplicada);
+          if (falta <= TOL_NC || !x.lineas.some((l) => prodCoincide(l.p, [q]))) return;
+          const d = diasEntre(x.f.f, o.f.f);
+          if (d !== null && (d < 0 || d > DIAS_NC)) return;
+          const pri = (o.ref && (o.ref === `${x.f.s}-${x.f.n}` || o.ref === String(x.f.n))) ? 0 : 1;
+          if (!mejor || pri < mejor.pri || (pri === mejor.pri && String(x.f.f).localeCompare(String(mejor.x.f.f)) < 0)) mejor = { x, c, pri };
+        });
+        if (!mejor) return;
+        const a = r2(Math.min(q.m, o.resto, r2(mejor.c.obs - mejor.c.aplicada)));
+        if (a <= 0) return;
+        o.resto = r2(o.resto - a); o.libre = false;
+        const ya = mejor.c.det.find((d) => d.k === o.k);
+        if (ya) ya.aplicado = r2(ya.aplicado + a);
+        else { usos.set(o, (usos.get(o) || 0) + 1); mejor.c.det.push({ k: o.k, monto: Math.abs(Number(o.f.m) || 0), aplicado: a, fecha: o.f.f, per: o.per, tipo: 'XML: por producto', comp: usos.get(o) > 1 }); }
+        mejor.c.aplicada = r2(mejor.c.aplicada + a);
+        mejor.c.auto = mejor.c.auto || 'Productos de la NC (XML)';
+      });
+    });
     // Pasos 3 y 4: búsqueda automática por monto, solo si la factura no tiene ninguna NC aplicada
     const candidatas = () => [...ncs.values()].filter((o) => o.libre && o.resto > 0);
     const buscar = (x, monto, ls) => {
       let mejor = null;
       candidatas().forEach((o) => {
-        if (Math.abs(o.resto - monto) > TOL_NC || deOtra(o, x) || !concuerda(o, ls)) return;
+        if (Math.abs(o.resto - monto) > TOL_NC || !concuerda(o, ls)) return;
         const d = diasEntre(x.f.f, o.f.f);
         if (d !== null && (d < 0 || d > DIAS_NC)) return;
         if (!mejor || String(o.f.f).localeCompare(String(mejor.f.f)) < 0) mejor = o;
@@ -2060,7 +2085,7 @@
         let mejor = null;
         lista.forEach((x) => {
           const c = res.get(`${x.per}|${x.f.i}`), falta = r2(c.obs - c.aplicada);
-          if (c.obs <= 0 || falta <= TOL_NC || Math.abs(falta - o.resto) > TOL_NC || c.det.some((d) => d.k === o.k) || deOtra(o, x) || !concuerda(o, x.lineas)) return;
+          if (c.obs <= 0 || falta <= TOL_NC || Math.abs(falta - o.resto) > TOL_NC || c.det.some((d) => d.k === o.k) || !concuerda(o, x.lineas)) return;
           const d = diasEntre(x.f.f, o.f.f);
           if (d !== null && (d < 0 || d > DIAS_NC)) return;
           if (!mejor || String(x.f.f).localeCompare(String(mejor.x.f.f)) < 0) mejor = { x, c };
