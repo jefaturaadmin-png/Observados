@@ -114,6 +114,7 @@
   .ctChat { display:flex; flex-direction:column; gap:8px; max-height:340px; overflow:auto; } .ctMsg { background:#f4f1ec; border-radius:10px; padding:8px 12px; max-width:760px; white-space:pre-wrap; } .ctMsg.int { background:#fff8e6; border:1px dashed #e0c98a; } .ctMsg.prov { background:#e8f0fb; align-self:flex-end; }
   tr.ctObs td { background:#fff8e6; } .ctObsT { color:#8a5a00; font-size:12.5px; font-weight:600; margin-top:2px; }
   .pvHecho { position:fixed; inset:0; z-index:90; background:rgba(20,30,25,.72); display:flex; align-items:center; justify-content:center; padding:16px; }
+  .pvPasos { text-align:left; background:#fff8e6; border:1px solid #f0d9a0; border-radius:12px; padding:12px 16px; margin:14px 0; } .pvPasos ol { margin:6px 0 0; padding-left:20px; } .pvPasos li { margin:3px 0; }
   .pvHechoC { background:#fff; border-radius:18px; padding:34px 30px; max-width:480px; width:100%; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.3); } .pvHechoC h2 { margin:14px 0 8px; font-size:24px; }
   .pvCheck { width:92px; height:92px; border-radius:50%; background:var(--ok); color:#fff; font-size:56px; line-height:92px; margin:0 auto; font-weight:800; animation:pvPop .35s ease-out; } @keyframes pvPop { from { transform:scale(.3); opacity:0; } to { transform:scale(1); opacity:1; } }
   @media (prefers-reduced-motion: reduce) { .pvCheck { animation:none; } }
@@ -509,10 +510,10 @@
     <div id="vXml" class="oculto">
       <div class="xlZona" id="xlZona">
         <b>Arrastra aquí los XML o los ZIP de las facturas y notas de crédito</b>
-        <span class="quien">Se pueden subir varios a la vez. Se leen en este equipo: no se guardan ni se envían.</span>
+        <span class="quien">Se pueden subir varios a la vez. Se guarda solo la información leída (datos y productos), no el archivo. Si un documento ya estaba guardado, no se repite.</span>
         <button class="pri" id="xlElegir">Elegir archivos</button><input type="file" id="xlArch" accept=".xml,.zip,text/xml,application/xml,application/zip" multiple class="oculto">
       </div>
-      <div class="herr oculto" id="xlAcc"><button id="xlAbrir">Abrir o cerrar todos</button><button id="xlExpDoc">Excel de documentos</button><button id="xlExpDet">Excel del detalle de productos</button><span style="flex:1"></span><button id="xlLimpiar">Limpiar la lista</button></div>
+      <div class="herr" id="xlAcc"><label for="xlMes" style="margin:0">Mes de emisión</label><input type="month" id="xlMes" style="max-width:170px"><input id="xlTxt" placeholder="Buscar por número, proveedor, RUC o producto" style="flex:1;min-width:220px"><button id="xlAbrir">Abrir o cerrar todos</button><button id="xlExpDoc">Excel de documentos</button><button id="xlExpDet">Excel del detalle de productos</button></div>
       <div id="xlCont"></div>
     </div>
     <!-- ===== 9. COTIZACIONES ===== -->
@@ -684,17 +685,17 @@
     ['Dashboard', [['verDash', 'Ver el dashboard general de compras (todas las empresas)']]],
     ['Seguimiento de devoluciones', [['verEnt', 'Ver las facturas observadas y si ya se entregaron'], ['ent', 'Marcar entregado / falta entregar']]],
     ['Cotizaciones', [['verCot', 'Ver las cotizaciones y los pedidos aprobados'], ['cot', 'Crear cotizaciones, registrar respuestas y decisiones'], ['cotAprobar', 'Aprobar, observar o rechazar (Gerencia)'], ['cotRec', 'Marcar la llegada de los pedidos (Recepción)']]],
-    ['Lector de XML', [['verXml', 'Subir XML de facturas y ver su contenido']]]
+    ['Lector de XML', [['verXml', 'Ver la información guardada de los XML de facturas'], ['xml', 'Subir XML y eliminar documentos guardados']]]
   ];
   const PERMISOS = GRUPOS.flatMap((g) => g[1]);
   // Para poder hacer algo en una interfaz hay que poder verla
   const REQUIERE = { pedidos: ['verPedidos'], conformidad: ['verPedidos'], devolver: ['verPend'], decidir: ['verPend'],
-    verPrecios: ['verDev'], parcial: ['verDev'], precios: ['verDev', 'verPrecios'], pagos: ['verPagos'], pagosBorrar: ['verPagos', 'pagos'], precioObs: ['observar'], observarCerrada: ['observar'], cxp: ['verCxp'], cxpBorrar: ['verCxp', 'cxp'], ent: ['verEnt'], cot: ['verCot'], cotAprobar: ['verCot'], cotRec: ['verCot'] };
+    verPrecios: ['verDev'], parcial: ['verDev'], precios: ['verDev', 'verPrecios'], pagos: ['verPagos'], pagosBorrar: ['verPagos', 'pagos'], precioObs: ['observar'], observarCerrada: ['observar'], cxp: ['verCxp'], cxpBorrar: ['verCxp', 'cxp'], ent: ['verEnt'], cot: ['verCot'], cotAprobar: ['verCot'], cotRec: ['verCot'], xml: ['verXml'] };
   const POR_AREA = { // lo que viene marcado al elegir el área; el administrador puede cambiarlo
     RECEPCION: ['verPedidos', 'pedidos', 'observar', 'verPend', 'devolver', 'verDev'],
     COMPRAS: ['verPedidos', 'conformidad', 'observar', 'precioObs', 'verPend', 'decidir', 'verDev', 'verPrecios', 'parcial', 'precios'],
     GERENCIA: ['verPedidos', 'verPend', 'decidir', 'verDev', 'verPrecios', 'parcial'],
-    PAGOS: ['verDev', 'verPrecios', 'precios', 'verPagos', 'pagos', 'pagosBorrar', 'verCxp', 'cxp', 'cxpBorrar', 'verDash', 'verEnt', 'ent', 'verCot', 'cot', 'cotAprobar', 'cotRec', 'verXml'],
+    PAGOS: ['verDev', 'verPrecios', 'precios', 'verPagos', 'pagos', 'pagosBorrar', 'verCxp', 'cxp', 'cxpBorrar', 'verDash', 'verEnt', 'ent', 'verCot', 'cot', 'cotAprobar', 'cotRec', 'verXml', 'xml'],
     ADMIN: PERMISOS.map((p) => p[0])
   };
   const ESTADOS = ['Por devolver', 'Devuelto', 'NC recibida', 'Se queda', 'Anulado'];
@@ -987,6 +988,7 @@
     if (v === 'vDash') dgPintar();
     if (v === 'vSeg') sgPintar();
     if (v === 'vCot') ctPintar(true);
+    if (v === 'vXml') xlAbrirVista();
   }
   const contador = (id, n) => { $(id).textContent = n; $(id).classList.toggle('oculto', !n); };
 
@@ -5544,6 +5546,35 @@
       `<p style="${F}margin-bottom:4px"><b>Condiciones obligatorias:</b></p><ul style="${F}margin-top:0">${CT_COND.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` +
       `<p style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#777">Si el botón no abre, copie este enlace en su navegador: ${esc(ctLink(c))}</p>${firma2}</div>`;
   }
+  // Respuestas para pegar en "Responder a todos": así el hilo del correo (y los que van en copia) sigue enterado
+  const HF = 'font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#222;line-height:1.5;';
+  function hiloTabla(cab, filas, pie) {
+    const td = (v, i, ex) => `<td style="border:1px solid #cfcfcf;padding:5px 8px;${HF}${cab[i][1] ? 'text-align:right;' : ''}${ex || ''}">${v}</td>`;
+    return `<table cellspacing="0" cellpadding="0" style="border-collapse:collapse;margin:8px 0 12px">` + `<tr>${cab.map(([t, d]) => `<th style="border:1px solid #cfcfcf;padding:6px 8px;background:#1f4e3d;color:#fff;${HF.replace('color:#222;', '')}text-align:${d ? 'right' : 'left'}">${t}</th>`).join('')}</tr>` +
+      filas.map((f) => `<tr>${f.map((v, i) => td(esc(v ?? ''), i)).join('')}</tr>`).join('') + (pie ? `<tr>${pie.map((v, i) => td(esc(v ?? ''), i, 'font-weight:bold;background:#f3f1ec;')).join('')}</tr>` : '') + '</table>';
+  }
+  const hiloPlano = (cab, filas) => filas.map((f) => '• ' + f.map((v, i) => (v === '' || v === null || v === undefined ? '' : `${i ? cab[i][0] + ': ' : ''}${v}`)).filter(Boolean).join(' | ')).join('\n');
+  function hiloProv(d) { // lo que el proveedor pega en su respuesta al correo
+    const cab = [['Cód.'], ['Descripción'], ['Cant. R.', 1], ['Escala sugerida'], ['Vencimiento'], ['Precio final (con IGV)', 1], ['¿Atiende?'], ['Otros']];
+    const filas = (d.items || []).map((x) => { const r = (d.resp || {})[x.c] || {}; return [x.c, x.d, x.q, r.esc || '', dia(r.ven || ''), r.pf !== undefined && r.pf !== '' ? mil(Number(r.pf)) : '', r.na || (r.pf !== undefined && r.pf !== '' ? 'Sí' : ''), r.ot || '']; });
+    const cor = d.dec === 'OBSERVADA', ini = `${cor ? 'Se corrigió y se volvió a enviar' : 'Se respondió'} la cotización ${d.cod} (N° ${d.n}) de ${d.lab} en la plataforma de FS Socorro${d.respFecha ? ', el ' + ctHora(d.respFecha) : ''}.`, fin = `Quedamos atentos a su conformidad.\n\nSaludos cordiales,\n${d.respNom || ''}\n${d.prov}`;
+    return { html: `<div style="${HF}"><p style="${HF}">Estimados,</p><p style="${HF}">${esc(ini)} Este es el detalle:</p>${hiloTabla(cab, filas)}<p style="${HF}">Quedamos atentos a su conformidad.</p><p style="${HF}">Saludos cordiales,<br><b>${esc(d.respNom || '')}</b><br>${esc(d.prov)}</p></div>`, plano: `Estimados,\n\n${ini} Este es el detalle:\n\n${hiloPlano(cab, filas)}\n\n${fin}` };
+  }
+  function hiloDec(c) { // lo que Compras pega en el hilo al aprobar o rechazar
+    const nom = new Map((c.items || []).map((x) => [x.c, x.d])), nota = c.dec && c.dec.nota ? c.dec.nota : '', firma2 = 'Saludos cordiales,\nDepartamento de Compras | FS Socorro SAC';
+    if (c.estado === 'RECHAZADA') { const t = `La cotización ${c.cod} (N° ${c.n}) de ${c.lab} NO fue aprobada.${nota ? ' ' + nota : ''} Por favor no facturar.`; return { html: `<div style="${HF}"><p style="${HF}">Estimado proveedor,</p><p style="${HF}">${esc(t)}</p><p style="${HF}">Saludos cordiales,<br><b>Departamento de Compras</b> | FS Socorro SAC</p></div>`, plano: `Estimado proveedor,\n\n${t}\n\n${firma2}` }; }
+    const cab = [['Cód.'], ['Descripción'], ['Cantidad', 1], ['Bonif.', 1], ['Precio final (con IGV)', 1], ['Total S/', 1]], A = c.apro || [];
+    const filas = A.map((a) => [a.c, nom.get(a.c) || '', a.q, a.b || '', mil(a.p), mil(r2(a.q * a.p))]), tot = mil(r2(A.reduce((s, a) => s + a.q * a.p, 0)));
+    const ini = `La cotización ${c.cod} (N° ${c.n}) de ${c.lab} fue APROBADA. Puede atender y facturar únicamente lo siguiente:`, fin = `${c.entrega ? `La mercadería debe llegar hasta el ${dia(c.entrega)}.` : 'La mercadería debe llegar en un máximo de 5 días.'}${nota ? ' Comentario: ' + nota : ''}`;
+    return { html: `<div style="${HF}"><p style="${HF}">Estimado proveedor,</p><p style="${HF}">La cotización <b>${esc(c.cod)}</b> (N° ${esc(c.n)}) de ${esc(c.lab)} fue <b style="color:#1f7a4d">APROBADA</b>. Puede atender y facturar únicamente lo siguiente:</p>${hiloTabla(cab, filas, ['', 'TOTAL', '', '', '', tot])}<p style="${HF}">${esc(fin)}</p><p style="${HF}">Saludos cordiales,<br><b>Departamento de Compras</b> | FS Socorro SAC</p></div>`, plano: `Estimado proveedor,\n\n${ini}\n\n${hiloPlano(cab, filas)}\n\nTotal: S/ ${tot}\n\n${fin}\n\n${firma2}` };
+  }
+  async function hiloCopiar(r, boton) { // copia con formato (tabla) y también como texto simple
+    try {
+      if (window.ClipboardItem && navigator.clipboard.write) await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([r.html], { type: 'text/html' }), 'text/plain': new Blob([r.plano], { type: 'text/plain' }) })]); else await navigator.clipboard.writeText(r.plano);
+      if (boton) { const a = boton.textContent; boton.textContent = 'Copiado ✓ · ahora péguelo en el correo'; setTimeout(() => { boton.textContent = a; }, 2500); }
+      return true;
+    } catch (e) { return false; }
+  }
   function ctTextoCorreo(c) {
     const pv = ct.cfg.provs.find((x) => x.n === c.prov) || {};
     return `Estimado proveedor,\n\nLe solicitamos la cotización ${c.cod} (N° ${c.n}) de productos de ${c.lab}.\n\nPor favor respóndala en este enlace, sin modificar la estructura:\n${ctLink(c)}\nCódigo de acceso: ${pv.cod || ''}\n\nCondiciones obligatorias:\n${CT_COND.map((x) => '• ' + x).join('\n')}\n\nPlazo de respuesta: hasta el ${dia(c.vence)}.\n\nSaludos cordiales,\nDepartamento de Compras | FS Socorro SAC`;
@@ -5554,7 +5585,7 @@
     const inp = (f, k, v, cls, tipo) => (edita && abierta ? `<input class="gIn ctR${cls || ''}" data-c="${esc(f.x.c)}" data-k="${k}"${tipo ? ` type="${tipo}"` : ''} value="${esc(v ?? '')}">` : esc(k === 'ven' ? dia(v) : (v ?? '')));
     const msgs = (p.chat || []).map((m) => ({ ...m, pub: true })).concat((c.notas || []).map((m) => ({ ...m, pub: false }))).sort((a, b) => String(a.f).localeCompare(String(b.f)));
     $('ctCont').innerHTML = `<div class="herr"><button id="ctVolver">← Cotizaciones</button><h2 class="sec" style="margin:0">${esc(c.cod)} · N° ${esc(c.n)}</h2><span class="est ${ctClase(e)}">${esc(e)}</span><span style="flex:1"></span>` +
-      '<button id="ctBajarXls">Descargar Excel</button>' + (edita && abierta ? '<button id="ctRespXls">Cargar Excel respondido</button>' : '') + (c.estado === 'OBSERVADA' ? '<button id="ctCopObs">Copiar aviso de observación</button>' : '') +
+      '<button id="ctBajarXls">Descargar Excel</button>' + (edita && abierta ? '<button id="ctRespXls">Cargar Excel respondido</button>' : '') + (c.estado === 'OBSERVADA' ? '<button id="ctCopObs" title="Para pegarlo en Responder a todos, en el mismo correo">Copiar aviso de observación</button>' : '') + (c.apro || c.estado === 'RECHAZADA' ? '<button id="ctCopDec" title="Copia la respuesta con el detalle; pégala en Responder a todos, en el mismo correo, para que los que están en copia se enteren">Copiar respuesta para el correo</button>' : '') +
       (decide ? '<button class="pri" id="ctAprobar">Aprobar lo marcado</button><button id="ctObservar">Observar</button><button class="pel" id="ctRechazar">Rechazar</button>' : '') +
       (!abierta && (puede('cot') || puede('cotAprobar')) ? '<button id="ctReabrir">Reabrir</button>' : '') + (edita ? '<button class="pel" id="ctBorrar">Eliminar</button>' : '') + '</div><div id="ctMsg"></div>' +
       `<div class="caja" style="padding:12px 16px"><div class="ctDatos"><div><b>Laboratorio</b>${esc(c.lab)}</div><div><b>Proveedor</b>${esc(c.prov)}</div><div><b>Fecha</b>${esc(dia(c.fecha))}</div><div><b>Vence</b>${esc(dia(c.vence))}</div><div><b>Respondió</b>${p.enviado ? `${esc(p.respNom || 'proveedor')} · ${esc(ctHora(p.respFecha))}` : (nResp ? `en proceso (${nResp} de ${F.length})` : 'aún no')}</div>${c.dec ? `<div><b>${esc(c.estado)}</b>${esc(c.dec.por)} · ${esc(dia(c.dec.f))}${c.entrega ? ` · entrega hasta ${esc(dia(c.entrega))}` : ''}</div>` : ''}</div>` +
@@ -5613,6 +5644,7 @@
     if (t.id === 'ctRespXls') return $('ctArchR').click();
     if (t.id === 'ctBajarXls') return ctXls({ ...ctPubDe(c), n: c.n, cod: c.cod, prov: c.prov, lab: c.lab, fecha: c.fecha, vence: c.vence, items: c.items });
     if (t.id === 'ctCopLink' || t.id === 'ctCopCorreo' || t.id === 'ctCopObs') { try { const plano = t.id === 'ctCopLink' ? ctLink(c) : (t.id === 'ctCopObs' ? ctTextoObs(c) : ctTextoCorreo(c)); if (t.id !== 'ctCopLink' && window.ClipboardItem && navigator.clipboard.write) await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([ctHtmlCorreo(c, t.id === 'ctCopObs')], { type: 'text/html' }), 'text/plain': new Blob([plano], { type: 'text/plain' }) })]); else await navigator.clipboard.writeText(plano); const a = t.textContent; t.textContent = 'Copiado ✓'; setTimeout(() => { t.textContent = a; }, 1500); } catch (err) { msg('ctMsg', 'El navegador no dejó copiar; selecciona el enlace y cópialo a mano.'); } return; }
+    if (t.id === 'ctCopDec') { if (!(await hiloCopiar(hiloDec(c), t))) msg('ctMsg', 'El navegador no dejó copiar.'); return; }
     if (t.id === 'ctAprobar') return ctDecidir(c, 'APROBADA');
     if (t.id === 'ctObservar') return ctDecidir(c, 'OBSERVADA');
     if (t.id === 'ctRechazar') return ctDecidir(c, 'RECHAZADA');
@@ -5750,7 +5782,7 @@
       (vencida && !d.enviado ? '<div class="msg err">El plazo de respuesta ya venció. Envíela cuanto antes.</div>' : '') + '<div id="pvMsg"></div>' +
       (apro ? `<h3 class="sub">Pedido aprobado</h3><div class="tabla"><table><tr><th>Cód.</th><th>Descripción</th><th class="num">Cantidad</th><th class="num">Bonif.</th><th class="num">Precio final</th><th class="num">Total S/</th></tr>${apro.map((a) => `<tr><td>${esc(a.c)}</td><td><b>${esc((nomDe.get(a.c) || {}).d || '')}</b></td><td class="num">${a.q}</td><td class="num">${a.b || ''}</td><td class="num">${mil(a.p)}</td><td class="num">${mil(r2(a.q * a.p))}</td></tr>`).join('')}<tr class="tot"><td colspan="5">Total</td><td class="num">${mil(r2(apro.reduce((s, a) => s + a.q * a.p, 0)))}</td></tr></table></div><h3 class="sub">Su cotización</h3>` : '') +
       `<div class="tabla"><table class="ctTabla"><thead><tr><th>Cód.</th><th>Descripción</th><th>Lab.</th><th>Cant. R.</th><th>Escala sugerida</th><th>Vencimiento</th><th class="num">Precio final (con IGV)</th><th>¿Atiende?</th><th>Otros</th></tr></thead><tbody>${(d.items || []).map(fila).join('')}</tbody></table></div>` +
-      (libre ? `<div class="herr" style="margin-top:12px"><label style="margin:0" for="pvNom">Nombre de quien responde</label><input id="pvNom" value="${esc(d.respNom || '')}" style="max-width:300px"><span style="flex:1"></span><button id="pvXls">Descargar Excel</button><button id="pvGuardar">Guardar avance</button><button class="pri" id="pvEnviar">${corrige ? 'Enviar corrección' : 'Enviar cotización'}</button></div>` : '<div class="herr" style="margin-top:12px"><span style="flex:1"></span><button class="pri" id="pvXls">Descargar Excel de la cotización</button></div>') +
+      (libre ? `<div class="herr" style="margin-top:12px"><label style="margin:0" for="pvNom">Nombre de quien responde</label><input id="pvNom" value="${esc(d.respNom || '')}" style="max-width:300px"><span style="flex:1"></span><button id="pvXls">Descargar Excel</button><button id="pvGuardar">Guardar avance</button><button class="pri" id="pvEnviar">${corrige ? 'Enviar corrección' : 'Enviar cotización'}</button></div>` : `<div class="herr" style="margin-top:12px">${d.enviado ? '<span class="quien" style="max-width:520px">Para que todos los que están en copia se enteren: copie la respuesta, vuelva al correo, pulse <b>Responder a todos</b> y pegue (Ctrl + V).</span>' : ''}<span style="flex:1"></span>${d.enviado ? '<button class="pri" id="pvCopResp">Copiar respuesta para el correo</button>' : ''}<button${d.enviado ? '' : ' class="pri"'} id="pvXls">Descargar Excel de la cotización</button></div>`) +
       `<div class="caja" style="padding:12px 16px;margin-top:14px"><h3 class="sub" style="margin-top:0">Mensajes con Compras</h3><div class="ctChat">${(d.chat || []).map((m) => `<div class="ctMsg${m.prov ? ' prov' : ''}"><b>${esc(m.de)}</b> <span class="quien">${esc(ctHora(m.f))}</span><div>${esc(m.t)}</div></div>`).join('') || '<p class="quien" style="margin:0">Sin mensajes.</p>'}</div>` +
       (ab ? '<div class="herr" style="margin:10px 0 0"><textarea id="pvTxt" rows="2" placeholder="Escriba una consulta o aclaración…" style="flex:1;min-width:220px"></textarea><button id="pvMsgOk">Enviar mensaje</button></div>' : '') + '</div></div>';
   }
@@ -5785,10 +5817,10 @@
   function pvHecho() { // confirmación a pantalla completa, como la de un pago
     const o = document.createElement('div');
     o.className = 'pvHecho'; o.id = 'pvHecho';
-    o.innerHTML = `<div class="pvHechoC" role="dialog" aria-label="Cotización enviada"><div class="pvCheck">✓</div><h2>Cotización enviada</h2><p>FS Socorro ya recibió su cotización <b>${esc(pvw.d.cod)}</b>.<br>Quedó registrada el ${esc(ctHora(pvw.d.respFecha || ctAhora()))}.</p><p class="quien">Descargue el Excel para adjuntarlo a su respuesta por correo. No facture hasta recibir la conformidad.</p><p><button class="pri" id="pvHechoXls">Descargar Excel</button> <button id="pvHechoOk">Cerrar</button></p></div>`;
+    o.innerHTML = `<div class="pvHechoC" role="dialog" aria-label="Cotización enviada"><div class="pvCheck">✓</div><h2>Cotización enviada</h2><p>FS Socorro ya recibió su cotización <b>${esc(pvw.d.cod)}</b>.<br>Quedó registrada el ${esc(ctHora(pvw.d.respFecha || ctAhora()))}.</p><div class="pvPasos"><b>Falta un paso: avise en el correo</b><ol><li>Pulse <b>Copiar respuesta</b>.</li><li>Vuelva al correo de la solicitud y pulse <b>Responder a todos</b>.</li><li>Pegue con <b>Ctrl + V</b> y envíe.</li></ol></div><p><button class="pri" id="pvHechoCop">Copiar respuesta</button> <button id="pvHechoXls">Descargar Excel</button> <button id="pvHechoOk">Cerrar</button></p><p class="quien">No facture hasta recibir la conformidad.</p></div>`;
     document.body.appendChild(o);
-    o.addEventListener('click', (e) => { if (e.target.id === 'pvHechoXls') ctXls(pvw.d); else if (e.target.id === 'pvHechoOk' || e.target === o) o.remove(); });
-    $('pvHechoXls').focus();
+    o.addEventListener('click', (e) => { if (e.target.id === 'pvHechoCop') hiloCopiar(hiloProv(pvw.d), e.target).then((ok) => { if (!ok) e.target.textContent = 'No se pudo copiar: use el Excel'; }); else if (e.target.id === 'pvHechoXls') ctXls(pvw.d); else if (e.target.id === 'pvHechoOk' || e.target === o) o.remove(); });
+    $('pvHechoCop').focus();
   }
   $('prov').addEventListener('input', (e) => { if (e.target.classList.contains('pvR') || e.target.id === 'pvNom') pvw.sucio = true; });
   $('prov').addEventListener('change', (e) => { if (pvw.d && pvw.d.estado === 'abierta' && (e.target.classList.contains('pvR') || e.target.id === 'pvNom')) { pvw.sucio = true; pvLeer(); if (e.target.dataset.k === 'na') e.target.closest('tr').classList.toggle('ctNa', !!e.target.value); } });
@@ -5798,6 +5830,7 @@
     if (t.id === 'pvOk') return pvEntrar();
     if (t.id === 'pvGuardar') return pvGuardar(false);
     if (t.id === 'pvEnviar') return pvGuardar(true);
+    if (t.id === 'pvCopResp') { if (!(await hiloCopiar(hiloProv(pvw.d), t))) msg('pvMsg', 'El navegador no dejó copiar; descargue el Excel y adjúntelo a su respuesta.'); return; }
     if (t.id === 'pvXls') { if (pvw.d.estado === 'abierta' && !pvw.d.enviado) pvLeer(); return ctXls(pvw.d); }
     if (t.id === 'pvMsgOk') {
       const tx = txt($('pvTxt').value, 1000); if (!tx) return;
@@ -5810,8 +5843,9 @@
 
   /* =====================  K. LECTOR DE XML (facturas y notas de crédito electrónicas de SUNAT, UBL 2.1)  =====================
      Se suben los .xml o los .zip tal como llegan y se muestra lo que dicen: emisor, cliente, totales, vencimiento y cada producto.
-     Todo se lee en el navegador: no se guarda ni se envía a ningún lado. */
-  let xl = { docs: [], errores: [], abiertos: new Set() };
+     Se guarda SOLO la información leída (cabecera y productos) en xmlf/{RUC emisor_tipo_número}; el archivo no se sube ni se conserva. */
+  let xl = { docs: [], errores: [], avisos: [], abiertos: new Set(), mes: '', txt: '', cargando: false, listo: false };
+  const xlKey = (x) => `${x.emisor.ruc}_${x.cod || x.tipo.slice(0, 2)}_${x.id}`.replace(/[^\w-]/g, '');
   async function xlZip(buf) { // archivos de un .zip, sin librerías (usa el descompresor del navegador)
     const b = new Uint8Array(buf), v = new DataView(buf), out = [];
     let e = -1;
@@ -5857,8 +5891,18 @@
       vence: cuotas.map((c) => c.v).filter(Boolean).sort().pop() || tx(hijo(raiz, 'DueDate')).slice(0, 10), ref: refs[0] || tx(ruta(raiz, 'DiscrepancyResponse', 'ReferenceID')), motivo: tx(ruta(raiz, 'DiscrepancyResponse', 'Description')),
       letras: hijos(raiz, 'Note').map(tx).find((x) => /^SON/i.test(x)) || '', lineas };
   }
+  async function xlCargar() { // lo guardado del mes elegido (por fecha de emisión)
+    if (!puede('verXml') || !xl.mes) return;
+    xl.cargando = true; xlPintar();
+    try {
+      const s = await getDocs(query(collection(db, 'xmlf'), where('ym', '==', xl.mes)));
+      xl.docs = s.docs.map((d) => ({ k: d.id, ...d.data() })).sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)) || String(a.id).localeCompare(String(b.id), undefined, { numeric: true }));
+    } catch (e) { xl.errores.push('No se pudo leer lo guardado: ' + errorTexto(e)); xl.docs = []; }
+    xl.cargando = false; xl.listo = true; xlPintar();
+  }
+  function xlAbrirVista() { if (!xl.mes) { xl.mes = hoy().slice(0, 7); $('xlMes').value = xl.mes; } $('xlZona').classList.toggle('oculto', !puede('xml')); xlCargar(); }
   async function xlSubir(archivos) {
-    const cola = [];
+    const cola = []; xl.errores = []; xl.avisos = [];
     for (const a of archivos) {
       try {
         const buf = await a.arrayBuffer();
@@ -5867,46 +5911,59 @@
         else xl.errores.push(`${a.name}: no es un XML ni un ZIP`);
       } catch (e) { xl.errores.push(`${a.name}: ${e.message}`); }
     }
-    cola.forEach((x) => {
+    const leidos = [];
+    cola.forEach((x) => { try { const d1 = xlLeer(xlTexto(x.datos), x.nombre); if (!/^\d{4}-\d{2}-\d{2}$/.test(d1.fecha)) throw new Error('no trae fecha de emisión'); if (leidos.some((y) => xlKey(y) === xlKey(d1))) xl.avisos.push(`${d1.id}: venía repetido en lo que subiste`); else leidos.push(d1); } catch (e) { xl.errores.push(`${x.nombre}: ${e.message}`); } });
+    let nuevos = 0, ya = 0;
+    $('xlCont').innerHTML = `<p class="resumen">Guardando la información de ${leidos.length} documento(s)…</p>`;
+    for (const d1 of leidos) { // se guarda solo lo leído; si ya estaba, no se toca
       try {
-        const doc1 = xlLeer(xlTexto(x.datos), x.nombre), k = `${doc1.emisor.ruc}|${doc1.tipo}|${doc1.id}`;
-        if (xl.docs.some((y) => `${y.emisor.ruc}|${y.tipo}|${y.id}` === k)) xl.errores.push(`${x.nombre}: ${doc1.id} ya estaba en la lista`); else xl.docs.push(doc1);
-      } catch (e) { xl.errores.push(`${x.nombre}: ${e.message}`); }
-    });
-    xl.docs.sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)) || String(a.id).localeCompare(String(b.id), undefined, { numeric: true }));
-    if (xl.docs.length === 1) xl.abiertos.add(0);
-    xlPintar();
+        const ref = doc(db, 'xmlf', xlKey(d1));
+        if ((await getDoc(ref)).exists()) { ya += 1; continue; }
+        await setDoc(ref, { ...d1, lineas: d1.lineas.slice(0, 600), arch: String(d1.arch).split('→').pop().trim().slice(0, 120), ym: d1.fecha.slice(0, 7), subido: ctAhora(), por: firma() });
+        nuevos += 1;
+      } catch (e) { xl.errores.push(`${d1.id}: no se pudo guardar (${errorTexto(e)})`); }
+    }
+    if (leidos.length) xl.avisos.unshift(`${nuevos} documento(s) guardado(s)${ya ? ` · ${ya} ya estaba(n) guardado(s) y no se repitieron` : ''}.`);
+    const meses = unicos(leidos.map((x) => x.fecha.slice(0, 7))).sort();
+    if (meses.length && !meses.includes(xl.mes)) { xl.mes = meses[meses.length - 1]; $('xlMes').value = xl.mes; if (meses.length > 1) xl.avisos.push(`Lo subido es de varios meses (${meses.map(perTxt).join(', ')}): cambia el mes para ver los demás.`); }
+    if (leidos.length === 1) xl.abiertos.add(xlKey(leidos[0]));
+    await xlCargar();
   }
   const xlMia = (ruc) => { const e = pgCfg.empresas.find((x) => x.ruc === ruc); return e ? ` <span class="est e3">${esc(e.k)}</span>` : ''; };
   const xlN = (v, dec) => (v === null || v === undefined ? '' : (dec ? Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: dec }) : mil(v)));
   function xlPintar() {
-    const D = xl.docs, sg2 = (x) => (x.tipo === 'NOTA DE CRÉDITO' ? -1 : 1), suma = (k) => r2(D.reduce((s, x) => s + sg2(x) * (Number(x[k]) || 0), 0));
-    $('xlCont').innerHTML = (xl.errores.length ? `<div class="msg err">${xl.errores.map(esc).join('<br>')}</div>` : '') + (!D.length ? '' :
-      '<div class="kpis">' + [['Documentos leídos', String(D.length), `${D.filter((x) => x.tipo === 'FACTURA').length} facturas · ${D.filter((x) => x.tipo !== 'FACTURA').length} notas`], ['Valor de venta (sin IGV)', 'S/ ' + mil(suma('base')), 'las NC restan'], ['IGV', 'S/ ' + mil(suma('igv')), ''], ['Total', 'S/ ' + mil(suma('total')), `${D.reduce((s, x) => s + x.lineas.length, 0)} líneas de producto`]].map(([a, b, c], i) => `<div class="kpi"${i === 3 ? ' style="border-color:var(--marca);background:var(--suave)"' : ''}><b>${a}</b><strong>${b}</strong><small>${c}</small></div>`).join('') + '</div>' +
+    const t = xl.txt.trim().toLowerCase(), D = xl.docs.filter((x) => !t || [x.id, x.emisor.nom, x.emisor.ruc, x.cliente.nom, x.cliente.ruc, x.ref, x.lineas.map((l) => l.desc).join(' ')].join(' ').toLowerCase().includes(t)), sg2 = (x) => (x.tipo === 'NOTA DE CRÉDITO' ? -1 : 1), suma = (k) => r2(D.reduce((s, x) => s + sg2(x) * (Number(x[k]) || 0), 0));
+    $('xlCont').innerHTML = (xl.avisos.length ? `<div class="msg ok">${xl.avisos.map(esc).join('<br>')}</div>` : '') + (xl.errores.length ? `<div class="msg err">${xl.errores.map(esc).join('<br>')}</div>` : '') + (xl.cargando ? '<p class="resumen">Cargando…</p>' : !D.length ? `<div class="caja"><p class="resumen" style="margin:0">${xl.docs.length ? 'Nada coincide con la búsqueda.' : `No hay documentos guardados con fecha de ${esc(perTxt(xl.mes))}. Sube los XML o cambia de mes.`}</p></div>` :
+      '<div class="kpis">' + [[`Documentos de ${perTxt(xl.mes)}`, String(D.length), `${D.filter((x) => x.tipo === 'FACTURA').length} facturas · ${D.filter((x) => x.tipo !== 'FACTURA').length} notas`], ['Valor de venta (sin IGV)', 'S/ ' + mil(suma('base')), 'las NC restan'], ['IGV', 'S/ ' + mil(suma('igv')), ''], ['Total', 'S/ ' + mil(suma('total')), `${D.reduce((s, x) => s + x.lineas.length, 0)} líneas de producto`]].map(([a, b, c], i) => `<div class="kpi"${i === 3 ? ' style="border-color:var(--marca);background:var(--suave)"' : ''}><b>${a}</b><strong>${b}</strong><small>${c}</small></div>`).join('') + '</div>' +
       '<div class="tabla"><table><thead><tr><th></th><th>Tipo</th><th>Número</th><th>Emisión</th><th>Emisor</th><th>Cliente</th><th class="num">Valor venta</th><th class="num">IGV</th><th class="num">Total</th><th>Pago</th><th>Vence</th><th class="num">Ítems</th></tr></thead><tbody>' +
       D.map((x, i) => {
-        const ab = xl.abiertos.has(i);
-        return `<tr class="xlFila${x.tipo === 'NOTA DE CRÉDITO' ? ' esnc' : ''}" data-i="${i}" style="cursor:pointer"><td>${ab ? '▾' : '▸'}</td><td>${esc(x.tipo)}</td><td><b>${esc(x.id)}</b>${x.ref ? `<div class="quien">afecta a ${esc(x.ref)}</div>` : ''}</td><td>${esc(dia(x.fecha))}${x.hora ? ` <span class="quien">${esc(x.hora)}</span>` : ''}</td>` +
+        const ab = xl.abiertos.has(x.k);
+        return `<tr class="xlFila${x.tipo === 'NOTA DE CRÉDITO' ? ' esnc' : ''}" data-k="${esc(x.k)}" style="cursor:pointer"><td>${ab ? '▾' : '▸'}</td><td>${esc(x.tipo)}</td><td><b>${esc(x.id)}</b>${x.ref ? `<div class="quien">afecta a ${esc(x.ref)}</div>` : ''}</td><td>${esc(dia(x.fecha))}${x.hora ? ` <span class="quien">${esc(x.hora)}</span>` : ''}</td>` +
           `<td>${esc(x.emisor.nom)}${xlMia(x.emisor.ruc)}<div class="quien">RUC ${esc(x.emisor.ruc)}</div></td><td>${esc(x.cliente.nom)}${xlMia(x.cliente.ruc)}<div class="quien">RUC ${esc(x.cliente.ruc)}</div></td>` +
           `<td class="num">${xlN(x.base)}</td><td class="num">${xlN(x.igv)}</td><td class="num"><b>${x.moneda !== 'PEN' ? esc(x.moneda) + ' ' : ''}${xlN(x.total)}</b></td><td>${esc(x.forma)}${x.cuotas.length > 1 ? ` · ${x.cuotas.length} cuotas` : ''}</td><td>${esc(dia(x.vence))}</td><td class="num">${x.lineas.length}</td></tr>` +
           (ab ? `<tr class="det"><td colspan="12"><div class="xlDet">` +
             `<div class="ctDatos" style="margin-bottom:10px"><div><b>Emisor</b>${esc(x.emisor.nom)} · RUC ${esc(x.emisor.ruc)}<br><span class="quien">${esc(x.emisor.dir)}</span></div><div><b>Cliente</b>${esc(x.cliente.nom)} · RUC ${esc(x.cliente.ruc)}<br><span class="quien">${esc(x.cliente.dir)}</span></div>` +
-            (x.cuotas.length ? `<div><b>Cuotas</b>${x.cuotas.map((c) => `${xlN(c.m)} al ${esc(dia(c.v))}`).join(' · ')}</div>` : '') + (x.motivo ? `<div><b>Motivo</b>${esc(x.motivo)}</div>` : '') + `<div><b>Archivo</b><span class="quien">${esc(x.arch)}</span></div></div>` +
+            (x.cuotas.length ? `<div><b>Cuotas</b>${x.cuotas.map((c) => `${xlN(c.m)} al ${esc(dia(c.v))}`).join(' · ')}</div>` : '') + (x.motivo ? `<div><b>Motivo</b>${esc(x.motivo)}</div>` : '') + `<div><b>Guardado</b><span class="quien">${esc(x.por || '')} · ${esc(ctHora(x.subido))} · ${esc(x.arch || '')}</span></div>${puede('xml') ? `<div><button class="mini pel xlBorrar" data-k="${esc(x.k)}">Eliminar este documento</button></div>` : ''}</div>` +
             (x.letras ? `<p class="quien" style="margin:0 0 8px">${esc(x.letras)}</p>` : '') +
             `<table><tr><th>#</th><th>Código</th><th>Descripción</th><th class="num">Cant.</th><th>Und.</th><th class="num">P. unit. sin IGV</th><th class="num">P. unit. con IGV</th><th class="num">Valor</th><th class="num">IGV</th><th class="num">Total</th></tr>` +
             x.lineas.map((l) => `<tr><td>${esc(l.n)}</td><td>${esc(l.cod)}</td><td>${esc(l.desc)}</td><td class="num">${l.cant === null ? '' : l.cant}</td><td>${esc(l.um)}</td><td class="num">${xlN(l.pu, 4)}</td><td class="num">${xlN(l.puIgv, 4)}</td><td class="num">${xlN(l.valor)}</td><td class="num">${xlN(l.igv)}</td><td class="num"><b>${xlN(l.total)}</b></td></tr>`).join('') +
             `<tr class="tot"><td colspan="7">Totales del documento</td><td class="num">${xlN(x.base)}</td><td class="num">${xlN(x.igv)}</td><td class="num">${xlN(x.total)}</td></tr></table></div></td></tr>` : '');
       }).join('') + '</tbody></table></div>');
-    $('xlAcc').classList.toggle('oculto', !D.length);
+    xl.vista = D;
   }
   $('xlElegir').addEventListener('click', () => $('xlArch').click());
   $('xlArch').addEventListener('change', (e) => { const a = [...e.target.files]; e.target.value = ''; if (a.length) xlSubir(a); });
   { const z = $('xlZona'); ['dragenter', 'dragover'].forEach((n) => z.addEventListener(n, (e) => { e.preventDefault(); z.classList.add('sobre'); })); ['dragleave', 'drop'].forEach((n) => z.addEventListener(n, (e) => { e.preventDefault(); z.classList.remove('sobre'); })); z.addEventListener('drop', (e) => { const a = [...e.dataTransfer.files]; if (a.length) xlSubir(a); }); }
-  $('xlLimpiar').addEventListener('click', () => { xl = { docs: [], errores: [], abiertos: new Set() }; xlPintar(); });
-  $('xlAbrir').addEventListener('click', () => { xl.abiertos = xl.abiertos.size === xl.docs.length ? new Set() : new Set(xl.docs.map((x, i) => i)); xlPintar(); });
-  $('xlCont').addEventListener('click', (e) => { const tr = e.target.closest('tr.xlFila'); if (!tr) return; const i = Number(tr.dataset.i); if (xl.abiertos.has(i)) xl.abiertos.delete(i); else xl.abiertos.add(i); xlPintar(); });
-  $('xlExpDoc').addEventListener('click', () => exportar('xml-documentos', [['Tipo', 'tipo'], ['Serie', 'serie'], ['Número', 'num'], ['Documento', 'id'], ['Fecha emisión', (x) => dia(x.fecha)], ['RUC emisor', (x) => x.emisor.ruc], ['Emisor', (x) => x.emisor.nom], ['RUC cliente', (x) => x.cliente.ruc], ['Cliente', (x) => x.cliente.nom], ['Moneda', 'moneda'], ['Valor venta', 'base'], ['IGV', 'igv'], ['Total', 'total'], ['Forma de pago', 'forma'], ['Vence', (x) => dia(x.vence)], ['Afecta a', 'ref'], ['Motivo', 'motivo'], ['Ítems', (x) => x.lineas.length], ['Archivo', 'arch']], xl.docs));
-  $('xlExpDet').addEventListener('click', () => exportar('xml-detalle-productos', [['Documento', (r) => r.x.id], ['Tipo', (r) => r.x.tipo], ['Fecha', (r) => dia(r.x.fecha)], ['RUC emisor', (r) => r.x.emisor.ruc], ['Emisor', (r) => r.x.emisor.nom], ['RUC cliente', (r) => r.x.cliente.ruc], ['#', (r) => r.l.n], ['Código', (r) => r.l.cod], ['Descripción', (r) => r.l.desc], ['Cantidad', (r) => r.l.cant], ['Unidad', (r) => r.l.um], ['P. unit. sin IGV', (r) => r.l.pu], ['P. unit. con IGV', (r) => r.l.puIgv], ['Valor', (r) => r.l.valor], ['IGV', (r) => r.l.igv], ['Total', (r) => r.l.total]], xl.docs.flatMap((x) => x.lineas.map((l) => ({ x, l })))));
+  $('xlMes').addEventListener('change', (e) => { if (!e.target.value) return; xl.mes = e.target.value; xl.avisos = []; xl.errores = []; xl.abiertos.clear(); xlCargar(); });
+  $('xlTxt').addEventListener('input', (e) => { xl.txt = e.target.value; xlPintar(); });
+  $('xlAbrir').addEventListener('click', () => { xl.abiertos = xl.abiertos.size >= (xl.vista || []).length && xl.abiertos.size ? new Set() : new Set((xl.vista || []).map((x) => x.k)); xlPintar(); });
+  $('xlCont').addEventListener('click', async (e) => {
+    const b = e.target.closest('.xlBorrar');
+    if (b) { const x = xl.docs.find((y) => y.k === b.dataset.k); if (!x || !confirm(`¿Eliminar ${x.tipo} ${x.id} de lo guardado?`)) return; try { await deleteDoc(doc(db, 'xmlf', x.k)); xl.avisos = [`${x.id} eliminado.`]; xl.errores = []; xlCargar(); } catch (err) { xl.errores = [errorTexto(err)]; xlPintar(); } return; }
+    const tr = e.target.closest('tr.xlFila'); if (!tr) return; const k = tr.dataset.k; if (xl.abiertos.has(k)) xl.abiertos.delete(k); else xl.abiertos.add(k); xlPintar();
+  });
+  $('xlExpDoc').addEventListener('click', () => exportar('xml-documentos', [['Tipo', 'tipo'], ['Serie', 'serie'], ['Número', 'num'], ['Documento', 'id'], ['Fecha emisión', (x) => dia(x.fecha)], ['RUC emisor', (x) => x.emisor.ruc], ['Emisor', (x) => x.emisor.nom], ['RUC cliente', (x) => x.cliente.ruc], ['Cliente', (x) => x.cliente.nom], ['Moneda', 'moneda'], ['Valor venta', 'base'], ['IGV', 'igv'], ['Total', 'total'], ['Forma de pago', 'forma'], ['Vence', (x) => dia(x.vence)], ['Afecta a', 'ref'], ['Motivo', 'motivo'], ['Ítems', (x) => x.lineas.length], ['Archivo', 'arch']], xl.vista || []));
+  $('xlExpDet').addEventListener('click', () => exportar('xml-detalle-productos', [['Documento', (r) => r.x.id], ['Tipo', (r) => r.x.tipo], ['Fecha', (r) => dia(r.x.fecha)], ['RUC emisor', (r) => r.x.emisor.ruc], ['Emisor', (r) => r.x.emisor.nom], ['RUC cliente', (r) => r.x.cliente.ruc], ['#', (r) => r.l.n], ['Código', (r) => r.l.cod], ['Descripción', (r) => r.l.desc], ['Cantidad', (r) => r.l.cant], ['Unidad', (r) => r.l.um], ['P. unit. sin IGV', (r) => r.l.pu], ['P. unit. con IGV', (r) => r.l.puIgv], ['Valor', (r) => r.l.valor], ['IGV', (r) => r.l.igv], ['Total', (r) => r.l.total]], (xl.vista || []).flatMap((x) => x.lineas.map((l) => ({ x, l })))));
 
   /* =====================  J. INICIO Y MENÚ LATERAL  ===================== */
   const IN_DESC = { vPedidos: 'Registrar facturas recibidas y su conformidad', vNuevo: 'Anotar productos con problema al recibir', vPend: 'Lo observado que falta devolver', vDev: 'Devoluciones hechas y sus notas de crédito',
