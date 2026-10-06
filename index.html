@@ -119,6 +119,8 @@
   @media (prefers-reduced-motion: reduce) { .pvCheck { animation:none; } }
   .pvCab { background:var(--marca); color:#fff; padding:14px 20px; font-size:15px; } .pvCuerpo { max-width:1300px; margin:0 auto; padding:16px; }
   tr.cpHDoble td { background:#fff1e0; } tr.cpHFalta td { background:#fdf0ee; }
+  .xlZona { border:2px dashed #d6cfc6; border-radius:14px; background:#fff; padding:26px 20px; display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center; margin-bottom:14px; } .xlZona.sobre { border-color:var(--marca); background:var(--suave); } .xlZona b { font-size:16px; }
+  .xlDet { padding:10px 6px 14px; position:sticky; left:0; width:calc(100vw - 320px); max-width:100%; overflow:auto; box-sizing:border-box; } body.menuMin .xlDet { width:calc(100vw - 136px); } @media (max-width:900px) { .xlDet { width:calc(100vw - 40px); } } #vXml .tabla > table > thead th, tr.xlFila td { white-space:nowrap; } tr.xlFila td:nth-child(5), tr.xlFila td:nth-child(6) { white-space:normal; min-width:170px; } .xlDet table { width:100%; font-size:13px; background:#fff; } tr.xlFila:hover td { background:#faf6f1; }
   .rpHoja { max-width:1120px; } .rpHoja td.rpFa { color:#1f3864; } .rpHoja table { font-size:13.5px; } .rpHoja td { border:1px solid #d9d4cc; padding:4px 9px; }
   .rpHoja tr.rpTit td { background:#ffff00; color:#0070c0; font-weight:800; font-size:16px; text-align:center; text-decoration:underline; }
   .rpHoja tr.rpSec td { background:#ffff00; text-align:center; color:#b35c00; font-size:12px; } .rpHoja tr.rpSec td:first-child { background:#fff; font-size:13.5px; }
@@ -322,6 +324,7 @@
       <div class="navGrupo"><div class=navG>Compras</div><button data-v="vCot" id="tabCot" title="Cotizaciones"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span class="navT">Cotizaciones</span></button></div>
       <div class="navGrupo"><div class=navG>Pagos</div><button data-v="vPagos" id="tabPagos" title="Pagos a proveedores"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg><span class="navT">Pagos a proveedores</span></button><button data-v="vCxp" id="tabCxp" title="Cuentas por pagar"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="navT">Cuentas por pagar</span></button></div>
       <div class="navGrupo"><div class=navG>Análisis</div><button data-v="vDash" id="tabDash" title="Dashboard"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="navT">Dashboard</span></button></div>
+      <div class="navGrupo"><div class=navG>Herramientas</div><button data-v="vXml" id="tabXml" title="Lector de XML"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg><span class="navT">Lector de XML</span></button></div>
       <div class="navGrupo"><div class=navG>Configuración</div><button data-v="vUsuarios" id="tabUsuarios" title="Usuarios"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="navT">Usuarios</span></button><button data-v="vCat" id="tabCat" title="Productos"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg><span class="navT">Productos</span></button><button data-v="vListas" id="tabListas" title="Listas"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span class="navT">Listas</span></button></div>
     </nav>
   </aside>
@@ -502,6 +505,16 @@
       <div id="gv_gen" class="oculto"></div>
     </div>
 
+    <!-- ===== 10. LECTOR DE XML ===== -->
+    <div id="vXml" class="oculto">
+      <div class="xlZona" id="xlZona">
+        <b>Arrastra aquí los XML o los ZIP de las facturas y notas de crédito</b>
+        <span class="quien">Se pueden subir varios a la vez. Se leen en este equipo: no se guardan ni se envían.</span>
+        <button class="pri" id="xlElegir">Elegir archivos</button><input type="file" id="xlArch" accept=".xml,.zip,text/xml,application/xml,application/zip" multiple class="oculto">
+      </div>
+      <div class="herr oculto" id="xlAcc"><button id="xlAbrir">Abrir o cerrar todos</button><button id="xlExpDoc">Excel de documentos</button><button id="xlExpDet">Excel del detalle de productos</button><span style="flex:1"></span><button id="xlLimpiar">Limpiar la lista</button></div>
+      <div id="xlCont"></div>
+    </div>
     <!-- ===== 9. COTIZACIONES ===== -->
     <div id="vCot" class="oculto">
       <div class="subnav" id="ctSub"><button data-tv="lista">Cotizaciones</button><button data-tv="ped">Pedidos aprobados</button><button data-tv="prov">Proveedores y códigos</button></div>
@@ -670,7 +683,8 @@
     ['Cuentas por pagar', [['verCxp', 'Ver el registro y el detalle del mes'], ['cxp', 'Registrar documentos y programar pagos'], ['cxpBorrar', 'Eliminar documentos']]],
     ['Dashboard', [['verDash', 'Ver el dashboard general de compras (todas las empresas)']]],
     ['Seguimiento de devoluciones', [['verEnt', 'Ver las facturas observadas y si ya se entregaron'], ['ent', 'Marcar entregado / falta entregar']]],
-    ['Cotizaciones', [['verCot', 'Ver las cotizaciones y los pedidos aprobados'], ['cot', 'Crear cotizaciones, registrar respuestas y decisiones'], ['cotAprobar', 'Aprobar, observar o rechazar (Gerencia)'], ['cotRec', 'Marcar la llegada de los pedidos (Recepción)']]]
+    ['Cotizaciones', [['verCot', 'Ver las cotizaciones y los pedidos aprobados'], ['cot', 'Crear cotizaciones, registrar respuestas y decisiones'], ['cotAprobar', 'Aprobar, observar o rechazar (Gerencia)'], ['cotRec', 'Marcar la llegada de los pedidos (Recepción)']]],
+    ['Lector de XML', [['verXml', 'Subir XML de facturas y ver su contenido']]]
   ];
   const PERMISOS = GRUPOS.flatMap((g) => g[1]);
   // Para poder hacer algo en una interfaz hay que poder verla
@@ -680,7 +694,7 @@
     RECEPCION: ['verPedidos', 'pedidos', 'observar', 'verPend', 'devolver', 'verDev'],
     COMPRAS: ['verPedidos', 'conformidad', 'observar', 'precioObs', 'verPend', 'decidir', 'verDev', 'verPrecios', 'parcial', 'precios'],
     GERENCIA: ['verPedidos', 'verPend', 'decidir', 'verDev', 'verPrecios', 'parcial'],
-    PAGOS: ['verDev', 'verPrecios', 'precios', 'verPagos', 'pagos', 'pagosBorrar', 'verCxp', 'cxp', 'cxpBorrar', 'verDash', 'verEnt', 'ent', 'verCot', 'cot', 'cotAprobar', 'cotRec'],
+    PAGOS: ['verDev', 'verPrecios', 'precios', 'verPagos', 'pagos', 'pagosBorrar', 'verCxp', 'cxp', 'cxpBorrar', 'verDash', 'verEnt', 'ent', 'verCot', 'cot', 'cotAprobar', 'cotRec', 'verXml'],
     ADMIN: PERMISOS.map((p) => p[0])
   };
   const ESTADOS = ['Por devolver', 'Devuelto', 'NC recibida', 'Se queda', 'Anulado'];
@@ -865,7 +879,7 @@
 
   function aplicarPermisos() {
     const admin = yo.area === 'ADMIN';
-    const tabs = { vInicio: true, vPedidos: puede('verPedidos'), vNuevo: puede('observar'), vPend: puede('verPend'), vDev: puede('verDev'), vPagos: puede('verPagos'), vCxp: puede('verCxp'), vDash: puede('verDash'), vSeg: puede('verEnt'), vCot: puede('verCot'),
+    const tabs = { vInicio: true, vPedidos: puede('verPedidos'), vNuevo: puede('observar'), vPend: puede('verPend'), vDev: puede('verDev'), vPagos: puede('verPagos'), vCxp: puede('verCxp'), vDash: puede('verDash'), vSeg: puede('verEnt'), vCot: puede('verCot'), vXml: puede('verXml'),
       vUsuarios: admin, vCat: admin, vListas: admin };
     $('quien').textContent = `${yo.nombre} · ${yo.area}`;
     Object.entries(tabs).forEach(([v, ok]) => document.querySelector(`nav button[data-v="${v}"]`).classList.toggle('oculto', !ok));
@@ -960,7 +974,7 @@
   }
 
   /* ---------- Navegación ---------- */
-  const VISTAS = ['vInicio', 'vPedidos', 'vNuevo', 'vPend', 'vDev', 'vPagos', 'vCxp', 'vDash', 'vSeg', 'vCot', 'vUsuarios', 'vCat', 'vListas', 'vNada'];
+  const VISTAS = ['vInicio', 'vPedidos', 'vNuevo', 'vPend', 'vDev', 'vPagos', 'vCxp', 'vDash', 'vSeg', 'vCot', 'vXml', 'vUsuarios', 'vCat', 'vListas', 'vNada'];
   document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => ver(b.dataset.v)));
   function ver(v) {
     vista = v;
@@ -5779,10 +5793,110 @@
   });
   if (MODO_PROV) pvIniciar();
 
+  /* =====================  K. LECTOR DE XML (facturas y notas de crédito electrónicas de SUNAT, UBL 2.1)  =====================
+     Se suben los .xml o los .zip tal como llegan y se muestra lo que dicen: emisor, cliente, totales, vencimiento y cada producto.
+     Todo se lee en el navegador: no se guarda ni se envía a ningún lado. */
+  let xl = { docs: [], errores: [], abiertos: new Set() };
+  async function xlZip(buf) { // archivos de un .zip, sin librerías (usa el descompresor del navegador)
+    const b = new Uint8Array(buf), v = new DataView(buf), out = [];
+    let e = -1;
+    for (let i = b.length - 22; i >= 0 && i > b.length - 70000; i -= 1) if (v.getUint32(i, true) === 0x06054b50) { e = i; break; }
+    if (e < 0) throw new Error('el ZIP está dañado');
+    const n = v.getUint16(e + 10, true); let p = v.getUint32(e + 16, true);
+    for (let k = 0; k < n && v.getUint32(p, true) === 0x02014b50; k += 1) {
+      const met = v.getUint16(p + 10, true), tam = v.getUint32(p + 20, true), nl = v.getUint16(p + 28, true), el = v.getUint16(p + 30, true), cl = v.getUint16(p + 32, true), off = v.getUint32(p + 42, true);
+      const nombre = new TextDecoder().decode(b.subarray(p + 46, p + 46 + nl)), ini = off + 30 + v.getUint16(off + 26, true) + v.getUint16(off + 28, true), comp = b.subarray(ini, ini + tam);
+      if (!nombre.endsWith('/')) {
+        if (met === 0) out.push({ nombre, datos: comp.slice().buffer });
+        else if (met === 8) { if (typeof DecompressionStream === 'undefined') throw new Error('este navegador no puede abrir ZIP: sube los XML sueltos'); out.push({ nombre, datos: await new Response(new Blob([comp]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer() }); }
+      }
+      p += 46 + nl + el + cl;
+    }
+    return out;
+  }
+  function xlTexto(buf) { // respeta la codificación que declara el XML (muchos vienen en ISO-8859-1)
+    const cab = new TextDecoder('latin1').decode(new Uint8Array(buf, 0, Math.min(200, buf.byteLength))), m = cab.match(/encoding=["']([\w-]+)["']/i);
+    try { return new TextDecoder((m ? m[1] : 'utf-8').toLowerCase()).decode(buf); } catch (e) { return new TextDecoder('utf-8').decode(buf); }
+  }
+  function xlLeer(texto, arch) {
+    const d = new DOMParser().parseFromString(texto.replace(/^﻿/, ''), 'application/xml'), raiz = d.documentElement;
+    if (!raiz || d.getElementsByTagName('parsererror').length) throw new Error('no es un XML válido');
+    const T = { Invoice: 'FACTURA', CreditNote: 'NOTA DE CRÉDITO', DebitNote: 'NOTA DE DÉBITO' }[raiz.localName];
+    if (!T) throw new Error('no es una factura ni una nota de crédito o débito');
+    const hijo = (el, n) => (el ? [...el.children].find((c) => c.localName === n) : null) || null, hijos = (el, n) => (el ? [...el.children].filter((c) => c.localName === n) : []);
+    const ruta = (el, ...ns) => ns.reduce((e, n) => hijo(e, n), el), tx = (el) => (el ? el.textContent.replace(/\s+/g, ' ').trim() : ''), num = (el) => { const x = parseFloat(tx(el)); return isNaN(x) ? null : x; };
+    const dentro = (el, n) => (el ? [...el.getElementsByTagNameNS('*', n)] : []);
+    const parte = (n) => { const p = hijo(hijo(raiz, n), 'Party'), ids = [tx(ruta(p, 'PartyIdentification', 'ID')), ...dentro(p, 'CompanyID').map(tx)].filter(Boolean); return { ruc: ids.find((x) => /^\d{11}$/.test(x)) || ids[0] || '', nom: tx(ruta(p, 'PartyLegalEntity', 'RegistrationName')) || tx(ruta(p, 'PartyName', 'Name')), dir: tx(ruta(p, 'PartyLegalEntity', 'RegistrationAddress', 'AddressLine', 'Line')) }; };
+    const id = tx(hijo(raiz, 'ID')), m = id.toUpperCase().match(/^([A-Z0-9]{2,5})\s*-\s*0*(\d+)$/), cod = tx(hijo(raiz, 'InvoiceTypeCode'));
+    const tot = hijo(raiz, 'LegalMonetaryTotal') || hijo(raiz, 'RequestedMonetaryTotal'), igvT = num(ruta(raiz, 'TaxTotal', 'TaxAmount'));
+    const terms = hijos(raiz, 'PaymentTerms').map((p) => ({ id: tx(hijo(p, 'PaymentMeansID')), m: num(hijo(p, 'Amount')), v: tx(hijo(p, 'PaymentDueDate')).slice(0, 10) }));
+    const cuotas = terms.filter((x) => /^cuota/i.test(x.id)), formaT = terms.find((x) => /^(contado|credito)/i.test(x.id));
+    const lineas = [...hijos(raiz, 'InvoiceLine'), ...hijos(raiz, 'CreditNoteLine'), ...hijos(raiz, 'DebitNoteLine')].map((l) => {
+      const q = hijo(l, 'InvoicedQuantity') || hijo(l, 'CreditedQuantity') || hijo(l, 'DebitedQuantity'), it = hijo(l, 'Item'), valor = num(hijo(l, 'LineExtensionAmount')), igv = num(ruta(l, 'TaxTotal', 'TaxAmount'));
+      return { n: tx(hijo(l, 'ID')), cod: tx(ruta(it, 'SellersItemIdentification', 'ID')), desc: tx(hijo(it, 'Description')) || tx(hijo(it, 'Name')), cant: num(q), um: q ? q.getAttribute('unitCode') || '' : '', pu: num(ruta(l, 'Price', 'PriceAmount')), puIgv: num(ruta(l, 'PricingReference', 'AlternativeConditionPrice', 'PriceAmount')), valor, igv, total: valor === null ? null : r2(valor + (igv || 0)) };
+    });
+    const total = num(hijo(tot, 'PayableAmount')) ?? num(hijo(tot, 'TaxInclusiveAmount')), base = num(hijo(tot, 'LineExtensionAmount')) ?? (total !== null && igvT !== null ? r2(total - igvT) : null);
+    const refs = dentro(raiz, 'InvoiceDocumentReference').map((x) => tx(hijo(x, 'ID'))).filter(Boolean);
+    return { arch, tipo: T, cod, id, serie: m ? m[1] : '', num: m ? m[2] : '', fecha: tx(hijo(raiz, 'IssueDate')).slice(0, 10), hora: tx(hijo(raiz, 'IssueTime')).slice(0, 5), moneda: tx(hijo(raiz, 'DocumentCurrencyCode')) || 'PEN',
+      emisor: parte('AccountingSupplierParty'), cliente: parte('AccountingCustomerParty'), base, igv: igvT, total, forma: formaT ? (/^cred/i.test(formaT.id) ? 'Crédito' : 'Contado') : '', cuotas,
+      vence: cuotas.map((c) => c.v).filter(Boolean).sort().pop() || tx(hijo(raiz, 'DueDate')).slice(0, 10), ref: refs[0] || tx(ruta(raiz, 'DiscrepancyResponse', 'ReferenceID')), motivo: tx(ruta(raiz, 'DiscrepancyResponse', 'Description')),
+      letras: hijos(raiz, 'Note').map(tx).find((x) => /^SON/i.test(x)) || '', lineas };
+  }
+  async function xlSubir(archivos) {
+    const cola = [];
+    for (const a of archivos) {
+      try {
+        const buf = await a.arrayBuffer();
+        if (/\.zip$/i.test(a.name) || new DataView(buf).getUint32(0, true) === 0x04034b50) (await xlZip(buf)).filter((x) => /\.xml$/i.test(x.nombre)).forEach((x) => cola.push({ nombre: `${a.name} → ${x.nombre}`, datos: x.datos }));
+        else if (/\.xml$/i.test(a.name)) cola.push({ nombre: a.name, datos: buf });
+        else xl.errores.push(`${a.name}: no es un XML ni un ZIP`);
+      } catch (e) { xl.errores.push(`${a.name}: ${e.message}`); }
+    }
+    cola.forEach((x) => {
+      try {
+        const doc1 = xlLeer(xlTexto(x.datos), x.nombre), k = `${doc1.emisor.ruc}|${doc1.tipo}|${doc1.id}`;
+        if (xl.docs.some((y) => `${y.emisor.ruc}|${y.tipo}|${y.id}` === k)) xl.errores.push(`${x.nombre}: ${doc1.id} ya estaba en la lista`); else xl.docs.push(doc1);
+      } catch (e) { xl.errores.push(`${x.nombre}: ${e.message}`); }
+    });
+    xl.docs.sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)) || String(a.id).localeCompare(String(b.id), undefined, { numeric: true }));
+    if (xl.docs.length === 1) xl.abiertos.add(0);
+    xlPintar();
+  }
+  const xlMia = (ruc) => { const e = pgCfg.empresas.find((x) => x.ruc === ruc); return e ? ` <span class="est e3">${esc(e.k)}</span>` : ''; };
+  const xlN = (v, dec) => (v === null || v === undefined ? '' : (dec ? Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: dec }) : mil(v)));
+  function xlPintar() {
+    const D = xl.docs, sg2 = (x) => (x.tipo === 'NOTA DE CRÉDITO' ? -1 : 1), suma = (k) => r2(D.reduce((s, x) => s + sg2(x) * (Number(x[k]) || 0), 0));
+    $('xlCont').innerHTML = (xl.errores.length ? `<div class="msg err">${xl.errores.map(esc).join('<br>')}</div>` : '') + (!D.length ? '' :
+      '<div class="kpis">' + [['Documentos leídos', String(D.length), `${D.filter((x) => x.tipo === 'FACTURA').length} facturas · ${D.filter((x) => x.tipo !== 'FACTURA').length} notas`], ['Valor de venta (sin IGV)', 'S/ ' + mil(suma('base')), 'las NC restan'], ['IGV', 'S/ ' + mil(suma('igv')), ''], ['Total', 'S/ ' + mil(suma('total')), `${D.reduce((s, x) => s + x.lineas.length, 0)} líneas de producto`]].map(([a, b, c], i) => `<div class="kpi"${i === 3 ? ' style="border-color:var(--marca);background:var(--suave)"' : ''}><b>${a}</b><strong>${b}</strong><small>${c}</small></div>`).join('') + '</div>' +
+      '<div class="tabla"><table><thead><tr><th></th><th>Tipo</th><th>Número</th><th>Emisión</th><th>Emisor</th><th>Cliente</th><th class="num">Valor venta</th><th class="num">IGV</th><th class="num">Total</th><th>Pago</th><th>Vence</th><th class="num">Ítems</th></tr></thead><tbody>' +
+      D.map((x, i) => {
+        const ab = xl.abiertos.has(i);
+        return `<tr class="xlFila${x.tipo === 'NOTA DE CRÉDITO' ? ' esnc' : ''}" data-i="${i}" style="cursor:pointer"><td>${ab ? '▾' : '▸'}</td><td>${esc(x.tipo)}</td><td><b>${esc(x.id)}</b>${x.ref ? `<div class="quien">afecta a ${esc(x.ref)}</div>` : ''}</td><td>${esc(dia(x.fecha))}${x.hora ? ` <span class="quien">${esc(x.hora)}</span>` : ''}</td>` +
+          `<td>${esc(x.emisor.nom)}${xlMia(x.emisor.ruc)}<div class="quien">RUC ${esc(x.emisor.ruc)}</div></td><td>${esc(x.cliente.nom)}${xlMia(x.cliente.ruc)}<div class="quien">RUC ${esc(x.cliente.ruc)}</div></td>` +
+          `<td class="num">${xlN(x.base)}</td><td class="num">${xlN(x.igv)}</td><td class="num"><b>${x.moneda !== 'PEN' ? esc(x.moneda) + ' ' : ''}${xlN(x.total)}</b></td><td>${esc(x.forma)}${x.cuotas.length > 1 ? ` · ${x.cuotas.length} cuotas` : ''}</td><td>${esc(dia(x.vence))}</td><td class="num">${x.lineas.length}</td></tr>` +
+          (ab ? `<tr class="det"><td colspan="12"><div class="xlDet">` +
+            `<div class="ctDatos" style="margin-bottom:10px"><div><b>Emisor</b>${esc(x.emisor.nom)} · RUC ${esc(x.emisor.ruc)}<br><span class="quien">${esc(x.emisor.dir)}</span></div><div><b>Cliente</b>${esc(x.cliente.nom)} · RUC ${esc(x.cliente.ruc)}<br><span class="quien">${esc(x.cliente.dir)}</span></div>` +
+            (x.cuotas.length ? `<div><b>Cuotas</b>${x.cuotas.map((c) => `${xlN(c.m)} al ${esc(dia(c.v))}`).join(' · ')}</div>` : '') + (x.motivo ? `<div><b>Motivo</b>${esc(x.motivo)}</div>` : '') + `<div><b>Archivo</b><span class="quien">${esc(x.arch)}</span></div></div>` +
+            (x.letras ? `<p class="quien" style="margin:0 0 8px">${esc(x.letras)}</p>` : '') +
+            `<table><tr><th>#</th><th>Código</th><th>Descripción</th><th class="num">Cant.</th><th>Und.</th><th class="num">P. unit. sin IGV</th><th class="num">P. unit. con IGV</th><th class="num">Valor</th><th class="num">IGV</th><th class="num">Total</th></tr>` +
+            x.lineas.map((l) => `<tr><td>${esc(l.n)}</td><td>${esc(l.cod)}</td><td>${esc(l.desc)}</td><td class="num">${l.cant === null ? '' : l.cant}</td><td>${esc(l.um)}</td><td class="num">${xlN(l.pu, 4)}</td><td class="num">${xlN(l.puIgv, 4)}</td><td class="num">${xlN(l.valor)}</td><td class="num">${xlN(l.igv)}</td><td class="num"><b>${xlN(l.total)}</b></td></tr>`).join('') +
+            `<tr class="tot"><td colspan="7">Totales del documento</td><td class="num">${xlN(x.base)}</td><td class="num">${xlN(x.igv)}</td><td class="num">${xlN(x.total)}</td></tr></table></div></td></tr>` : '');
+      }).join('') + '</tbody></table></div>');
+    $('xlAcc').classList.toggle('oculto', !D.length);
+  }
+  $('xlElegir').addEventListener('click', () => $('xlArch').click());
+  $('xlArch').addEventListener('change', (e) => { const a = [...e.target.files]; e.target.value = ''; if (a.length) xlSubir(a); });
+  { const z = $('xlZona'); ['dragenter', 'dragover'].forEach((n) => z.addEventListener(n, (e) => { e.preventDefault(); z.classList.add('sobre'); })); ['dragleave', 'drop'].forEach((n) => z.addEventListener(n, (e) => { e.preventDefault(); z.classList.remove('sobre'); })); z.addEventListener('drop', (e) => { const a = [...e.dataTransfer.files]; if (a.length) xlSubir(a); }); }
+  $('xlLimpiar').addEventListener('click', () => { xl = { docs: [], errores: [], abiertos: new Set() }; xlPintar(); });
+  $('xlAbrir').addEventListener('click', () => { xl.abiertos = xl.abiertos.size === xl.docs.length ? new Set() : new Set(xl.docs.map((x, i) => i)); xlPintar(); });
+  $('xlCont').addEventListener('click', (e) => { const tr = e.target.closest('tr.xlFila'); if (!tr) return; const i = Number(tr.dataset.i); if (xl.abiertos.has(i)) xl.abiertos.delete(i); else xl.abiertos.add(i); xlPintar(); });
+  $('xlExpDoc').addEventListener('click', () => exportar('xml-documentos', [['Tipo', 'tipo'], ['Serie', 'serie'], ['Número', 'num'], ['Documento', 'id'], ['Fecha emisión', (x) => dia(x.fecha)], ['RUC emisor', (x) => x.emisor.ruc], ['Emisor', (x) => x.emisor.nom], ['RUC cliente', (x) => x.cliente.ruc], ['Cliente', (x) => x.cliente.nom], ['Moneda', 'moneda'], ['Valor venta', 'base'], ['IGV', 'igv'], ['Total', 'total'], ['Forma de pago', 'forma'], ['Vence', (x) => dia(x.vence)], ['Afecta a', 'ref'], ['Motivo', 'motivo'], ['Ítems', (x) => x.lineas.length], ['Archivo', 'arch']], xl.docs));
+  $('xlExpDet').addEventListener('click', () => exportar('xml-detalle-productos', [['Documento', (r) => r.x.id], ['Tipo', (r) => r.x.tipo], ['Fecha', (r) => dia(r.x.fecha)], ['RUC emisor', (r) => r.x.emisor.ruc], ['Emisor', (r) => r.x.emisor.nom], ['RUC cliente', (r) => r.x.cliente.ruc], ['#', (r) => r.l.n], ['Código', (r) => r.l.cod], ['Descripción', (r) => r.l.desc], ['Cantidad', (r) => r.l.cant], ['Unidad', (r) => r.l.um], ['P. unit. sin IGV', (r) => r.l.pu], ['P. unit. con IGV', (r) => r.l.puIgv], ['Valor', (r) => r.l.valor], ['IGV', (r) => r.l.igv], ['Total', (r) => r.l.total]], xl.docs.flatMap((x) => x.lineas.map((l) => ({ x, l })))));
+
   /* =====================  J. INICIO Y MENÚ LATERAL  ===================== */
   const IN_DESC = { vPedidos: 'Registrar facturas recibidas y su conformidad', vNuevo: 'Anotar productos con problema al recibir', vPend: 'Lo observado que falta devolver', vDev: 'Devoluciones hechas y sus notas de crédito',
     vSeg: 'Qué se entregó al proveedor y qué falta', vCot: 'Solicitudes a proveedores y pedidos aprobados', vPagos: 'Facturas, NC y letras de distribuidores', vCxp: 'Demás proveedores, programación y resumen',
-    vDash: 'Compras totales y netas, por proveedor y trimestre', vUsuarios: 'Accesos y permisos', vCat: 'Catálogo de productos', vListas: 'Proveedores, laboratorios y motivos' };
+    vDash: 'Compras totales y netas, por proveedor y trimestre', vXml: 'Subir XML o ZIP de facturas y ver lo que dicen', vUsuarios: 'Accesos y permisos', vCat: 'Catálogo de productos', vListas: 'Proveedores, laboratorios y motivos' };
   function inPintar() {
     const caja = $('vInicio');
     if (!caja || !yo || vista !== 'vInicio') return;
