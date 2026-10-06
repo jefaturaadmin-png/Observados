@@ -325,7 +325,7 @@
       <div class="navGrupo"><div class=navG>Compras</div><button data-v="vCot" id="tabCot" title="Cotizaciones"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span class="navT">Cotizaciones</span></button></div>
       <div class="navGrupo"><div class=navG>Pagos</div><button data-v="vPagos" id="tabPagos" title="Pagos a proveedores"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg><span class="navT">Pagos a proveedores</span></button><button data-v="vCxp" id="tabCxp" title="Cuentas por pagar"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="navT">Cuentas por pagar</span></button></div>
       <div class="navGrupo"><div class=navG>Análisis</div><button data-v="vDash" id="tabDash" title="Dashboard"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="navT">Dashboard</span></button></div>
-      <div class="navGrupo"><div class=navG>Herramientas</div><button data-v="vXml" id="tabXml" title="Lector de XML"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg><span class="navT">Lector de XML</span></button></div>
+      <div class="navGrupo"><div class=navG>Herramientas</div><button data-v="vXml" id="tabXml" title="Lector de XML"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg><span class="navT">Lector de XML</span><span class="cuenta oculto" id="nXml"></span></button></div>
       <div class="navGrupo"><div class=navG>Configuración</div><button data-v="vUsuarios" id="tabUsuarios" title="Usuarios"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="navT">Usuarios</span></button><button data-v="vCat" id="tabCat" title="Productos"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg><span class="navT">Productos</span></button><button data-v="vListas" id="tabListas" title="Listas"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span class="navT">Listas</span></button></div>
     </nav>
   </aside>
@@ -508,6 +508,7 @@
 
     <!-- ===== 10. LECTOR DE XML ===== -->
     <div id="vXml" class="oculto">
+      <div id="xbCaja"></div>
       <div class="xlZona" id="xlZona">
         <b>Arrastra aquí los XML o los ZIP de las facturas y notas de crédito</b>
         <span class="quien">Se pueden subir varios a la vez. Se guarda solo la información leída (datos y productos), no el archivo. Si un documento ya estaba guardado, no se repite.</span>
@@ -668,7 +669,7 @@
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
   import {
     getFirestore, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, collection, query, where, orderBy, limit,
-    onSnapshot, runTransaction, writeBatch, serverTimestamp
+    onSnapshot, runTransaction, writeBatch, serverTimestamp, deleteField
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
   const DOMINIO = '@observados.example.com'; // dominio reservado: los usuarios solo escriben su nombre de usuario
@@ -912,6 +913,7 @@
     pgIniciar();
     cpIniciar();
     ctIniciar();
+    xbIniciar();
     aplicarPermisos();
 
     // Mis propios datos: si el administrador cambia mis permisos, se aplican al momento
@@ -5900,7 +5902,7 @@
     } catch (e) { xl.errores.push('No se pudo leer lo guardado: ' + errorTexto(e)); xl.docs = []; }
     xl.cargando = false; xl.listo = true; xlPintar();
   }
-  function xlAbrirVista() { if (!xl.mes) { xl.mes = hoy().slice(0, 7); $('xlMes').value = xl.mes; } $('xlZona').classList.toggle('oculto', !puede('xml')); xlCargar(); }
+  function xlAbrirVista() { if (!xl.mes) { xl.mes = hoy().slice(0, 7); $('xlMes').value = xl.mes; } $('xlZona').classList.toggle('oculto', !puede('xml')); xlCargar(); xbVisto(); }
   async function xlSubir(archivos) {
     const cola = []; xl.errores = []; xl.avisos = [];
     for (const a of archivos) {
@@ -5965,6 +5967,84 @@
   $('xlExpDoc').addEventListener('click', () => exportar('xml-documentos', [['Tipo', 'tipo'], ['Serie', 'serie'], ['Número', 'num'], ['Documento', 'id'], ['Fecha emisión', (x) => dia(x.fecha)], ['RUC emisor', (x) => x.emisor.ruc], ['Emisor', (x) => x.emisor.nom], ['RUC cliente', (x) => x.cliente.ruc], ['Cliente', (x) => x.cliente.nom], ['Moneda', 'moneda'], ['Valor venta', 'base'], ['IGV', 'igv'], ['Total', 'total'], ['Forma de pago', 'forma'], ['Vence', (x) => dia(x.vence)], ['Afecta a', 'ref'], ['Motivo', 'motivo'], ['Ítems', (x) => x.lineas.length], ['Archivo', 'arch']], xl.vista || []));
   $('xlExpDet').addEventListener('click', () => exportar('xml-detalle-productos', [['Documento', (r) => r.x.id], ['Tipo', (r) => r.x.tipo], ['Fecha', (r) => dia(r.x.fecha)], ['RUC emisor', (r) => r.x.emisor.ruc], ['Emisor', (r) => r.x.emisor.nom], ['RUC cliente', (r) => r.x.cliente.ruc], ['#', (r) => r.l.n], ['Código', (r) => r.l.cod], ['Descripción', (r) => r.l.desc], ['Cantidad', (r) => r.l.cant], ['Unidad', (r) => r.l.um], ['P. unit. sin IGV', (r) => r.l.pu], ['P. unit. con IGV', (r) => r.l.puIgv], ['Valor', (r) => r.l.valor], ['IGV', (r) => r.l.igv], ['Total', (r) => r.l.total]], (xl.vista || []).flatMap((x) => x.lineas.map((l) => ({ x, l })))));
 
+  /* ---------- XML que llegan solos por correo ----------
+     El script de Gmail (carpeta correo-xml) deja cada XML recibido en xmlBuzon/{huella} con estado "nuevo".
+     Aquí se lee con el mismo lector de arriba, se guarda en xmlf y el aviso queda en el menú hasta abrir el Lector de XML. */
+  let xb = { docs: [], visto: '', marca: '', todos: false, err: '' };
+  const xbEnCurso = new Set();
+  const xbClave = () => 'xbVisto_' + (yo ? yo.uid : '');
+  function xbIniciar() {
+    xb = { docs: [], visto: '', marca: '', todos: false, err: '' };
+    try { xb.visto = localStorage.getItem(xbClave()) || ''; } catch (e) { xb.visto = ''; }
+    xb.marca = xb.visto;
+    contador('nXml', 0);
+    if (!puede('verXml')) return;
+    bajas.push(onSnapshot(query(collection(db, 'xmlBuzon'), orderBy('recibido', 'desc'), limit(150)), (s) => {
+      xb.err = '';
+      xb.docs = s.docs.map((d) => ({ _id: d.id, ...d.data() }));
+      if (puede('xml')) xb.docs.filter((x) => x.estado === 'nuevo').forEach(xbProcesar);
+      xbContar();
+      if (vista === 'vXml') { xbVisto(); xbPintar(); }
+    }, (e) => { xb.err = errorTexto(e); if (vista === 'vXml') xbPintar(); }));
+  }
+  async function xbProcesar(b) { // lee el XML del correo, lo guarda en xmlf (si no estaba) y deja el resultado en el buzón
+    if (xbEnCurso.has(b._id)) return;
+    xbEnCurso.add(b._id);
+    const ref = doc(db, 'xmlBuzon', b._id);
+    try {
+      const d1 = xlLeer(String(b.xml || ''), b.archivo || 'correo.xml');
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(d1.fecha)) throw new Error('no trae fecha de emisión');
+      const k = xlKey(d1), refX = doc(db, 'xmlf', k), ya = (await getDoc(refX)).exists();
+      if (!ya) await setDoc(refX, { ...d1, lineas: d1.lineas.slice(0, 600), arch: txt(b.archivo, 120), ym: d1.fecha.slice(0, 7), subido: ctAhora(), por: 'Correo · ' + txt(b.de, 100), correo: { de: txt(b.de, 200), asunto: txt(b.asunto, 200), recibido: txt(b.recibido, 40) } });
+      await updateDoc(ref, { estado: ya ? 'repetido' : 'leido', k, doc: d1.id, tipo: d1.tipo, emisor: d1.emisor.nom, ruc: d1.emisor.ruc, cliente: d1.cliente.ruc, fecha: d1.fecha, total: d1.total, moneda: d1.moneda, items: d1.lineas.length, ref: d1.ref || '', xml: deleteField(), error: deleteField(), procesado: ctAhora(), por: firma() });
+    } catch (e) {
+      try { await updateDoc(ref, { estado: 'error', error: txt(e.message || errorTexto(e), 200), procesado: ctAhora(), por: firma() }); } catch (e2) { console.error(e2); }
+    }
+    xbEnCurso.delete(b._id);
+  }
+  function xbContar() { contador('nXml', xb.docs.filter((x) => x.estado !== 'repetido' && String(x.recibido || '') > xb.visto).length); }
+  function xbVisto() { // al abrir el Lector de XML, lo llegado deja de contarse (pero sigue resaltado mientras estés en la ventana)
+    const ult = xb.docs.reduce((m, x) => (String(x.recibido || '') > m ? String(x.recibido) : m), xb.visto);
+    if (ult === xb.visto) return;
+    xb.visto = ult;
+    try { localStorage.setItem(xbClave(), ult); } catch (e) { /* sin almacenamiento: el aviso vuelve a contarse en la próxima sesión */ }
+    xbContar(); xbPintar();
+  }
+  function xbPintar() {
+    const caja = $('xbCaja');
+    if (!caja) return;
+    if (!puede('verXml')) { caja.innerHTML = ''; return; }
+    if (xb.err) { caja.innerHTML = `<div class="msg err">No se pudo leer la bandeja de XML del correo: ${esc(xb.err)} Revisa que las reglas de Firestore incluyan "xmlBuzon" (correo-xml/LEEME.md).</div>`; return; }
+    const D = xb.docs, mias = pgCfg.empresas.map((e) => e.ruc).filter(Boolean), nuevos = D.filter((x) => String(x.recibido || '') > xb.marca).length;
+    if (!D.length) { caja.innerHTML = '<div class="caja" style="padding:12px 16px"><h3 class="sub" style="margin:0 0 4px">Llegados por correo</h3><p class="quien" style="margin:0">Aún no llegó ningún XML por correo. Cuando el script de Gmail esté instalado (carpeta correo-xml), cada XML que llegue aparecerá aquí solo, ya leído.</p></div>'; return; }
+    const lista = xb.todos ? D : D.slice(0, 10);
+    const estado = (x) => (x.estado === 'leido' ? '<span class="est e2">✓ Guardado</span>' : x.estado === 'repetido' ? '<span class="est e4">Ya estaba guardado</span>' : x.estado === 'error' ? `<span class="est alerta">No se pudo leer</span><div class="quien">${esc(x.error || '')}</div>${puede('xml') && x.xml ? `<button class="mini xbRe" data-id="${esc(x._id)}">Reintentar</button>` : ''}` : '<span class="est e0">Leyendo…</span>');
+    caja.innerHTML = '<div class="caja" style="padding:12px 16px">' +
+      `<div class="herr" style="margin-bottom:8px"><h3 class="sub" style="margin:0">Llegados por correo</h3><span class="quien">${nuevos ? `<b>${nuevos} nuevo(s) desde tu última visita</b> · ` : ''}último: ${esc(ctHora(D[0].recibido))}</span><span style="flex:1"></span>${D.length > 10 ? `<button id="xbTodos">${xb.todos ? 'Ver solo los últimos 10' : `Ver los ${D.length}`}</button>` : ''}</div>` +
+      '<div class="tabla"><table><thead><tr><th>Llegó</th><th>Correo de</th><th>Documento</th><th>Emisor</th><th>Emisión</th><th class="num">Total</th><th class="num">Ítems</th><th>Estado</th></tr></thead><tbody>' +
+      lista.map((x) => {
+        const ok = x.estado === 'leido' || x.estado === 'repetido', ajena = ok && mias.length && x.cliente && !mias.includes(x.cliente);
+        const estilo = [ok ? 'cursor:pointer' : '', String(x.recibido || '') > xb.marca ? 'background:var(--suave)' : ''].filter(Boolean).join(';');
+        return `<tr${ok ? ` class="xbIr" data-k="${esc(x.k)}" data-f="${esc(x.fecha)}" title="Ver el detalle"` : ''}${estilo ? ` style="${estilo}"` : ''}>` +
+          `<td>${esc(ctHora(x.recibido))}</td><td class="larga">${esc(x.de || '')}<div class="quien">${esc(x.asunto || '')}</div></td>` +
+          `<td>${ok ? `<b>${esc(x.doc)}</b> <span class="quien">${esc(x.tipo === 'FACTURA' ? 'Factura' : x.tipo === 'NOTA DE CRÉDITO' ? 'NC' : x.tipo || '')}</span>${x.ref ? `<div class="quien">afecta a ${esc(x.ref)}</div>` : ''}` : esc(x.archivo || '')}</td>` +
+          `<td>${esc(x.emisor || '')}${x.ruc ? `<div class="quien">RUC ${esc(x.ruc)}</div>` : ''}${ajena ? '<div><span class="est alerta">Otro cliente (RUC ' + esc(x.cliente) + ')</span></div>' : ''}</td>` +
+          `<td>${esc(dia(x.fecha || ''))}</td><td class="num">${x.total === undefined ? '' : `<b>${x.moneda && x.moneda !== 'PEN' ? esc(x.moneda) + ' ' : ''}${xlN(x.total)}</b>`}</td><td class="num">${x.items ?? ''}</td><td>${estado(x)}</td></tr>`;
+      }).join('') + '</tbody></table></div></div>';
+  }
+  $('xbCaja').addEventListener('click', async (e) => {
+    if (e.target.id === 'xbTodos') { xb.todos = !xb.todos; return xbPintar(); }
+    const re = e.target.closest('.xbRe');
+    if (re) { re.disabled = true; try { await updateDoc(doc(db, 'xmlBuzon', re.dataset.id), { estado: 'nuevo', error: deleteField() }); } catch (err) { alert(errorTexto(err)); re.disabled = false; } return; }
+    const tr = e.target.closest('tr.xbIr');
+    if (!tr || !/^\d{4}-\d{2}/.test(tr.dataset.f)) return;
+    xl.mes = tr.dataset.f.slice(0, 7); $('xlMes').value = xl.mes; xl.txt = ''; $('xlTxt').value = ''; xl.avisos = []; xl.errores = [];
+    xl.abiertos.add(tr.dataset.k);
+    await xlCargar();
+    const fila = document.querySelector(`#xlCont tr.xlFila[data-k="${CSS.escape(tr.dataset.k)}"]`);
+    if (fila) fila.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  });
+
   /* =====================  J. INICIO Y MENÚ LATERAL  ===================== */
   const IN_DESC = { vPedidos: 'Registrar facturas recibidas y su conformidad', vNuevo: 'Anotar productos con problema al recibir', vPend: 'Lo observado que falta devolver', vDev: 'Devoluciones hechas y sus notas de crédito',
     vSeg: 'Qué se entregó al proveedor y qué falta', vCot: 'Solicitudes a proveedores y pedidos aprobados', vPagos: 'Facturas, NC y letras de distribuidores', vCxp: 'Demás proveedores, programación y resumen',
@@ -5984,6 +6064,7 @@
       K.push(['vCot', e.filter((x) => /^ENVIADA|EN PROCESO|VENCIDA|^OBSERVADA/.test(x)).length, 'Cotizaciones esperando al proveedor', false]);
       K.push(['vCot', e.filter((x) => /POR LLEGAR|PARCIAL/.test(x)).length, 'Pedidos aprobados por llegar', false]);
     }
+    if (visible('vXml')) K.push(['vXml', num('nXml'), 'XML nuevos llegados por correo', true]);
     const f = new Date(), fecha = `${DIAS[f.getDay()].toLowerCase()} ${f.getDate()} de ${MESES[f.getMonth() + 1].toLowerCase()} de ${f.getFullYear()}`;
     const grupos = [...document.querySelectorAll('#lado .navGrupo')].map((g) => ({ t: (g.querySelector('.navG') || {}).textContent || '', vs: [...g.querySelectorAll('button:not(.oculto)')].map((b) => b.dataset.v).filter((v) => v && v !== 'vInicio') })).filter((g) => g.vs.length);
     caja.innerHTML = `<div class="inHola"><h2>Hola, ${esc(String(yo.nombre || '').split(' ')[0])}</h2><span>${esc(fecha)} · ${esc(yo.area)}</span></div>` +
