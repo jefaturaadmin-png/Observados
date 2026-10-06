@@ -122,6 +122,8 @@
   tr.cpHDoble td { background:#fff1e0; } tr.cpHFalta td { background:#fdf0ee; }
   .xlZona { border:2px dashed #d6cfc6; border-radius:14px; background:#fff; padding:26px 20px; display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center; margin-bottom:14px; } .xlZona.sobre { border-color:var(--marca); background:var(--suave); } .xlZona b { font-size:16px; }
   .xlDet { padding:10px 6px 14px; position:sticky; left:0; width:calc(100vw - 320px); max-width:100%; overflow:auto; box-sizing:border-box; } body.menuMin .xlDet { width:calc(100vw - 136px); } @media (max-width:900px) { .xlDet { width:calc(100vw - 40px); } } #vXml .tabla > table > thead th, tr.xlFila td { white-space:nowrap; } tr.xlFila td:nth-child(5), tr.xlFila td:nth-child(6) { white-space:normal; min-width:170px; } .xlDet table { width:100%; font-size:13px; background:#fff; } tr.xlFila:hover td { background:#faf6f1; }
+  .rgTab th, .rgTab td { border-right:1px solid #e3dfd9; } .rgTab th:last-child, .rgTab td:last-child { border-right:none; }
+  .rgTab tr.rgFila { cursor:pointer; } .rgTab tr.rgFila:hover td { background:var(--suave); } .rgTab tr.det > td { background:#fbf6ef; padding:10px 14px 14px 40px; white-space:normal; }
   .rgFil th { background:#fff; padding:5px 6px; } .rgFil input, .rgFil select { padding:5px 7px; font-size:12.5px; min-width:80px; font-weight:400; }
   .rpHoja { max-width:1120px; } .rpHoja td.rpFa { color:#1f3864; } .rpHoja table { font-size:13.5px; } .rpHoja td { border:1px solid #d9d4cc; padding:4px 9px; }
   .rpHoja tr.rpTit td { background:#ffff00; color:#0070c0; font-weight:800; font-size:16px; text-align:center; text-decoration:underline; }
@@ -533,7 +535,7 @@
         <button id="rgExp">Exportar a Excel</button>
       </div>
       <div id="rgCont"></div>
-      <div class="tabla"><table>
+      <div class="tabla"><table class="rgTab">
         <thead>
           <tr><th class="ck"><input type="checkbox" id="rgCkTodo" title="Marcar todas las que faltan registrar (de lo que se ve)" aria-label="Marcar todas"></th><th>Proveedor</th><th>Tipo</th><th>Número</th><th>Emisión</th><th class="num">Total</th><th>Vence</th><th>Registrada en</th><th>Estado</th></tr>
           <tr class="rgFil">
@@ -5595,7 +5597,7 @@
      Junta los XML de compras de la empresa (cliente = la empresa) y dice de cada uno dónde está registrado:
      Pagos a proveedores (distribuidores) o Cuentas por pagar, en qué mes y si el total coincide. Lo que falta registrar
      se marca y se lleva a un mes de pago: va al distribuidor o al proveedor que le corresponde. También se usa en el Lector de XML. */
-  let rg = { carg: false, t: 0, pg: [], cp: [], rucs: {}, idx: new Map(), rucProv: new Map(), xml: [], xmlClave: '', xmlCarg: false, xmlErr: '', sel: new Set(), vista: [] };
+  let rg = { ab: new Set(), carg: false, t: 0, pg: [], cp: [], rucs: {}, idx: new Map(), rucProv: new Map(), xml: [], xmlClave: '', xmlCarg: false, xmlErr: '', sel: new Set(), vista: [] };
   const rgEmpDeRuc = (ruc) => (pgCfg.empresas.find((e) => e.ruc && e.ruc === ruc) || {}).k || '';
   const rgKey = (x) => (CI_T[x.tipo] && x.serie ? `${CI_T[x.tipo]}|${serDoc(x.serie)}|${numDoc(x.num)}` : '');
   const rgId = (x) => `${(x.emisor || {}).ruc}|${rgKey(x)}`;
@@ -5748,14 +5750,43 @@
       rgBarra('rg', V.map((r) => r.x));
     const faltaV = V.filter((r) => !r.reg), ck = $('rgCkTodo'), nSel = faltaV.filter((r) => rg.sel.has(r.id)).length;
     ck.disabled = !faltaV.length; ck.checked = !!faltaV.length && nSel === faltaV.length; ck.indeterminate = nSel > 0 && nSel < faltaV.length;
-    cuerpo.innerHTML = V.map((r) => `<tr${r.t === 'NC' ? ' class="esnc"' : ''}><td class="ck">${r.reg ? '' : `<input type="checkbox" class="rgCk" data-id="${esc(r.id)}"${rg.sel.has(r.id) ? ' checked' : ''} aria-label="Marcar ${esc(r.x.id)}">`}</td>` +
+    cuerpo.innerHTML = V.map((r) => `<tr class="rgFila${r.t === 'NC' ? ' esnc' : ''}" data-id="${esc(r.id)}" title="Clic para ver los productos"><td class="ck">${r.reg ? '' : `<input type="checkbox" class="rgCk" data-id="${esc(r.id)}"${rg.sel.has(r.id) ? ' checked' : ''} aria-label="Marcar ${esc(r.x.id)}">`}</td>` +
       `<td>${esc(r.x.emisor.nom)}<div class="quien">RUC ${esc(r.x.emisor.ruc)}</div></td><td>${r.t === 'NC' ? 'NC' : r.t === 'ND' ? 'ND' : 'FA'}</td>` +
       `<td><b>${esc(r.x.id)}</b>${r.x.ref ? `<div class="quien">afecta a ${esc(r.x.ref)}</div>` : ''}</td><td>${esc(dia(r.x.fecha))}</td>` +
       `<td class="num"><b>${r.t === 'NC' ? '-' : ''}${mil(Math.abs(Number(r.x.total) || 0))}</b></td><td>${esc(dia(r.x.vence || ''))}</td>` +
       `<td>${r.reg ? `<button class="mini rgIr" data-mod="${r.reg.mod}" data-emp="${esc(r.reg.emp)}" data-k="${esc(r.reg.k)}" data-per="${esc(r.reg.per)}" data-i="${esc(r.reg.i)}" title="Ir a la fila">${esc(rgModTxt(r.reg.mod))} · ${esc(r.reg.prov)} · <b>${esc(perTxt(r.reg.per))}</b></button>` : `<span class="quien">irá a ${esc(r.dest.nombre)} (${esc(rgModTxt(r.dest.tipo))}${r.dest.nuevo ? ', nuevo' : ''})</span>`}</td>` +
-      `<td>${!r.reg ? '<span class="est alerta">Falta registrar</span>' : r.reg.dif ? `<span class="est e0">Otro total: S/ ${mil(r.reg.m)}</span>` : '<span class="est e2">✓ Mismo total</span>'}</td></tr>`).join('') ||
+      `<td>${!r.reg ? '<span class="est alerta">Falta registrar</span>' : r.reg.dif ? `<span class="est e0">Otro total: S/ ${mil(r.reg.m)}</span>` : '<span class="est e2">✓ Mismo total</span>'}</td></tr>` +
+      (rg.ab.has(r.id) ? rgDetalle(r.x) : '')).join('') ||
       `<tr><td colspan="9" class="vacio">${todos.length ? 'Nada coincide con los buscadores.' : 'No hay XML de compras de esta empresa en esos meses.'}</td></tr>`;
   }
+  function rgDetalle(x) { // productos del XML, como en el Lector de XML
+    const ls = x.lineas || [];
+    return `<tr class="det"><td colspan="9"><div class="ctDatos" style="margin-bottom:8px"><div><b>Valor de venta</b>${xlN(x.base)}</div><div><b>IGV</b>${xlN(x.igv)}</div><div><b>Total</b>${x.moneda && x.moneda !== 'PEN' ? esc(x.moneda) + ' ' : ''}${xlN(x.total)}</div>` +
+      `${x.forma ? `<div><b>Pago</b>${esc(x.forma)}</div>` : ''}${(x.cuotas || []).length ? `<div><b>Cuotas</b>${x.cuotas.map((c) => `${xlN(c.m)} al ${esc(dia(c.v))}`).join(' · ')}</div>` : ''}${x.motivo ? `<div><b>Motivo</b>${esc(x.motivo)}</div>` : ''}</div>` +
+      (ls.length ? `<table style="background:#fff;font-size:13px;width:auto;min-width:60%;max-width:100%"><tr><th>#</th><th>Código</th><th>Descripción</th><th class="num">Cant.</th><th>Und.</th><th class="num">P. unit. con IGV</th><th class="num">Total</th></tr>` +
+        ls.map((l) => `<tr><td>${esc(l.n)}</td><td>${esc(l.cod)}</td><td style="white-space:normal;min-width:260px">${esc(l.desc)}</td><td class="num">${l.cant ?? ''}</td><td>${esc(l.um || '')}</td><td class="num">${xlN(l.puIgv ?? (l.cant ? (Number(l.total) || 0) / l.cant : null), 4)}</td><td class="num"><b>${xlN(l.total)}</b></td></tr>`).join('') +
+        `<tr class="tot"><td colspan="6">Total del documento</td><td class="num">${xlN(x.total)}</td></tr></table>`
+        : '<p class="quien" style="margin:0">Este XML no trae el detalle de productos.</p>') + '</td></tr>';
+  }
+  $('rgCuerpo').addEventListener('click', (e) => {
+    if (e.target.closest('input, button, a, tr.det')) return;
+    const tr = e.target.closest('tr.rgFila');
+    if (!tr) return;
+    if (rg.ab.has(tr.dataset.id)) rg.ab.delete(tr.dataset.id); else rg.ab.add(tr.dataset.id);
+    rgPintar();
+  });
+  // 2) En los buscadores, ← y → pasan al anterior o al siguiente (cuando el cursor está al borde del texto)
+  $('vRegFac').querySelector('.rgFil').addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    const c = e.target, todos = [...$('vRegFac').querySelectorAll('.rgFil [data-f]')], i = todos.indexOf(c);
+    if (i < 0) return;
+    const izq = e.key === 'ArrowLeft';
+    if (c.tagName === 'INPUT' && (izq ? c.selectionStart > 0 || c.selectionEnd > 0 : c.selectionEnd < c.value.length)) return;
+    const sig = todos[i + (izq ? -1 : 1)];
+    if (!sig) return;
+    e.preventDefault(); sig.focus();
+    if (sig.tagName === 'INPUT') { const p = izq ? sig.value.length : 0; sig.setSelectionRange(p, p); }
+  });
   $('rgEmp').addEventListener('change', () => rgPintar());
   ['rgDesde', 'rgHasta'].forEach((id) => $(id).addEventListener('change', () => rgCargar()));
   document.querySelectorAll('#vRegFac .rgFil [data-f]').forEach((x) => x.addEventListener(x.tagName === 'SELECT' ? 'change' : 'input', () => rgPintar()));
