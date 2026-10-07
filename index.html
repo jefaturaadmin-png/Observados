@@ -164,7 +164,7 @@
   .grid tr.sel td.nf, .grid tr.esnc td.nf { background:#f1eee9; }
   .grid tr.nueva td { background:#f1f9f4; } .grid tr.dup td { background:#fdecea; }
   .grid tr.nuevaFila td { background:#fbf6ef; border-bottom:2px solid var(--marca); }
-  .grid tr.recien td { background:#fff8ec; } .grid tr.recien td.nf { box-shadow:inset 3px 0 0 var(--marca); }
+  .grid tr.recien td { animation:recien 2.2s ease-out var(--ya, 0ms) both; } @keyframes recien { 0%, 35% { background:#e6f0fb; } 100% { background:transparent; } }
   .aObsL { display:flex; align-items:center; gap:5px; margin:0; font-weight:600; color:var(--pri); white-space:nowrap; cursor:pointer; } .grid .aObsL .gIn { width:auto; min-width:0; }
   .grid .gIn { width:100%; min-width:70px; padding:3px 6px; border:1px solid var(--marca); border-radius:4px; font-size:13.5px; }
   .grid .gIn.n { text-align:right; }
@@ -211,43 +211,43 @@
   .fila-bot { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
   .gtabla input[type=number], .gtabla input:not([type]) { min-width:90px; padding:6px 8px; }
 
-  /* ===== Armazón tipo ERP: fondo cálido, menú y barra en naranja crema, naranja para lo activo ===== */
-  :root { --marca:#fe6e00; --pri:#d95a00; --suave:#fff1e5; --gris:#797067; --borde:#e3e0dd; --fondo:#fcfaf7; --casco:#fde4c8; --casco2:#fbd3a8; --cTxt:#4a2a0f; }
+  /* ===== Armazón tipo ERP: fondo cálido, menú y barra gris pizarra, naranja para lo activo ===== */
+  :root { --marca:#fe6e00; --pri:#d95a00; --suave:#fff1e5; --gris:#797067; --borde:#e3e0dd; --fondo:#fcfaf7; --casco:#45494d; --casco2:#3a3e42; --cTxt:#ffffff; }
   body { color:#423d38; }
   #app:not(.oculto) { display:flex; min-height:100vh; align-items:flex-start; }
-  #lado { flex:none; width:248px; height:100vh; position:sticky; top:0; background:var(--casco); color:var(--cTxt); border-right:1px solid #f1c79a; display:flex; flex-direction:column; transition:width .2s cubic-bezier(.4,0,.2,1); z-index:30; }
-  .ladoMarca { height:60px; display:flex; align-items:center; gap:10px; padding:0 16px; border-bottom:1px solid rgba(120,60,10,.15); background:var(--casco2); font-weight:800; font-size:15px; white-space:nowrap; overflow:hidden; flex:none; }
+  #lado { flex:none; width:248px; height:100vh; position:sticky; top:0; background:var(--casco); color:var(--cTxt); border-right:1px solid #2f3336; display:flex; flex-direction:column; transition:width .2s cubic-bezier(.4,0,.2,1); z-index:30; }
+  .ladoMarca { height:60px; display:flex; align-items:center; gap:10px; padding:0 16px; border-bottom:1px solid rgba(255,255,255,.08); background:var(--casco2); font-weight:800; font-size:15px; white-space:nowrap; overflow:hidden; flex:none; }
   .ladoMarca img { width:30px; height:30px; border-radius:8px; object-fit:contain; background:#fff; flex:none; }
   #lado nav { display:block; flex:1; overflow-y:auto; overflow-x:hidden; padding:10px 10px 16px; background:none; border:none; }
   .navGrupo:not(:has(> button:not(.oculto))) { display:none; }
-  .navG { font-size:11px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; color:rgba(90,45,10,.6); padding:14px 10px 6px; white-space:nowrap; }
-  #lado nav button { display:flex; align-items:center; gap:11px; width:100%; text-align:left; border:none; border-radius:8px; background:transparent; color:#5a3a1e; font-weight:600; font-size:13.5px; padding:8px 10px; margin:1px 0; white-space:nowrap; }
+  .navG { font-size:11px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; color:#f39a3d; font-size:12px; padding:14px 10px 6px; white-space:nowrap; }
+  #lado nav button { display:flex; align-items:center; gap:11px; width:100%; text-align:left; border:none; border-radius:8px; background:transparent; color:rgba(255,255,255,.88); font-weight:600; font-size:13.5px; padding:8px 10px; margin:1px 0; white-space:nowrap; }
   #lado nav button.oculto { display:none; }
   #lado nav button svg { flex:none; }
-  #lado nav button:hover { background:rgba(254,110,0,.14); color:#3d220b; }
+  #lado nav button:hover { background:rgba(255,255,255,.08); color:#fff; }
   #lado nav button.act { background:var(--marca); color:#fff; border:none; }
-  #lado nav button:focus-visible { outline:2px solid #c2570a; outline-offset:1px; }
+  #lado nav button:focus-visible { outline:2px solid #f39a3d; outline-offset:1px; }
   #lado nav .navT { flex:1; overflow:hidden; text-overflow:ellipsis; }
   #lado nav .cuenta { background:#fb2c36; margin-left:0; }
   #lado nav button.act .cuenta { background:#fff; color:#b34700; }
   #cuerpo { flex:1; min-width:0; }
-  #app header { position:sticky; top:0; z-index:20; height:60px; padding:0 18px; background:var(--casco2); color:var(--cTxt); border-bottom:1px solid #f1c79a; flex-wrap:nowrap; gap:12px; }
+  #app header { position:sticky; top:0; z-index:20; height:60px; padding:0 18px; background:var(--casco2); color:var(--cTxt); border-bottom:1px solid #2f3336; flex-wrap:nowrap; gap:12px; }
   #app header h1 { font-size:17px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
-  #app header span { color:rgba(61,34,11,.8); white-space:nowrap; }
-  #app header button { color:var(--cTxt); border-color:rgba(61,34,11,.3); border-radius:8px; white-space:nowrap; }
-  #app header button:hover { background:rgba(255,255,255,.45); }
+  #app header span { color:rgba(255,255,255,.82); white-space:nowrap; }
+  #app header button { color:var(--cTxt); border-color:rgba(255,255,255,.3); border-radius:8px; white-space:nowrap; }
+  #app header button:hover { background:rgba(255,255,255,.1); }
   #bMenu { width:40px; height:40px; padding:0; display:flex; align-items:center; justify-content:center; border:none !important; flex:none; }
   main { padding:18px 22px 40px; max-width:none; margin:0; }
   /* Las ventanas de cada módulo se eligen en el menú de la izquierda; la barra de pestañas solo queda si el menú está encogido */
-  .navSub { display:none; margin:2px 0 6px 19px; padding-left:10px; border-left:1px solid rgba(120,60,10,.25); }
+  .navSub { display:none; margin:2px 0 6px 19px; padding-left:10px; border-left:1px solid rgba(255,255,255,.18); }
   #lado nav button.act + .navSub { display:block; }
-  #lado nav .navSub button { font-size:13px; font-weight:500; padding:6px 10px; color:#6b4a2e; }
-  #lado nav .navSub button.on { color:#3d220b; font-weight:700; background:rgba(254,110,0,.2); box-shadow:inset 3px 0 0 var(--marca); }
+  #lado nav .navSub button { font-size:13px; font-weight:500; padding:6px 10px; color:rgba(255,255,255,.72); }
+  #lado nav .navSub button.on { color:#fff; font-weight:700; background:rgba(254,110,0,.25); box-shadow:inset 3px 0 0 var(--marca); }
   body:not(.menuMin) #gSub, body:not(.menuMin) #ctSub, body:not(.menuMin) #cpSub { display:none; }
   body.menuMin .navSub { display:none !important; }
   body.menuMin #lado { width:64px; } body.menuMin .navT, body.menuMin .navG, body.menuMin .ladoMarca b { display:none; } body.menuMin .ladoMarca { padding:0 17px; }
   body.menuMin #lado nav button { justify-content:center; padding:10px 0; position:relative; } body.menuMin #lado nav .cuenta { position:absolute; top:2px; right:4px; padding:0 5px; font-size:10px; }
-  body.menuMin .navGrupo + .navGrupo { border-top:1px solid rgba(120,60,10,.15); margin-top:6px; padding-top:6px; }
+  body.menuMin .navGrupo + .navGrupo { border-top:1px solid rgba(255,255,255,.1); margin-top:6px; padding-top:6px; }
   #velo { display:none; }
   @media (max-width: 900px) {
     #lado { position:fixed; left:0; top:0; transform:translateX(-102%); transition:transform .2s cubic-bezier(.4,0,.2,1); width:264px !important; box-shadow:0 0 40px rgba(0,0,0,.4); }
@@ -2036,7 +2036,7 @@
     // Referencia: la anotada en la NC, o la de su XML si el XML no trae productos (con productos se reparte por producto, abajo)
     ncs.forEach((o) => { const r = o.f.r || (o.prods.length ? '' : o.ref); if (r) { if (!refs.has(r)) refs.set(r, []); refs.get(r).push(o); } });
     // Si la NC trae productos (XML), solo se cruza por monto donde algún producto coincide con lo observado
-    const concuerda = (o, ls) => !o.prods.length || !ls.some((l) => String(l.p || '').trim()) || ls.some((l) => prodCoincide(l.p, o.prods));
+    const concuerda = (o, ls) => !o.prods.length || !ls.some((l) => String(l.p || '').trim()) || ls.some((l) => /devoluci[oó]n\s+total|dev\.?\s*total/i.test(String(l.p || ''))) || ls.some((l) => prodCoincide(l.p, o.prods)); // "devolución total" vale para cualquier producto
     const lista = facturas.filter((x) => x.lineas.length || (x.f.nc || []).length).map((x) => {
       const mias = [], faltan = [];
       (x.f.nc || []).forEach((k) => { if (rebs.has(k) && !ncs.has(k) && !(porNum.get(String(k).split('-').pop()) || []).length) return; const o = hallar(k, x.f); if (o) { if (!mias.some((l) => l.o === o)) mias.push({ o, tipo: 'anotada' }); } else faltan.push(k); });
@@ -2112,6 +2112,34 @@
       let n = 0;
       conMonto.forEach((l) => { if (Number(l.m) <= 1) return; const o = buscar(x, Number(l.m), [l]); if (o) { aplicarAuto(x, c, o, 'auto: por producto'); n += 1; } });
       if (n) c.auto = `Por producto (${n} de ${conMonto.length})`;
+    });
+    // Paso 4b: varias NC libres que juntas suman lo observado (por ejemplo, una devolución total en 3 NC)
+    lista.forEach((x) => {
+      const c = res.get(`${x.per}|${x.f.i}`);
+      if (c.aplicada > 0 || c.obs <= 1) return;
+      const cand = candidatas().filter((o) => {
+        if (o.resto > c.obs + TOL_NC || !concuerda(o, x.lineas)) return false;
+        const d = diasEntre(x.f.f, o.f.f);
+        return d === null || (d >= 0 && d <= DIAS_NC);
+      }).sort((p, q) => (diasEntre(x.f.f, p.f.f) ?? 9e6) - (diasEntre(x.f.f, q.f.f) ?? 9e6)).slice(0, 18);
+      if (cand.length < 2) return;
+      let mejor = null;
+      const prueba = (desde, sel, suma) => {
+        if (sel.length >= 2 && Math.abs(suma - c.obs) <= TOL_NC) {
+          const fechas = new Set(sel.map((o) => o.f.f)).size; // se prefieren menos NC y de una misma fecha
+          if (!mejor || sel.length < mejor.sel.length || (sel.length === mejor.sel.length && fechas < mejor.fechas)) mejor = { sel: [...sel], fechas };
+          return;
+        }
+        if (sel.length >= 5 || (mejor && sel.length >= mejor.sel.length)) return;
+        for (let k = desde; k < cand.length; k += 1) {
+          if (suma + cand[k].resto > c.obs + TOL_NC) continue;
+          sel.push(cand[k]); prueba(k + 1, sel, r2(suma + cand[k].resto)); sel.pop();
+        }
+      };
+      prueba(0, [], 0);
+      if (!mejor) return;
+      mejor.sel.forEach((o) => aplicarAuto(x, c, o, `auto: varias NC (${mejor.sel.length})`));
+      c.auto = `Varias NC (${mejor.sel.length})`;
     });
     // Paso 5: el sobrante de una NC ya usada cubre otra observación a la que le falta justo ese monto
     [...ncs.values()].filter((o) => !o.libre && o.resto > TOL_NC)
@@ -2370,7 +2398,7 @@
     };
   }
   let pgAviso = ''; // aviso que se muestra junto a la fila nueva (por ejemplo, factura repetida)
-  let pgRecien = { d: '', ids: [] }; // lo recién agregado se muestra arriba, junto a la fila de ingreso, para no tener que buscarlo
+  let pgRecien = { d: '', id: '', t: 0 }; // la fila recién agregada parpadea un momento en su lugar (ordenada por fecha)
   const ncRefPh = (tr) => { const r = tr.querySelector('.aR'), t = tr.querySelector('.aT'); if (r && t) r.placeholder = t.value === 'NC' ? 'Factura que afecta (F160-300744) o REBATE…' : 'NC aplicadas (opcional)'; const o = tr.querySelector('.aObsL'); if (o && t) o.classList.toggle('oculto', t.value === 'NC'); };
   // ← / → pasan de una casilla a otra en la fila de ingreso (en el texto, cuando el cursor está al inicio o al final)
   function flechasNueva(e) {
@@ -2411,8 +2439,7 @@
       $('gRes').textContent = ''; $('gPie').textContent = ''; return;
     }
     const vista0 = filasVista(), reponer = conservarNueva(cuerpo), czColG = [];
-    const rec = pgRecien.d === d.id ? pgRecien.ids : [], posR = (f) => rec.indexOf(f.i);
-    const vista = vista0.filter((f) => posR(f) >= 0).sort((a, b) => posR(b) - posR(a)).concat(vista0.filter((f) => posR(f) < 0));
+    const vista = vista0, yaPaso = Date.now() - pgRecien.t, nuevo = pgRecien.d === d.id && yaPaso < 2200 ? pgRecien.id : '';
     pintarOtrosMeses();
     czAsegurar((d.filas || []).concat(...pgDocs.map((x) => (x.filas || []).filter((f) => f.t === 'NC'))).map((f) => String(f.f || '').slice(0, 7)), () => pintarPagos(true)); // con las NC de todos los meses: su XML dice a qué factura afectan
     { const ct2 = $('gCkTodo'); if (ct2) { const n = vista.filter((f) => pgSel.has(f.i)).length; ct2.checked = vista.length > 0 && n === vista.length; ct2.indeterminate = n > 0 && n < vista.length; ct2.disabled = !vista.length; } }
@@ -2425,7 +2452,7 @@
         const xr = !f.r && !rebDe(f) ? (ncXmlInfo(f) || {}).ref : '';
         colNc = rebDe(f) ? `<span class="est e3">${esc(rebTxt(f))}</span>` : (f.r ? `→ factura ${esc(f.r)}` : xr ? `→ factura ${esc(xr)} <span class="quien">(según su XML)</span>` : (ncSinAsignar(f) ? '<span class="est e0">Sin asignar a factura</span>' : '<span class="quien">Aplicada a una factura</span>'));
       } else colNc = esc((f.nc || []).join(', ')) + (c.faltan.length ? ` <span class="est alerta" title="No está en la lista">falta ${esc(c.faltan.join(', '))}</span>` : '');
-      h += `<tr data-i="${esc(f.i)}" class="${pgSel.has(f.i) ? 'sel ' : ''}${f.t === 'NC' ? 'esnc ' : ''}${posR(f) >= 0 ? 'recien' : ''}">` +
+      h += `<tr data-i="${esc(f.i)}" class="${pgSel.has(f.i) ? 'sel ' : ''}${f.t === 'NC' ? 'esnc ' : ''}${f.i === nuevo ? 'recien' : ''}"${f.i === nuevo ? ` style="--ya:-${yaPaso}ms"` : ''}>` +
         `<td class="nf">${n + 1}</td><td class="ck"><input type="checkbox" class="gCk"${pgSel.has(f.i) ? ' checked' : ''} aria-label="Seleccionar fila ${n + 1}"></td>` +
         `<td data-c="f"${ed}>${esc(dia(f.f))}</td><td data-c="t"${ed}>${esc(f.t)}</td><td data-c="s"${ed}>${esc(f.s)}</td><td data-c="n"${ed}>${esc(f.n)}</td>` +
         `<td data-c="m" class="${edita ? 'ed ' : ''}n${f.m < 0 ? ' neg' : ''}">${esc(mil(f.m))}</td>` +
@@ -2439,7 +2466,7 @@
         `<td data-c="x" class="${edita ? 'ed ' : ''}nota">${fechaRara(f, d.per) ? '<span class="est alerta">revisa la fecha</span> ' : ''}${esc(f.x || '')}</td></tr>`;
       if (abierta && f.t === 'FA') h += filaDetalle(f, c, edita);
     });
-    if (edita) { // la fila de ingreso va arriba, y debajo lo recién agregado
+    if (edita) { // la fila de ingreso va arriba
       h = '<tr class="nuevaFila"><td class="nf">+</td><td></td>' +
         '<td><input class="gIn aF" placeholder="dd/mm/aaaa" aria-label="Fecha"></td>' +
         '<td><select class="gIn aT" aria-label="Tipo"><option>FA</option><option>NC</option><option>ND</option></select></td>' +
@@ -2643,12 +2670,11 @@
     ['.aN', '.aM', '.aL', '.aR'].forEach((c) => { tr.querySelector(c).value = ''; });
     tr.querySelector('.aO').checked = false;
     d.filas = (d.filas || []).concat([f]);
-    if (pgRecien.d !== d.id) pgRecien = { d: d.id, ids: [] };
-    pgRecien.ids.push(f.i);
+    pgRecien = { d: d.id, id: f.i, t: Date.now() };
     if (obs) pgAbiertas.add(f.i);
     pintarPagos(true);
     const det = obs && $('gCuerpo').querySelector(`tr.det[data-d="${f.i}"]`), foco = det && det.querySelector('.obXml select, .oProd');
-    if (foco) foco.focus(); else { const n = $('gCuerpo').querySelector('.aN'); if (n) n.focus(); }
+    if (foco) { det.scrollIntoView({ block: 'center' }); foco.focus(); } else { const n = $('gCuerpo').querySelector('.aN'); if (n) n.focus(); }
     try { await pgGuardar(d.per, (lista) => { if (!lista.some((x) => x.i === f.i)) lista.push(f); }, 'Agregó', `${f.t} ${f.s}-${f.n} por ${mil(f.m)}`); }
     catch (e) { d.filas = (d.filas || []).filter((x) => x.i !== f.i); pintarPagos(true); pgAviso = `No se pudo guardar ${f.t} ${f.s}-${f.n}: ${esc(errorTexto(e))}`; pintarPagos(true); }
   }
