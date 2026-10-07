@@ -4302,7 +4302,7 @@
   const czOlvidar = (ym) => { czXml.meses.delete(ym); };
   function czAsegurar(yms, repintar) { // trae los XML de esos meses de emisión; se vuelven a leer cada 10 minutos por si otro usuario subió más
     if (!puede('verXml')) return Promise.resolve();
-    const ahora = Date.now(), falta = [...new Set(yms)].filter((m) => /^\d{4}-\d{2}$/.test(m) && !(ahora - (czXml.meses.get(m) || 0) < 600000));
+    const ahora = Date.now(), falta = [...new Set(yms)].filter((m) => /^\d{4}-\d{2}$/.test(m) && !(ahora - (czXml.meses.get(m) || 0) < 21600000)); // 6 horas: cuida la cuota diaria de lecturas
     const pend = [...new Set(yms)].map((m) => czXml.cargando.get(m)).filter(Boolean);
     if (!falta.length) return Promise.all(pend);
     falta.forEach((m) => czXml.meses.set(m, ahora));
@@ -6341,7 +6341,7 @@
   const rgKey = (x) => (CI_T[x.tipo] && x.serie ? `${CI_T[x.tipo]}|${serDoc(x.serie)}|${numDoc(x.num)}` : '');
   const rgId = (x) => `${(x.emisor || {}).ruc}|${rgKey(x)}`;
   async function rgCargarBase(forzar) { // lo registrado en Pagos a proveedores y Cuentas por pagar, todas las empresas y meses
-    if (rg.carg || (!forzar && rg.t && Date.now() - rg.t < 60000)) return;
+    if (rg.carg || (!forzar && rg.t && Date.now() - rg.t < 600000)) return;
     rg.carg = true;
     const lee = (p) => p.catch(() => null);
     const [sp, sc, sa] = await Promise.all([puede('verPagos') ? lee(getDocs(collection(db, 'pagos'))) : null, puede('verCxp') && !pgCfg.cxpMig ? lee(getDocs(collection(db, 'cpm'))) : null, lee(getDoc(doc(db, 'config', 'concilia')))]);
@@ -7440,11 +7440,12 @@
     xl.cargando = true; xlPintar();
     try {
       const s = await getDocs(collection(db, 'xmlf')); // todos, sin límite de fechas
+      xl.leido = Date.now();
       xl.docs = s.docs.map((d) => ({ k: d.id, ...d.data() })).sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)) || String(a.id).localeCompare(String(b.id), undefined, { numeric: true }));
     } catch (e) { xl.errores.push('No se pudo leer lo guardado: ' + errorTexto(e)); xl.docs = []; }
     xl.cargando = false; xl.listo = true; xlPintar();
   }
-  function xlAbrirVista() { $('xlZona').classList.toggle('oculto', !puede('xml')); xlCargar(); xbVisto(); }
+  function xlAbrirVista() { $('xlZona').classList.toggle('oculto', !puede('xml')); if (!xl.leido || Date.now() - xl.leido > 1800000) xlCargar(); else xlPintar(); xbVisto(); } // cuida la cuota diaria de lecturas de Firebase
   async function xlSubir(archivos) {
     const cola = []; xl.errores = []; xl.avisos = [];
     for (const a of archivos) {
