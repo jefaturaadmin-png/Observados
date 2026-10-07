@@ -153,6 +153,10 @@
   .grid td.nf { width:36px; text-align:center; background:#f1eee9; color:#9a938b; font-size:11px; }
   .grid td.ck { width:30px; text-align:center; }
   .grid td.fis { width:44px; text-align:center; padding:2px; }
+  /* XML y Lolfar: angostas; si el aviso es largo, baja a otra línea */
+  .grid th.vXml, .grid td.vXml { width:1%; min-width:84px; max-width:170px; white-space:normal; }
+  .grid th.vLf, .grid td.vLf { width:1%; min-width:84px; max-width:150px; white-space:normal; }
+  .grid td.vXml .est, .grid td.vLf .est { white-space:normal; display:inline-block; line-height:1.3; border-radius:8px; }
   .grid tr.conf td.nf { background:#1b7a4b; color:#fff; font-weight:700; }
   .gFis { width:24px; height:24px; padding:0; border:2px solid #b9b2aa; border-radius:5px; background:#fff; color:#fff; font-weight:800; font-size:15px; line-height:1; cursor:pointer; }
   .gFis.si { background:#1b7a4b; border-color:#1b7a4b; } .gFis:focus-visible { outline:3px solid var(--marca); outline-offset:1px; }
@@ -483,7 +487,7 @@
         <div id="gMsg"></div>
         <p class="resumen" id="gRes"></p>
         <div class="tabla grid"><table>
-          <thead><tr><th class="nf" title="Verde: conforme (física, XML y Lolfar)"></th><th class="ck"><input type="checkbox" id="gCkTodo" title="Seleccionar todo lo que se ve" aria-label="Seleccionar todo lo que se ve"></th><th>Fecha</th><th>Tipo</th><th>Serie</th><th>Número</th><th class="n">Total</th><th>Laboratorio</th><th class="n">Observado</th><th>NC anotadas</th><th>Estado</th><th class="fis" title="Revisada contra la factura física (clic, o Enter en el buscador)">Física</th><th title="Conciliada con su XML">XML</th><th title="Está en el reporte de Lolfar con el mismo total (se marca al usar Comparar con reporte Lolfar)">Lolfar</th><th>Nota</th></tr></thead>
+          <thead><tr><th class="nf" title="Verde: conforme (física, XML y Lolfar)"></th><th class="ck"><input type="checkbox" id="gCkTodo" title="Seleccionar todo lo que se ve" aria-label="Seleccionar todo lo que se ve"></th><th>Fecha</th><th>Tipo</th><th>Serie</th><th>Número</th><th class="n">Total</th><th>Laboratorio</th><th class="n">Observado</th><th>NC anotadas</th><th>Estado</th><th class="fis" title="Revisada contra la factura física (clic, o Enter en el buscador)">Física</th><th class="vXml" title="Conciliada con su XML">XML</th><th class="vLf" title="Está en el reporte de Lolfar con el mismo total (se marca al usar Comparar con reporte Lolfar)">Lolfar</th><th>Nota</th></tr></thead>
           <tbody id="gCuerpo"></tbody>
         </table></div>
         <p class="resumen" id="gPie" style="margin-top:10px"></p>
@@ -2525,7 +2529,7 @@
         `<td data-c="${f.t === 'NC' ? 'r' : 'nc'}"${ed}>${colNc}</td>` +
         `<td>${est ? `<span class="est ${claseEst(est)}">${esc(est)}</span>` : ''}${botonPago(f, c, edita)}</td>` +
         `<td class="fis"><button class="gFis${f.fis ? ' si' : ''}"${edita ? '' : ' disabled'} title="${f.fis ? esc(`Revisada con la física · ${f.fisPor || ''} · ${dia(f.fisF || '')}`) : 'Marcar como revisada con la factura física'}" aria-label="Revisada con la física">${f.fis ? '✓' : ''}</button></td>` +
-        `<td>${f.n ? czCelda(f, kx, f.m, distDe(pgDist()).nombre, edita, czColG) : ''}</td><td>${lfCelda(f)}</td>` +
+        `<td class="vXml">${f.n ? czCelda(f, kx, f.m, distDe(pgDist()).nombre, edita, czColG) : ''}</td><td class="vLf">${lfCelda(f)}</td>` +
         `<td data-c="x" class="${edita ? 'ed ' : ''}nota">${fechaRara(f, d.per) ? '<span class="est alerta">revisa la fecha</span> ' : ''}${esc(f.x || '')}</td></tr>`;
       if (abierta && f.t === 'FA') h += filaDetalle(f, c, edita);
     });
