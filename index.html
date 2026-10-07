@@ -104,7 +104,6 @@
   .dgChip { background:var(--suave); border:1px solid var(--marca); border-radius:10px; padding:8px 12px; margin-bottom:10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
   tr.dgGrupo td { background:#f4f1ec; font-weight:700; font-size:12px; letter-spacing:.03em; } .dgLink { border:none; background:none; padding:0; color:inherit; text-align:left; text-decoration:underline dotted; } .dgDet { margin-top:6px; font-size:13px; } .dgDet summary { cursor:pointer; color:var(--gris); }
   #dgFiltros select { width:auto; max-width:330px; }
-  .hoja tr.r_fobs td:nth-child(5), .hoja tr.r_fobs td:nth-child(6) { color:#1f4e96; font-weight:600; }
   button.sgKpi { text-align:left; cursor:pointer; font:inherit; } button.sgKpi.sel { background:var(--suave); box-shadow:0 0 0 2px var(--marca) inset; } .sgChk { display:flex; gap:6px; align-items:center; margin:0; font-weight:600; color:inherit; white-space:nowrap; } .sgChk input { width:auto; }
   #sgFiltros select { width:auto; max-width:340px; }
   .sgDot { display:inline-block; width:12px; height:12px; border-radius:50%; margin-right:7px; vertical-align:-1px; } .sgDot.v { background:#1b7a4b; } .sgDot.n { background:#fe6e00; } .sgDot.r { background:#d92d20; }
@@ -188,14 +187,12 @@
   tr.tot td { font-weight:700; background:#fbfaf8; }
   tr.hoy td { background:var(--suave); font-weight:600; }
   .grid tr.subt td { background:#f6efe7; font-weight:700; }
-  .hoja table { font-size:13px; } .hoja td { padding:4px 10px; border-bottom:1px solid #f1eee9; }
-  .hoja tr.r_tit td { font-weight:800; font-size:14px; border:none; }
-  .hoja tr.r_cab td { background:#f1eee9; font-weight:700; font-size:12px; }
-  .hoja tr.r_tot td { font-weight:700; background:#fbfaf8; }
-  .hoja tr.r_txt td { white-space:normal; font-weight:600; border:none; }
-  .hoja tr.r_nc td { color:var(--rojo); }
-  .hoja tr.r_obs td, .hoja tr.r_obsF td { color:#1f4e96; white-space:pre-wrap; }
-  .hoja tr.r_obsF td { font-weight:700; }
+  /* Resumen de pago: se ve como la hoja de Excel del modelo (cuadrícula, letras de columna y números de fila) */
+  .xlHoja { border-radius:4px; background:#fff; color:#000; }
+  .xlHoja table { width:max-content; table-layout:fixed; background:#fff; color:#000; }
+  .xlHoja td { padding:1px 4px; height:17px; border:1px solid #e3e3e3; color:#000; overflow:visible; }
+  .xlHoja th { padding:1px 4px; background:#efefef; color:#555; border:1px solid #cfcfcf; font:11px Arial; text-align:center; text-transform:none; letter-spacing:0; position:sticky; top:0; }
+  .xlHoja tr th:first-child { position:sticky; left:0; z-index:1; }
   #gMsg, #xMsg { position:sticky; top:6px; z-index:4; }
   .par { display:grid; grid-template-columns:minmax(70px, 1fr) minmax(90px, 1.6fr); gap:6px; }
 
@@ -3102,7 +3099,7 @@
         : falta ? `NC PARCIAL ${ncs2} POR S/ ${mil(c.aplicada)} · FALTA S/ ${mil(falta)}`
           : est === 'NC mayor a lo observado' ? `CON NC ${ncs2} (MAYOR A LO OBSERVADO)` : `CON NC ${ncs2}`;
       if (extra && c.det.length && !falta) return; // de meses anteriores solo interesa lo que sigue sin nota de crédito
-      lista.push({ fac: `${f.s}-${f.n}${extra || ''}`, total: c.obs, falta: r2(Math.max(0, c.obs - c.aplicada)), sit, lineas: c.lineas });
+      lista.push({ fac: `${f.s}-${f.n}`, extra: extra ? ` (${extra.replace(/^ · /, '')})` : '', c, total: c.obs, falta: r2(Math.max(0, c.obs - c.aplicada)), sit, lineas: c.lineas });
     };
     normales.forEach((f) => cuadro(f, d.per, obs));
     // Observaciones de facturas de meses anteriores (hasta 6 meses atrás) que siguen esperando su NC: incluye las observadas después de programar
@@ -3113,80 +3110,130 @@
     }
     return { d, dist, emp, normales, ncs, dev, ncDeDev, usoNc, tCompras, nCredito, tPagar, letras, cuota: letras ? r2(tPagar / letras) : null, desde, cal, obs, obsAnt };
   }
-  // Las filas del resumen, tal como van al Excel del proveedor y a la vista previa
+  // Las filas del resumen, con el modelo de la hoja de programación (DIMEXA): columnas A–H, iguales en pantalla y en el Excel
+  const fechaGuion = (s) => dia(s).replace(/\//g, '-');
+  const feriadoTxt = (isos) => { // "8 DE OCTUBRE" · "8 Y 9 DE OCTUBRE"
+    const g = new Map();
+    isos.forEach((s) => { const k = MESES[+s.slice(5, 7)]; if (!g.has(k)) g.set(k, []); g.get(k).push(String(+s.slice(8, 10))); });
+    return [...g].map(([m, ds]) => `${ds.length > 1 ? ds.slice(0, -1).join(', ') + ' Y ' + ds[ds.length - 1] : ds[0]} DE ${m}`).join(', ');
+  };
+  // Qué va en la columna G de cada producto observado: la NC que lo cubre o "FALTA NOTA CRED"
+  function obsEstados(c) {
+    const ls = c.lineas, det = c.det.map((d) => ({ ...d })), suyas = ls.map(() => []), falta = pendDe(c);
+    ls.forEach((l, i) => { const m = Number(l.m) || 0, j = det.findIndex((d) => !d.u && m > 0 && Math.abs(d.aplicado - m) <= TOL_NC); if (j >= 0) { det[j].u = 1; suyas[i].push(det[j]); } });
+    const resto = det.filter((d) => !d.u);
+    if (resto.length) { const i = suyas.findIndex((s) => !s.length); suyas[i >= 0 ? i : 0].push(...resto); }
+    const ncTxt = (ds) => ds.map((d) => `${d.k} (${mil(d.aplicado)})`).join(' + ');
+    return ls.map((l, i) => {
+      if (suyas[i].length) return { t: ncTxt(suyas[i]) + (ls.length === 1 && falta ? ` · FALTA ${mil(falta)}` : ''), ok: !(ls.length === 1 && falta) };
+      if (!falta && c.det.length) return { t: c.det.map((d) => d.k).join(' + '), ok: true };
+      return { t: 'FALTA NOTA CRED', ok: false };
+    });
+  }
   function resumenFilas(R) {
-    const out = [], fila = (c, cls) => out.push({ c, cls: cls || '' });
-    const cab = () => { fila([R.emp.nombre], 'tit'); fila([`RUC ${R.emp.ruc}`]); fila([]); fila([R.dist.nombre], 'tit'); fila([]); };
-    const doc1 = (f, extra) => [R.dist.nombre, dia(f.f), f.t, f.s, f.n, Number(f.m) || 0].concat(extra || []);
-    const pintaObs = (o) => {
-      fila([`FACTURA ${o.fac}`, '', '', '', 'OBSERVADO', o.total, o.sit], 'obsF');
-      o.lineas.forEach((l) => fila([`     ${l.p}`, '', '', '', '', l.m ?? '', ''], 'obs'));
-    };
-    const filaDoc = (f, extra) => fila(doc1(f, extra), f.t === 'NC' ? 'nc' : ''); // las NC van en rojo
-    cab();
-    fila(['PROVEEDOR', 'FECHA', 'TIPO', 'SERIE', 'NUMERO', 'TOTAL', 'LABORATORIO'], 'cab');
-    R.normales.forEach((f) => fila(doc1(f, [f.l || f.dp || '']), cruceDe(R.d.per, f).lineas.length ? 'fobs' : ''));
-    R.ncs.forEach((f) => filaDoc(f, [rebTxt(f)]));
-    fila(['', '', '', '', 'TOTAL', R.tPagar, R.cuota === null ? '' : R.cuota], 'tot');
-    fila([]);
+    const out = [], fila = (cls, c, x) => out.push({ cls, c: c || [], ...(x || {}) });
+    const cab = (ref) => { fila('emp', [R.emp.nombre]); fila('ruc', [`RUC ${R.emp.ruc}`]); fila(''); fila('prov', [R.dist.nombre]); fila(''); fila('cab', ['PROVEEDOR', 'FECHA', 'TIPO', 'SERIE', 'NUMERO', 'TOTAL', '', ref ? 'REFERENCIA' : '']); };
+    const doc1 = (f, g, h) => fila(f.t === 'NC' ? 'nc' : 'fa', [R.dist.nombre, fechaGuion(f.f), f.t, f.s, f.n, Number(f.m) || 0, g || '', h || '']);
+    const lin = (l) => { const p = String(l.p || '').trim(); return l.q && !/^\d/.test(p) ? `${l.q} ${p}` : p; };
+    const pintaObs = (o) => { const es = obsEstados(o.c); o.lineas.forEach((l, i) => fila('obs', [o.fac, lin(l), '', '', '', l.m === null || l.m === undefined || l.m === '' ? '' : Number(l.m), es[i].t + (o.extra || '')], { ok: es[i].ok })); };
+    const ncRef = (f) => { const x = ncXmlInfo(f); return f.r || (x && x.ref) || (R.usoNc.get(`${f.s}-${f.n}`) || []).join(', '); };
+    const ncNota = (f) => rebTxt(f) || (R.usoNc.get(`${f.s}-${f.n}`) || []).join(', ') || f.e || '';
     const mesCompra = (R.d.compra || []).map((c) => MESES[+c.slice(5)]).join(' Y ');
+    cab(false);
+    R.normales.forEach((f) => doc1(f));
+    R.ncs.forEach((f) => doc1(f));
+    fila('tot', ['', '', '', '', 'TOTAL', R.tPagar, R.cuota === null ? '' : R.cuota]);
+    fila('');
     if (R.dist.pago === 'letras') {
-      fila([`Programación de pago de facturas${mesCompra ? ' del mes de ' + mesCompra : ''} por S/ ${mil(R.tPagar)}${R.letras ? ` en ${R.letras} letras c/u de S/ ${mil(R.cuota)}` : ''}`], 'txt');
+      fila('txt1', [`Programación de facturas${mesCompra ? ' del mes de ' + mesCompra : ''} por S/${mil(R.tPagar)}${R.letras ? ` en ${R.letras} letras C/U de S/${mil(R.cuota)}` : ''}`]);
       if (R.cal.dias.length) {
-        fila([`DESDE EL ${fechaLarga(R.cal.dias[0])}`], 'txt');
-        fila([`HASTA EL ${fechaLarga(R.cal.dias[R.cal.dias.length - 1])} DEL ${R.cal.dias[R.cal.dias.length - 1].slice(0, 4)}`], 'txt');
-        fila([`NO INCLUYE SÁBADOS Y DOMINGOS${R.cal.saltados.length ? ', NI ' + (R.cal.saltados.length > 1 ? 'LOS FERIADOS DEL ' : 'EL FERIADO DEL ') + R.cal.saltados.map(dia).join(', ') : ''}`], 'txt');
-      } else fila(['Falta indicar el número de letras y la fecha de inicio.'], 'txt');
+        fila('txt2', [`DESDE EL ${fechaLarga(R.cal.dias[0])}`]);
+        fila('txt2', [`HASTA EL ${fechaLarga(R.cal.dias[R.cal.dias.length - 1])} DEL ${R.cal.dias[R.cal.dias.length - 1].slice(0, 4)}`]);
+        fila('txt2', [`NO INCLUYE SÁBADOS Y DOMINGOS${R.cal.saltados.length ? ` NI FERIADO${R.cal.saltados.length > 1 ? 'S' : ''} ${feriadoTxt(R.cal.saltados)}` : ''}`]);
+      } else fila('txt2', ['FALTA INDICAR EL NÚMERO DE LETRAS Y LA FECHA DE INICIO']);
     } else {
-      fila([`Resumen de facturas por pagar por un total de S/ ${mil(R.tPagar)}, que se ${R.dist.pago === 'fecha' ? 'pagarán en la fecha indicada para cada factura' : 'programarán según su fecha de vencimiento'}, con depósitos en el BCP para ${perTxt(R.d.per)}`], 'txt');
+      fila('txt1', [`Facturas${mesCompra ? ' del mes de ' + mesCompra : ''} por S/${mil(R.tPagar)}`]);
+      fila('txt2', [R.dist.pago === 'fecha' ? 'SE PAGAN EN LA FECHA INDICADA PARA CADA FACTURA' : 'SE PROGRAMAN SEGÚN SU FECHA DE VENCIMIENTO']);
+      fila('txt2', [`DEPÓSITOS EN EL BCP PARA ${perTxt(R.d.per)}`]);
     }
-    fila([]);
-    if (R.obs.length) {
-      fila(['OBSERVACIONES:'], 'tit');
-      R.obs.forEach(pintaObs);
-      fila([]);
-    }
+    fila('');
+    if (R.obs.length) { fila('obsT', ['OBSERVACIONES:']); R.obs.forEach(pintaObs); fila(''); }
     if (R.obsAnt.length && resAnt) {
-      fila(['OBSERVACIONES DE MESES ANTERIORES PENDIENTES DE NOTA DE CRÉDITO:'], 'tit');
+      fila('obsT', ['OBSERVACIONES DE MESES ANTERIORES PENDIENTES DE NOTA DE CRÉDITO:']);
       R.obsAnt.forEach(pintaObs);
-      fila([`Falta nota de crédito por S/ ${mil(R.obsAnt.reduce((s, o) => s + (Number(o.falta) || 0), 0))} en ${R.obsAnt.length} factura(s) de meses anteriores. No modifica el total a pagar de este mes.`], 'txt');
-      fila([]);
+      fila('txt2', [`FALTA NOTA DE CRÉDITO POR S/${mil(R.obsAnt.reduce((s, o) => s + (Number(o.falta) || 0), 0))} EN ${R.obsAnt.length} FACTURA(S) DE MESES ANTERIORES. NO MODIFICA EL TOTAL A PAGAR DE ESTE MES.`]);
+      fila('');
     }
-    fila(['', '', '', '', 'T.COMPRAS', R.tCompras], 'tot'); fila(['', '', '', '', 'N.CRÉDITO', R.nCredito], 'tot'); fila(['', '', '', '', 'T.PAGAR', R.tPagar], 'tot');
+    fila('res', ['', '', '', '', 'T.COMPRAS', R.tCompras]); fila('resNc', ['', '', '', '', 'N.CRÉDITO', R.nCredito]); fila('resPg', ['', '', '', '', 'T.PAGAR', R.tPagar]);
     if (R.ncs.length) {
-      fila([]); fila([]); cab();
-      fila(['PROVEEDOR', 'FECHA', 'TIPO', 'SERIE', 'NUMERO', 'TOTAL', 'REFERENCIA'], 'cab');
-      R.ncs.forEach((f) => filaDoc(f, [rebTxt(f) || (R.usoNc.get(`${f.s}-${f.n}`) || []).join(', ') || f.r || f.e || '']));
-      fila(['', '', '', '', 'TOTAL', R.nCredito], 'tot');
-      fila([]);
-      fila([`Notas de crédito por S/ ${mil(Math.abs(R.nCredito))} aplicadas a facturas de compras, con programación en el BCP para ${perTxt(R.d.per)}`], 'txt');
+      fila(''); fila(''); cab(true);
+      R.ncs.forEach((f) => doc1(f, ncNota(f), ncRef(f)));
+      fila('tot', ['', '', '', '', 'TOTAL', R.nCredito]);
+      fila('');
+      fila('txt1', [`Notas de crédito por S/${mil(Math.abs(R.nCredito))} aplicadas a facturas de compras${(R.d.compra || []).length ? ' de ' + R.d.compra.map(perTxt).join(' Y ') : ''}`]);
+      fila('txt1', [`Con programación ${R.dist.pago === 'letras' ? 'de letras ' : ''}en el BCP para ${perTxt(R.d.per)}`]);
     }
     if (R.dev.length) {
-      fila([]); fila([]); cab();
-      fila(['PROVEEDOR', 'FECHA', 'TIPO', 'SERIE', 'NUMERO', 'TOTAL'], 'cab');
+      fila(''); fila(''); cab(true);
       const usadas = new Set();
       R.dev.forEach((f) => {
-        filaDoc(f);
+        doc1(f);
         const claves = cruceDe(R.d.per, f).det.map((x) => x.k);
-        R.ncDeDev.filter((n) => claves.includes(`${n.s}-${n.n}`)).forEach((n) => { usadas.add(n); filaDoc(n); });
+        R.ncDeDev.filter((n) => claves.includes(`${n.s}-${n.n}`)).forEach((n) => { usadas.add(n); doc1(n, '', `${f.s}-${f.n}`); });
       });
-      R.ncDeDev.filter((n) => !usadas.has(n)).forEach((n) => filaDoc(n));
-      fila(['', '', '', '', 'TOTAL', r2(R.dev.reduce((s, f) => s + Number(f.m), 0) + R.ncDeDev.reduce((s, f) => s + Number(f.m), 0))], 'tot');
-      fila([]);
-      fila(['DEVOLUCIÓN TOTAL DE FACTURA: SE CANCELA CON SU NOTA DE CRÉDITO SEGÚN DETALLE.'], 'txt');
+      R.ncDeDev.filter((n) => !usadas.has(n)).forEach((n) => doc1(n, '', ncRef(n)));
+      fila('tot', ['', '', '', '', 'TOTAL', r2(R.dev.reduce((s, f) => s + Number(f.m), 0) + R.ncDeDev.reduce((s, f) => s + Number(f.m), 0))]);
+      fila('');
+      fila('txt1', ['Devolución total de factura: se cancela con su nota de crédito según detalle']);
     }
     return out;
   }
   function resumenNcFilas(R) { // solo las notas de crédito del mes, con a qué factura o rebate corresponden
-    const out = [], fila = (c, cls) => out.push({ c, cls: cls || '' });
-    fila([R.emp.nombre], 'tit'); fila([`RUC ${R.emp.ruc}`]); fila([]); fila([R.dist.nombre], 'tit'); fila([]);
-    fila(['PROVEEDOR', 'FECHA', 'TIPO', 'SERIE', 'NUMERO', 'TOTAL', 'REFERENCIA'], 'cab');
-    const todas = R.ncs.concat(R.ncDeDev).sort((a, b) => String(a.f).localeCompare(String(b.f)) || String(a.n).localeCompare(String(b.n), undefined, { numeric: true }));
-    todas.forEach((f) => fila([R.dist.nombre, dia(f.f), f.t, f.s, f.n, Number(f.m) || 0, rebTxt(f) || (R.usoNc.get(`${f.s}-${f.n}`) || []).join(', ') || f.r || f.e || ''], 'nc'));
-    fila(['', '', '', '', 'TOTAL', r2(todas.reduce((s, f) => s + (Number(f.m) || 0), 0))], 'tot');
-    fila([]);
-    fila([`Notas de crédito de ${perTxt(R.d.per)}: ${todas.length} por S/ ${mil(Math.abs(r2(todas.reduce((s, f) => s + (Number(f.m) || 0), 0))))}`], 'txt');
+    const out = [], fila = (cls, c) => out.push({ cls, c: c || [] });
+    fila('emp', [R.emp.nombre]); fila('ruc', [`RUC ${R.emp.ruc}`]); fila(''); fila('prov', [R.dist.nombre]); fila('');
+    fila('cab', ['PROVEEDOR', 'FECHA', 'TIPO', 'SERIE', 'NUMERO', 'TOTAL', '', 'REFERENCIA']);
+    const todas = R.ncs.concat(R.ncDeDev).sort((a, b) => String(b.f).localeCompare(String(a.f)) || String(b.n).localeCompare(String(a.n), undefined, { numeric: true }));
+    todas.forEach((f) => { const x = ncXmlInfo(f), uso = (R.usoNc.get(`${f.s}-${f.n}`) || []).join(', '); fila('nc', [R.dist.nombre, fechaGuion(f.f), f.t, f.s, f.n, Number(f.m) || 0, rebTxt(f) || uso || f.e || '', f.r || (x && x.ref) || uso]); });
+    const t = r2(todas.reduce((s, f) => s + (Number(f.m) || 0), 0));
+    fila('tot', ['', '', '', '', 'TOTAL', t]);
+    fila('');
+    fila('txt1', [`Notas de crédito por S/${mil(Math.abs(t))} aplicadas a facturas de compras${(R.d.compra || []).length ? ' de ' + R.d.compra.map(perTxt).join(' Y ') : ''}`]);
+    fila('txt1', [`Con programación ${R.dist.pago === 'letras' ? 'de letras ' : ''}en el BCP para ${perTxt(R.d.per)}`]);
     return out;
+  }
+  // Filas <tr> con el formato del modelo (Arial, bordes finos, total en amarillo, NC en rojo, observaciones en azul).
+  // Sirve igual para la vista en pantalla y para el Excel; en pantalla se le agregan los números de fila.
+  const RES_ANCHOS = [171, 90, 66, 70, 81, 84, 140, 90];
+  function resumenTrs(filasR, pantalla) {
+    const F = 'font-family:Arial;font-size:10pt;', B = 'border:.5pt solid #000;', N = "mso-number-format:'\\#\\,\\#\\#0\\.00';text-align:right;", T = "mso-number-format:'\\@';";
+    const AZ = 'color:#0070c0;', RO = 'color:#ff0000;', MO = 'color:#7030a0;', AM = 'background:#ffff00;';
+    const td = (v, st, col) => `<td${col > 1 ? ` colspan="${col}"` : ''} style="${F}${st || ''}">${v === null || v === undefined || v === '' ? (pantalla ? '' : '') : (typeof v === 'number' ? (pantalla ? mil(v) : v.toFixed(2)) : esc(v))}</td>`;
+    const vac = (n) => Array.from({ length: n }, () => td('')).join('');
+    let fil = 0;
+    return filasR.map((f) => {
+      const c = f.c, k = f.cls;
+      let h;
+      if (k === 'emp' || k === 'ruc') h = td(c[0], 'font-weight:bold;text-align:center;', 6) + vac(2);
+      else if (k === 'prov') h = td(c[0], 'font-weight:bold;font-size:12pt;text-align:center;text-decoration:underline;', 6) + vac(2);
+      else if (k === 'cab') h = c.slice(0, 6).map((v) => td(v, B + 'font-weight:bold;text-align:center;')).join('') + td('') + (c[7] ? td(c[7], B + 'font-weight:bold;text-align:center;font-size:8pt;') : td(''));
+      else if (k === 'fa' || k === 'nc') {
+        const co = k === 'nc' ? RO : '';
+        h = c.slice(0, 5).map((v) => td(v, B + co + 'text-align:center;' + T)).join('') + td(c[5], B + co + N) +
+          td(c[6], 'font-size:8pt;text-align:center;') + td(c[7], 'font-size:8pt;' + T);
+      } else if (k === 'tot') h = vac(4) + td(c[4], B + 'font-weight:bold;font-size:9pt;text-align:right;') + td(c[5], B + AM + 'font-weight:bold;font-size:9pt;' + N) +
+        (c[6] === '' || c[6] === undefined ? td('') : td(`S/ ${mil(c[6])}`, AZ + 'font-size:9pt;text-align:center;')) + td('');
+      else if (k === 'txt1') h = td(c[0], AZ + 'font-size:11pt;white-space:nowrap;', 8);
+      else if (k === 'txt2') h = td(c[0], MO + 'font-size:9pt;white-space:nowrap;', 8);
+      else if (k === 'obsT') h = td(c[0], RO + 'font-weight:bold;white-space:nowrap;', 8);
+      else if (k === 'obs') h = td(c[0], AZ + 'font-size:9pt;') + td(c[1], AZ + 'font-size:9pt;white-space:nowrap;', 4) + td(c[5], AZ + 'font-size:8pt;' + N) +
+        td(c[6], (f.ok ? RO : RO + 'font-weight:bold;') + 'font-size:8pt;text-align:center;white-space:nowrap;', 2);
+      else if (k === 'res' || k === 'resNc' || k === 'resPg') {
+        const co = k === 'resNc' ? RO : '';
+        h = vac(4) + td(c[4], B + co + 'font-weight:bold;font-size:9pt;text-align:center;') + td(c[5], B + co + (k === 'resPg' ? AM : '') + 'font-weight:bold;font-size:9pt;' + N) + vac(2);
+      } else h = vac(8);
+      fil += 1;
+      return `<tr>${pantalla ? `<th>${fil}</th>` : ''}${h}</tr>`;
+    }).join('');
   }
   let resAnt = false; // las observaciones pendientes de meses anteriores van ocultas, salvo que se pida verlas
   function pintarResumen() {
@@ -3208,8 +3255,10 @@
       `<div class="kpi" style="border-color:var(--marca);background:var(--suave)"><b>T. a pagar</b><strong>S/ ${mil(R.tPagar)}</strong><small>${esc(perTxt(d.per))}</small></div>` +
       (conLetras ? `<div class="kpi"><b>${R.letras || '—'} letras de</b><strong>${R.cuota === null ? '—' : 'S/ ' + mil(R.cuota)}</strong><small>${R.cal.dias.length ? `${esc(dia(R.cal.dias[0]))} al ${esc(dia(R.cal.dias[R.cal.dias.length - 1]))}` : 'falta definir'}</small></div>` : '') +
       `<div class="kpi"><b>Devoluciones totales</b><strong>${R.dev.length}</strong><small>S/ ${mil(R.dev.reduce((s, f) => s + Number(f.m), 0))}</small></div>` +
-      '</div><div class="tabla hoja"><table>' +
-      resumenFilas(R).map((f) => `<tr class="r_${f.cls}">${f.c.length ? f.c.map((v, i) => `<td${typeof v === 'number' ? ' class="num"' : ''}${f.cls === 'txt' || (f.cls === 'tit') || (i === 0 && f.c.length > 6 && String(v).length > 34 && f.cls === '') ? '' : ''}${(f.cls === 'txt' || f.cls === 'tit') ? ' colspan="7"' : ''}>${typeof v === 'number' ? mil(v) : esc(v)}</td>`).join('') : '<td colspan="7">&nbsp;</td>'}</tr>`).join('') +
+      '</div><div class="tabla xlHoja"><table>' +
+      `<colgroup><col style="width:34px">${RES_ANCHOS.map((w) => `<col style="width:${w}px">`).join('')}</colgroup>` +
+      `<tr><th></th>${'ABCDEFGH'.split('').map((l) => `<th>${l}</th>`).join('')}</tr>` +
+      resumenTrs(resumenFilas(R), true) +
       '</table></div>';
   }
   $('gv_res').addEventListener('change', async (e) => {
@@ -3234,10 +3283,10 @@
       if (!$('dlg').open) $('dlg').showModal();
     } else if (e.target.id === 'rExcel') {
       const R = resumenDatos(d);
-      const fr = resumenFilas(R); fr.emp = R.emp.nombre;
+      const fr = resumenFilas(R);
       resumenXls(`${R.dist.k}-${R.emp.k}-${d.per}`, fr);
     } else if (e.target.id === 'rExcelNc') {
-      const R = resumenDatos(d), fr = resumenNcFilas(R); fr.emp = R.emp.nombre;
+      const R = resumenDatos(d), fr = resumenNcFilas(R);
       resumenXls(`NC-${R.dist.k}-${R.emp.k}-${d.per}`, fr);
     }
   });
@@ -5319,27 +5368,7 @@
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
   function resumenXls(nombre, filasR) { // filasR = [{ c: [...], cls }] como las arma resumenFilas
-    const F = 'font-family:Arial;font-size:10pt;', B = 'border:1px solid #000;', N = "mso-number-format:'\\#\\,\\#\\#0\\.00';text-align:right;", T = "mso-number-format:'\\@';";
-    const td = (v, st, col) => `<td${col ? ` colspan="${col}"` : ''} style="${F}${st || ''}">${v === null || v === undefined ? '' : (typeof v === 'number' ? v.toFixed(2) : esc(v))}</td>`;
-    let h = '', nTit = 0;
-    filasR.forEach((f) => {
-      const c = f.c, cls = f.cls;
-      if (!c.length) { h += `<tr>${td('', '', 7)}</tr>`; nTit = cls === 'sep' ? 0 : nTit; return; }
-      if (cls === 'tit') { // empresa (izquierda) · proveedor (centrado y subrayado) · OBSERVACIONES (rojo)
-        const esObs = /^OBSERVACIONES/.test(c[0]), esEmp = c[0] === filasR.emp;
-        h += `<tr>${td(c[0], esObs ? 'font-weight:bold;color:#ff0000;' : (esEmp ? 'font-weight:bold;' : 'font-weight:bold;font-size:12pt;text-align:center;text-decoration:underline;'), esObs || esEmp ? 7 : 6)}</tr>`;
-      } else if (c.length === 1 && cls !== 'tit') h += `<tr>${td(c[0], 'font-weight:bold;', 7)}</tr>`;
-      else if (cls === 'cab') h += `<tr>${c.map((v) => td(v, B + 'font-weight:bold;text-align:center;')).join('')}</tr>`;
-      else if (cls === 'tot') h += `<tr>${c.map((v, i) => (v === '' ? td('') : td(v, 'font-weight:bold;' + (typeof v === 'number' ? N + (i === 5 ? 'background:#ffff00;' + B : '') : 'text-align:right;')))).join('')}</tr>`;
-      else if (cls === 'txt') h += `<tr>${td(c[0], 'font-weight:bold;', 7)}</tr>`;
-      else if (cls === 'obsF') h += `<tr>${td(`${String(c[0]).replace(/^FACTURA /, '')}  ·  observado S/ ${mil(c[5])}`, 'color:#0070c0;font-weight:bold;', 4)}${td(c[6], 'color:#ff0000;font-size:8pt;font-weight:bold;', 3)}</tr>`;
-      else if (cls === 'obs') h += `<tr>${td(`${String(c[0]).trim()}${c[5] !== '' && c[5] !== null && c[5] !== undefined ? '  S/ ' + mil(c[5]) : ''}`, 'color:#0070c0;padding-left:28px;', 7)}</tr>`;
-      else { // documento: las NC en rojo; el número y el total de una factura observada, en azul
-        const col = cls === 'nc' ? 'color:#ff0000;' : '', az = cls === 'fobs' ? 'color:#0070c0;' : col;
-        h += `<tr>${c.map((v, i) => td(v, B + (i === 5 ? N + az : (i === 0 ? col : (i === 6 ? col : 'text-align:center;' + T + (i === 4 ? az : col)))))).join('')}</tr>`;
-      }
-    });
-    bajarXlsHtml(nombre, h, [230, 85, 45, 60, 85, 100, 260]);
+    bajarXlsHtml(nombre, resumenTrs(filasR, false), RES_ANCHOS);
   }
 
   /* ---------- Pagos a proveedores: comparar con el reporte "Provisiones por Proveedor" de Lolfar ---------- */
