@@ -2657,8 +2657,8 @@
     const id = tr.dataset.d, f = pgFila(id);
     if (!f) return;
     const o = [...tr.querySelectorAll('.oProd')].map((inp) => { const q = montoNum(tr.querySelector(`.oCant[data-k="${inp.dataset.k}"]`).value), o1 = { p: txt(inp.value, 140), m: montoNum(tr.querySelector(`.oMonto[data-k="${inp.dataset.k}"]`).value) }; if (q !== null) o1.q = q; return o1; });
-    try { await pgGuardar(pgPer(), (lista) => { const x = lista.find((y) => y.i === id); if (x) x.o = o; }, 'Observación', `${f.s}-${f.n}: ${o.length} producto(s), S/ ${mil(o.reduce((s, x) => s + (x.m || 0), 0))}`); }
-    catch (e) { pgError(e); }
+    try { await pgGuardar(pgPer(), (lista) => { const x = lista.find((y) => y.i === id); if (x) x.o = o; }, 'Observación', `${f.s}-${f.n}: ${o.length} producto(s), S/ ${mil(o.reduce((s, x) => s + (x.m || 0), 0))}`); return true; }
+    catch (e) { pgError(e); return false; }
   }
 
   /* ---------- Eventos de la grilla ---------- */
@@ -2746,6 +2746,14 @@
   $('gCuerpo').addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && e.target.closest('.nuevaFila') && e.target.matches('input, select')) { e.preventDefault(); agregarFila(); }
     flechasNueva(e);
+    // Enter en lo observado: guarda al instante y pasa a la casilla siguiente; en el monto, vuelve a la fila de ingreso
+    if (e.key === 'Enter' && e.target.matches('.oProd, .oCant, .oMonto')) {
+      e.preventDefault();
+      const t = e.target, tr = t.closest('tr.det'), k = t.dataset.k;
+      const sig = t.matches('.oProd') ? tr.querySelector(`.oCant[data-k="${k}"]`) : t.matches('.oCant') ? tr.querySelector(`.oMonto[data-k="${k}"]`) : null;
+      guardarObservados(tr).then((ok) => { if (ok) msg('gMsg', 'Observación guardada.', 'ok'); });
+      if (sig) { sig.focus(); sig.select(); } else { t.blur(); const n = $('gCuerpo').querySelector('.nuevaFila .aN'); if (n) n.focus(); }
+    }
   });
   $('gCuerpo').addEventListener('change', (e) => { if (e.target.matches('.nuevaFila .aT')) ncRefPh(e.target.closest('.nuevaFila')); });
   const pgAlDia = () => setTimeout(() => {
