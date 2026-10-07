@@ -163,7 +163,9 @@
   .grid tr.esnc td { background:#fcfbf9; }
   .grid tr.sel td.nf, .grid tr.esnc td.nf { background:#f1eee9; }
   .grid tr.nueva td { background:#f1f9f4; } .grid tr.dup td { background:#fdecea; }
-  .grid tr.nuevaFila td { background:#fbf6ef; }
+  .grid tr.nuevaFila td { background:#fbf6ef; border-bottom:2px solid var(--marca); }
+  .grid tr.recien td { background:#fff8ec; } .grid tr.recien td.nf { box-shadow:inset 3px 0 0 var(--marca); }
+  .aObsL { display:flex; align-items:center; gap:5px; margin:0; font-weight:600; color:var(--pri); white-space:nowrap; cursor:pointer; } .grid .aObsL .gIn { width:auto; min-width:0; }
   .grid .gIn { width:100%; min-width:70px; padding:3px 6px; border:1px solid var(--marca); border-radius:4px; font-size:13.5px; }
   .grid .gIn.n { text-align:right; }
   .grid td.n, .grid th.n { text-align:right; }
@@ -209,43 +211,43 @@
   .fila-bot { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
   .gtabla input[type=number], .gtabla input:not([type]) { min-width:90px; padding:6px 8px; }
 
-  /* ===== Armazón tipo ERP: fondo cálido, menú y barra oscuros, naranja para lo activo ===== */
-  :root { --marca:#fe6e00; --pri:#d95a00; --suave:#fff1e5; --gris:#797067; --borde:#e3e0dd; --fondo:#fcfaf7; --casco:#1c1815; }
+  /* ===== Armazón tipo ERP: fondo cálido, menú y barra en naranja crema, naranja para lo activo ===== */
+  :root { --marca:#fe6e00; --pri:#d95a00; --suave:#fff1e5; --gris:#797067; --borde:#e3e0dd; --fondo:#fcfaf7; --casco:#fde4c8; --casco2:#fbd3a8; --cTxt:#4a2a0f; }
   body { color:#423d38; }
   #app:not(.oculto) { display:flex; min-height:100vh; align-items:flex-start; }
-  #lado { flex:none; width:248px; height:100vh; position:sticky; top:0; background:var(--casco); color:#fff; display:flex; flex-direction:column; transition:width .2s cubic-bezier(.4,0,.2,1); z-index:30; }
-  .ladoMarca { height:60px; display:flex; align-items:center; gap:10px; padding:0 16px; border-bottom:1px solid rgba(255,255,255,.1); font-weight:800; font-size:15px; white-space:nowrap; overflow:hidden; flex:none; }
+  #lado { flex:none; width:248px; height:100vh; position:sticky; top:0; background:var(--casco); color:var(--cTxt); border-right:1px solid #f1c79a; display:flex; flex-direction:column; transition:width .2s cubic-bezier(.4,0,.2,1); z-index:30; }
+  .ladoMarca { height:60px; display:flex; align-items:center; gap:10px; padding:0 16px; border-bottom:1px solid rgba(120,60,10,.15); background:var(--casco2); font-weight:800; font-size:15px; white-space:nowrap; overflow:hidden; flex:none; }
   .ladoMarca img { width:30px; height:30px; border-radius:8px; object-fit:contain; background:#fff; flex:none; }
   #lado nav { display:block; flex:1; overflow-y:auto; overflow-x:hidden; padding:10px 10px 16px; background:none; border:none; }
   .navGrupo:not(:has(> button:not(.oculto))) { display:none; }
-  .navG { font-size:11px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; color:rgba(255,255,255,.45); padding:14px 10px 6px; white-space:nowrap; }
-  #lado nav button { display:flex; align-items:center; gap:11px; width:100%; text-align:left; border:none; border-radius:8px; background:transparent; color:rgba(255,255,255,.74); font-weight:600; font-size:13.5px; padding:8px 10px; margin:1px 0; white-space:nowrap; }
+  .navG { font-size:11px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; color:rgba(90,45,10,.6); padding:14px 10px 6px; white-space:nowrap; }
+  #lado nav button { display:flex; align-items:center; gap:11px; width:100%; text-align:left; border:none; border-radius:8px; background:transparent; color:#5a3a1e; font-weight:600; font-size:13.5px; padding:8px 10px; margin:1px 0; white-space:nowrap; }
   #lado nav button.oculto { display:none; }
   #lado nav button svg { flex:none; }
-  #lado nav button:hover { background:rgba(255,255,255,.09); color:#fff; }
+  #lado nav button:hover { background:rgba(254,110,0,.14); color:#3d220b; }
   #lado nav button.act { background:var(--marca); color:#fff; border:none; }
-  #lado nav button:focus-visible { outline:2px solid #ffb74d; outline-offset:1px; }
+  #lado nav button:focus-visible { outline:2px solid #c2570a; outline-offset:1px; }
   #lado nav .navT { flex:1; overflow:hidden; text-overflow:ellipsis; }
   #lado nav .cuenta { background:#fb2c36; margin-left:0; }
   #lado nav button.act .cuenta { background:#fff; color:#b34700; }
   #cuerpo { flex:1; min-width:0; }
-  #app header { position:sticky; top:0; z-index:20; height:60px; padding:0 18px; background:var(--casco); color:#fff; flex-wrap:nowrap; gap:12px; }
+  #app header { position:sticky; top:0; z-index:20; height:60px; padding:0 18px; background:var(--casco2); color:var(--cTxt); border-bottom:1px solid #f1c79a; flex-wrap:nowrap; gap:12px; }
   #app header h1 { font-size:17px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
-  #app header span { color:rgba(255,255,255,.8); white-space:nowrap; }
-  #app header button { border-color:rgba(255,255,255,.28); border-radius:8px; white-space:nowrap; }
-  #app header button:hover { background:rgba(255,255,255,.1); }
+  #app header span { color:rgba(61,34,11,.8); white-space:nowrap; }
+  #app header button { color:var(--cTxt); border-color:rgba(61,34,11,.3); border-radius:8px; white-space:nowrap; }
+  #app header button:hover { background:rgba(255,255,255,.45); }
   #bMenu { width:40px; height:40px; padding:0; display:flex; align-items:center; justify-content:center; border:none !important; flex:none; }
   main { padding:18px 22px 40px; max-width:none; margin:0; }
   /* Las ventanas de cada módulo se eligen en el menú de la izquierda; la barra de pestañas solo queda si el menú está encogido */
-  .navSub { display:none; margin:2px 0 6px 19px; padding-left:10px; border-left:1px solid rgba(255,255,255,.18); }
+  .navSub { display:none; margin:2px 0 6px 19px; padding-left:10px; border-left:1px solid rgba(120,60,10,.25); }
   #lado nav button.act + .navSub { display:block; }
-  #lado nav .navSub button { font-size:13px; font-weight:500; padding:6px 10px; color:rgba(255,255,255,.66); }
-  #lado nav .navSub button.on { color:#fff; font-weight:700; background:rgba(254,110,0,.22); box-shadow:inset 3px 0 0 var(--marca); }
+  #lado nav .navSub button { font-size:13px; font-weight:500; padding:6px 10px; color:#6b4a2e; }
+  #lado nav .navSub button.on { color:#3d220b; font-weight:700; background:rgba(254,110,0,.2); box-shadow:inset 3px 0 0 var(--marca); }
   body:not(.menuMin) #gSub, body:not(.menuMin) #ctSub, body:not(.menuMin) #cpSub { display:none; }
   body.menuMin .navSub { display:none !important; }
   body.menuMin #lado { width:64px; } body.menuMin .navT, body.menuMin .navG, body.menuMin .ladoMarca b { display:none; } body.menuMin .ladoMarca { padding:0 17px; }
   body.menuMin #lado nav button { justify-content:center; padding:10px 0; position:relative; } body.menuMin #lado nav .cuenta { position:absolute; top:2px; right:4px; padding:0 5px; font-size:10px; }
-  body.menuMin .navGrupo + .navGrupo { border-top:1px solid rgba(255,255,255,.1); margin-top:6px; padding-top:6px; }
+  body.menuMin .navGrupo + .navGrupo { border-top:1px solid rgba(120,60,10,.15); margin-top:6px; padding-top:6px; }
   #velo { display:none; }
   @media (max-width: 900px) {
     #lado { position:fixed; left:0; top:0; transform:translateX(-102%); transition:transform .2s cubic-bezier(.4,0,.2,1); width:264px !important; box-shadow:0 0 40px rgba(0,0,0,.4); }
@@ -2356,17 +2358,35 @@
   function conservarNueva(cuerpo) {
     const nf = cuerpo.querySelector('.nuevaFila');
     if (!nf) return () => {};
-    const ins = [...nf.querySelectorAll('.gIn')], vals = ins.map((e) => e.value), k = ins.indexOf(document.activeElement);
+    const ins = [...nf.querySelectorAll('.gIn')], vals = ins.map((e) => (e.type === 'checkbox' ? e.checked : e.value)), k = ins.indexOf(document.activeElement);
     const sel = k >= 0 && ins[k].tagName === 'INPUT' ? [ins[k].selectionStart, ins[k].selectionEnd] : null;
     return () => {
       const n2 = cuerpo.querySelector('.nuevaFila');
       if (!n2) return;
       const i2 = [...n2.querySelectorAll('.gIn')];
-      i2.forEach((e, n) => { if (vals[n] !== undefined && vals[n] !== '') e.value = vals[n]; });
+      i2.forEach((e, n) => { if (e.type === 'checkbox') e.checked = !!vals[n]; else if (vals[n] !== undefined && vals[n] !== '') e.value = vals[n]; });
+      if (n2.querySelector('.aT')) ncRefPh(n2);
       if (k >= 0 && i2[k]) { i2[k].focus(); if (sel) { try { i2[k].setSelectionRange(sel[0], sel[1]); } catch (e) { /* no aplica */ } } }
     };
   }
   let pgAviso = ''; // aviso que se muestra junto a la fila nueva (por ejemplo, factura repetida)
+  let pgRecien = { d: '', ids: [] }; // lo recién agregado se muestra arriba, junto a la fila de ingreso, para no tener que buscarlo
+  const ncRefPh = (tr) => { const r = tr.querySelector('.aR'), t = tr.querySelector('.aT'); if (r && t) r.placeholder = t.value === 'NC' ? 'Factura que afecta (F160-300744) o REBATE…' : 'NC aplicadas (opcional)'; const o = tr.querySelector('.aObsL'); if (o && t) o.classList.toggle('oculto', t.value === 'NC'); };
+  // ← / → pasan de una casilla a otra en la fila de ingreso (en el texto, cuando el cursor está al inicio o al final)
+  function flechasNueva(e) {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    const el = e.target, tr = el.closest('.nuevaFila');
+    if (!tr || !el.matches('input, select')) return;
+    if (el.matches('input:not([type=checkbox])')) {
+      const v = el.value || '', a = el.selectionStart, b = el.selectionEnd, todo = a === 0 && b === v.length;
+      if (!todo && a !== b) return;
+      if (!todo && e.key === 'ArrowLeft' && a > 0) return;
+      if (!todo && e.key === 'ArrowRight' && b < v.length) return;
+    }
+    const ins = [...tr.querySelectorAll('input, select')].filter((x) => x.offsetParent !== null && !x.disabled), k = ins.indexOf(el), sig = ins[k + (e.key === 'ArrowRight' ? 1 : -1)];
+    if (!sig) return;
+    e.preventDefault(); sig.focus(); if (sig.select && sig.type !== 'checkbox') sig.select();
+  }
   function irAFila(per, id) {
     if (!pgDocs.some((d) => d.per === per)) return;
     $('gPer').value = per; $('gFiltro').value = ''; $('gTxt').value = ''; pgSel.clear();
@@ -2390,7 +2410,9 @@
       cuerpo.innerHTML = '<tr><td colspan="13" class="vacio">Este distribuidor aún no tiene meses a pagar en esta empresa. Usa "+ Nuevo mes a pagar".</td></tr>';
       $('gRes').textContent = ''; $('gPie').textContent = ''; return;
     }
-    const vista = filasVista(), reponer = conservarNueva(cuerpo), czColG = [];
+    const vista0 = filasVista(), reponer = conservarNueva(cuerpo), czColG = [];
+    const rec = pgRecien.d === d.id ? pgRecien.ids : [], posR = (f) => rec.indexOf(f.i);
+    const vista = vista0.filter((f) => posR(f) >= 0).sort((a, b) => posR(b) - posR(a)).concat(vista0.filter((f) => posR(f) < 0));
     pintarOtrosMeses();
     czAsegurar((d.filas || []).concat(...pgDocs.map((x) => (x.filas || []).filter((f) => f.t === 'NC'))).map((f) => String(f.f || '').slice(0, 7)), () => pintarPagos(true)); // con las NC de todos los meses: su XML dice a qué factura afectan
     { const ct2 = $('gCkTodo'); if (ct2) { const n = vista.filter((f) => pgSel.has(f.i)).length; ct2.checked = vista.length > 0 && n === vista.length; ct2.indeterminate = n > 0 && n < vista.length; ct2.disabled = !vista.length; } }
@@ -2403,7 +2425,7 @@
         const xr = !f.r && !rebDe(f) ? (ncXmlInfo(f) || {}).ref : '';
         colNc = rebDe(f) ? `<span class="est e3">${esc(rebTxt(f))}</span>` : (f.r ? `→ factura ${esc(f.r)}` : xr ? `→ factura ${esc(xr)} <span class="quien">(según su XML)</span>` : (ncSinAsignar(f) ? '<span class="est e0">Sin asignar a factura</span>' : '<span class="quien">Aplicada a una factura</span>'));
       } else colNc = esc((f.nc || []).join(', ')) + (c.faltan.length ? ` <span class="est alerta" title="No está en la lista">falta ${esc(c.faltan.join(', '))}</span>` : '');
-      h += `<tr data-i="${esc(f.i)}" class="${pgSel.has(f.i) ? 'sel ' : ''}${f.t === 'NC' ? 'esnc' : ''}">` +
+      h += `<tr data-i="${esc(f.i)}" class="${pgSel.has(f.i) ? 'sel ' : ''}${f.t === 'NC' ? 'esnc ' : ''}${posR(f) >= 0 ? 'recien' : ''}">` +
         `<td class="nf">${n + 1}</td><td class="ck"><input type="checkbox" class="gCk"${pgSel.has(f.i) ? ' checked' : ''} aria-label="Seleccionar fila ${n + 1}"></td>` +
         `<td data-c="f"${ed}>${esc(dia(f.f))}</td><td data-c="t"${ed}>${esc(f.t)}</td><td data-c="s"${ed}>${esc(f.s)}</td><td data-c="n"${ed}>${esc(f.n)}</td>` +
         `<td data-c="m" class="${edita ? 'ed ' : ''}n${f.m < 0 ? ' neg' : ''}">${esc(mil(f.m))}</td>` +
@@ -2417,13 +2439,15 @@
         `<td data-c="x" class="${edita ? 'ed ' : ''}nota">${fechaRara(f, d.per) ? '<span class="est alerta">revisa la fecha</span> ' : ''}${esc(f.x || '')}</td></tr>`;
       if (abierta && f.t === 'FA') h += filaDetalle(f, c, edita);
     });
-    if (edita) {
-      h += '<tr class="nuevaFila"><td class="nf">+</td><td></td>' +
+    if (edita) { // la fila de ingreso va arriba, y debajo lo recién agregado
+      h = '<tr class="nuevaFila"><td class="nf">+</td><td></td>' +
         '<td><input class="gIn aF" placeholder="dd/mm/aaaa" aria-label="Fecha"></td>' +
         '<td><select class="gIn aT" aria-label="Tipo"><option>FA</option><option>NC</option><option>ND</option></select></td>' +
         '<td><input class="gIn aS" placeholder="Serie" aria-label="Serie"></td><td><input class="gIn aN" placeholder="Número" aria-label="Número"></td>' +
         '<td><input class="gIn aM n" placeholder="Total" aria-label="Total"></td><td><input class="gIn aL" placeholder="Laboratorio" aria-label="Laboratorio"></td>' +
-        `<td colspan="5" style="white-space:normal"><button class="pri mini aOk">Agregar fila</button> ${pgAviso ? `<span class="est alerta" style="white-space:normal;border-radius:8px">${pgAviso}</span>` : '<span class="quien">o Enter. Para varias filas usa "Pegar desde Excel".</span>'}</td></tr>`;
+        '<td><label class="aObsL" title="Al agregar la factura se abre para anotar lo observado"><input type="checkbox" class="gIn aO"> Observar</label></td>' +
+        '<td><input class="gIn aR" placeholder="NC aplicadas (opcional)" aria-label="Referencia"></td>' +
+        `<td colspan="3" style="white-space:normal"><button class="pri mini aOk">Agregar fila</button> ${pgAviso ? `<span class="est alerta" style="white-space:normal;border-radius:8px">${pgAviso}</span>` : '<span class="quien">o Enter</span>'}</td></tr>` + h;
     }
     cuerpo.innerHTML = h || '<tr><td colspan="13" class="vacio">Sin filas en esta vista</td></tr>';
     reponer();
@@ -2608,14 +2632,23 @@
     if (f.m === null) return aviso('Falta el total o no es un monto válido.');
     if (f.t === 'NC' && f.m > 0) f.m = -f.m;
     if (q('.aL').trim()) f.l = may(q('.aL'), 60);
+    const ref = q('.aR').trim(), obs = f.t === 'FA' && tr.querySelector('.aO').checked;
+    if (ref && f.t === 'NC') { if (/^\s*(RB|REB)/i.test(ref)) f.rb = may(ref, 60); else { f.r = refDoc(ref); if (!f.r) return aviso('No entiendo la factura de referencia. Escríbela como F160-300744.'); } }
+    else if (ref) f.nc = ncDeTexto(ref);
+    if (obs) f.o = [{ p: '', m: null }];
     const p = repetida(f);
     if (p) return aviso(avisoRepetida(f, p));
     // Se muestra al instante y se guarda por detrás; quedan fecha, tipo y serie para la siguiente
     pgAviso = ''; msg('gMsg', '');
-    ['.aN', '.aM', '.aL'].forEach((c) => { tr.querySelector(c).value = ''; });
+    ['.aN', '.aM', '.aL', '.aR'].forEach((c) => { tr.querySelector(c).value = ''; });
+    tr.querySelector('.aO').checked = false;
     d.filas = (d.filas || []).concat([f]);
+    if (pgRecien.d !== d.id) pgRecien = { d: d.id, ids: [] };
+    pgRecien.ids.push(f.i);
+    if (obs) pgAbiertas.add(f.i);
     pintarPagos(true);
-    const n = $('gCuerpo').querySelector('.aN'); if (n) n.focus();
+    const det = obs && $('gCuerpo').querySelector(`tr.det[data-d="${f.i}"]`), foco = det && det.querySelector('.obXml select, .oProd');
+    if (foco) foco.focus(); else { const n = $('gCuerpo').querySelector('.aN'); if (n) n.focus(); }
     try { await pgGuardar(d.per, (lista) => { if (!lista.some((x) => x.i === f.i)) lista.push(f); }, 'Agregó', `${f.t} ${f.s}-${f.n} por ${mil(f.m)}`); }
     catch (e) { d.filas = (d.filas || []).filter((x) => x.i !== f.i); pintarPagos(true); pgAviso = `No se pudo guardar ${f.t} ${f.s}-${f.n}: ${esc(errorTexto(e))}`; pintarPagos(true); }
   }
@@ -2712,7 +2745,9 @@
   });
   $('gCuerpo').addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && e.target.closest('.nuevaFila') && e.target.matches('input, select')) { e.preventDefault(); agregarFila(); }
+    flechasNueva(e);
   });
+  $('gCuerpo').addEventListener('change', (e) => { if (e.target.matches('.nuevaFila .aT')) ncRefPh(e.target.closest('.nuevaFila')); });
   const pgAlDia = () => setTimeout(() => {
     const a = document.activeElement;
     if (pgPend && !pgPulsando && !(a && a.matches('#gCuerpo tr:not(.nuevaFila) input, #gCuerpo tr:not(.nuevaFila) select, #xCuerpo tr:not(.nuevaFila) input, #xCuerpo tr:not(.nuevaFila) select'))) pintarPagos(true);
@@ -3492,7 +3527,7 @@
     try { await cxGuardar((lista) => { if (!lista.some((x) => x.i === f.i)) lista.push(f); }, 'Agregó', `${f.p} ${f.d} por ${mil(f.m)}`); }
     catch (e) { cxDoc.filas = (cxDoc.filas || []).filter((x) => x.i !== f.i); pintarPagos(true); cxError(e); }
   }
-  $('xCuerpo').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.closest('.nuevaFila') && e.target.matches('input')) { e.preventDefault(); cxAgregar(); } });
+  $('xCuerpo').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.closest('.nuevaFila') && e.target.matches('input')) { e.preventDefault(); cxAgregar(); } flechasNueva(e); });
   $('xAdd').addEventListener('click', () => { const n = $('xCuerpo').querySelector('.xP'); if (n) { n.scrollIntoView({ block: 'center' }); n.focus(); } });
   $('xDel').addEventListener('click', async () => {
     const ids = [...cxSel], fs = ((cxDoc || {}).filas || []).filter((f) => ids.includes(f.i));
@@ -4040,13 +4075,13 @@
       if (fac && cpAbiertas.has(f.i)) h += cpDetObs(f, r, edita);
     });
     if (edita) {
-      h += '<tr class="nuevaFila"><td class="nf">+</td><td></td>' +
+      h = '<tr class="nuevaFila"><td class="nf">+</td><td></td>' +
         '<td><input class="gIn nP" list="dlCp" placeholder="Proveedor" aria-label="Proveedor" style="min-width:190px"></td>' +
         `<td><select class="gIn nT" aria-label="Tipo">${CP_TIPOS.map((t) => `<option>${t}</option>`).join('')}</select></td>` +
         '<td><input class="gIn nF" placeholder="dd/mm/aaaa" aria-label="Fecha de emisión"></td><td><input class="gIn nD" placeholder="F001-12345" aria-label="N° de documento"></td>' +
         '<td><input class="gIn nR" placeholder="Referencia" aria-label="Referencia"></td><td><input class="gIn nA" placeholder="Solo NC" aria-label="Factura que afecta"></td>' +
         '<td><input class="gIn nV" placeholder="dd/mm/aaaa" aria-label="Vencimiento"></td><td><input class="gIn nM n" placeholder="Importe" aria-label="Importe"></td>' +
-        `<td colspan="11" style="white-space:normal"><button class="pri mini nOk">Agregar</button> ${cpAviso ? `<span class="est alerta" style="white-space:normal;border-radius:8px">${cpAviso}</span>` : '<span class="quien">o Enter. Quedan el proveedor y el tipo para la siguiente.</span>'}</td></tr>`;
+        `<td colspan="11" style="white-space:normal"><button class="pri mini nOk">Agregar</button> ${cpAviso ? `<span class="est alerta" style="white-space:normal;border-radius:8px">${cpAviso}</span>` : '<span class="quien">o Enter. Quedan el proveedor y el tipo para la siguiente.</span>'}</td></tr>` + h;
     }
     cuerpo.innerHTML = h || '<tr><td colspan="22" class="vacio">Sin documentos en este mes</td></tr>';
     reponer();
@@ -4171,7 +4206,7 @@
       cpCambiar(id, (x) => { x[c] = r.valor; if (c === 'p') { const pv = cpProv(r.valor); if (pv) x.ar = pv.ret === true; } }, 'Corrigió', `${f.p} ${f.d}: ${c} "${crudo}" → "${v}"`);
     }, () => cpPintar(true));
   });
-  $('cpCuerpo').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.closest('.nuevaFila') && e.target.matches('input, select')) { e.preventDefault(); cpAgregar(); } });
+  $('cpCuerpo').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.closest('.nuevaFila') && e.target.matches('input, select')) { e.preventDefault(); cpAgregar(); } flechasNueva(e); });
   $('cpCuerpo').addEventListener('change', (e) => { // al elegir proveedor o emisión, propone el vencimiento con su plazo habitual
     if (e.target.matches('.coProd, .coMonto')) return cpGuardarObs(e.target.closest('tr.det'));
     if (!e.target.matches('.nP, .nF')) return;
