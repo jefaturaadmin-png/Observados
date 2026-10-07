@@ -11,6 +11,14 @@
   * { box-sizing: border-box; }
   body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--fondo); color:#231d17; font-size:15px; }
   .oculto { display:none !important; }
+  /* Lista que también es buscador (distribuidor / proveedor) */
+  .cbx { position:relative; display:inline-block; min-width:300px; flex:0 1 380px; }
+  .cbx input, #gDistCbx input { width:100% !important; max-width:none !important; box-sizing:border-box; padding-right:28px; cursor:pointer; }
+  .cbx input:focus { cursor:text; }
+  .cbxFle { position:absolute; right:10px; top:50%; transform:translateY(-50%); pointer-events:none; color:#555; font-size:12px; }
+  .cbxLista { position:absolute; z-index:40; left:0; right:0; top:calc(100% + 2px); max-height:60vh; overflow:auto; background:#fff; border:1px solid var(--borde); border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.15); }
+  .cbxG { padding:6px 10px 3px; font-size:11px; font-weight:700; color:var(--gris); text-transform:uppercase; letter-spacing:.04em; }
+  .cbxOp { padding:6px 12px; cursor:pointer; font-size:14px; } .cbxOp.sel { font-weight:700; } .cbxOp.act, .cbxOp:hover { background:var(--suave); color:var(--pri); }
   button { font:inherit; cursor:pointer; border-radius:8px; border:1px solid var(--borde); background:#fff; padding:9px 14px; color:inherit; }
   button.pri { background:var(--pri); color:#fff; border-color:var(--pri); font-weight:600; }
   button.pel { color:var(--rojo); border-color:var(--rojo); }
@@ -452,7 +460,8 @@
     <div id="vPagos" class="oculto">
       <div class="herr">
         <select id="gEmp" aria-label="Empresa"></select>
-        <select id="gDist" aria-label="Distribuidor"></select>
+        <select id="gDist" aria-label="Distribuidor" style="display:none"></select>
+        <div class="cbx" id="gDistCbx"><input id="gDistTxt" autocomplete="off" placeholder="Buscar proveedor…" aria-label="Distribuidor o proveedor (escribe para buscar)" title="Escribe para buscar, o haz clic para ver la lista"><span class="cbxFle" aria-hidden="true">▾</span><div class="cbxLista oculto" id="gDistLista" role="listbox"></div></div>
         <select id="gPer" aria-label="Mes a pagar"></select>
         <button id="gNuevoPer">+ Nuevo mes a pagar</button>
         <button id="gEditPer" title="Cambiar de qué mes son las compras">Editar mes</button>
@@ -2322,12 +2331,14 @@
         const v = $('gDist').value, op = (x) => `<option value="${esc(x.k)}">${esc(x.nombre)}</option>`, D = pgCfg.dists.filter((x) => x.tipo !== 'C'), C = pgCfg.dists.filter((x) => x.tipo === 'C');
         $('gDist').innerHTML = C.length ? `<optgroup label="Distribuidores">${D.map(op).join('')}</optgroup><optgroup label="Proveedores (cuotas por grupos)">${C.slice().sort((a, b) => a.nombre.localeCompare(b.nombre)).map(op).join('')}</optgroup>` : D.map(op).join('');
         if (pgCfg.dists.some((x) => x.k === v)) $('gDist').value = v;
+        if (document.activeElement !== $('gDistTxt')) $('gDistTxt').value = $('gDist').value ? distDe($('gDist').value).nombre : '';
       }
       pgSuscribir();
     }, errorEscucha));
     bajas.push(() => { if (pgBaja) pgBaja(); pgBaja = null; pgClave = ''; pgDocs = []; if (cxBaja) cxBaja(); cxBaja = null; cxClave = ''; cxDoc = null; });
   }
   function pgSuscribir() {
+    if (document.activeElement !== $('gDistTxt')) $('gDistTxt').value = pgDist() ? distDe(pgDist()).nombre : '';
     const clave = (puede('verPagos') && pgEmp() && pgDist()) ? `${pgEmp()}|${pgDist()}` : '';
     if (clave === pgClave) { pintarPagos(); return; }
     if (pgBaja) pgBaja();
@@ -2345,6 +2356,35 @@
   }
   $('gEmp').addEventListener('change', () => { pgSuscribir(); if (pgVista === 'cxp') cxSuscribir(); if (pgVista === 'gen') pintarGeneral(); });
   $('gDist').addEventListener('change', pgSuscribir);
+  /* ---------- Distribuidor / proveedor: lista que también es buscador ---------- */
+  let cbxAct = 0, cbxVis = [];
+  function cbxPintar(filtrar) {
+    const q = filtrar ? cnNom($('gDistTxt').value) : '', ok = (d) => !q || cnNom(d.nombre).includes(q) || d.k.includes(q.replace(/\s/g, ''));
+    const D = pgCfg.dists.filter((d) => d.tipo !== 'C' && ok(d)), C = pgCfg.dists.filter((d) => d.tipo === 'C' && ok(d)).sort((a, b) => a.nombre.localeCompare(b.nombre));
+    cbxVis = D.concat(C);
+    if (cbxAct >= cbxVis.length) cbxAct = Math.max(0, cbxVis.length - 1);
+    const item = (d) => { const i = cbxVis.indexOf(d); return `<div class="cbxOp${i === cbxAct ? ' act' : ''}${d.k === pgDist() ? ' sel' : ''}" data-k="${esc(d.k)}" data-i="${i}" role="option">${esc(d.nombre)}</div>`; };
+    $('gDistLista').innerHTML = (D.length ? `<div class="cbxG">Distribuidores</div>${D.map(item).join('')}` : '') + (C.length ? `<div class="cbxG">Proveedores (cuotas por grupos)</div>${C.map(item).join('')}` : '') || '<div class="cbxG">Ninguno coincide</div>';
+    $('gDistLista').classList.remove('oculto');
+    const a = $('gDistLista').querySelector('.cbxOp.act'); if (a) a.scrollIntoView({ block: 'nearest' });
+  }
+  function cbxElegir(k) {
+    $('gDistLista').classList.add('oculto');
+    if (!k) return;
+    $('gDistTxt').value = distDe(k).nombre;
+    if (k !== pgDist()) { $('gDist').value = k; $('gDist').dispatchEvent(new Event('change')); }
+    $('gDistTxt').blur();
+  }
+  $('gDistTxt').addEventListener('focus', () => { $('gDistTxt').select(); cbxAct = Math.max(0, pgCfg.dists.findIndex((d) => d.k === pgDist())); cbxPintar(false); });
+  $('gDistTxt').addEventListener('click', () => { if ($('gDistLista').classList.contains('oculto')) cbxPintar(false); });
+  $('gDistTxt').addEventListener('input', () => { cbxAct = 0; cbxPintar(true); });
+  $('gDistTxt').addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); if ($('gDistLista').classList.contains('oculto')) cbxPintar(true); cbxAct = Math.min(cbxVis.length - 1, Math.max(0, cbxAct + (e.key === 'ArrowDown' ? 1 : -1))); cbxPintar(!!$('gDistTxt').value && $('gDistTxt').value !== distDe(pgDist()).nombre); }
+    else if (e.key === 'Enter') { e.preventDefault(); cbxElegir((cbxVis[cbxAct] || {}).k); }
+    else if (e.key === 'Escape') { $('gDistTxt').value = distDe(pgDist()).nombre; $('gDistLista').classList.add('oculto'); $('gDistTxt').blur(); }
+  });
+  $('gDistTxt').addEventListener('blur', () => setTimeout(() => { if (document.activeElement === $('gDistTxt')) return; $('gDistLista').classList.add('oculto'); $('gDistTxt').value = pgDist() ? distDe(pgDist()).nombre : ''; }, 150));
+  $('gDistLista').addEventListener('mousedown', (e) => { const o = e.target.closest('.cbxOp'); e.preventDefault(); if (o) cbxElegir(o.dataset.k); });
   $('gPer').addEventListener('change', () => { pgAviso = ''; pgSel.clear(); pgAbiertas.clear(); pintarPagos(true); });
   $('gFiltro').addEventListener('change', () => pintarPagos(true));
   $('gTxt').addEventListener('input', () => pintarPagos(true));
@@ -2388,7 +2428,7 @@
     ['grid', 'dash', 'res', 'cruce', 'cxp', 'gen'].forEach((x) => $('gv_' + x).classList.toggle('oculto', x !== (v === 'ncp' ? 'cruce' : v)));
     document.querySelectorAll('#gSub button').forEach((b) => b.classList.toggle('act', b.dataset.gv === v));
     const porDist = !['cxp', 'gen'].includes(v);
-    $('gDist').classList.toggle('oculto', !porDist || v === 'dash'); // el dashboard tiene su propio filtro de distribuidor
+    $('gDistCbx').classList.toggle('oculto', !porDist || v === 'dash'); // el dashboard tiene su propio filtro de distribuidor
     $('gPer').classList.toggle('oculto', !['grid', 'res'].includes(v));
     $('gNuevoPer').classList.toggle('oculto', v !== 'grid' || !puede('pagos'));
     $('gEditPer').classList.toggle('oculto', v !== 'grid' || !puede('pagos'));
