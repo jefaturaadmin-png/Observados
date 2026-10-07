@@ -10,6 +10,7 @@
 // ===================== CONFIGURACIÓN =====================
 const PROYECTO = 'socorro-19056';          // projectId de Firebase (el mismo de index.html)
 const ETIQUETA = 'XML-procesado';          // etiqueta que se pone a los correos ya revisados
+const ETIQUETA_REVISAR = 'XML-sin-leer';   // correos con adjuntos que no se pudieron abrir (RAR, 7z, ZIP dañado o sin XML de facturas)
 const DIAS_ATRAS = 30;                     // en cada vuelta mira los correos de los últimos N días
 const CARPETA_RESPALDO = 'Facturas XML';   // carpeta de Drive para guardar copia de cada XML ('' = no guardar)
 const MAX_CORREOS = 40;                    // correos (hilos) por vuelta, para no pasar el límite de 6 minutos
@@ -36,39 +37,50 @@ function revisarCorreo() {
   if (!candado.tryLock(1000)) return; // ya hay otra vuelta corriendo
   try {
     const etiqueta = GmailApp.getUserLabelByName(ETIQUETA) || GmailApp.createLabel(ETIQUETA);
-    const hilos = GmailApp.search(`has:attachment {filename:xml filename:zip} newer_than:${DIAS_ATRAS}d -label:${ETIQUETA}`, 0, MAX_CORREOS);
+    const hilos = GmailApp.search(`has:attachment {filename:xml filename:zip filename:rar filename:7z} newer_than:${DIAS_ATRAS}d -label:${ETIQUETA} -label:${ETIQUETA_REVISAR}`, 0, MAX_CORREOS);
     let enviados = 0, repetidos = 0;
-    hilos.forEach((hilo) => {
+    const inicio = Date.now();
+    for (const hilo of hilos) {
+      if (Date.now() - inicio > 4.5 * 60 * 1000) { console.log('Se acaba el tiempo de esta vuelta: lo que falta sigue en la próxima.'); break; }
+      let xmls = 0;
+      const raros = [];
       hilo.getMessages().forEach((m) => {
-        xmlsDe(m).forEach((x) => {
-          if (enviarAlBuzon(x, m)) enviados += 1; else repetidos += 1;
-        });
+        const r = xmlsDe(m);
+        raros.push(...r.raros);
+        r.xmls.forEach((x) => { xmls += 1; if (enviarAlBuzon(x, m)) enviados += 1; else repetidos += 1; });
       });
+      if (!xmls && raros.length) { // nada que leer: se marca para revisarlo a mano (no queda como procesado)
+        hilo.addLabel(GmailApp.getUserLabelByName(ETIQUETA_REVISAR) || GmailApp.createLabel(ETIQUETA_REVISAR));
+        console.warn(`"${hilo.getFirstMessageSubject()}": no se pudo leer ${raros.join(' · ')}`);
+        continue;
+      }
       hilo.addLabel(etiqueta); // solo si todo salió bien; si algo falla, se reintenta en la próxima vuelta
-    });
+    }
     if (hilos.length) console.log(`${hilos.length} correo(s) revisado(s) · ${enviados} XML nuevo(s) · ${repetidos} ya estaban`);
   } finally {
     candado.releaseLock();
   }
 }
 
-/** Los XML de comprobantes que trae un correo, sueltos o dentro de un .zip. */
+/** Los XML de comprobantes que trae un correo: sueltos, dentro de un .zip o de un .zip dentro de otro (hasta 3 niveles).
+ *  raros = adjuntos que no se pudieron abrir (RAR y 7z no se pueden abrir desde Google: hay que descomprimirlos en la PC). */
 function xmlsDe(m) {
-  const out = [];
-  m.getAttachments({ includeInlineImages: false }).forEach((a) => {
-    const nombre = a.getName() || '';
-    if (/\.xml$/i.test(nombre)) out.push({ nombre, blob: a.copyBlob() });
-    else if (/\.zip$/i.test(nombre)) {
-      try {
-        const zip = a.copyBlob().setContentType('application/zip');
-        Utilities.unzip(zip).forEach((b) => { if (/\.xml$/i.test(b.getName())) out.push({ nombre: `${nombre} → ${b.getName()}`, blob: b }); });
-      } catch (e) { console.warn(`No se pudo abrir ${nombre}: ${e}`); }
-    }
-  });
-  return out
+  const out = [], raros = [];
+  const abrir = (blob, nombre, nivel) => {
+    if (/\.xml$/i.test(nombre)) { out.push({ nombre, blob }); return; }
+    if (/\.(rar|7z)$/i.test(nombre)) { raros.push(`${nombre} (RAR/7z)`); return; }
+    if (!/\.zip$/i.test(nombre) || nivel > 3) return;
+    try {
+      Utilities.unzip(blob.setContentType('application/zip')).forEach((b) => abrir(b, `${nombre} → ${b.getName()}`, nivel + 1));
+    } catch (e) { raros.push(`${nombre} (ZIP que no se pudo abrir)`); console.warn(`No se pudo abrir ${nombre}: ${e}`); }
+  };
+  m.getAttachments({ includeInlineImages: false }).forEach((a) => abrir(a.copyBlob(), a.getName() || '', 1));
+  const xmls = out
     .map((x) => ({ nombre: x.nombre, texto: textoDe(x.blob) }))
     // solo facturas, NC y ND; se descarta la constancia de SUNAT (CDR, ApplicationResponse) y otros XML
     .filter((x) => /<(\w+:)?(Invoice|CreditNote|DebitNote)[\s>]/.test(x.texto.slice(0, 3000)));
+  if (out.length && !xmls.length) raros.push('XML que no son facturas ni notas (guías, constancias u otros)');
+  return { xmls, raros };
 }
 
 /** Texto del XML respetando la codificación que declara (muchos vienen en ISO-8859-1). */
@@ -109,10 +121,11 @@ function enviarAlBuzon(x, m) {
   throw new Error(`Firestore respondió ${cod}: ${r.getContentText().slice(0, 500)}`);
 }
 
+let carpetaRespaldo = null;
 function respaldar(x, huella) {
   try {
-    const it = DriveApp.getFoldersByName(CARPETA_RESPALDO);
-    const carpeta = it.hasNext() ? it.next() : DriveApp.createFolder(CARPETA_RESPALDO);
+    if (!carpetaRespaldo) { const it = DriveApp.getFoldersByName(CARPETA_RESPALDO); carpetaRespaldo = it.hasNext() ? it.next() : DriveApp.createFolder(CARPETA_RESPALDO); }
+    const carpeta = carpetaRespaldo;
     const nombre = `${huella.slice(0, 8)}_${x.nombre.split('→').pop().trim()}`;
     if (!carpeta.getFilesByName(nombre).hasNext()) carpeta.createFile(nombre, x.texto, 'application/xml');
   } catch (e) { console.warn(`No se pudo guardar la copia en Drive: ${e}`); }
