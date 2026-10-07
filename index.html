@@ -3942,24 +3942,30 @@
   /* ---------- Conciliación de cada factura (Pagos a proveedores y Cuentas por pagar) ----------
      ✓ XML: el XML del proveedor tiene el mismo total (automático) · ✓ QR: se agregó desde un QR escaneado ·
      ✓ Manual: alguien la concilió a mano (queda quién y cuándo). Si el XML del proveedor dice otro total, se avisa "≠ XML". */
-  const czXml = { meses: new Set(), idx: new Map() };
+  const czXml = { meses: new Map(), idx: new Map() }; // meses: mes → cuándo se trajo
   const CZ_TXT = { XML: 'XML', QR: 'QR', MAN: 'Manual' };
-  function czAsegurar(yms, repintar) { // trae los XML de esos meses de emisión, una sola vez por mes
+  // Se marca un mes para volver a leerlo en la próxima pintada (al guardar un XML nuevo de ese mes); lo ya leído se sigue mostrando mientras tanto
+  const czOlvidar = (ym) => { czXml.meses.delete(ym); };
+  function czAsegurar(yms, repintar) { // trae los XML de esos meses de emisión; se vuelven a leer cada 10 minutos por si otro usuario subió más
     if (!puede('verXml')) return;
-    const falta = [...new Set(yms)].filter((m) => /^\d{4}-\d{2}$/.test(m) && !czXml.meses.has(m));
+    const ahora = Date.now(), falta = [...new Set(yms)].filter((m) => /^\d{4}-\d{2}$/.test(m) && !(ahora - (czXml.meses.get(m) || 0) < 600000));
     if (!falta.length) return;
-    falta.forEach((m) => czXml.meses.add(m));
+    falta.forEach((m) => czXml.meses.set(m, ahora));
     (async () => {
       try {
-        for (let i = 0; i < falta.length; i += 30) (await getDocs(query(collection(db, 'xmlf'), where('ym', 'in', falta.slice(i, i + 30))))).docs.forEach((d) => {
-          const x = d.data(), t = CI_T[x.tipo];
+        const xs = [];
+        for (let i = 0; i < falta.length; i += 30) (await getDocs(query(collection(db, 'xmlf'), where('ym', 'in', falta.slice(i, i + 30))))).docs.forEach((d) => xs.push(d.data()));
+        const meses = new Set(falta); // se reemplaza lo de esos meses por lo recién leído
+        czXml.idx.forEach((l, k) => { const r = l.filter((y) => !meses.has(y.x.ym)); if (r.length) czXml.idx.set(k, r); else czXml.idx.delete(k); });
+        xs.forEach((x) => {
+          const t = CI_T[x.tipo];
           if (!t) return;
           const k = `${t}|${serDoc(x.serie)}|${numDoc(x.num)}`;
           if (!czXml.idx.has(k)) czXml.idx.set(k, []);
           czXml.idx.get(k).push({ m: Math.abs(Number(x.total) || 0), nom: x.emisor ? x.emisor.nom : '', x });
         });
         repintar();
-      } catch (e) { console.error(e); }
+      } catch (e) { falta.forEach((m) => czXml.meses.delete(m)); console.error(e); }
     })();
   }
   const czNomOk = (a, b) => { const x = cnNom(a), y = cnNom(b); return !!x && !!y && (x === y || (Math.min(x.length, y.length) >= 5 && (x.startsWith(y) || y.startsWith(x)))); };
@@ -7020,6 +7026,7 @@
         const ref = doc(db, 'xmlf', xlKey(d1));
         if ((await getDoc(ref)).exists()) { ya += 1; continue; }
         await setDoc(ref, { ...d1, lineas: d1.lineas.slice(0, 600), arch: String(d1.arch).split('→').pop().trim().slice(0, 120), ym: d1.fecha.slice(0, 7), subido: ctAhora(), por: firma() });
+        czOlvidar(d1.fecha.slice(0, 7)); // Pagos y Cuentas por pagar lo ven al volver a pintar
         nuevos += 1;
       } catch (e) { xl.errores.push(`${d1.id}: no se pudo guardar (${errorTexto(e)})`); }
     }
@@ -7131,6 +7138,7 @@
       if (!/^\d{4}-\d{2}-\d{2}$/.test(d1.fecha)) throw new Error('no trae fecha de emisión');
       const k = xlKey(d1), refX = doc(db, 'xmlf', k), ya = (await getDoc(refX)).exists();
       if (!ya) await setDoc(refX, { ...d1, lineas: d1.lineas.slice(0, 600), arch: txt(b.archivo, 120), ym: d1.fecha.slice(0, 7), subido: ctAhora(), por: 'Correo · ' + txt(b.de, 100), correo: { de: txt(b.de, 200), asunto: txt(b.asunto, 200), recibido: txt(b.recibido, 40) } });
+      if (!ya) czOlvidar(d1.fecha.slice(0, 7));
       await updateDoc(ref, { estado: ya ? 'repetido' : 'leido', k, doc: d1.id, tipo: d1.tipo, emisor: d1.emisor.nom, ruc: d1.emisor.ruc, cliente: d1.cliente.ruc, fecha: d1.fecha, total: d1.total, moneda: d1.moneda, items: d1.lineas.length, ref: d1.ref || '', xml: deleteField(), error: deleteField(), procesado: ctAhora(), por: firma() });
     } catch (e) {
       try { await updateDoc(ref, { estado: 'error', error: txt(e.message || errorTexto(e), 200), procesado: ctAhora(), por: firma() }); } catch (e2) { console.error(e2); }
