@@ -1,0 +1,216 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+
+    function miDoc() {
+      return get(/databases/$(db)/documents/usuarios/$(request.auth.uid)).data;
+    }
+    function activo() {
+      return request.auth != null
+        && exists(/databases/$(db)/documents/usuarios/$(request.auth.uid))
+        && miDoc().activo == true;
+    }
+    function esArea(a) { return activo() && miDoc().area == a; }
+    // Permisos que el administrador activa o quita a cada usuario en la pestaña Usuarios
+    function puede(p) {
+      return activo() && (miDoc().area == 'ADMIN' || miDoc().get('permisos', {}).get(p, false) == true);
+    }
+    function soloCambia(campos) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(campos);
+    }
+
+    // Marca de "ya se creó el administrador". Se crea una sola vez y no se puede tocar más.
+    match /config/inicio {
+      allow get: if true;
+      allow create: if request.auth != null
+        && existsAfter(/databases/$(db)/documents/usuarios/$(request.auth.uid));
+    }
+
+    // Proveedores, laboratorios adicionales y motivos
+    match /config/listas {
+      allow read: if activo();
+      allow write: if esArea('ADMIN');
+    }
+
+    // Pagos a proveedores: empresas, distribuidores, feriados
+    match /config/pagos {
+      allow read: if activo();
+      allow create, delete: if esArea('ADMIN');
+      allow update: if esArea('ADMIN') || (puede('pagos') && soloCambia(['feriados']));
+    }
+    // Un documento por empresa + distribuidor + mes a pagar, con sus facturas y NC adentro.
+    // Quitar filas (eliminar o mover) exige el permiso "pagosBorrar".
+    match /pagos/{id} {
+      allow read: if puede('verPagos') || puede('verDash') || puede('verEnt');
+      allow create: if puede('pagos');
+      allow update: if puede('pagos')
+        && (puede('pagosBorrar') || request.resource.data.filas.size() >= resource.data.filas.size());
+      allow delete: if esArea('ADMIN');
+    }
+    // Facturas por pagar de los proveedores menores: un documento por empresa + mes
+    match /cxp/{id} {
+      allow read: if puede('verPagos') || puede('verDash') || puede('verEnt');
+      allow create: if puede('pagos');
+      allow update: if puede('pagos')
+        && (puede('pagosBorrar') || request.resource.data.filas.size() >= resource.data.filas.size());
+      allow delete: if esArea('ADMIN');
+    }
+    // Índice de facturas que ya están en pagos: lo lee cualquier usuario activo para cerrar las observaciones
+    match /pagosIdx/{id} {
+      allow read: if activo();
+      allow write: if puede('pagos');
+    }
+    // Historial de cambios de pagos: solo se agrega, nunca se modifica ni se borra
+    match /pagosLog/{id} {
+      allow read: if puede('verPagos') || puede('verCxp');
+      allow create: if puede('pagos') || puede('cxp');
+    }
+    // Equivalencias de nombres de proveedor entre el reporte del sistema y esta página
+    match /config/concilia {
+      allow read: if activo();
+      allow write: if esArea('ADMIN') || puede('cxp') || puede('pagos');
+    }
+    // Cuentas por pagar: proveedores y parámetros de retención
+    match /config/cxp {
+      allow read: if activo();
+      allow write: if esArea('ADMIN') || puede('cxp');
+    }
+    // Un documento por empresa + mes de pago, con sus documentos y la programación de letras adentro.
+    // Quitar documentos exige el permiso "cxpBorrar".
+    match /cpm/{id} {
+      allow read: if puede('verCxp') || puede('verPagos') || puede('verDash') || puede('verEnt');
+      allow create: if puede('cxp');
+      allow update: if puede('cxp')
+        && (puede('cxpBorrar') || request.resource.data.filas.size() >= resource.data.filas.size());
+      allow delete: if esArea('ADMIN');
+    }
+    // Resumen de pagos del mes: créditos bancarios y otros pagos que llena la administración
+    // Seguimiento de devoluciones: qué facturas observadas ya se entregaron al proveedor (un documento por empresa)
+    match /devEnt/{id} {
+      allow read: if puede('verEnt');
+      allow write: if puede('ent');
+    }
+    // Cotizaciones. cot = lo interno; cotPub = lo que ve y llena el proveedor.
+    // El proveedor no inicia sesión: solo puede abrir SU documento si conoce el enlace y su código (no puede listar),
+    // y mientras esté abierta solo puede cambiar sus respuestas y sus mensajes.
+    match /config/cot {
+      allow read: if puede('verCot');
+      allow write: if puede('cot');
+    }
+    match /cot/{id} {
+      allow read: if puede('verCot');
+      allow create, delete: if puede('cot');
+      allow update: if puede('cot') || puede('cotAprobar') || puede('cotRec');
+    }
+    match /cotPub/{id} {
+      allow get: if true;
+      allow list: if request.auth != null && puede('verCot');
+      allow create, delete: if request.auth != null && puede('cot');
+      // Una vez enviada, el proveedor solo puede escribir mensajes; vuelve a poder editar cuando Compras la observa.
+      allow update: if (resource.data.estado == 'abierta'
+          && request.resource.data.chat.size() <= 200
+          && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['chat'])
+            || (resource.data.enviado != true
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['resp', 'respNom', 'respFecha', 'enviado', 'chat']))))
+        || (request.auth != null && (puede('cot') || puede('cotAprobar')));
+    }
+    // Lector de XML: solo la información leída de cada factura o nota (no el archivo)
+    match /xmlf/{id} {
+      allow read: if puede('verXml');
+      allow write: if puede('xml');
+    }
+    // XML que llegan por correo (los deja el script de Gmail). La página los lee y marca el resultado.
+    match /xmlBuzon/{id} {
+      allow read: if puede('verXml');
+      allow update: if puede('xml');
+    }
+    // Aviso de cambio de contraseña: al cambiarla se cierran las demás sesiones de ese usuario
+    match /sesiones/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+    match /cpRes/{id} {
+      allow read: if puede('verCxp');
+      allow write: if puede('cxp');
+    }
+    // Índice de facturas por mes, para avisar las repetidas en otro mes
+    match /cpIdx/{id} {
+      allow read: if puede('verCxp');
+      allow write: if puede('cxp');
+    }
+
+    // Catálogo de productos (código, producto, laboratorio)
+    match /catalogo/{id} {
+      allow read: if activo();
+      allow write: if esArea('ADMIN');
+    }
+
+    // Numeración OBS-0001, OBS-0002... solo puede avanzar (hasta 50 productos por guardado)
+    match /config/contador {
+      allow read: if puede('observar');
+      allow create: if puede('observar')
+        && request.resource.data.n >= 1 && request.resource.data.n <= 50;
+      allow update: if puede('observar')
+        && request.resource.data.n > resource.data.n
+        && request.resource.data.n <= resource.data.n + 50;
+    }
+
+    match /usuarios/{uid} {
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow read, delete: if esArea('ADMIN');
+      allow update: if esArea('ADMIN')
+        // El propio usuario solo puede marcar que ya cambió su contraseña temporal
+        || (request.auth != null && request.auth.uid == uid
+            && soloCambia(['debeCambiar']) && request.resource.data.debeCambiar == false);
+      allow create: if esArea('ADMIN')
+        // Primera vez: quien configura el sistema se crea a sí mismo como administrador
+        || (request.auth != null && request.auth.uid == uid
+            && request.resource.data.area == 'ADMIN'
+            && !exists(/databases/$(db)/documents/config/inicio)
+            && existsAfter(/databases/$(db)/documents/config/inicio));
+    }
+
+    // Ingreso de pedidos: Recepción registra la factura, Compras da la conformidad
+    match /pedidos/{id} {
+      allow read: if activo();
+      allow create: if puede('pedidos')
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.conforme == false;
+      allow update: if esArea('ADMIN')
+        || (puede('conformidad') && soloCambia(['conforme', 'conformePor', 'conformeFecha']));
+      allow delete: if esArea('ADMIN');
+    }
+
+    // Productos observados
+    match /observaciones/{id} {
+      allow read: if activo();
+      allow create: if puede('observar')
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.estado == 'Por devolver'
+        // El precio al observar solo lo pone quien tiene ese permiso
+        && (request.resource.data.get('precio', null) == null || puede('precioObs'));
+      allow update: if esArea('ADMIN')
+        // Confirmar la devolución (completa o parcial) de lo que está por devolver
+        || (puede('devolver')
+            && resource.data.estado in ['Por devolver', 'Reportado', 'Revisado por compras']
+            && request.resource.data.estado == 'Devuelto'
+            && soloCambia(['estado', 'cantDevuelta', 'faltante', 'parcialConforme', 'guia', 'devueltoPor', 'devueltoFecha', 'actPor', 'actFecha']))
+        // Decidir que un producto se queda (o revertirlo)
+        || (puede('decidir')
+            && soloCambia(['estado', 'quedaMotivo', 'quedaPor', 'quedaFecha', 'actPor', 'actFecha'])
+            && resource.data.estado in ['Por devolver', 'Reportado', 'Revisado por compras', 'Se queda']
+            && request.resource.data.estado in ['Por devolver', 'Se queda'])
+        // Dar conformidad a una devolución parcial
+        || (puede('parcial')
+            && soloCambia(['parcialConforme', 'parcialPor', 'parcialFecha', 'actPor', 'actFecha']))
+        // Precios y nota de crédito de lo ya devuelto
+        || (puede('precios')
+            && soloCambia(['precio', 'monto', 'nc', 'fechaNc', 'estado', 'actPor', 'actFecha'])
+            && resource.data.estado in ['Devuelto', 'Devuelto al proveedor', 'NC recibida']
+            && request.resource.data.estado in ['Devuelto', 'NC recibida'])
+        // Comentarios
+        || (esArea('COMPRAS') && soloCambia(['obsCompras', 'comprasUsuario', 'comprasFecha', 'actPor', 'actFecha']))
+        || (esArea('GERENCIA') && soloCambia(['obsGerencia', 'gerenciaUsuario', 'gerenciaFecha', 'actPor', 'actFecha']));
+      allow delete: if false; // nada se borra: el administrador lo marca como "Anulado"
+    }
+  }
+}
