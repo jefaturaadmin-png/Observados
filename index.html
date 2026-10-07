@@ -953,12 +953,32 @@
     try {
       await updatePassword(auth.currentUser, $('kNue').value);
       await updateDoc(doc(db, 'usuarios', yo.uid), { debeCambiar: false });
+      avisarCambioClave();
       yo.debeCambiar = false;
       f.reset();
       iniciar();
     } catch (err) { msg('cambioMsg', errorTexto(err)); }
     ocupado(f, false);
   });
+
+  // Al cambiar la contraseña, Firebase invalida las sesiones de los otros equipos, pero ellos recién se enteran
+  // al renovar su acceso (hasta 1 hora). Por eso se deja una marca en sesiones/{uid}: cada sesión abierta
+  // la escucha, renueva su acceso al momento y, si ya no es válido, se cierra.
+  async function avisarCambioClave() {
+    try { await setDoc(doc(db, 'sesiones', auth.currentUser.uid), { desde: serverTimestamp() }); return true; } catch (e) { console.error(e); return false; }
+  }
+  const SESION_VENCIDA = ['auth/user-token-expired', 'auth/invalid-user-token', 'auth/user-disabled', 'auth/user-not-found', 'auth/requires-recent-login'];
+  function escucharSesion() {
+    let primera = true;
+    bajas.push(onSnapshot(doc(db, 'sesiones', yo.uid), (s) => {
+      const era = primera; primera = false;
+      if (era || !s.exists() || !auth.currentUser) return; // solo interesan los cambios de contraseña hechos con la sesión ya abierta
+      auth.currentUser.getIdToken(true).catch((e) => {
+        if (SESION_VENCIDA.includes(e.code)) signOut(auth).then(() => msg('loginMsg', 'La contraseña de tu usuario se cambió. Vuelve a ingresar con la nueva.'));
+        else console.error(e);
+      });
+    }, (e) => console.error(e))); // si falta la regla de "sesiones", solo no se avisa al instante
+  }
 
   $('bClave').addEventListener('click', () => { msg('claveMsg', ''); $('fClave').reset(); $('dlgClave').showModal(); });
   $('cCerrar').addEventListener('click', () => $('dlgClave').close());
@@ -970,7 +990,8 @@
       await reauthenticateWithCredential(auth.currentUser, EmailAuthProvider.credential(auth.currentUser.email, $('cAct').value));
       await updatePassword(auth.currentUser, $('cNue').value);
       f.reset();
-      msg('claveMsg', 'Contraseña cambiada.', 'ok');
+      const ok = await avisarCambioClave();
+      msg('claveMsg', ok ? 'Contraseña cambiada. Se cerró la sesión en los demás equipos donde estaba abierta.' : 'Contraseña cambiada. Los demás equipos se cerrarán solos dentro de una hora (falta la regla "sesiones" en Firestore para que sea al instante).', 'ok');
     } catch (err) {
       msg('claveMsg', ['auth/invalid-credential', 'auth/wrong-password'].includes(err.code) ? 'La contraseña actual no es correcta.' : errorTexto(err));
     }
@@ -1021,6 +1042,7 @@
     xbIniciar();
     aplicarPermisos();
 
+    escucharSesion();
     // Mis propios datos: si el administrador cambia mis permisos, se aplican al momento
     bajas.push(onSnapshot(doc(db, 'usuarios', yo.uid), (s) => {
       if (!yo) return;
