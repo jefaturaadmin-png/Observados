@@ -12,6 +12,9 @@ Correo del proveedor ─► Script de Gmail (cada 10 min) ─► Firebase: xmlBu
 - Si el mismo XML llega dos veces, en dos correos o reenviado, entra una sola vez.
 - Se descarta la constancia de SUNAT (CDR) que viene en algunos .zip. Solo entran facturas, NC y ND.
 - Los correos ya revisados quedan con la etiqueta **XML-procesado** en Gmail.
+- Abre también un ZIP que viene dentro de otro ZIP (por ejemplo, uno por mes).
+- Si el adjunto es **RAR o 7z**, o el ZIP está dañado, o no trae facturas ni notas, el correo queda con la etiqueta **XML-sin-leer** (no como procesado). Descomprímelo en la PC y sube los XML en el **Lector de XML**.
+- **Si actualizas el script:** pega de nuevo `Codigo.gs` y guarda. No hace falta volver a ejecutar `instalar`.
 
 ## Instalación (una sola vez, unos 10 minutos)
 
