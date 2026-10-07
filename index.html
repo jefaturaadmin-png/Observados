@@ -2746,7 +2746,7 @@
       return;
     }
     const f = pgFila(b.dataset.cz); if (!f) return;
-    if (b.classList.contains('czFe')) pgGuardar(pgPer(), (l) => { const x = l.find((y) => y.i === f.i); if (x) x.f = b.dataset.v; }, 'Corrigió', `${f.t} ${f.s}-${f.n}: fecha "${f.f}" → "${b.dataset.v}" (según XML)`).catch(pgError);
+    if (b.classList.contains('czFe')) pgGuardar(pgPer(), (l) => { const x = l.find((y) => y.i === f.i); if (x) { x.f = b.dataset.v; czFirma(x); } }, 'Corrigió', `${f.t} ${f.s}-${f.n}: fecha "${f.f}" → "${b.dataset.v}" (según XML)`).catch(pgError);
     else { const v = Number(b.dataset.v), m = f.t === 'NC' ? -Math.abs(v) : Math.abs(v); pgGuardar(pgPer(), (l) => { const x = l.find((y) => y.i === f.i); if (x) { x.m = m; czPoner(x, 'XML'); } }, 'Corrigió', `${f.t} ${f.s}-${f.n}: total "${f.m}" → "${m}" (según XML)`).catch(pgError); }
   });
   $('gCuerpo').addEventListener('input', (e) => { if (e.target.closest('.obXml')) czObsMonto(e.target.closest('.obXml'), (d) => { const f = pgFila(d.dataset.d); return f && czXmlDe(`${f.t}|${serDoc(f.s)}|${numDoc(f.n)}`, f.m, distDe(pgDist()).nombre); }); });
@@ -2756,7 +2756,7 @@
     const col = ($('gCzBar') || {}).czCol || [];
     if (!col.length || !confirm(`¿Cambiar la fecha de ${col.length} documento(s) por la de su XML?`)) return;
     const m = new Map(col.map((c) => [c.i, c.f]));
-    pgGuardar(pgPer(), (l) => { l.forEach((x) => { if (m.has(x.i)) x.f = m.get(x.i); }); }, 'Corrigió', `Fecha según XML en ${col.length} documento(s): ${col.map((c) => c.doc).join(', ')}`.slice(0, 380)).catch(pgError);
+    pgGuardar(pgPer(), (l) => { l.forEach((x) => { if (m.has(x.i)) { x.f = m.get(x.i); czFirma(x); } }); }, 'Corrigió', `Fecha según XML en ${col.length} documento(s): ${col.map((c) => c.doc).join(', ')}`.slice(0, 380)).catch(pgError);
   });
   $('gCuerpo').addEventListener('click', (e) => { // conciliar a mano, o quitar la conciliación manual
     const b = e.target.closest('.czMan, .czQuitar');
@@ -4022,10 +4022,11 @@
     })();
   }
   const czNomOk = (a, b) => { const x = cnNom(a), y = cnNom(b); return !!x && !!y && (x === y || (Math.min(x.length, y.length) >= 5 && (x.startsWith(y) || y.startsWith(x)))); };
-  function czPoner(x, tipo) { // tipo '' quita la conciliación
-    if (!tipo) { delete x.cz; delete x.czPor; delete x.czF; return; }
-    x.cz = tipo; x.czPor = firma(); x.czF = hoy();
+  function czPoner(x, tipo) { // tipo '' quita la conciliación. Se guarda con qué total y fecha se concilió:
+    if (!tipo) { delete x.cz; delete x.czPor; delete x.czF; delete x.czM; delete x.czD; return; } // si después cambian, deja de valer
+    x.cz = tipo; x.czPor = firma(); x.czF = hoy(); czFirma(x);
   }
+  const czFirma = (x) => { if (x.cz) { x.czM = Number(x.m) || 0; x.czD = x.f || ''; } }; // al corregir la fecha según el XML, la conciliación sigue valiendo
   function czXmlDe(k, monto, prov) { // el XML de esa factura: el que tiene el mismo total o, si no, el del mismo proveedor
     const xs = czXml.idx.get(k) || [];
     const igual = xs.find((x) => Math.abs(x.m - Math.abs(Number(monto) || 0)) <= TOL_NC);
@@ -4033,15 +4034,23 @@
     const suyo = xs.find((x) => czNomOk(x.nom, prov));
     return suyo ? { ...suyo, igual: false } : null;
   }
+  // La conciliación deja de valer si después cambiaron el total o la fecha, o si era por XML y el XML ya no coincide
+  function czEstado(f, monto, X) {
+    const cambioM = !!f.cz && f.czM !== undefined && Math.abs(Math.abs(Number(f.czM) || 0) - Math.abs(Number(monto) || 0)) > 0.005;
+    const cambioF = !!f.cz && f.czD !== undefined && f.czD !== f.f;
+    return { cambioM, cambioF, vale: !!f.cz && !cambioM && !cambioF && !(f.cz !== 'MAN' && X && !X.igual) };
+  }
   function czCelda(f, k, monto, prov, edita, col) {
     const X = czXmlDe(k, monto, prov), fx = X && X.x ? X.x.fecha : '', feMal = !!(fx && /^\d{4}-\d{2}-\d{2}$/.test(fx) && f.f !== fx);
     if (feMal && col) col.push({ i: f.i, f: fx, doc: f.d || `${f.s}-${f.n}` });
     let h = '';
-    if (f.cz) {
+    const { cambioM, cambioF, vale } = czEstado(f, monto, X);
+    if (vale) {
       const quita = edita && f.cz === 'MAN';
       h = `<span class="est e2${quita ? ' czQuitar' : ''}" data-cz="${esc(f.i)}" title="${esc(`Conciliada con ${CZ_TXT[f.cz] || f.cz}${f.czPor ? ' · ' + f.czPor : ''}${f.czF ? ' · ' + dia(f.czF) : ''}${quita ? ' · clic para quitar' : ''}`)}"${quita ? ' style="cursor:pointer"' : ''}>✓ ${esc(CZ_TXT[f.cz] || f.cz)}</span>`;
-    } else if (X && X.igual) h = '<span class="est e2" title="El XML del proveedor tiene el mismo total">✓ XML</span>';
-    else h = (X ? `<span class="est alerta" title="El XML del proveedor dice S/ ${mil(X.m)}">≠ XML ${mil(X.m)}</span> ${edita ? `<button class="mini czTot" data-cz="${esc(f.i)}" data-v="${X.m}">Usar total XML</button> ` : ''}` : '') +
+    } else if (X && X.igual && !cambioF && !cambioM) h = '<span class="est e2" title="El XML del proveedor tiene el mismo total">✓ XML</span>';
+    else h = (f.cz ? `<span class="est e0" title="${esc(`Se concilió con ${CZ_TXT[f.cz] || f.cz}${f.czPor ? ' · ' + f.czPor : ''}${f.czF ? ' · ' + dia(f.czF) : ''}${f.czM !== undefined ? ` · total S/ ${mil(f.czM)}` : ''}${f.czD ? ` · fecha ${dia(f.czD)}` : ''}`)}">${cambioM || cambioF ? `Cambió ${[cambioM ? 'el total' : '', cambioF ? 'la fecha' : ''].filter(Boolean).join(' y ')}` : 'Ya no coincide con el XML'}: concilia de nuevo</span><br>` : '') +
+      (X && Math.abs(Math.abs(Number(monto) || 0) - X.m) > 0.005 ? `<span class="est alerta" title="El XML del proveedor dice S/ ${mil(X.m)}">≠ XML ${mil(X.m)} · dif. ${mil(r2(Math.abs(Number(monto) || 0) - X.m))}</span> ${edita ? `<button class="mini czTot" data-cz="${esc(f.i)}" data-v="${X.m}">Usar total XML</button> ` : ''}` : '') +
       (edita ? `<button class="mini czMan" data-cz="${esc(f.i)}" title="Marcar como conciliada a mano (revisada contra la factura)">Conciliar</button>` : '');
     if (feMal) h += `<div style="margin-top:3px"><span class="est e0" title="La fecha registrada no es la del XML">Fecha XML ${esc(dia(fx))}</span>${edita ? ` <button class="mini czFe" data-cz="${esc(f.i)}" data-v="${esc(fx)}">Usar fecha XML</button>` : ''}</div>`;
     return h;
@@ -4246,7 +4255,7 @@
       return;
     }
     const f = cpFila(b.dataset.cz); if (!f) return;
-    if (b.classList.contains('czFe')) cpGuardar((est) => { const x = est.filas.find((y) => y.i === f.i); if (x) x.f = b.dataset.v; }, 'Corrigió', `${f.p} ${f.d}: emisión "${f.f}" → "${b.dataset.v}" (según XML)`).catch(cpError);
+    if (b.classList.contains('czFe')) cpGuardar((est) => { const x = est.filas.find((y) => y.i === f.i); if (x) { x.f = b.dataset.v; czFirma(x); } }, 'Corrigió', `${f.p} ${f.d}: emisión "${f.f}" → "${b.dataset.v}" (según XML)`).catch(cpError);
     else { const v = Math.abs(Number(b.dataset.v)); cpGuardar((est) => { const x = est.filas.find((y) => y.i === f.i); if (x) { x.m = v; czPoner(x, 'XML'); } }, 'Corrigió', `${f.p} ${f.d}: importe "${f.m}" → "${v}" (según XML)`).catch(cpError); }
   });
   ['input', 'change'].forEach((ev) => $('cpCuerpo').addEventListener(ev, (e) => { if (e.target.closest('.obXml')) czObsMonto(e.target.closest('.obXml'), (d) => { const f = cpFila(d.dataset.d); return f && czKeyCp(f) && czXmlDe(czKeyCp(f), f.m, f.p); }); }));
@@ -4255,7 +4264,7 @@
     const col = ($('cpCzBar') || {}).czCol || [];
     if (!col.length || !confirm(`¿Cambiar la fecha de emisión de ${col.length} documento(s) por la de su XML?`)) return;
     const m = new Map(col.map((c) => [c.i, c.f]));
-    cpGuardar((est) => { est.filas.forEach((x) => { if (m.has(x.i)) x.f = m.get(x.i); }); }, 'Corrigió', `Emisión según XML en ${col.length} documento(s): ${col.map((c) => c.doc).join(', ')}`.slice(0, 380)).catch(cpError);
+    cpGuardar((est) => { est.filas.forEach((x) => { if (m.has(x.i)) { x.f = m.get(x.i); czFirma(x); } }); }, 'Corrigió', `Emisión según XML en ${col.length} documento(s): ${col.map((c) => c.doc).join(', ')}`.slice(0, 380)).catch(cpError);
   });
   $('cpCuerpo').addEventListener('click', (e) => { // conciliar a mano, o quitar la conciliación manual
     const b = e.target.closest('.czMan, .czQuitar');
@@ -5836,7 +5845,7 @@
   async function ciCorregir(r, campo) {
     const nuevo = campo === 'm' ? (r.mod === 'C' ? Math.abs(r.real.m) : r.real.m) : r.real.f, antes = r.f[campo];
     try {
-      await ciGuardar(r, (x) => { x[campo] = nuevo; if (campo === 'm') czPoner(x, r.real.de.startsWith('QR') ? 'QR' : 'XML'); }, 'Corrigió', `${r.P.nombre} ${r.t} ${r.s}-${r.n}: ${campo === 'm' ? 'total' : 'fecha'} "${antes ?? ''}" → "${nuevo}" (según ${r.real.de}, cierre del mes)`);
+      await ciGuardar(r, (x) => { x[campo] = nuevo; if (campo === 'm') czPoner(x, r.real.de.startsWith('QR') ? 'QR' : 'XML'); else czFirma(x); }, 'Corrigió', `${r.P.nombre} ${r.t} ${r.s}-${r.n}: ${campo === 'm' ? 'total' : 'fecha'} "${antes ?? ''}" → "${nuevo}" (según ${r.real.de}, cierre del mes)`);
       await ciCargar(true);
     } catch (e) { msg('ciMsg', errorTexto(e)); }
   }
@@ -6229,8 +6238,9 @@
     czAsegurar(todas.map((r) => String(r.f).slice(0, 7)), () => { if (vista === 'vProvDocs') pdPintar(); });
     todas.forEach((r) => {
       const X = r.key ? czXmlDe(r.key, r.m, r.prov) : null;
-      r.cz = r.fila.cz ? 'si' : (X && X.igual ? 'si' : (X ? 'dif' : 'no'));
-      r.czTxt = r.fila.cz ? `✓ ${CZ_TXT[r.fila.cz] || r.fila.cz}` : (X && X.igual ? '✓ XML' : (X ? `≠ XML ${mil(X.m)}` : ''));
+      const E = czEstado(r.fila, r.m, X), igual = X && X.igual && !E.cambioF && !E.cambioM;
+      r.cz = E.vale || igual ? 'si' : (X || r.fila.cz ? 'dif' : 'no');
+      r.czTxt = E.vale ? `✓ ${CZ_TXT[r.fila.cz] || r.fila.cz}` : (igual ? '✓ XML' : (X ? `≠ XML ${mil(X.m)} · dif. ${mil(r2(Math.abs(Number(r.m) || 0) - X.m))}` : (r.fila.cz ? 'Cambió: concilia de nuevo' : '')));
     });
     const F = Object.fromEntries([...document.querySelectorAll('#vProvDocs .pdFil [data-f]')].map((x) => [x.dataset.f, x.value.trim().toLowerCase()])), tiene = (v, q) => !q || String(v).toLowerCase().includes(q);
     const V = todas.filter((r) => tiene(perTxt(r.per), F.mes) && (!F.mod || r.mod === F.mod.toUpperCase()) && (!F.tipo || (F.tipo === 'ot' ? r.t === 'OT' : r.t === F.tipo.toUpperCase())) &&
