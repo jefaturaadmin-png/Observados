@@ -153,6 +153,7 @@
   .grid td.nf { width:36px; text-align:center; background:#f1eee9; color:#9a938b; font-size:11px; }
   .grid td.ck { width:30px; text-align:center; }
   .grid td.fis { width:44px; text-align:center; padding:2px; }
+  .grid tr.conf td.nf { background:#1b7a4b; color:#fff; font-weight:700; }
   .gFis { width:24px; height:24px; padding:0; border:2px solid #b9b2aa; border-radius:5px; background:#fff; color:#fff; font-weight:800; font-size:15px; line-height:1; cursor:pointer; }
   .gFis.si { background:#1b7a4b; border-color:#1b7a4b; } .gFis:focus-visible { outline:3px solid var(--marca); outline-offset:1px; }
   .grid td.ed { cursor:cell; }
@@ -473,7 +474,7 @@
           <select id="gFiltro" aria-label="Qué mostrar">
             <option value="">Todo</option><option value="FA">Solo facturas</option><option value="NC">Solo NC</option>
             <option value="OBS">Facturas observadas</option><option value="PEN">Observadas sin conciliar</option>
-            <option value="SIN">NC sin asignar a factura</option><option value="REV">Por revisar</option><option value="FIS">Sin revisar con la física</option>
+            <option value="SIN">NC sin asignar a factura</option><option value="REV">Por revisar</option><option value="FIS">Sin revisar con la física</option><option value="CONF">Conformes (física, XML y Lolfar)</option><option value="NOCONF">Les falta alguna validación</option>
           </select>
           <input id="gTxt" placeholder="Buscar número, laboratorio, producto… (busca en todos los meses)" aria-label="Buscar" style="flex:1;min-width:200px">
           <button id="gHist">Historial de cambios</button>
@@ -482,7 +483,7 @@
         <div id="gMsg"></div>
         <p class="resumen" id="gRes"></p>
         <div class="tabla grid"><table>
-          <thead><tr><th class="nf"></th><th class="fis" title="Revisada contra la factura física (clic, o Enter en el buscador)">Física</th><th class="ck"><input type="checkbox" id="gCkTodo" title="Seleccionar todo lo que se ve" aria-label="Seleccionar todo lo que se ve"></th><th>Fecha</th><th>Tipo</th><th>Serie</th><th>Número</th><th class="n">Total</th><th>Laboratorio</th><th class="n">Observado</th><th>NC anotadas</th><th>Estado</th><th>Conciliada</th><th>Nota</th></tr></thead>
+          <thead><tr><th class="nf" title="Verde: conforme (física, XML y Lolfar)"></th><th class="ck"><input type="checkbox" id="gCkTodo" title="Seleccionar todo lo que se ve" aria-label="Seleccionar todo lo que se ve"></th><th>Fecha</th><th>Tipo</th><th>Serie</th><th>Número</th><th class="n">Total</th><th>Laboratorio</th><th class="n">Observado</th><th>NC anotadas</th><th>Estado</th><th class="fis" title="Revisada contra la factura física (clic, o Enter en el buscador)">Física</th><th title="Conciliada con su XML">XML</th><th title="Está en el reporte de Lolfar con el mismo total (se marca al usar Comparar con reporte Lolfar)">Lolfar</th><th>Nota</th></tr></thead>
           <tbody id="gCuerpo"></tbody>
         </table></div>
         <p class="resumen" id="gPie" style="margin-top:10px"></p>
@@ -2323,6 +2324,18 @@
   $('gPer').addEventListener('change', () => { pgAviso = ''; pgSel.clear(); pgAbiertas.clear(); pintarPagos(true); });
   $('gFiltro').addEventListener('change', () => pintarPagos(true));
   $('gTxt').addEventListener('input', () => pintarPagos(true));
+  // Las 3 validaciones: física (a mano), XML (conciliada) y Lolfar (está en su reporte con el mismo total)
+  const lfOk = (f) => f.lfM !== undefined && f.lfM !== null && Math.abs(Number(f.lfM) - Math.abs(Number(f.m) || 0)) <= TOL_NC;
+  function lfCelda(f) {
+    if (f.lfM === undefined || f.lfM === null) return '';
+    if (lfOk(f)) return `<span class="est e2" title="En el reporte de Lolfar con S/ ${mil(f.lfM)}${f.lfF ? ' · comparado el ' + dia(f.lfF) : ''}">✓ Lolfar</span>`;
+    return `<span class="est alerta" title="En Lolfar figura con S/ ${mil(f.lfM)}${f.lfF ? ' · comparado el ' + dia(f.lfF) : ''}">≠ Lolfar ${mil(f.lfM)} · dif. ${mil(r2(Math.abs(Number(f.m) || 0) - Number(f.lfM)))}</span>`;
+  }
+  function pgConforme(f, kx) {
+    if (!f.fis || !lfOk(f) || !f.n) return false;
+    const X = czXmlDe(kx || `${f.t}|${serDoc(f.s)}|${numDoc(f.n)}`, f.m, distDe(pgDist()).nombre), E = czEstado(f, f.m, X);
+    return !(X && X.otro) && (E.vale || !!(X && X.igual && !E.cambioF && !E.cambioM));
+  }
   // Revisión contra la factura física: se busca el número, Enter la marca y el buscador queda listo para la siguiente
   function pgFisMarcar(f, valor) {
     if (!f || !puede('pagos')) return Promise.resolve();
@@ -2419,6 +2432,7 @@
       if (fil === 'REV' && !f.x && !fechaRara(f, d.per)) return false;
       if (fil === 'SIN' && !ncSinAsignar(f)) return false;
       if (fil === 'FIS' && f.fis) return false;
+      if ((fil === 'CONF' || fil === 'NOCONF') && pgConforme(f) !== (fil === 'CONF')) return false;
       if (fil === 'OBS' || fil === 'PEN') {
         const c = cruceDe(d.per, f), e = f.t === 'FA' ? estadoCruce(c) : '';
         if (!e) return false;
@@ -2478,11 +2492,11 @@
     $('gImp').classList.toggle('oculto', yo.area !== 'ADMIN');
     $('gNuevoPer').classList.toggle('oculto', !edita); $('gEditPer').classList.toggle('oculto', !edita || !d);
     if (!pgCfg.empresas.length) {
-      cuerpo.innerHTML = `<tr><td colspan="14" class="vacio">${yo.area === 'ADMIN' ? 'Aún no hay datos de pagos. Usa "Importar datos" y elige el archivo datos-pagos.json.' : 'Aún no hay datos de pagos cargados.'}</td></tr>`;
+      cuerpo.innerHTML = `<tr><td colspan="15" class="vacio">${yo.area === 'ADMIN' ? 'Aún no hay datos de pagos. Usa "Importar datos" y elige el archivo datos-pagos.json.' : 'Aún no hay datos de pagos cargados.'}</td></tr>`;
       $('gRes').textContent = ''; $('gPie').textContent = ''; return;
     }
     if (!d) {
-      cuerpo.innerHTML = '<tr><td colspan="14" class="vacio">Este distribuidor aún no tiene meses a pagar en esta empresa. Usa "+ Nuevo mes a pagar".</td></tr>';
+      cuerpo.innerHTML = '<tr><td colspan="15" class="vacio">Este distribuidor aún no tiene meses a pagar en esta empresa. Usa "+ Nuevo mes a pagar".</td></tr>';
       $('gRes').textContent = ''; $('gPie').textContent = ''; return;
     }
     const vista0 = filasVista(), reponer = conservarNueva(cuerpo), czColG = [];
@@ -2499,8 +2513,9 @@
         const xr = !f.r && !rebDe(f) ? (ncXmlInfo(f) || {}).ref : '';
         colNc = rebDe(f) ? `<span class="est e3">${esc(rebTxt(f))}</span>` : (f.r ? `→ factura ${esc(f.r)}` : xr ? `→ factura ${esc(xr)} <span class="quien">(según su XML)</span>` : (ncSinAsignar(f) ? '<span class="est e0">Sin asignar a factura</span>' : '<span class="quien">Aplicada a una factura</span>'));
       } else colNc = esc((f.nc || []).join(', ')) + (c.faltan.length ? ` <span class="est alerta" title="No está en la lista">falta ${esc(c.faltan.join(', '))}</span>` : '');
-      h += `<tr data-i="${esc(f.i)}" class="${pgSel.has(f.i) ? 'sel ' : ''}${f.t === 'NC' ? 'esnc ' : ''}${f.i === nuevo ? 'recien' : ''}"${f.i === nuevo ? ` style="--ya:-${yaPaso}ms"` : ''}>` +
-        `<td class="nf">${n + 1}</td><td class="fis"><button class="gFis${f.fis ? ' si' : ''}"${edita ? '' : ' disabled'} title="${f.fis ? esc(`Revisada con la física · ${f.fisPor || ''} · ${dia(f.fisF || '')}`) : 'Marcar como revisada con la factura física'}" aria-label="Revisada con la física">${f.fis ? '✓' : ''}</button></td><td class="ck"><input type="checkbox" class="gCk"${pgSel.has(f.i) ? ' checked' : ''} aria-label="Seleccionar fila ${n + 1}"></td>` +
+      const kx = `${f.t}|${serDoc(f.s)}|${numDoc(f.n)}`, conf = pgConforme(f, kx);
+      h += `<tr data-i="${esc(f.i)}" class="${pgSel.has(f.i) ? 'sel ' : ''}${conf ? 'conf ' : ''}${f.t === 'NC' ? 'esnc ' : ''}${f.i === nuevo ? 'recien' : ''}"${f.i === nuevo ? ` style="--ya:-${yaPaso}ms"` : ''}>` +
+        `<td class="nf"${conf ? ' title="Conforme: física, XML y Lolfar"' : ''}>${n + 1}</td><td class="ck"><input type="checkbox" class="gCk"${pgSel.has(f.i) ? ' checked' : ''} aria-label="Seleccionar fila ${n + 1}"></td>` +
         `<td data-c="f"${ed}>${esc(dia(f.f))}</td><td data-c="t"${ed}>${esc(f.t)}</td><td data-c="s"${ed}>${esc(f.s)}</td><td data-c="n"${ed}>${esc(f.n)}</td>` +
         `<td data-c="m" class="${edita ? 'ed ' : ''}n${f.m < 0 ? ' neg' : ''}">${esc(mil(f.m))}</td>` +
         `<td data-c="l"${ed}>${esc(f.l || f.e || f.dp || '')}</td>` +
@@ -2509,21 +2524,22 @@
           : '<td></td>') +
         `<td data-c="${f.t === 'NC' ? 'r' : 'nc'}"${ed}>${colNc}</td>` +
         `<td>${est ? `<span class="est ${claseEst(est)}">${esc(est)}</span>` : ''}${botonPago(f, c, edita)}</td>` +
-        `<td>${f.n ? czCelda(f, `${f.t}|${serDoc(f.s)}|${numDoc(f.n)}`, f.m, distDe(pgDist()).nombre, edita, czColG) : ''}</td>` +
+        `<td class="fis"><button class="gFis${f.fis ? ' si' : ''}"${edita ? '' : ' disabled'} title="${f.fis ? esc(`Revisada con la física · ${f.fisPor || ''} · ${dia(f.fisF || '')}`) : 'Marcar como revisada con la factura física'}" aria-label="Revisada con la física">${f.fis ? '✓' : ''}</button></td>` +
+        `<td>${f.n ? czCelda(f, kx, f.m, distDe(pgDist()).nombre, edita, czColG) : ''}</td><td>${lfCelda(f)}</td>` +
         `<td data-c="x" class="${edita ? 'ed ' : ''}nota">${fechaRara(f, d.per) ? '<span class="est alerta">revisa la fecha</span> ' : ''}${esc(f.x || '')}</td></tr>`;
       if (abierta && f.t === 'FA') h += filaDetalle(f, c, edita);
     });
     if (edita) { // la fila de ingreso va arriba
-      h = '<tr class="nuevaFila"><td class="nf">+</td><td></td><td></td>' +
+      h = '<tr class="nuevaFila"><td class="nf">+</td><td></td>' +
         '<td><input class="gIn aF" placeholder="dd/mm/aaaa" aria-label="Fecha"></td>' +
         '<td><select class="gIn aT" aria-label="Tipo"><option>FA</option><option>NC</option><option>ND</option></select></td>' +
         '<td><input class="gIn aS" placeholder="Serie" aria-label="Serie"></td><td><input class="gIn aN" placeholder="Número" aria-label="Número"></td>' +
         '<td><input class="gIn aM n" placeholder="Total" aria-label="Total"></td><td><input class="gIn aL" placeholder="Laboratorio" aria-label="Laboratorio"></td>' +
         '<td><label class="aObsL" title="Al agregar la factura se abre para anotar lo observado"><input type="checkbox" class="gIn aO"> Observar</label></td>' +
         '<td><input class="gIn aR" placeholder="NC aplicadas (opcional)" aria-label="Referencia"></td>' +
-        `<td colspan="3" style="white-space:normal"><button class="pri mini aOk">Agregar fila</button> ${pgAviso ? `<span class="est alerta" style="white-space:normal;border-radius:8px">${pgAviso}</span>` : '<span class="quien">o Enter</span>'}</td></tr>` + h;
+        `<td colspan="5" style="white-space:normal"><button class="pri mini aOk">Agregar fila</button> ${pgAviso ? `<span class="est alerta" style="white-space:normal;border-radius:8px">${pgAviso}</span>` : '<span class="quien">o Enter</span>'}</td></tr>` + h;
     }
-    cuerpo.innerHTML = h || '<tr><td colspan="14" class="vacio">Sin filas en esta vista</td></tr>';
+    cuerpo.innerHTML = h || '<tr><td colspan="15" class="vacio">Sin filas en esta vista</td></tr>';
     reponer();
     czBarra('gCzBar', cuerpo, czColG, edita);
 
@@ -2531,11 +2547,11 @@
     const suma = (a) => a.reduce((s, f) => s + (Number(f.m) || 0), 0);
     let obsT = 0, pendT = 0;
     fa.forEach((f) => { const c = cruceDe(d.per, f); obsT += c.obs; pendT += pendDe(c); });
-    const rev = fs.filter((f) => f.x || fechaRara(f, d.per)).length, sinA = nc.filter((f) => ncSinAsignar(f)).length, nFis = fs.filter((f) => f.fis).length;
+    const rev = fs.filter((f) => f.x || fechaRara(f, d.per)).length, sinA = nc.filter((f) => ncSinAsignar(f)).length, nFis = fs.filter((f) => f.fis).length, nLf = fs.filter(lfOk).length, nConf = fs.filter((f) => pgConforme(f)).length;
     $('gRes').textContent = `${perTxt(d.per)} · Facturas: ${fa.length} · S/ ${mil(suma(fa))} · NC: ${nc.length} · S/ ${mil(suma(nc))} · Neto: S/ ${mil(suma(fs))}` +
       ` · Observado: S/ ${mil(obsT)} · Pendiente de NC: S/ ${mil(pendT)}`;
     $('gPie').innerHTML = [
-      `Revisadas con la física: <b>${nFis}</b> de ${fs.length}`, rev ? `<b>${rev}</b> fila(s) por revisar` : '', sinA ? `<b>${sinA}</b> NC sin asignar a factura` : '',
+      `<b>Conformes: ${nConf}</b> de ${fs.length} (física ${nFis} · Lolfar ${nLf})`, rev ? `<b>${rev}</b> fila(s) por revisar` : '', sinA ? `<b>${sinA}</b> NC sin asignar a factura` : '',
       (d.sueltas || []).length ? `<b>${d.sueltas.length}</b> observación(es) del Excel sin factura identificada <button class="mini" id="gSueltas">Ver</button>` : '',
       d.actPor ? `Último cambio: ${esc(d.actPor)} · ${esc(fecha(d.act))}` : ''
     ].filter(Boolean).join(' · ');
@@ -2567,7 +2583,7 @@
       `<td class="n">${esc(mil(x.monto))}</td><td class="n">${esc(mil(x.aplicado))}</td></tr>`).join('') +
       c.faltan.map((k) => `<tr><td>${esc(k)}</td><td colspan="3"><span class="est alerta">No está registrada en la lista</span></td></tr>`).join('');
     const falta = r2(c.obs - c.aplicada);
-    return `<tr class="det" data-d="${esc(f.i)}"><td colspan="14"><div class="detg">` +
+    return `<tr class="det" data-d="${esc(f.i)}"><td colspan="15"><div class="detg">` +
       `<div><h4>Productos observados de ${esc(f.s)}-${esc(f.n)}</h4>` +
       ((f.o || []).length || !rec.length ? `<table><tr><th>Producto observado (anotado a mano)</th><th class="n" style="width:80px">Cant.</th><th class="n" style="width:160px">Monto total con IGV</th><th style="width:40px"></th></tr>${manual}</table>` : '') +
       `${edita ? '<button class="mini oMas">+ Agregar producto observado</button>' : ''}${czObsBloque(f, czXmlDe(`${f.t}|${serDoc(f.s)}|${numDoc(f.n)}`, f.m, distDe(pgDist()).nombre), edita)}${recHtml}` +
@@ -5605,10 +5621,20 @@
     out.sobra.sort((a, b) => String(a.f.f).localeCompare(String(b.f.f)));
     return out;
   }
+  // Lo encontrado en el reporte queda anotado en cada fila (columna Lolfar): su importe en Lolfar y la fecha de la comparación
+  function lfMarcar(X) {
+    const porMes = new Map(), pon = (per, i, v) => { if (!porMes.has(per)) porMes.set(per, new Map()); porMes.get(per).set(i, v); };
+    X.ok.concat(X.dist).forEach((x) => { const v = r2(Math.abs(Number(x.m) || 0)); if (x.reg.f.lfM !== v) pon(x.reg.per, x.reg.f.i, v); });
+    X.anul.forEach((x) => { if (x.reg.f.lfM !== undefined) pon(x.reg.per, x.reg.f.i, null); }); // anulada en Lolfar: se quita
+    if (!puede('pagos')) return;
+    porMes.forEach((m, per) => pgGuardar(per, (l) => l.forEach((y) => { if (!m.has(y.i)) return; const v = m.get(y.i); if (v === null) { delete y.lfM; delete y.lfF; } else { y.lfM = v; y.lfF = hoy(); } }),
+      'Lolfar', `${m.size} documento(s) comparados con el reporte de Lolfar`).catch(pgError));
+  }
   function lfAbrir() {
     if (!cn.rep) return;
     const dist = distDe(pgDist()), X = lfCruzar();
     lf = X; modo = 'lolfar'; abierto = null;
+    lfMarcar(X);
     lfSel = new Set(X.falta.map(lfK)); // por defecto todas marcadas: se quitan las que no van a este mes
     $('dTit').textContent = `Reporte de Lolfar · ${dist.nombre}`;
     const tot = (l) => mil(r2(l.reduce((s, x) => s + (Number(x.m) || 0), 0))), n = X.falta.length + X.dist.length + X.ok.length;
