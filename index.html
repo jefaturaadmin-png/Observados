@@ -2712,6 +2712,7 @@
     if (obs) f.o = [{ p: '', m: null }];
     const p = repetida(f);
     if (p) return aviso(avisoRepetida(f, p));
+    { const dn = distDe(pgDist()).nombre, X = await czOtroDe(`${f.t}|${f.s}|${f.n}`, f.f, f.m, dn); if (X) return aviso(czAvisoOtro(`${f.s}-${f.n}`, X, dn)); }
     // Se muestra al instante y se guarda por detrás; quedan fecha, tipo y serie para la siguiente
     pgAviso = ''; msg('gMsg', '');
     ['.aN', '.aM', '.aL', '.aR'].forEach((c) => { tr.querySelector(c).value = ''; });
@@ -2962,6 +2963,16 @@
   }
   function vistaPegado() {
     pgPegado = leerPegado($('pgTexto').value);
+    { // los que según su XML son de otro proveedor no se guardan
+      const dn = distDe(pgDist()).nombre, meses = new Set();
+      pgPegado = pgPegado.map((f) => {
+        if (f.err || !f.s || !f.n) return f;
+        if (/^\d{4}-\d{2}/.test(f.f || '')) meses.add(f.f.slice(0, 7));
+        const X = czXmlDe(`${f.t}|${serDoc(f.s)}|${numDoc(f.n)}`, f.m, dn);
+        return X && X.otro ? { ...f, err: `Según su XML es de ${X.nom} (RUC ${X.ruc}), no de ${dn}` } : f;
+      });
+      czAsegurar([...meses], () => { if ($('dlg').open && modo === 'pegar' && $('pgTexto')) vistaPegado(); });
+    }
     const nuevas = pgPegado.filter((f) => !f.err && !f.dup), dup = pgPegado.filter((f) => f.dup), err = pgPegado.filter((f) => f.err);
     if (!pgPegado.length) { $('pgVista').innerHTML = ''; return; }
     $('pgVista').innerHTML =
@@ -2985,6 +2996,8 @@
   $('dCuerpo').addEventListener('input', (e) => { if (e.target.id === 'pgTexto') vistaPegado(); });
   $('dCuerpo').addEventListener('click', async (e) => {
     if (e.target.id !== 'pgOk') return;
+    await czAsegurar(pgPegado.filter((f) => /^\d{4}-\d{2}/.test(f.f || '')).map((f) => f.f.slice(0, 7))).catch(() => {}); // por si los XML aún no se leían
+    vistaPegado();
     const nuevas = pgPegado.filter((f) => !f.err && !f.dup).map((f) => { const x = { i: idNuevo(), f: f.f, t: f.t, s: f.s, n: f.n, m: f.m }; if (f.l) x.l = f.l; return x; });
     e.target.disabled = true;
     try {
@@ -3995,56 +4008,98 @@
   /* ---------- Conciliación de cada factura (Pagos a proveedores y Cuentas por pagar) ----------
      ✓ XML: el XML del proveedor tiene el mismo total (automático) · ✓ QR: se agregó desde un QR escaneado ·
      ✓ Manual: alguien la concilió a mano (queda quién y cuándo). Si el XML del proveedor dice otro total, se avisa "≠ XML". */
-  const czXml = { meses: new Map(), idx: new Map() }; // meses: mes → cuándo se trajo
+  const czXml = { meses: new Map(), idx: new Map(), cargando: new Map(), rucs: {}, rucsExtra: {}, rucsListo: false }; // meses: mes → cuándo se trajo
   const CZ_TXT = { XML: 'XML', QR: 'QR', MAN: 'Manual' };
   // Se marca un mes para volver a leerlo en la próxima pintada (al guardar un XML nuevo de ese mes); lo ya leído se sigue mostrando mientras tanto
   const czOlvidar = (ym) => { czXml.meses.delete(ym); };
   function czAsegurar(yms, repintar) { // trae los XML de esos meses de emisión; se vuelven a leer cada 10 minutos por si otro usuario subió más
-    if (!puede('verXml')) return;
+    if (!puede('verXml')) return Promise.resolve();
     const ahora = Date.now(), falta = [...new Set(yms)].filter((m) => /^\d{4}-\d{2}$/.test(m) && !(ahora - (czXml.meses.get(m) || 0) < 600000));
-    if (!falta.length) return;
+    const pend = [...new Set(yms)].map((m) => czXml.cargando.get(m)).filter(Boolean);
+    if (!falta.length) return Promise.all(pend);
     falta.forEach((m) => czXml.meses.set(m, ahora));
-    (async () => {
+    const pr = (async () => {
       try {
+        if (!czXml.rucsListo) { // RUC de cada proveedor (los que se confirmaron a mano)
+          const sa = await getDoc(doc(db, 'config', 'concilia')).catch(() => null), d = sa && sa.exists() ? sa.data() : {};
+          czXml.rucs = d.rucs || {}; czXml.rucsExtra = d.rucsExtra || {}; czXml.rucsListo = true;
+        }
         const xs = [];
         for (let i = 0; i < falta.length; i += 30) (await getDocs(query(collection(db, 'xmlf'), where('ym', 'in', falta.slice(i, i + 30))))).docs.forEach((d) => xs.push(d.data()));
         const meses = new Set(falta); // se reemplaza lo de esos meses por lo recién leído
         czXml.idx.forEach((l, k) => { const r = l.filter((y) => !meses.has(y.x.ym)); if (r.length) czXml.idx.set(k, r); else czXml.idx.delete(k); });
         xs.forEach((x) => {
           const t = CI_T[x.tipo];
-          if (!t) return;
+          if (!t || (x.emisor && pgCfg.empresas.some((e) => e.ruc === x.emisor.ruc))) return; // las ventas propias no cuentan
           const k = `${t}|${serDoc(x.serie)}|${numDoc(x.num)}`;
           if (!czXml.idx.has(k)) czXml.idx.set(k, []);
-          czXml.idx.get(k).push({ m: Math.abs(Number(x.total) || 0), nom: x.emisor ? x.emisor.nom : '', x });
+          czXml.idx.get(k).push({ m: Math.abs(Number(x.total) || 0), nom: x.emisor ? x.emisor.nom : '', ruc: x.emisor ? x.emisor.ruc : '', x });
         });
-        repintar();
+        if (repintar) repintar();
       } catch (e) { falta.forEach((m) => czXml.meses.delete(m)); console.error(e); }
+      finally { falta.forEach((m) => czXml.cargando.delete(m)); }
     })();
+    falta.forEach((m) => czXml.cargando.set(m, pr));
+    return Promise.all([pr, ...pend]);
   }
+  // ¿El XML es de ese proveedor? Por el nombre, o por el RUC que se confirmó para él
+  const czNomDeClave = (k) => (k.startsWith('D|') ? distDe(k.slice(2)).nombre : k.slice(2));
+  function czEsDe(x, prov) {
+    if (!prov || czNomOk(x.nom, prov)) return true;
+    const ruc = x.ruc;
+    if (!ruc) return true;
+    if (czXml.rucsExtra[ruc] && czNomOk(czNomDeClave(czXml.rucsExtra[ruc]), prov)) return true;
+    if (Object.entries(czXml.rucs).some(([k, r]) => r === ruc && czNomOk(czNomDeClave(k), prov))) return true;
+    return !!(QR_RUC[ruc] && czNomOk(distDe(QR_RUC[ruc]).nombre, prov));
+  }
+  // Antes de agregar un documento: si su XML existe y es de otro proveedor, se avisa y no se agrega
+  async function czOtroDe(k, fecha, monto, prov) {
+    const ym = /^\d{4}-\d{2}/.test(fecha || '') ? fecha.slice(0, 7) : '';
+    if (!ym) return null;
+    const d = new Date(+ym.slice(0, 4), +ym.slice(5) - 1, 15), mes = (n) => { const x = new Date(d); x.setMonth(x.getMonth() + n); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}`; };
+    await czAsegurar([mes(-1), ym, mes(1)]).catch(() => {}); // la fecha registrada puede no ser la del XML
+    const X = czXmlDe(k, monto, prov);
+    return X && X.otro ? X : null;
+  }
+  const czAvisoOtro = (doc1, X, prov) => `Según su XML, ${esc(doc1)} la emitió <b>${esc(X.nom)}</b> (RUC ${esc(X.ruc)}), no ${esc(String(prov).replace(/\.$/, ''))}. No se agregó: regístrala en su proveedor. <button class="mini czEsMio" data-ruc="${esc(X.ruc)}" data-prov="${esc(prov)}">Es el mismo proveedor</button>`;
+  document.addEventListener('click', async (e) => { // "Es el mismo proveedor": se recuerda ese RUC para ese proveedor
+    const b = e.target.closest('.czEsMio');
+    if (!b || !(puede('pagos') || puede('cxp'))) return;
+    const ruc = b.dataset.ruc, prov = b.dataset.prov;
+    if (!ruc || !confirm(`¿El RUC ${ruc} es de ${prov}? Desde ahora sus XML se toman como de ese proveedor.`)) return;
+    try {
+      await setDoc(doc(db, 'config', 'concilia'), { rucsExtra: { [ruc]: czClaveProv(prov) } }, { merge: true });
+      czXml.rucsExtra[ruc] = czClaveProv(prov);
+      pgAviso = ''; cpAviso = '';
+      if (vista === 'vPagos') pintarPagos(true); else if (vista === 'vCxp') cpPintar(true); else if (vista === 'vProvDocs') pdPintar();
+    } catch (err) { alert('No se pudo guardar: ' + errorTexto(err)); }
+  });
+  const czClaveProv = (prov) => { const d = pgCfg.dists.find((y) => y.nombre === prov); return d ? `D|${d.k}` : `C|${prov}`; };
   const czNomOk = (a, b) => { const x = cnNom(a), y = cnNom(b); return !!x && !!y && (x === y || (Math.min(x.length, y.length) >= 5 && (x.startsWith(y) || y.startsWith(x)))); };
   function czPoner(x, tipo) { // tipo '' quita la conciliación. Se guarda con qué total y fecha se concilió:
     if (!tipo) { delete x.cz; delete x.czPor; delete x.czF; delete x.czM; delete x.czD; return; } // si después cambian, deja de valer
     x.cz = tipo; x.czPor = firma(); x.czF = hoy(); czFirma(x);
   }
   const czFirma = (x) => { if (x.cz) { x.czM = Number(x.m) || 0; x.czD = x.f || ''; } }; // al corregir la fecha según el XML, la conciliación sigue valiendo
-  function czXmlDe(k, monto, prov) { // el XML de esa factura: el que tiene el mismo total o, si no, el del mismo proveedor
-    const xs = czXml.idx.get(k) || [];
+  function czXmlDe(k, monto, prov) { // el XML de esa factura y de ese proveedor; si solo hay de otro proveedor, se avisa (otro: true)
+    const todos = czXml.idx.get(k) || [], xs = todos.filter((x) => czEsDe(x, prov));
+    if (!xs.length) return todos.length ? { ...todos[0], igual: false, otro: true } : null;
     const igual = xs.find((x) => Math.abs(x.m - Math.abs(Number(monto) || 0)) <= TOL_NC);
-    if (igual) return { ...igual, igual: true };
-    const suyo = xs.find((x) => czNomOk(x.nom, prov));
-    return suyo ? { ...suyo, igual: false } : null;
+    return igual ? { ...igual, igual: true } : { ...xs[0], igual: false };
   }
   // La conciliación deja de valer si después cambiaron el total o la fecha, o si era por XML y el XML ya no coincide
   function czEstado(f, monto, X) {
     const cambioM = !!f.cz && f.czM !== undefined && Math.abs(Math.abs(Number(f.czM) || 0) - Math.abs(Number(monto) || 0)) > 0.005;
     const cambioF = !!f.cz && f.czD !== undefined && f.czD !== f.f;
-    return { cambioM, cambioF, vale: !!f.cz && !cambioM && !cambioF && !(f.cz !== 'MAN' && X && !X.igual) };
+    return { cambioM, cambioF, vale: !!f.cz && !cambioM && !cambioF && !(X && X.otro) && !(f.cz !== 'MAN' && X && !X.igual) };
   }
   function czCelda(f, k, monto, prov, edita, col) {
-    const X = czXmlDe(k, monto, prov), fx = X && X.x ? X.x.fecha : '', feMal = !!(fx && /^\d{4}-\d{2}-\d{2}$/.test(fx) && f.f !== fx);
+    const X = czXmlDe(k, monto, prov), fx = X && X.x && !X.otro ? X.x.fecha : '', feMal = !!(fx && /^\d{4}-\d{2}-\d{2}$/.test(fx) && f.f !== fx);
     if (feMal && col) col.push({ i: f.i, f: fx, doc: f.d || `${f.s}-${f.n}` });
     let h = '';
     const { cambioM, cambioF, vale } = czEstado(f, monto, X);
+    if (X && X.otro) return `<span class="est alerta" style="white-space:normal" title="Según su XML, ${esc(f.d || `${f.s}-${f.n}`)} la emitió ${esc(X.nom)} (RUC ${esc(X.ruc)})">⚠ XML de otro proveedor: ${esc(X.nom)}</span>` +
+      (edita ? ` <button class="mini czEsMio" data-ruc="${esc(X.ruc)}" data-prov="${esc(prov)}" title="Si ${esc(X.nom)} es el mismo proveedor (otra razón social o RUC), se recuerda para siempre">Es el mismo proveedor</button>` : '');
     if (vale) {
       const quita = edita && f.cz === 'MAN';
       h = `<span class="est e2${quita ? ' czQuitar' : ''}" data-cz="${esc(f.i)}" title="${esc(`Conciliada con ${CZ_TXT[f.cz] || f.cz}${f.czPor ? ' · ' + f.czPor : ''}${f.czF ? ' · ' + dia(f.czF) : ''}${quita ? ' · clic para quitar' : ''}`)}"${quita ? ' style="cursor:pointer"' : ''}>✓ ${esc(CZ_TXT[f.cz] || f.cz)}</span>`;
@@ -4315,7 +4370,7 @@
     const tr = e.target.closest('tr'), pv = cpProv(may(tr.querySelector('.nP').value, 80)), f = fechaIso(tr.querySelector('.nF').value), v = tr.querySelector('.nV');
     if (pv && pv.pl !== '' && pv.pl !== undefined && f && !v.value.trim() && tr.querySelector('.nT').value === 'FACTURA') { const dt = fechaLocal(f); dt.setDate(dt.getDate() + Number(pv.pl)); v.value = dia(isoDe(dt)); }
   });
-  function cpAgregar() {
+  async function cpAgregar() {
     const tr = $('cpCuerpo').querySelector('.nuevaFila'), q = (c) => tr.querySelector(c).value;
     const aviso = (t) => { cpAviso = t; cpPintar(true); };
     const f = { i: idNuevo(), p: may(q('.nP'), 80), t: q('.nT'), f: q('.nF').trim() ? fechaIso(q('.nF')) : '', d: may(q('.nD'), 40).replace(/\s+/g, ''), ref: txt(q('.nR'), 600),
@@ -4328,6 +4383,7 @@
     f.m = Math.abs(f.m);
     const rep = cpRepetida(f);
     if (rep && rep.includes('este mes')) return aviso(esc(rep) + ' No se agregó.');
+    { const kx = czKeyCp(f), X = kx ? await czOtroDe(kx, f.f, f.m, f.p) : null; if (X) return aviso(czAvisoOtro(f.d, X, f.p)); }
     if (rep && !confirm(`${rep}\n\n¿Agregarla también en ${perTxt(cpDoc.per)}? Hazlo solo si de verdad pasó de mes.`)) return aviso(esc(rep) + ' No se agregó.');
     const pv = cpProv(f.p);
     if (!pv && !confirm(`"${f.p}" no está en la lista de proveedores.\n¿Agregarlo? Luego completa su plazo, retención y cuenta en "Proveedores".`)) return;
@@ -6238,6 +6294,7 @@
     czAsegurar(todas.map((r) => String(r.f).slice(0, 7)), () => { if (vista === 'vProvDocs') pdPintar(); });
     todas.forEach((r) => {
       const X = r.key ? czXmlDe(r.key, r.m, r.prov) : null;
+      if (X && X.otro) { r.cz = 'dif'; r.czTxt = `⚠ XML de otro proveedor: ${X.nom}`; return; }
       const E = czEstado(r.fila, r.m, X), igual = X && X.igual && !E.cambioF && !E.cambioM;
       r.cz = E.vale || igual ? 'si' : (X || r.fila.cz ? 'dif' : 'no');
       r.czTxt = E.vale ? `✓ ${CZ_TXT[r.fila.cz] || r.fila.cz}` : (igual ? '✓ XML' : (X ? `≠ XML ${mil(X.m)} · dif. ${mil(r2(Math.abs(Number(r.m) || 0) - X.m))}` : (r.fila.cz ? 'Cambió: concilia de nuevo' : '')));
