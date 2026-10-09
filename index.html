@@ -801,8 +801,8 @@
     updatePassword, EmailAuthProvider, reauthenticateWithCredential
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
   import {
-    initializeFirestore, persistentLocalCache, persistentMultipleTabManager, CACHE_SIZE_UNLIMITED, getDocsFromCache, getCountFromServer, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, collection, query, where, orderBy, limit,
-    onSnapshot, runTransaction, writeBatch, serverTimestamp, deleteField
+    initializeFirestore, persistentLocalCache, persistentMultipleTabManager, CACHE_SIZE_UNLIMITED, getDocsFromCache, getCountFromServer, doc, getDoc as getDoc0, getDocs as getDocs0, setDoc, updateDoc, deleteDoc, addDoc, collection, query, where, orderBy, limit,
+    onSnapshot as onSnapshot0, runTransaction, writeBatch, serverTimestamp, deleteField
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
   const DOMINIO = '@observados.example.com'; // dominio reservado: los usuarios solo escriben su nombre de usuario
@@ -902,6 +902,31 @@
 
   let yo = null, listas = LISTAS_INI, filas = [], pedidos = [], usuarios = [], catalogo = [], catDocs = [], abierto = null;
   let bajas = [], sinConfigurar = false, arranque = false, vista = 'vInicio';
+  /* Contador aproximado de lecturas de Firebase en esta PC (se ve en Inicio, para el administrador): cada documento que
+     llega del servidor cuenta 1. Se guarda por día para saber qué colección consume la cuota. */
+  const lectDia = () => { const d = new Date(Date.now() - 7 * 3600000); return d.toISOString().slice(0, 10); }; // la cuota se reinicia a medianoche del Pacífico (≈ 2 a. m. en Lima)
+  let lect = { dia: '', total: 0, por: {}, completas: [] };
+  try { const g = JSON.parse(localStorage.getItem('lecturas') || 'null'); if (g && g.dia === lectDia()) lect = g; } catch (e) { /* nada */ }
+  let lectT = null;
+  function contar(col, n, completa) {
+    if (!n && !completa) return;
+    if (lect.dia !== lectDia()) lect = { dia: lectDia(), total: 0, por: {}, completas: [] };
+    lect.total += n; lect.por[col] = (lect.por[col] || 0) + n;
+    if (completa) lect.completas = lect.completas.concat([`${col} ${new Date().toTimeString().slice(0, 5)} (${completa})`]).slice(-20);
+    clearTimeout(lectT); lectT = setTimeout(() => { try { localStorage.setItem('lecturas', JSON.stringify(lect)); } catch (e) { /* nada */ } if (vista === 'vInicio') inPintar(); }, 1500);
+  }
+  const colDe = (x) => { try { return x.ref.parent.id; } catch (e) { return '?'; } };
+  const onSnapshot = (r, ok, mal) => onSnapshot0(r, (s) => {
+    try {
+      if (!s.metadata.fromCache && !s.metadata.hasPendingWrites) {
+        if (s.docChanges) { const ch = s.docChanges().filter((c) => c.type !== 'removed'); if (ch.length) contar(colDe(ch[0].doc), ch.length); }
+        else contar(colDe(s), 1);
+      }
+    } catch (e) { /* nada */ }
+    ok(s);
+  }, mal);
+  const getDoc = (r) => getDoc0(r).then((s) => { if (!s.metadata || !s.metadata.fromCache) contar(colDe(s), 1); return s; });
+  const getDocs = (q) => getDocs0(q).then((s) => { if (s.docs.length) contar(colDe(s.docs[0]), s.docs.length); return s; });
   /* Colecciones guardadas en el navegador: la 1.ª vez se lee todo; desde ahí solo se descarga lo que cambió
      (cada escritura pone su fecha en "campos"). Así una recarga, otro día o una PC que despertó no vuelve a leer lo mismo.
      Si alguien borró algo, se nota al comparar cuántos hay (cuesta 1 lectura por cada 1000) y se vuelve a leer completo. */
@@ -909,7 +934,7 @@
     pagos: { campos: ['act'], margen: 600000 },
     observaciones: { campos: ['actFecha', 'creado'], margen: 600000 },
     pedidos: { campos: ['creado', 'conformeFecha'], margen: 600000 },
-    xmlf: { campos: ['subido'], texto: true, margen: 2 * 86400000 } // la fecha la pone la PC: 2 días de margen por relojes atrasados
+    xmlf: { campos: ['subT', 'subido'], texto: ['subido'], margen: 600000 } // subT = hora del servidor; subido = hora de la PC (los guardados antes)
   };
   const sincros = new Map();
   const msDe = (x) => (!x ? 0 : typeof x === 'string' ? (Date.parse(x) || 0) : x.toMillis ? x.toMillis() : x instanceof Date ? x.getTime() : 0);
@@ -939,11 +964,11 @@
       let ult = 0;
       try { ult = Number(localStorage.getItem(marca)) || 0; } catch (e) { ult = 0; }
       if (ult) { try { (await getDocsFromCache(collection(db, nombre))).docs.forEach((d) => v.m.set(d.id, d)); } catch (e) { ult = 0; } }
-      if (!ult || !v.m.size) return completo();
+      if (!ult || !v.m.size) { contar(nombre, 0, ult ? 'sin copia en el navegador' : 'primera vez'); return completo(); }
       v.ult = ult;
-      const desde = new Date(ult - cfg.margen), val = cfg.texto ? desde.toISOString() : desde;
-      await Promise.all(cfg.campos.map((k) => escuchar(query(collection(db, nombre), where(k, '>', val)), false)));
-      try { const n = (await getCountFromServer(collection(db, nombre))).data().count; if (n !== v.m.size) await completo(); } catch (e) { console.warn(e); }
+      const desde = new Date(ult - cfg.margen);
+      await Promise.all(cfg.campos.map((k) => escuchar(query(collection(db, nombre), where(k, '>', (cfg.texto || []).includes(k) ? desde.toISOString() : desde)), false)));
+      try { const n = (await getCountFromServer(collection(db, nombre))).data().count; contar(nombre, Math.ceil(n / 1000)); if (n !== v.m.size) { contar(nombre, 0, `conteo ${v.m.size}≠${n}`); await completo(); } } catch (e) { console.warn(e); }
     })().then(() => { v.ok = true; }).catch((e) => { cerrar(); if (sincros.get(nombre) === v) sincros.delete(nombre); throw e; });
     bajas.push(() => { cerrar(); if (sincros.get(nombre) === v) sincros.delete(nombre); });
     return v.listo.then(() => v);
@@ -7661,7 +7686,7 @@
       try {
         const ref = doc(db, 'xmlf', xlKey(d1));
         if (await xmlfYa(xlKey(d1))) { ya += 1; continue; }
-        await setDoc(ref, { ...d1, lineas: d1.lineas.slice(0, 600), arch: String(d1.arch).split('→').pop().trim().slice(0, 120), ym: d1.fecha.slice(0, 7), subido: ctAhora(), por: firma() });
+        await setDoc(ref, { ...d1, lineas: d1.lineas.slice(0, 600), arch: String(d1.arch).split('→').pop().trim().slice(0, 120), ym: d1.fecha.slice(0, 7), subido: ctAhora(), subT: serverTimestamp(), por: firma() });
         czOlvidar(d1.fecha.slice(0, 7)); // Pagos y Cuentas por pagar lo ven al volver a pintar
         nuevos += 1;
       } catch (e) { xl.errores.push(`${d1.id}: no se pudo guardar (${errorTexto(e)})`); }
@@ -7799,7 +7824,7 @@
       const d1 = xlLeer(String(b.xml || ''), b.archivo || 'correo.xml');
       if (!/^\d{4}-\d{2}-\d{2}$/.test(d1.fecha)) throw new Error('no trae fecha de emisión');
       const k = xlKey(d1), refX = doc(db, 'xmlf', k), ya = await xmlfYa(k);
-      if (!ya) await setDoc(refX, { ...d1, lineas: d1.lineas.slice(0, 600), arch: txt(b.archivo, 120), ym: d1.fecha.slice(0, 7), subido: ctAhora(), por: 'Correo · ' + txt(b.de, 100), correo: { de: txt(b.de, 200), asunto: txt(b.asunto, 200), recibido: txt(b.recibido, 40) } });
+      if (!ya) await setDoc(refX, { ...d1, lineas: d1.lineas.slice(0, 600), arch: txt(b.archivo, 120), ym: d1.fecha.slice(0, 7), subido: ctAhora(), subT: serverTimestamp(), por: 'Correo · ' + txt(b.de, 100), correo: { de: txt(b.de, 200), asunto: txt(b.asunto, 200), recibido: txt(b.recibido, 40) } });
       if (!ya) czOlvidar(d1.fecha.slice(0, 7));
       await updateDoc(ref, { estado: ya ? 'repetido' : 'leido', k, doc: d1.id, tipo: d1.tipo, emisor: d1.emisor.nom, ruc: d1.emisor.ruc, cliente: d1.cliente.ruc, fecha: d1.fecha, total: d1.total, moneda: d1.moneda, items: d1.lineas.length, ref: d1.ref || '', xml: deleteField(), error: deleteField(), procesado: ctAhora(), por: firma() });
     } catch (e) {
@@ -7824,7 +7849,7 @@
           if (!/^\d{4}-\d{2}-\d{2}$/.test(d1.fecha)) throw new Error('no trae fecha de emisión');
           const refX = doc(db, 'xmlf', xlKey(d1));
           if (await xmlfYa(xlKey(d1))) { ya += 1; continue; }
-          await setDoc(refX, { ...d1, lineas: d1.lineas.slice(0, 600), arch: String(x.nombre).split('→').pop().trim().slice(0, 120), ym: d1.fecha.slice(0, 7), subido: ctAhora(), por: 'Correo · ' + txt(b.de, 100), correo: { de: txt(b.de, 200), asunto: txt(b.asunto, 200), recibido: txt(b.recibido, 40) } });
+          await setDoc(refX, { ...d1, lineas: d1.lineas.slice(0, 600), arch: String(x.nombre).split('→').pop().trim().slice(0, 120), ym: d1.fecha.slice(0, 7), subido: ctAhora(), subT: serverTimestamp(), por: 'Correo · ' + txt(b.de, 100), correo: { de: txt(b.de, 200), asunto: txt(b.asunto, 200), recibido: txt(b.recibido, 40) } });
           czOlvidar(d1.fecha.slice(0, 7)); nuevos += 1;
         } catch (e) { if (esCuota(e)) throw e; if (!/factura ni una nota/.test(e.message || '')) malos.push(`${String(x.nombre).split('→').pop().trim()}: ${e.message}`); }
       }
@@ -7907,7 +7932,9 @@
     caja.innerHTML = `<div class="inHola"><h2>Hola, ${esc(String(yo.nombre || '').split(' ')[0])}</h2><span>${esc(fecha)} · ${esc(yo.area)}</span></div>` +
       (K.length ? '<p class="inSec">Por atender</p><div class="inKpis">' + K.map(([v, n, t, av]) => `<button type="button" class="inKpi${av && n ? ' aviso' : ''}" data-ir="${v}"><div class="inKpiA">${ico(v)}<strong>${n}</strong></div><div class="inKpiB">${esc(t)}</div><div class="inKpiC"><span>Abrir ${esc(nom(v))}</span><span aria-hidden="true">→</span></div></button>`).join('') + '</div>' : '') +
       '<p class="inSec">Módulos</p><div class="inMods">' + grupos.map((g) => `<div class="inGrupo"><h3>${esc(g.t)}</h3>${g.vs.map((v) => `<button type="button" class="inMod" data-ir="${v}"><i>${ico(v)}</i><span><b>${esc(nom(v))}</b><small>${esc(IN_DESC[v] || '')}</small></span></button>`).join('')}</div>`).join('') + '</div>' +
-      (grupos.length ? '' : '<div class="caja"><p class="resumen" style="margin:0">Tu usuario aún no tiene módulos habilitados. Consulta con el administrador.</p></div>');
+      (grupos.length ? '' : '<div class="caja"><p class="resumen" style="margin:0">Tu usuario aún no tiene módulos habilitados. Consulta con el administrador.</p></div>') +
+      (yo.area === 'ADMIN' ? `<p class="inSec">Uso de Firebase en esta PC hoy</p><div class="caja"><p class="resumen" style="margin:0">Lecturas aproximadas: <b>${mil(lect.total).replace('.00', '')}</b> de 50,000 al día (se suman las de todas las PC)${Object.keys(lect.por).length ? ' · ' + Object.entries(lect.por).filter((x) => x[1] > 0).sort((x, y) => y[1] - x[1]).map(([k, n]) => `${esc(k)} ${n}`).join(' · ') : ''}</p>` +
+        (lect.completas.length ? `<p class="quien" style="margin:6px 0 0">Lecturas completas: ${esc(lect.completas.join(' · '))}</p>` : '') + '</div>' : '');
   }
   $('vInicio').addEventListener('click', (e) => { const b = e.target.closest('[data-ir]'); if (b) ver(b.dataset.ir); });
   { // los contadores del menú cambian solos: el Inicio se actualiza con ellos
