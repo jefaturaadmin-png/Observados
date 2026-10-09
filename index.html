@@ -3301,7 +3301,7 @@
   function cpDeDoc(d) { // un mes de Pagos a proveedores con el formato de Cuentas por pagar
     const nom = distDe(d.dist).nombre;
     return { per: d.per, emp: d.emp,
-      filas: (d.filas || []).map((f) => ({ ...f, p: nom, t: PG_CP_T[f.t] || 'FACTURA', d: f.s ? `${f.s}-${f.n}` : String(f.n || ''), af: f.t === 'NC' ? (f.r || '') : '', ref: '', m: Math.abs(Number(f.m) || 0), pg: f.pgd === true, fp: f.fpg || '', op: f.opg || '', e: f.est || '' })),
+      filas: (d.filas || []).map((f) => ({ ...f, p: nom, t: PG_CP_T[f.t] || 'FACTURA', d: f.s ? `${f.s}-${f.n}` : String(f.n || ''), af: f.t === 'NC' ? (f.r || '') : '', ref: '', m: Math.abs(Number(f.m) || 0), pg: f.pgd === true, fp: f.fpg || '', op: f.opg || '', e: f.est || '', ar: f.t === 'FA' && (f.ar !== undefined ? f.ar === true : distDe(d.dist).ret === true) })),
       prog: (d.prog || []).map((p) => ({ ...p, k: `${nom}|${p.g || ''}` })) };
   }
   const pgEsC = (d) => distDe(d.dist).tipo === 'C';
@@ -3332,6 +3332,7 @@
         if (x.fp) n.fpg = x.fp; else delete n.fpg;
         if (x.op) n.opg = x.op; else delete n.opg;
         if (x.g) n.g = x.g; else delete n.g;
+        if (f.t === 'FA') n.ar = x.ar === true; // retención 3% marcada o desmarcada en la ventana Programar
         return n;
       });
       const prog = est.prog.map((p) => ({ g: String(p.k).split('|').slice(1).join('|'), mod: p.mod || '', n: Number(p.n) || 0, cu: p.cu || [] }));
@@ -4920,11 +4921,11 @@
   function cpProgPintar() {
     const p = cpP, n = p.cuotas.length;
     $('dCuerpo').innerHTML = '<div id="dMsg"></div><p class="quien" style="margin:0 0 6px">Para pagar por separado, pon otro N° en <b>Pago</b> (1, 2, 3…) y guarda: cada pago tendrá su propio cuadro, programación y retención.</p>' +
-      '<div class="tabla"><table><tr><th>Pago</th><th>Documento</th><th>Emisión</th><th>Vence</th><th class="num">Plazo</th><th>Tipo</th><th class="num">Importe</th><th class="num">Ret. 3%</th><th class="num">Neto</th><th>Situación</th><th>Pagado</th><th>Fecha pago</th><th>N° operación</th></tr>' +
+      '<div class="tabla"><table><tr><th>Pago</th><th>Documento</th><th>Emisión</th><th>Vence</th><th class="num">Plazo</th><th>Tipo</th><th class="num">Importe</th><th title="Aplica retención del 3% a esta factura">Ret.</th><th class="num">Ret. 3%</th><th class="num">Neto</th><th>Situación</th><th>Pagado</th><th>Fecha pago</th><th>N° operación</th></tr>' +
       p.docs.map((x, i) => `<tr><td><select data-d="${i}" data-k="pago" style="width:60px;padding:4px">${[1, 2, 3, 4, 5].map((v) => `<option${v === x.pago ? ' selected' : ''}>${v}</option>`).join('')}</select></td><td>${esc(x.d)}</td><td>${esc(dia(x.f))}</td><td><b>${esc(dia(x.v))}</b></td><td class="num">${x.fac ? esc(x.plazo) : ''}</td><td>${esc(x.t)}</td>` +
-        `<td class="num">${mil(x.imp)}</td><td class="num">${x.q ? mil(-x.q) : ''}</td><td class="num">${mil(x.neto)}</td><td>${x.sit && x.sit !== '—' ? `<span class="est ${cpSit(x.sit)}">${esc(x.sit)}</span>` : ''}</td>` +
+        `<td class="num">${mil(x.imp)}</td><td class="ck">${x.fac ? `<input type="checkbox" data-d="${i}" data-k="ar"${x.ar ? ' checked' : ''} title="Aplica retención del 3%">` : ''}</td><td class="num">${x.q ? mil(-x.q) : ''}</td><td class="num">${mil(x.neto)}</td><td>${x.sit && x.sit !== '—' ? `<span class="est ${cpSit(x.sit)}">${esc(x.sit)}</span>` : ''}</td>` +
         (x.fac ? `<td class="ck"><input type="checkbox" data-d="${i}" data-k="pg"${x.pg ? ' checked' : ''}></td><td><input type="date" data-d="${i}" data-k="fp" value="${esc(x.fp)}" style="padding:4px"></td><td><input data-d="${i}" data-k="op" value="${esc(x.op)}" style="padding:4px;min-width:110px"></td>` : '<td></td><td></td><td></td>') + '</tr>').join('') +
-      `<tr class="tot"><td colspan="8">Total a pagar del cuadro</td><td class="num">${mil(p.neto)}</td><td colspan="4"></td></tr></table></div><div id="cpRetPrev" style="margin-top:8px"></div>` +
+      `<tr class="tot"><td colspan="9">Total a pagar del cuadro</td><td class="num">${mil(p.neto)}</td><td colspan="4"></td></tr></table></div><div id="cpRetPrev" style="margin-top:8px"></div>` +
       '<h3 class="sub">Programación de pago</h3><div class="herr">' +
       `<label style="margin:0" for="cpMod">Modalidad</label><select id="cpMod"><option value="">— elegir —</option>${CP_MODS.map((m) => `<option${m === p.mod ? ' selected' : ''}>${esc(m)}</option>`).join('')}</select>` +
       `<label style="margin:0" for="cpN">N° de letras / cuotas</label><select id="cpN">${Array.from({ length: 25 }, (_, k) => `<option${k === n ? ' selected' : ''}>${k}</option>`).join('')}</select><span class="quien" id="cpRef"></span></div>` +
@@ -4970,7 +4971,7 @@
         p.docs.forEach((x) => {
           const f = est.filas.find((y) => y.i === x.i);
           if (!f) return;
-          if (x.fac) { f.pg = x.pg === true; f.fp = x.fp || ''; f.op = txt(x.op, 60); }
+          if (x.fac) { f.pg = x.pg === true; f.fp = x.fp || ''; f.op = txt(x.op, 60); f.ar = x.ar === true; }
           const pago = Math.max(1, Number(x.pago) || 1), nuevo = pago > 1 ? `${x.mesBase}-P${pago}` : (cpPagoN(cpGrupoManual(x.g0)) > 1 ? '' : x.g0);
           if (nuevo) f.g = nuevo; else delete f.g;
         });
