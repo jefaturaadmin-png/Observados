@@ -5951,14 +5951,15 @@
       if (!rep.docs.size) throw new Error('No encontré facturas en ese archivo. Debe ser el reporte "Provisiones por Proveedor" de Lolfar, en Excel.');
       const al = await getDoc(doc(db, 'config', 'concilia')).catch(() => null);
       cn.alias = (al && al.exists() && al.data().alias) || cn.alias || {};
-      cn.rep = rep; cn.sis = null; cn.info = `${a.name} · ${rep.nFilas} líneas, ${rep.docs.size} documentos`;
+      cn.rep = rep; cn.sis = null; cn.info = `${a.name} · ${rep.nFilas} líneas, ${rep.docs.size} documentos`; cn.otros = null;
       msg('gMsg', '');
       lfAbrir();
+      lfMarcarOtros().then((o) => { cn.otros = o; }).catch((err) => { cn.otros = { err: errorTexto(err) }; }).then(() => { const c = $('lfOtros'); if (c) c.innerHTML = lfOtrosHtml(); });
     } catch (err) { msg('gMsg', errorTexto(err)); }
   }
-  function lfCruzar() { // el reporte contra TODO lo registrado de esta empresa y distribuidor (todos los meses a pagar)
-    const dk = pgDist(), reg = new Map(), enRep = new Set(), out = { falta: [], dist: [], ok: [], anul: [], sobra: [], provs: new Map() };
-    pgDocs.forEach((d) => (d.filas || []).forEach((f) => { if (f.n) reg.set(claveFila(f), { f, per: d.per }); }));
+  function lfCruzar(dk = pgDist(), docs = pgDocs) { // el reporte contra TODO lo registrado de esta empresa y distribuidor (todos los meses a pagar)
+    const reg = new Map(), enRep = new Set(), out = { falta: [], dist: [], ok: [], anul: [], sobra: [], provs: new Map() };
+    docs.forEach((d) => (d.filas || []).forEach((f) => { if (f.n) reg.set(claveFila(f), { f, per: d.per }); }));
     cn.rep.docs.forEach((d) => {
       const dest = cnDestino(d.prov);
       out.provs.set(d.prov, (out.provs.get(d.prov) || 0) + 1);
@@ -5978,13 +5979,40 @@
     return out;
   }
   // Lo encontrado en el reporte queda anotado en cada fila (columna Lolfar): su importe en Lolfar y la fecha de la comparación
-  function lfMarcar(X) {
+  function lfMarcar(X, emp = pgEmp(), dk = pgDist()) {
     const porMes = new Map(), pon = (per, i, v) => { if (!porMes.has(per)) porMes.set(per, new Map()); porMes.get(per).set(i, v); };
     X.ok.concat(X.dist).forEach((x) => { const v = r2(Math.abs(Number(x.m) || 0)); if (x.reg.f.lfM !== v) pon(x.reg.per, x.reg.f.i, v); });
     X.anul.forEach((x) => { if (x.reg.f.lfM !== undefined) pon(x.reg.per, x.reg.f.i, null); }); // anulada en Lolfar: se quita
     if (!puede('pagos')) return;
-    porMes.forEach((m, per) => pgGuardar(per, (l) => l.forEach((y) => { if (!m.has(y.i)) return; const v = m.get(y.i); if (v === null) { delete y.lfM; delete y.lfF; } else { y.lfM = v; y.lfF = hoy(); } }),
+    porMes.forEach((m, per) => lfGuardar(emp, dk, per, (l) => l.forEach((y) => { if (!m.has(y.i)) return; const v = m.get(y.i); if (v === null) { delete y.lfM; delete y.lfF; } else { y.lfM = v; y.lfF = hoy(); } }),
       'Lolfar', `${m.size} documento(s) comparados con el reporte de Lolfar`).catch(pgError));
+  }
+  function lfGuardar(emp, dist, per, cambio, accion, detalle) { // como pgGuardar, pero de cualquier proveedor
+    const turno = pgCola.then(() => pgGuardarYa(emp, dist, per, cambio, accion, detalle));
+    pgCola = turno.catch(() => {});
+    return turno;
+  }
+  // Un solo reporte trae varios proveedores: se pone ✓ Lolfar también a los demás, en todos sus meses (queda guardado en cada fila)
+  async function lfMarcarOtros() {
+    if (!cn.rep || !puede('pagos')) return [];
+    const emp = pgEmp(), ks = new Set();
+    cn.rep.docs.forEach((d) => { const dest = cnDestino(d.prov); if (dest.tipo === 'pagos' && dest.k && dest.k !== pgDist()) ks.add(dest.k); });
+    if (!ks.size) return [];
+    const todos = (await sincroDocs('pagos', (x) => x.emp === emp && ks.has(x.dist))).docs.map((d) => d.data()), res = [];
+    ks.forEach((k) => {
+      const X = lfCruzar(k, todos.filter((d) => d.dist === k));
+      lfMarcar(X, emp, k);
+      res.push({ k, ok: X.ok.length, dif: X.dist.length, falta: X.falta.length });
+    });
+    return res.filter((x) => x.ok || x.dif || x.falta);
+  }
+  function lfOtrosHtml() {
+    const o = cn.otros;
+    if (!puede('pagos')) return '';
+    if (!o) return '<p class="quien" style="margin:6px 0">Revisando los demás proveedores del reporte…</p>';
+    if (o.err) return `<div class="msg err">No se pudo marcar a los demás proveedores: ${esc(o.err)}</div>`;
+    if (!o.length) return '';
+    return `<div class="msg ok">El reporte también trae otros proveedores; quedó anotado en todos sus meses (no hace falta volver a subirlo):<br>${o.map((x) => `<b>${esc(distDe(x.k).nombre)}</b>: ✓ ${x.ok}${x.dif ? ` · ≠ ${x.dif} con otro importe` : ''}${x.falta ? ` · ${x.falta} no registrada(s) aquí` : ''}`).join('<br>')}</div>`;
   }
   function lfAbrir() {
     if (!cn.rep) return;
@@ -6001,7 +6029,7 @@
       `<p class="quien" style="margin:0 0 8px">${esc(cn.info || '')}${cn.rep.desde ? ` · del ${esc(dia(cn.rep.desde))} al ${esc(dia(cn.rep.hasta))}` : ''}. Se compara con todos los meses a pagar de ${esc(dist.nombre)} en ${esc(empDe(pgEmp()).nombre)}.</p>` +
       `<div class="herr"><label style="margin:0" for="lfProv">En el reporte este proveedor se llama</label><select id="lfProv" style="width:auto;max-width:420px"><option value="">— elige el nombre del reporte —</option>${provRep.map(([p, c]) => `<option value="${esc(p)}"${mio.includes(p) ? ' selected' : ''}>${esc(p)} (${c})</option>`).join('')}</select></div>` +
       (!mio.length ? '<div class="msg" style="background:#fff8e6;color:#6b4a00">No reconocí a este distribuidor entre los proveedores del reporte. Elige arriba con qué nombre aparece y quedará recordado.</div>' :
-        (X.ok.length ? `<div class="msg ok">Se puso ✓ Lolfar a ${X.ok.length} documento(s), en el mes a pagar donde está cada uno: ${esc(unicos(X.ok.map((x) => perTxt(x.reg.per))).join(', '))}.${X.sobra.length ? ` Las ${X.sobra.length} de "Registradas aquí que no aparecen en el reporte" quedan sin ✓ porque Lolfar no las tiene.` : ''}</div>` : '') +
+        '<div id="lfOtros">' + lfOtrosHtml() + '</div>' + (X.ok.length ? `<div class="msg ok">Se puso ✓ Lolfar a ${X.ok.length} documento(s), en el mes a pagar donde está cada uno: ${esc(unicos(X.ok.map((x) => perTxt(x.reg.per))).join(', '))}.${X.sobra.length ? ` Las ${X.sobra.length} de "Registradas aquí que no aparecen en el reporte" quedan sin ✓ porque Lolfar no las tiene.` : ''}</div>` : '') +
         '<div class="kpis">' +
         `<div class="kpi"><b>En el reporte</b><strong>${n}</strong><small>documentos vigentes</small></div>` +
         `<div class="kpi" style="border-color:var(--ok);background:var(--ok2)"><b>Ya subidas</b><strong>${X.ok.length}</strong><small>S/ ${tot(X.ok)}</small></div>` +
