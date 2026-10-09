@@ -1,6 +1,6 @@
 # XML de facturas que llegan por correo
 
-Cada 10 minutos, este script revisa el Gmail donde está instalado. Busca los correos con adjuntos `.xml` o `.zip` y deja los XML de facturas y notas de crédito o débito en Firebase. La página los lee sola y los guarda en el **Lector de XML**. El menú muestra el aviso **"XML nuevos llegados por correo"** con la cantidad, y también aparece en el Inicio.
+Cada 10 minutos, este script revisa el Gmail donde está instalado. Busca los correos con adjuntos `.xml`, `.zip` o `.rar` y deja los XML de facturas y notas de crédito o débito en Firebase. La página los lee sola y los guarda en el **Lector de XML**. El menú muestra el aviso **"XML nuevos llegados por correo"** con la cantidad, y también aparece en el Inicio.
 
 ```
 Correo del proveedor ─► Script de Gmail (cada 10 min) ─► Firebase: xmlBuzon ─► Página: lee, guarda en el Lector de XML y avisa
@@ -13,7 +13,8 @@ Correo del proveedor ─► Script de Gmail (cada 10 min) ─► Firebase: xmlBu
 - Se descarta la constancia de SUNAT (CDR) que viene en algunos .zip. Solo entran facturas, NC y ND.
 - Los correos ya revisados quedan con la etiqueta **XML-procesado** en Gmail.
 - Abre también un ZIP que viene dentro de otro ZIP (por ejemplo, uno por mes).
-- Si el adjunto es **RAR o 7z**, o el ZIP está dañado, o no trae facturas ni notas, el correo queda con la etiqueta **XML-sin-leer** (no como procesado). Descomprímelo en la PC y sube los XML en el **Lector de XML**.
+- Los **RAR** también entran: Google no puede abrirlos, así que el script los manda tal cual (hasta 650 KB) y la página los abre al leer la bandeja.
+- Si el adjunto es **7z**, un RAR de más de 650 KB, un ZIP dañado o no trae facturas ni notas, el correo queda con la etiqueta **XML-sin-leer** (no como procesado). Descomprímelo o súbelo en el **Lector de XML** (acepta XML, ZIP y RAR).
 - **Si actualizas el script:** pega de nuevo `Codigo.gs` y guarda. No hace falta volver a ejecutar `instalar`.
 
 ## Instalación (una sola vez, unos 10 minutos)
