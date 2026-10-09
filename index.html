@@ -7568,6 +7568,28 @@
      Aquí se lee con el mismo lector de arriba, se guarda en xmlf y el aviso queda en el menú hasta abrir el Lector de XML. */
   let xb = { docs: [], visto: '', marca: '', todos: false, err: '' };
   const xbEnCurso = new Set();
+  // Los XML del correo se leen de uno en uno (no 150 a la vez); si Firebase llega a su límite diario, se detiene y avisa
+  let xbCola = [], xbCorre = false, xbAviso = '', xbHechos = 0;
+  function xbEncolar() {
+    if (!puede('xml')) return;
+    xb.docs.filter((x) => x.estado === 'nuevo' && !xbEnCurso.has(x._id) && !xbCola.includes(x._id)).forEach((x) => xbCola.push(x._id));
+    xbArrancar();
+  }
+  async function xbArrancar() {
+    if (xbCorre || !xbCola.length) return;
+    xbCorre = true; xbAviso = ''; xbHechos = 0;
+    while (xbCola.length) {
+      const id = xbCola.shift(), b = xb.docs.find((x) => x._id === id);
+      if (!b || b.estado !== 'nuevo') continue;
+      const r = await xbProcesar(b);
+      xbHechos += 1;
+      if (r === 'cuota') { xbAviso = 'Firebase llegó a su límite diario de uso: los XML pendientes se leerán cuando se reinicie (2:00 a. m.) o con el botón "Leer pendientes".'; xbCola = []; break; }
+      if (vista === 'vXml' && xbHechos % 5 === 0) xbPintar();
+    }
+    xbCorre = false;
+    if (vista === 'vXml') xbPintar();
+  }
+  const esCuota = (e) => e && (e.code === 'resource-exhausted' || /quota|exhausted/i.test(e.message || ''));
   const xbClave = () => 'xbVisto_' + (yo ? yo.uid : '');
   function xbIniciar() {
     xb = { docs: [], visto: '', marca: '', todos: false, err: '' };
@@ -7578,7 +7600,7 @@
     bajas.push(onSnapshot(query(collection(db, 'xmlBuzon'), orderBy('recibido', 'desc'), limit(150)), (s) => {
       xb.err = '';
       xb.docs = s.docs.map((d) => ({ _id: d.id, ...d.data() }));
-      if (puede('xml')) xb.docs.filter((x) => x.estado === 'nuevo').forEach(xbProcesar);
+      xbEncolar();
       // los que no se pudieron leer como XML (antes de reconocer los XML con la declaración inválida) se reintentan una vez solos
       if (puede('xml')) xb.docs.filter((x) => x.estado === 'error' && x.xml && !x.reint && /XML válido/.test(x.error || '')).forEach((x) => updateDoc(doc(db, 'xmlBuzon', x._id), { estado: 'nuevo', error: deleteField(), reint: 1 }).catch(console.error));
       xbContar();
@@ -7597,9 +7619,11 @@
       if (!ya) czOlvidar(d1.fecha.slice(0, 7));
       await updateDoc(ref, { estado: ya ? 'repetido' : 'leido', k, doc: d1.id, tipo: d1.tipo, emisor: d1.emisor.nom, ruc: d1.emisor.ruc, cliente: d1.cliente.ruc, fecha: d1.fecha, total: d1.total, moneda: d1.moneda, items: d1.lineas.length, ref: d1.ref || '', xml: deleteField(), error: deleteField(), procesado: ctAhora(), por: firma() });
     } catch (e) {
-      try { await updateDoc(ref, { estado: 'error', error: txt(e.message || errorTexto(e), 200), procesado: ctAhora(), por: firma() }); } catch (e2) { console.error(e2); }
+      if (esCuota(e)) { xbEnCurso.delete(b._id); return 'cuota'; } // no es un problema del XML: queda pendiente
+      try { await updateDoc(ref, { estado: 'error', error: txt(e.message || errorTexto(e), 200), procesado: ctAhora(), por: firma() }); } catch (e2) { console.error(e2); if (esCuota(e2)) { xbEnCurso.delete(b._id); return 'cuota'; } }
     }
     xbEnCurso.delete(b._id);
+    return 'ok';
   }
   function xbContar() { contador('nXml', xb.docs.filter((x) => x.estado !== 'repetido' && String(x.recibido || '') > xb.visto).length); }
   function xbVisto() { // al abrir el Lector de XML, lo llegado deja de contarse (pero sigue resaltado mientras estés en la ventana)
@@ -7617,9 +7641,10 @@
     const D = xb.docs, mias = pgCfg.empresas.map((e) => e.ruc).filter(Boolean), nuevos = D.filter((x) => String(x.recibido || '') > xb.marca).length;
     if (!D.length) { caja.innerHTML = '<div class="caja" style="padding:12px 16px"><h3 class="sub" style="margin:0 0 4px">Llegados por correo</h3><p class="quien" style="margin:0">Aún no llegó ningún XML por correo. Cuando el script de Gmail esté instalado (carpeta correo-xml), cada XML que llegue aparecerá aquí solo, ya leído.</p></div>'; return; }
     const lista = xb.todos ? D : D.slice(0, 10);
-    const estado = (x) => (x.estado === 'leido' ? '<span class="est e2">✓ Guardado</span>' : x.estado === 'repetido' ? '<span class="est e4">Ya estaba guardado</span>' : x.estado === 'error' ? `<span class="est alerta">No se pudo leer</span><div class="quien">${esc(x.error || '')}</div>${puede('xml') && x.xml ? `<button class="mini xbRe" data-id="${esc(x._id)}">Reintentar</button>` : ''}` : '<span class="est e0">Leyendo…</span>');
+    const estado = (x) => (x.estado === 'leido' ? '<span class="est e2">✓ Guardado</span>' : x.estado === 'repetido' ? '<span class="est e4">Ya estaba guardado</span>' : x.estado === 'error' ? `<span class="est alerta">No se pudo leer</span><div class="quien">${esc(x.error || '')}</div>${puede('xml') && x.xml ? `<button class="mini xbRe" data-id="${esc(x._id)}">Reintentar</button>` : ''}` : (xbCorre || xbEnCurso.has(x._id) ? '<span class="est e0">Leyendo…</span>' : '<span class="est e0">Pendiente</span>'));
     caja.innerHTML = '<div class="caja" style="padding:12px 16px">' +
-      `<div class="herr" style="margin-bottom:8px"><h3 class="sub" style="margin:0">Llegados por correo</h3><span class="quien">${nuevos ? `<b>${nuevos} nuevo(s) desde tu última visita</b> · ` : ''}último: ${esc(ctHora(D[0].recibido))}</span><span style="flex:1"></span>${D.length > 10 ? `<button id="xbTodos">${xb.todos ? 'Ver solo los últimos 10' : `Ver los ${D.length}`}</button>` : ''}</div>` +
+      `<div class="herr" style="margin-bottom:8px"><h3 class="sub" style="margin:0">Llegados por correo</h3><span class="quien">${nuevos ? `<b>${nuevos} nuevo(s) desde tu última visita</b> · ` : ''}último: ${esc(ctHora(D[0].recibido))}</span>${(() => { const pend = D.filter((x) => x.estado === 'nuevo').length; return xbCorre ? `<span class="est e0">Leyendo ${xbHechos} de ${xbHechos + xbCola.length + 1}…</span>` : (pend && puede('xml') ? `<button class="mini pri" id="xbLeer">Leer pendientes (${pend})</button>` : ''); })()}<span style="flex:1"></span>${D.length > 10 ? `<button id="xbTodos">${xb.todos ? 'Ver solo los últimos 10' : `Ver los ${D.length}`}</button>` : ''}</div>` +
+      (xbAviso ? `<div class="msg err">${esc(xbAviso)}</div>` : '') +
       '<div class="tabla"><table><thead><tr><th>Llegó</th><th>Correo de</th><th>Documento</th><th>Emisor</th><th>Emisión</th><th class="num">Total</th><th class="num">Ítems</th><th>Estado</th></tr></thead><tbody>' +
       lista.map((x) => {
         const ok = x.estado === 'leido' || x.estado === 'repetido', ajena = ok && mias.length && x.cliente && !mias.includes(x.cliente);
@@ -7633,6 +7658,7 @@
   }
   $('xbCaja').addEventListener('click', async (e) => {
     if (e.target.id === 'xbTodos') { xb.todos = !xb.todos; return xbPintar(); }
+    if (e.target.id === 'xbLeer') { xbAviso = ''; xbEncolar(); return xbPintar(); }
     const re = e.target.closest('.xbRe');
     if (re) { re.disabled = true; try { await updateDoc(doc(db, 'xmlBuzon', re.dataset.id), { estado: 'nuevo', error: deleteField() }); } catch (err) { alert(errorTexto(err)); re.disabled = false; } return; }
     const tr = e.target.closest('tr.xbIr');
