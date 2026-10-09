@@ -10,7 +10,7 @@
 // ===================== CONFIGURACIÓN =====================
 const PROYECTO = 'socorro-19056';          // projectId de Firebase (el mismo de index.html)
 const ETIQUETA = 'XML-procesado';          // etiqueta que se pone a los correos ya revisados
-const ETIQUETA_REVISAR = 'XML-sin-leer';   // correos con adjuntos que no se pudieron abrir (RAR, 7z, ZIP dañado o sin XML de facturas)
+const ETIQUETA_REVISAR = 'XML-sin-leer';   // correos con adjuntos que no se pudieron abrir (7z, ZIP dañado, RAR muy grande o sin XML de facturas)
 const DIAS_ATRAS = 30;                     // en cada vuelta mira los correos de los últimos N días
 const CARPETA_RESPALDO = 'Facturas XML';   // carpeta de Drive para guardar copia de cada XML ('' = no guardar)
 const MAX_CORREOS = 40;                    // correos (hilos) por vuelta, para no pasar el límite de 6 minutos
@@ -48,6 +48,8 @@ function revisarCorreo() {
         const r = xmlsDe(m);
         raros.push(...r.raros);
         r.xmls.forEach((x) => { xmls += 1; if (enviarAlBuzon(x, m)) enviados += 1; else repetidos += 1; });
+        // Los RAR no se pueden abrir desde Google: se mandan tal cual y la página los abre
+        r.rars.forEach((x) => { if (x.blob.getBytes().length > 650000) { raros.push(`${x.nombre} (RAR de más de 650 KB)`); return; } xmls += 1; if (enviarAlBuzon(x, m)) enviados += 1; else repetidos += 1; });
       });
       if (!xmls && raros.length) { // nada que leer: se marca para revisarlo a mano (no queda como procesado)
         hilo.addLabel(GmailApp.getUserLabelByName(ETIQUETA_REVISAR) || GmailApp.createLabel(ETIQUETA_REVISAR));
@@ -65,10 +67,11 @@ function revisarCorreo() {
 /** Los XML de comprobantes que trae un correo: sueltos, dentro de un .zip o de un .zip dentro de otro (hasta 3 niveles).
  *  raros = adjuntos que no se pudieron abrir (RAR y 7z no se pueden abrir desde Google: hay que descomprimirlos en la PC). */
 function xmlsDe(m) {
-  const out = [], raros = [];
+  const out = [], raros = [], rars = [];
   const abrir = (blob, nombre, nivel) => {
     if (/\.xml$/i.test(nombre)) { out.push({ nombre, blob }); return; }
-    if (/\.(rar|7z)$/i.test(nombre)) { raros.push(`${nombre} (RAR/7z)`); return; }
+    if (/\.rar$/i.test(nombre)) { rars.push({ nombre, blob, rar: true }); return; }
+    if (/\.7z$/i.test(nombre)) { raros.push(`${nombre} (7z)`); return; }
     if (!/\.zip$/i.test(nombre) || nivel > 3) return;
     try {
       Utilities.unzip(blob.setContentType('application/zip')).forEach((b) => abrir(b, `${nombre} → ${b.getName()}`, nivel + 1));
@@ -79,8 +82,8 @@ function xmlsDe(m) {
     .map((x) => ({ nombre: x.nombre, texto: textoDe(x.blob) }))
     // solo facturas, NC y ND; se descarta la constancia de SUNAT (CDR, ApplicationResponse) y otros XML
     .filter((x) => /<(\w+:)?(Invoice|CreditNote|DebitNote)[\s>]/.test(x.texto.slice(0, 3000)));
-  if (out.length && !xmls.length) raros.push('XML que no son facturas ni notas (guías, constancias u otros)');
-  return { xmls, raros };
+  if (out.length && !xmls.length && !rars.length) raros.push('XML que no son facturas ni notas (guías, constancias u otros)');
+  return { xmls, raros, rars };
 }
 
 /** Texto del XML respetando la codificación que declara (muchos vienen en ISO-8859-1). */
@@ -95,12 +98,13 @@ function textoDe(blob) {
 
 /** Deja el XML en xmlBuzon. El id es la huella del contenido: el mismo XML nunca entra dos veces. */
 function enviarAlBuzon(x, m) {
-  if (x.texto.length > 900000) { console.warn(`${x.nombre}: demasiado grande, se omite`); return false; }
-  const huella = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, x.texto, Utilities.Charset.UTF_8)
+  const rar = x.rar ? Utilities.base64Encode(x.blob.getBytes()) : '';
+  if (!x.rar && x.texto.length > 900000) { console.warn(`${x.nombre}: demasiado grande, se omite`); return false; }
+  const huella = (x.rar ? 'r' : '') + Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, x.rar ? rar : x.texto, Utilities.Charset.UTF_8)
     .map((b) => ((b + 256) % 256).toString(16).padStart(2, '0')).join('').slice(0, 40);
   if (CARPETA_RESPALDO) respaldar(x, huella);
   const campos = {
-    xml: x.texto,
+    ...(x.rar ? { rar } : { xml: x.texto }),
     archivo: x.nombre.slice(0, 200),
     de: m.getFrom().slice(0, 200),
     asunto: m.getSubject().slice(0, 200),
@@ -127,6 +131,6 @@ function respaldar(x, huella) {
     if (!carpetaRespaldo) { const it = DriveApp.getFoldersByName(CARPETA_RESPALDO); carpetaRespaldo = it.hasNext() ? it.next() : DriveApp.createFolder(CARPETA_RESPALDO); }
     const carpeta = carpetaRespaldo;
     const nombre = `${huella.slice(0, 8)}_${x.nombre.split('→').pop().trim()}`;
-    if (!carpeta.getFilesByName(nombre).hasNext()) carpeta.createFile(nombre, x.texto, 'application/xml');
+    if (!carpeta.getFilesByName(nombre).hasNext()) { if (x.rar) carpeta.createFile(x.blob.copyBlob().setName(nombre)); else carpeta.createFile(nombre, x.texto, 'application/xml'); }
   } catch (e) { console.warn(`No se pudo guardar la copia en Drive: ${e}`); }
 }

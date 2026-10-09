@@ -635,9 +635,9 @@
     <div id="vXml" class="oculto">
       <div id="xbCaja"></div>
       <div class="xlZona" id="xlZona">
-        <b>Arrastra aquí los XML o los ZIP de las facturas y notas de crédito</b>
+        <b>Arrastra aquí los XML, ZIP o RAR de las facturas y notas de crédito</b>
         <span class="quien">Se pueden subir varios a la vez. Se guarda solo la información leída (datos y productos), no el archivo. Si un documento ya estaba guardado, no se repite.</span>
-        <button class="pri" id="xlElegir">Elegir archivos</button><input type="file" id="xlArch" accept=".xml,.zip,text/xml,application/xml,application/zip" multiple class="oculto">
+        <button class="pri" id="xlElegir">Elegir archivos</button><input type="file" id="xlArch" accept=".xml,.zip,.rar,text/xml,application/xml,application/zip,application/vnd.rar,application/x-rar-compressed" multiple class="oculto">
       </div>
       <div class="herr" id="xlAcc"><input id="xlTxt" placeholder="Buscar por número, proveedor, RUC o producto" style="flex:1;min-width:220px"><button id="xlQuitar">Quitar filtros</button><button id="xlAbrir">Abrir o cerrar todos</button><button id="xlExpDoc">Excel de documentos</button><button id="xlExpDet">Excel del detalle de productos</button></div>
       <div id="xlCont"></div>
@@ -7400,6 +7400,24 @@
      Se guarda SOLO la información leída (cabecera y productos) en xmlf/{RUC emisor_tipo_número}; el archivo no se sube ni se conserva. */
   let xl = { docs: [], errores: [], avisos: [], abiertos: new Set(), mes: '', txt: '', cargando: false, listo: false };
   const xlKey = (x) => `${x.emisor.ruc}_${x.cod || x.tipo.slice(0, 2)}_${x.id}`.replace(/[^\w-]/g, '');
+  // ZIP / RAR / XML por su contenido (no solo por el nombre); dentro de un ZIP o RAR puede haber otros (hasta 3 niveles)
+  const xlTipoArch = (b) => { const u = new Uint8Array(b, 0, Math.min(8, b.byteLength)); if (u[0] === 0x50 && u[1] === 0x4b) return 'zip'; if (u[0] === 0x52 && u[1] === 0x61 && u[2] === 0x72 && u[3] === 0x21) return 'rar'; return ''; };
+  async function xlExpandir(nom, datos, cola, nivel) {
+    const tipo = xlTipoArch(datos) || (/\.zip$/i.test(nom) ? 'zip' : /\.rar$/i.test(nom) ? 'rar' : '');
+    if (!tipo) { if (/\.xml$/i.test(nom)) cola.push({ nombre: nom, datos }); return; }
+    if (nivel > 3) return;
+    const hijos = tipo === 'zip' ? await xlZip(datos) : await xlRar(datos);
+    for (const x of hijos) if (/\.(xml|zip|rar)$/i.test(x.nombre)) await xlExpandir(`${nom} → ${x.nombre}`, x.datos, cola, nivel + 1);
+  }
+  let xlUnrar = null;
+  async function xlRar(buf) { // RAR con la librería node-unrar-js (WebAssembly), guardada junto a la página en vendor/
+    if (!xlUnrar) xlUnrar = Promise.all([import('./vendor/unrar.mjs'), fetch('./vendor/unrar.wasm').then((r) => { if (!r.ok) throw new Error('no se pudo cargar el lector de RAR'); return r.arrayBuffer(); })]);
+    const [mod, wasmBinary] = await xlUnrar;
+    const ex = await mod.createExtractorFromData({ wasmBinary, data: buf });
+    const out = [];
+    for (const f of ex.extract().files) if (!f.fileHeader.flags.directory && f.extraction) out.push({ nombre: f.fileHeader.name.split(/[\\/]/).pop(), datos: f.extraction.slice().buffer });
+    return out;
+  }
   async function xlZip(buf) { // archivos de un .zip, sin librerías (usa el descompresor del navegador)
     const b = new Uint8Array(buf), v = new DataView(buf), out = [];
     let e = -1;
@@ -7465,17 +7483,9 @@
     for (const a of archivos) {
       try {
         const buf = await a.arrayBuffer();
-        const esZip = (b) => b.byteLength > 4 && new DataView(b instanceof ArrayBuffer ? b : b.buffer, b.byteOffset || 0).getUint32(0, true) === 0x04034b50;
-        const abrirZip = async (datos, nom, nivel) => { // un ZIP puede traer otros ZIP adentro (por ejemplo, uno por mes)
-          for (const x of await xlZip(datos)) {
-            if (/\.xml$/i.test(x.nombre)) cola.push({ nombre: `${nom} → ${x.nombre}`, datos: x.datos });
-            else if (/\.zip$/i.test(x.nombre) && nivel < 3) await abrirZip(x.datos instanceof ArrayBuffer ? x.datos : x.datos.buffer.slice(x.datos.byteOffset, x.datos.byteOffset + x.datos.byteLength), `${nom} → ${x.nombre}`, nivel + 1);
-          }
-        };
-        if (/\.(rar|7z)$/i.test(a.name)) xl.errores.push(`${a.name}: los RAR y 7z no se pueden abrir aquí. Descomprímelo en la PC y sube los XML o un ZIP.`);
-        else if (/\.zip$/i.test(a.name) || esZip(buf)) await abrirZip(buf, a.name, 1);
-        else if (/\.xml$/i.test(a.name)) cola.push({ nombre: a.name, datos: buf });
-        else xl.errores.push(`${a.name}: no es un XML ni un ZIP`);
+        if (/\.7z$/i.test(a.name)) xl.errores.push(`${a.name}: los 7z no se pueden abrir aquí. Descomprímelo en la PC y sube los XML, un ZIP o un RAR.`);
+        else if (/\.(zip|rar|xml)$/i.test(a.name) || xlTipoArch(buf)) await xlExpandir(a.name, buf, cola, 1);
+        else xl.errores.push(`${a.name}: no es un XML, ZIP ni RAR`);
       } catch (e) { xl.errores.push(`${a.name}: ${e.message}`); }
     }
     const leidos = [];
@@ -7621,6 +7631,7 @@
     if (xbEnCurso.has(b._id)) return;
     xbEnCurso.add(b._id);
     const ref = doc(db, 'xmlBuzon', b._id);
+    if (b.rar) return xbProcesarRar(b, ref); // un RAR que llegó por correo: el script de Gmail no puede abrirlo, se abre aquí
     try {
       const d1 = xlLeer(String(b.xml || ''), b.archivo || 'correo.xml');
       if (!/^\d{4}-\d{2}-\d{2}$/.test(d1.fecha)) throw new Error('no trae fecha de emisión');
@@ -7634,6 +7645,34 @@
     }
     xbEnCurso.delete(b._id);
     return 'ok';
+  }
+  async function xbProcesarRar(b, ref) {
+    let r = 'ok';
+    try {
+      const bin = atob(String(b.rar)), u = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i += 1) u[i] = bin.charCodeAt(i);
+      const cola = [];
+      await xlExpandir(b.archivo || 'correo.rar', u.buffer, cola, 1);
+      let nuevos = 0, ya = 0;
+      const malos = [];
+      for (const x of cola) {
+        try {
+          const d1 = xlLeer(xlTexto(x.datos), x.nombre);
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(d1.fecha)) throw new Error('no trae fecha de emisión');
+          const refX = doc(db, 'xmlf', xlKey(d1));
+          if ((await getDoc(refX)).exists()) { ya += 1; continue; }
+          await setDoc(refX, { ...d1, lineas: d1.lineas.slice(0, 600), arch: String(x.nombre).split('→').pop().trim().slice(0, 120), ym: d1.fecha.slice(0, 7), subido: ctAhora(), por: 'Correo · ' + txt(b.de, 100), correo: { de: txt(b.de, 200), asunto: txt(b.asunto, 200), recibido: txt(b.recibido, 40) } });
+          czOlvidar(d1.fecha.slice(0, 7)); nuevos += 1;
+        } catch (e) { if (esCuota(e)) throw e; if (!/factura ni una nota/.test(e.message || '')) malos.push(`${String(x.nombre).split('→').pop().trim()}: ${e.message}`); }
+      }
+      if (!cola.length) throw new Error('el RAR no trae XML');
+      await updateDoc(ref, { estado: nuevos ? 'leido' : (malos.length && !ya ? 'error' : 'repetido'), doc: `RAR · ${cola.length} XML`, tipo: 'RAR', items: cola.length, error: malos.length ? txt(`${nuevos} nuevo(s), ${ya} ya estaban; no se pudo leer: ${malos.join(' · ')}`, 200) : deleteField(), nuevos, ya, rar: deleteField(), procesado: ctAhora(), por: firma() });
+    } catch (e) {
+      if (esCuota(e)) r = 'cuota';
+      else { try { await updateDoc(ref, { estado: 'error', error: txt(e.message || errorTexto(e), 200), procesado: ctAhora(), por: firma() }); } catch (e2) { console.error(e2); } }
+    }
+    xbEnCurso.delete(b._id);
+    return r;
   }
   function xbContar() { contador('nXml', xb.docs.filter((x) => x.estado !== 'repetido' && String(x.recibido || '') > xb.visto).length); }
   function xbVisto() { // al abrir el Lector de XML, lo llegado deja de contarse (pero sigue resaltado mientras estés en la ventana)
@@ -7651,7 +7690,7 @@
     const D = xb.docs, mias = pgCfg.empresas.map((e) => e.ruc).filter(Boolean), nuevos = D.filter((x) => String(x.recibido || '') > xb.marca).length;
     if (!D.length) { caja.innerHTML = '<div class="caja" style="padding:12px 16px"><h3 class="sub" style="margin:0 0 4px">Llegados por correo</h3><p class="quien" style="margin:0">Aún no llegó ningún XML por correo. Cuando el script de Gmail esté instalado (carpeta correo-xml), cada XML que llegue aparecerá aquí solo, ya leído.</p></div>'; return; }
     const lista = xb.todos ? D : D.slice(0, 10);
-    const estado = (x) => (x.estado === 'leido' ? '<span class="est e2">✓ Guardado</span>' : x.estado === 'repetido' ? '<span class="est e4">Ya estaba guardado</span>' : x.estado === 'error' ? `<span class="est alerta">No se pudo leer</span><div class="quien">${esc(x.error || '')}</div>${puede('xml') && x.xml ? `<button class="mini xbRe" data-id="${esc(x._id)}">Reintentar</button>` : ''}` : (xbCorre || xbEnCurso.has(x._id) ? '<span class="est e0">Leyendo…</span>' : '<span class="est e0">Pendiente</span>'));
+    const estado = (x) => (x.estado === 'leido' ? '<span class="est e2">✓ Guardado</span>' : x.estado === 'repetido' ? '<span class="est e4">Ya estaba guardado</span>' : x.estado === 'error' ? `<span class="est alerta">No se pudo leer</span><div class="quien">${esc(x.error || '')}</div>${puede('xml') && (x.xml || x.rar) ? `<button class="mini xbRe" data-id="${esc(x._id)}">Reintentar</button>` : ''}` : (xbCorre || xbEnCurso.has(x._id) ? '<span class="est e0">Leyendo…</span>' : '<span class="est e0">Pendiente</span>'));
     caja.innerHTML = '<div class="caja" style="padding:12px 16px">' +
       `<div class="herr" style="margin-bottom:8px"><h3 class="sub" style="margin:0">Llegados por correo</h3><span class="quien">${nuevos ? `<b>${nuevos} nuevo(s) desde tu última visita</b> · ` : ''}último: ${esc(ctHora(D[0].recibido))}</span>${(() => { const pend = D.filter((x) => x.estado === 'nuevo').length; return xbCorre ? `<span class="est e0">Leyendo ${xbHechos} de ${xbHechos + xbCola.length + 1}…</span>` : (pend && puede('xml') ? `<button class="mini pri" id="xbLeer">Leer pendientes (${pend})</button>` : ''); })()}<span style="flex:1"></span>${D.length > 10 ? `<button id="xbTodos">${xb.todos ? 'Ver solo los últimos 10' : `Ver los ${D.length}`}</button>` : ''}</div>` +
       (xbAviso ? `<div class="msg err">${esc(xbAviso)}</div>` : '') +
