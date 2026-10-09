@@ -2743,9 +2743,24 @@
     await setDoc(ref, { emp, dist, per, compra, letras: null, desde: '', prog: [], filas: [], sueltas: [], act: serverTimestamp(), actPor: firma() });
     pgLog('Nuevo mes a pagar', `${perTxt(per)} (creado al llevar documentos)`, per, `${emp}|${dist}`).catch(console.error);
   }
+  // El mes ya está en pantalla y al día (lo escucha la página): se guarda sobre esa copia sin volver a leerlo.
+  // Así un check o un cambio solo gasta escrituras, y se puede seguir trabajando aunque se acaben las lecturas del día.
+  function pgLocal(id) {
+    const d = pgDocs.find((x) => x.id === id);
+    if (d) return d;
+    const v = sincros.get('pagos'), x = v && v.m.get(id);
+    return x ? x.data() : null;
+  }
   async function pgGuardarYa(emp, dist, per, cambio, accion, detalle) {
-    const ref = doc(db, 'pagos', `${emp}_${dist}_${per}`), idx = doc(db, 'pagosIdx', `${emp}_${dist}`);
-    await runTransaction(db, async (tx) => {
+    const ref = doc(db, 'pagos', `${emp}_${dist}_${per}`), idx = doc(db, 'pagosIdx', `${emp}_${dist}`), loc = pgLocal(ref.id);
+    if (loc) {
+      const lista = (loc.filas || []).map((f) => ({ ...f }));
+      const nuevas = cambio(lista) || lista;
+      const lote = writeBatch(db);
+      lote.update(ref, { filas: nuevas, act: serverTimestamp(), actPor: firma() });
+      lote.set(idx, { p: { [idxCampo(per)]: idxDe(nuevas) } }, { merge: true });
+      await lote.commit();
+    } else await runTransaction(db, async (tx) => {
       const s = await tx.get(ref);
       if (!s.exists()) throw new Error('Ese mes a pagar ya no existe.');
       const lista = (s.data().filas || []).map((f) => ({ ...f }));
@@ -3381,10 +3396,8 @@
   }
   async function pgGuardarCp(d0, cambio, accion, detalle) { // guarda lo que cambia la ventana Programar: pagado, grupo y programación
     const ref = doc(db, 'pagos', `${d0.emp}_${d0.dist}_${d0.per}`);
-    await runTransaction(db, async (tx) => {
-      const s = await tx.get(ref);
-      if (!s.exists()) throw new Error('Ese mes a pagar ya no existe.');
-      const data = s.data(), cpd = cpDeDoc({ ...data, dist: d0.dist });
+    const armar = (data) => {
+      const cpd = cpDeDoc({ ...data, dist: d0.dist });
       const est = { filas: cpd.filas.map((f) => ({ ...f })), prog: cpd.prog.map((p) => ({ ...p, cu: (p.cu || []).map((c) => ({ ...c })) })) };
       cambio(est);
       const filas = (data.filas || []).map((f) => {
@@ -3399,7 +3412,14 @@
         return n;
       });
       const prog = est.prog.map((p) => ({ g: String(p.k).split('|').slice(1).join('|'), mod: p.mod || '', n: Number(p.n) || 0, cu: p.cu || [] }));
-      tx.update(ref, { filas, prog, act: serverTimestamp(), actPor: firma() });
+      return { filas, prog, act: serverTimestamp(), actPor: firma() };
+    };
+    const loc = pgLocal(ref.id);
+    if (loc) await updateDoc(ref, armar(loc)); // al día en pantalla: sin volver a leerlo
+    else await runTransaction(db, async (tx) => {
+      const s = await tx.get(ref);
+      if (!s.exists()) throw new Error('Ese mes a pagar ya no existe.');
+      tx.update(ref, armar(s.data()));
     });
     pgLog(accion, detalle, d0.per).catch(console.error);
   }
