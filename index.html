@@ -2672,6 +2672,14 @@
     pgCola = turno.catch(() => {});
     return turno;
   }
+  // Crea el mes a pagar de un proveedor si todavía no existe (al llevar documentos desde los XML o el cierre)
+  async function pgAsegurarMes(emp, dist, per, fechas) {
+    const ref = doc(db, 'pagos', `${emp}_${dist}_${per}`);
+    if ((await getDoc(ref)).exists()) return;
+    const compra = unicos((fechas || []).filter((f) => /^\d{4}-\d{2}/.test(f || '')).map((f) => f.slice(0, 7))).sort().slice(-3);
+    await setDoc(ref, { emp, dist, per, compra, letras: null, desde: '', prog: [], filas: [], sueltas: [], act: serverTimestamp(), actPor: firma() });
+    pgLog('Nuevo mes a pagar', `${perTxt(per)} (creado al llevar documentos)`, per, `${emp}|${dist}`).catch(console.error);
+  }
   async function pgGuardarYa(emp, dist, per, cambio, accion, detalle) {
     const ref = doc(db, 'pagos', `${emp}_${dist}_${per}`), idx = doc(db, 'pagosIdx', `${emp}_${dist}`);
     await runTransaction(db, async (tx) => {
@@ -6233,7 +6241,7 @@
       const P = lista[0].P, fecha = (r) => ((r.real || {}).f || (r.l || {}).f || ''), monto = (r) => (r.real || r.l).m;
       try {
         if (P.tipo === 'D') {
-          if (!ci.pg.some((d) => d.dist === P.k && d.per === per)) throw new Error(`primero crea el mes a pagar ${perTxt(per)} de ${P.nombre} en Pagos a proveedores`);
+          await pgAsegurarMes(ci.emp, P.k, per, lista.map(fecha)); // si ese mes a pagar no existe, se crea
           const nuevas = lista.map((r) => { const f = { i: idNuevo(), f: fecha(r), t: r.t, s: r.s, n: r.n, m: r.t === 'NC' ? -Math.abs(monto(r)) : Math.abs(monto(r)), ...(r.lab ? { l: may(r.lab, 60) } : {}) }; if (r.real) czPoner(f, r.real.de.startsWith('QR') ? 'QR' : 'XML'); return f; });
           await pgGuardarYa(ci.emp, P.k, per, (l) => { nuevas.forEach((f) => { if (!l.some((x) => claveFila(x) === claveFila(f))) l.push(f); }); }, 'Agregó', `${nuevas.length} documento(s) desde el cierre del mes: ${nuevas.map((f) => `${f.s}-${f.n}`).join(', ')}`);
         } else {
@@ -6423,7 +6431,7 @@
         if (g.dest.tipo === 'D') {
           if (!puede('pagos')) throw new Error('no tienes permiso en Pagos a proveedores');
           if (!g.dest.k) throw new Error('es un proveedor nuevo: el administrador debe agregarlo primero en Pagos a proveedores → Proveedores');
-          if (!rg.pg.some((d) => d.emp === g.emp && d.dist === g.dest.k && d.per === per)) throw new Error(`primero crea el mes a pagar ${perTxt(per)} de ${g.dest.nombre} en Pagos a proveedores`);
+          await pgAsegurarMes(g.emp, g.dest.k, per, g.rs.map((r) => r.x.fecha)); // si ese mes a pagar no existe, se crea
           const nuevas = g.rs.map((r) => { const f = { i: idNuevo(), f: r.x.fecha, t: r.t, s: serDoc(r.x.serie), n: numDoc(r.x.num), m: r.t === 'NC' ? -Math.abs(Number(r.x.total)) : Math.abs(Number(r.x.total)) }; if (r.t === 'NC' && r.x.ref) f.r = refDoc(r.x.ref) || r.x.ref; if (r.x.vence) f.v = r.x.vence; if (r.t === 'FA' && distDe(g.dest.k).ret) f.ar = true; czPoner(f, 'XML'); return f; });
           await pgGuardarYa(g.emp, g.dest.k, per, (l) => { nuevas.forEach((f) => { if (!l.some((x) => claveFila(x) === claveFila(f))) l.push(f); }); }, 'Agregó', `${nuevas.length} documento(s) desde los XML: ${nuevas.map((f) => `${f.s}-${f.n}`).join(', ')}`);
         } else {
