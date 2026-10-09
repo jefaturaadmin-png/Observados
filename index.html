@@ -797,7 +797,7 @@
     updatePassword, EmailAuthProvider, reauthenticateWithCredential
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
   import {
-    getFirestore, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, collection, query, where, orderBy, limit,
+    initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, collection, query, where, orderBy, limit,
     onSnapshot, runTransaction, writeBatch, serverTimestamp, deleteField
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
@@ -892,11 +892,24 @@
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
-  const db = getFirestore(app);
+  // Caché en el navegador: al recargar o con varias pestañas, Firebase solo cobra lo que cambió (cuida la cuota diaria)
+  const db = (() => { try { return initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) }); } catch (e) { console.warn(e); return initializeFirestore(app, {}); } })();
   await setPersistence(auth, browserSessionPersistence);
 
   let yo = null, listas = LISTAS_INI, filas = [], pedidos = [], usuarios = [], catalogo = [], catDocs = [], abierto = null;
   let bajas = [], sinConfigurar = false, arranque = false, vista = 'vInicio';
+  const vivas = new Map();
+  function todos(nombre) { // toda una colección con un oyente que queda abierto: la 1.ª vez lee todo y después solo lo que cambia (antes se releía entera cada vez)
+    let v = vivas.get(nombre);
+    if (!v) {
+      v = { docs: [] }; vivas.set(nombre, v);
+      v.listo = new Promise((ok, mal) => {
+        const baja = onSnapshot(collection(db, nombre), (s) => { v.docs = s.docs; ok(); }, (e) => { vivas.delete(nombre); mal(e); });
+        bajas.push(() => { baja(); vivas.delete(nombre); });
+      });
+    }
+    return v.listo.then(() => ({ docs: v.docs }));
+  }
 
   /* ---------- Arranque ---------- */
   try {
@@ -5613,7 +5626,7 @@
   let dg = { regs: null, cargando: false, avisos: [], f: null };
   async function dgCargar() {
     const lee = (p) => p.catch(() => null);
-    let [sp, sc] = await Promise.all([lee(getDocs(collection(db, 'pagos'))), pgCfg.cxpMig ? null : lee(getDocs(collection(db, 'cpm')))]);
+    let [sp, sc] = await Promise.all([lee(todos('pagos')), pgCfg.cxpMig ? null : lee(getDocs(collection(db, 'cpm')))]);
     if (pgCfg.cxpMig && sp) { const ds = sp.docs.map((d) => d.data()); sc = { docs: cpmDePagos(ds).map(comoSnap) }; sp = { docs: ds.filter((d) => !pgEsC(d)).map((d) => ({ data: () => d })) }; } // proveedores en cuotas: como antes, aparte
     const regs = [], avisos = [];
     if (!sp) avisos.push('No se pudo leer Pagos a proveedores: faltan las compras de los distribuidores.');
@@ -6351,10 +6364,10 @@
   const rgKey = (x) => (CI_T[x.tipo] && x.serie ? `${CI_T[x.tipo]}|${serDoc(x.serie)}|${numDoc(x.num)}` : '');
   const rgId = (x) => `${(x.emisor || {}).ruc}|${rgKey(x)}`;
   async function rgCargarBase(forzar) { // lo registrado en Pagos a proveedores y Cuentas por pagar, todas las empresas y meses
-    if (rg.carg || (!forzar && rg.t && Date.now() - rg.t < 600000)) return;
+    if (rg.carg || (!forzar && rg.t && Date.now() - rg.t < 60000)) return;
     rg.carg = true;
     const lee = (p) => p.catch(() => null);
-    const [sp, sc, sa] = await Promise.all([puede('verPagos') ? lee(getDocs(collection(db, 'pagos'))) : null, puede('verCxp') && !pgCfg.cxpMig ? lee(getDocs(collection(db, 'cpm'))) : null, lee(getDoc(doc(db, 'config', 'concilia')))]);
+    const [sp, sc, sa] = await Promise.all([puede('verPagos') ? lee(todos('pagos')) : null, puede('verCxp') && !pgCfg.cxpMig ? lee(getDocs(collection(db, 'cpm'))) : null, lee(getDoc(doc(db, 'config', 'concilia')))]);
     rg.pg = sp ? sp.docs.map((d) => d.data()) : []; rg.cp = sc ? sc.docs.map((d) => d.data()) : [];
     rg.rucs = (sa && sa.exists() && sa.data().rucs) || {};
     rg.idx = new Map();
@@ -6659,7 +6672,7 @@
   const sgKey = (x) => `${x.src}|${x.provK}|${x.doc}`;
   async function sgCargar() {
     const lee = (p) => p.catch(() => null);
-    const [sp, sc, ...se] = await Promise.all([lee(getDocs(collection(db, 'pagos'))), pgCfg.cxpMig ? null : lee(getDocs(collection(db, 'cpm'))), ...CP_EMP.map((e) => lee(getDoc(doc(db, 'devEnt', e.k))))]);
+    const [sp, sc, ...se] = await Promise.all([lee(todos('pagos')), pgCfg.cxpMig ? null : lee(getDocs(collection(db, 'cpm'))), ...CP_EMP.map((e) => lee(getDoc(doc(db, 'devEnt', e.k))))]);
     const out = [], avisos = [], ent = {};
     CP_EMP.forEach((e, i) => { ent[e.k] = (se[i] && se[i].exists() && se[i].data().m) || {}; });
     if (!sp) avisos.push('No se pudo leer Pagos a proveedores.');
@@ -7471,13 +7484,13 @@
     if (!puede('verXml')) return;
     xl.cargando = true; xlPintar();
     try {
-      const s = await getDocs(collection(db, 'xmlf')); // todos, sin límite de fechas
+      const s = await todos('xmlf'); // todos, sin límite de fechas (queda escuchando: solo se cobra lo nuevo)
       xl.leido = Date.now();
       xl.docs = s.docs.map((d) => ({ k: d.id, ...d.data() })).sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)) || String(a.id).localeCompare(String(b.id), undefined, { numeric: true }));
     } catch (e) { xl.errores.push('No se pudo leer lo guardado: ' + errorTexto(e)); xl.docs = []; }
     xl.cargando = false; xl.listo = true; xlPintar();
   }
-  function xlAbrirVista() { $('xlZona').classList.toggle('oculto', !puede('xml')); if (!xl.leido || Date.now() - xl.leido > 1800000) xlCargar(); else xlPintar(); xbVisto(); } // cuida la cuota diaria de lecturas de Firebase
+  function xlAbrirVista() { $('xlZona').classList.toggle('oculto', !puede('xml')); xlCargar(); xbVisto(); } // cuida la cuota diaria de lecturas de Firebase
   async function xlSubir(archivos) {
     const cola = []; xl.errores = []; xl.avisos = [];
     for (const a of archivos) {
