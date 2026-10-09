@@ -5941,6 +5941,7 @@
       `<p class="quien" style="margin:0 0 8px">${esc(cn.info || '')}${cn.rep.desde ? ` · del ${esc(dia(cn.rep.desde))} al ${esc(dia(cn.rep.hasta))}` : ''}. Se compara con todos los meses a pagar de ${esc(dist.nombre)} en ${esc(empDe(pgEmp()).nombre)}.</p>` +
       `<div class="herr"><label style="margin:0" for="lfProv">En el reporte este proveedor se llama</label><select id="lfProv" style="width:auto;max-width:420px"><option value="">— elige el nombre del reporte —</option>${provRep.map(([p, c]) => `<option value="${esc(p)}"${mio.includes(p) ? ' selected' : ''}>${esc(p)} (${c})</option>`).join('')}</select></div>` +
       (!mio.length ? '<div class="msg" style="background:#fff8e6;color:#6b4a00">No reconocí a este distribuidor entre los proveedores del reporte. Elige arriba con qué nombre aparece y quedará recordado.</div>' :
+        (X.ok.length ? `<div class="msg ok">Se puso ✓ Lolfar a ${X.ok.length} documento(s), en el mes a pagar donde está cada uno: ${esc(unicos(X.ok.map((x) => perTxt(x.reg.per))).join(', '))}.${X.sobra.length ? ` Las ${X.sobra.length} de "Registradas aquí que no aparecen en el reporte" quedan sin ✓ porque Lolfar no las tiene.` : ''}</div>` : '') +
         '<div class="kpis">' +
         `<div class="kpi"><b>En el reporte</b><strong>${n}</strong><small>documentos vigentes</small></div>` +
         `<div class="kpi" style="border-color:var(--ok);background:var(--ok2)"><b>Ya subidas</b><strong>${X.ok.length}</strong><small>S/ ${tot(X.ok)}</small></div>` +
