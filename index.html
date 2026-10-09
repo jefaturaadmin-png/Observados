@@ -6813,7 +6813,7 @@
   }
   /* ---------- Subir los XML de las facturas electrónicas (UBL 2.1 de SUNAT): traen el total exacto, los RUC y, en las NC, la factura que afectan ---------- */
   function xmlFactura(texto, nombre) {
-    const d = new DOMParser().parseFromString(texto, 'application/xml'), raiz = d.documentElement;
+    const d = new DOMParser().parseFromString(xmlLimpio(texto), 'application/xml'), raiz = d.documentElement;
     if (!raiz || d.getElementsByTagName('parsererror').length) throw new Error('no es un XML válido');
     const hijo = (el, n) => (el ? [...el.children].find((c) => c.localName === n) : null) || null;
     const ruta = (el, ...ns) => ns.reduce((e, n) => hijo(e, n), el), tx = (el) => (el ? el.textContent.trim() : '');
@@ -7411,8 +7411,12 @@
     const cab = new TextDecoder('latin1').decode(new Uint8Array(buf, 0, Math.min(200, buf.byteLength))), m = cab.match(/encoding=["']([\w-]+)["']/i);
     try { return new TextDecoder((m ? m[1] : 'utf-8').toLowerCase()).decode(buf); } catch (e) { return new TextDecoder('utf-8').decode(buf); }
   }
+  // Algunos emisores (por ejemplo, los de paperless.pe) mandan una declaración inválida como
+  // xmlns:schemaLocation="urn:... ..\xsd\maindoc\UBLPE-Invoice-2.1.xsd" (con espacios y \): el navegador rechaza todo el XML.
+  // Se quita antes de leer; no cambia ningún dato de la factura.
+  const xmlLimpio = (t) => String(t || '').replace(/^\ufeff/, '').replace(/^\s+(?=<)/, '').replace(/\s+xmlns:[\w.-]+\s*=\s*("[^"]*[\s\\][^"]*"|'[^']*[\s\\][^']*')/g, '');
   function xlLeer(texto, arch) {
-    const d = new DOMParser().parseFromString(texto.replace(/^﻿/, ''), 'application/xml'), raiz = d.documentElement;
+    const d = new DOMParser().parseFromString(xmlLimpio(texto), 'application/xml'), raiz = d.documentElement;
     if (!raiz || d.getElementsByTagName('parsererror').length) throw new Error('no es un XML válido');
     const T = { Invoice: 'FACTURA', CreditNote: 'NOTA DE CRÉDITO', DebitNote: 'NOTA DE DÉBITO' }[raiz.localName];
     if (!T) throw new Error('no es una factura ni una nota de crédito o débito');
@@ -7575,6 +7579,8 @@
       xb.err = '';
       xb.docs = s.docs.map((d) => ({ _id: d.id, ...d.data() }));
       if (puede('xml')) xb.docs.filter((x) => x.estado === 'nuevo').forEach(xbProcesar);
+      // los que no se pudieron leer como XML (antes de reconocer los XML con la declaración inválida) se reintentan una vez solos
+      if (puede('xml')) xb.docs.filter((x) => x.estado === 'error' && x.xml && !x.reint && /XML válido/.test(x.error || '')).forEach((x) => updateDoc(doc(db, 'xmlBuzon', x._id), { estado: 'nuevo', error: deleteField(), reint: 1 }).catch(console.error));
       xbContar();
       if (vista === 'vXml') { xbVisto(); xbPintar(); }
     }, (e) => { xb.err = errorTexto(e); if (vista === 'vXml') xbPintar(); }));
