@@ -5259,7 +5259,29 @@
   /* =====================  D. CONCILIAR CON EL REPORTE "PROVISIONES POR PROVEEDOR" DEL SISTEMA  =====================
      Se sube el Excel del sistema y se compara con lo registrado en Pagos a proveedores y en Cuentas por pagar:
      qué facturas faltan subir, cuáles tienen otro monto y cuáles están anuladas pero siguen registradas. No guarda nada. */
-  let cn = { rep: null, alias: {}, sis: null, emp: '', prov: '', ver: 'faltan' };
+  let cn = { rep: null, alias: {}, sis: null, emp: '', prov: '', ver: 'faltan', repEmp: '' };
+  /* El último reporte de Lolfar de cada empresa queda guardado (Firebase y este navegador): al comparar ya no se sube
+     cada vez; con "Actualizar con Excel nuevo" se reemplaza. */
+  const repSer = (rep) => { const docs = [...rep.docs.values()], provs = unicos(docs.map((d) => d.prov)); return { desde: rep.desde || '', hasta: rep.hasta || '', nFilas: rep.nFilas || 0, raras: rep.raras || 0, provs, d: JSON.stringify(docs.map((x) => [provs.indexOf(x.prov), x.tipo, x.doc, x.f, x.v, x.m, x.partes, x.anuladas])) }; };
+  const repDes = (o) => { const docs = new Map(); JSON.parse(o.d || '[]').forEach(([p, tipo, d, f, v, m, partes, anuladas]) => { const prov = o.provs[p]; docs.set(`${prov}|${tipo}|${d}`, { prov, tipo, doc: d, f, v, m, partes, anuladas, seq: [] }); }); return { desde: o.desde, hasta: o.hasta, nFilas: o.nFilas, raras: o.raras, docs }; };
+  const repInfo = (o) => `${o.info || 'Reporte de Lolfar'} · subido el ${o.subido ? new Date(o.subido).toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' }) : '—'}${o.por ? ' por ' + o.por : ''}`;
+  async function cnGuardarRep(emp, info) {
+    const o = { ...repSer(cn.rep), info, subido: ctAhora(), por: firma() };
+    cn.repEmp = emp; cn.info = repInfo(o);
+    try { localStorage.setItem('lolfarRep:' + emp, JSON.stringify(o)); } catch (e) { /* sin almacenamiento */ }
+    if (o.d.length < 900000) try { await setDoc(doc(db, 'lolfarRep', emp), o); } catch (e) { console.warn('El reporte quedó guardado solo en este navegador:', errorTexto(e)); }
+  }
+  async function cnTraerRep(emp) { // true si hay un reporte (en memoria, en Firebase o en este navegador)
+    if (cn.rep && cn.repEmp === emp) return true;
+    let o = null, l = null;
+    try { const x = await getDoc(doc(db, 'lolfarRep', emp)); if (x.exists()) o = x.data(); } catch (e) { /* sin permiso o sin cuota: se usa la copia local */ }
+    try { l = JSON.parse(localStorage.getItem('lolfarRep:' + emp) || 'null'); } catch (e) { l = null; }
+    if (l && (!o || String(l.subido) > String(o.subido))) o = l;
+    if (!o) return false;
+    if (!Object.keys(cn.alias || {}).length) { const al = await getDoc(doc(db, 'config', 'concilia')).catch(() => null); cn.alias = (al && al.exists() && al.data().alias) || {}; }
+    cn.rep = repDes(o); cn.repEmp = emp; cn.info = repInfo(o); cn.sis = null; cn.prov = ''; cn.otros = null;
+    return true;
+  }
   const cnNom = (s) => String(s ?? '').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\(.*?\)/g, ' ')
     .replace(/\b(S\.?\s?A\.?\s?C\.?|S\.?\s?A\.?|S\.?\s?R\.?\s?L\.?|E\.?\s?I\.?\s?R\.?\s?L\.?|SOCIEDAD ANONI\w*|CERRADA)\b\.?/g, ' ').replace(/[^A-Z0-9]+/g, ' ').trim();
   const cnDoc = (s, n) => `${serDoc(s)}-${numDoc(n)}`;
@@ -5351,10 +5373,11 @@
     if (!$('cnArch')) {
       caja.innerHTML = '<div class="caja"><h2 class="sec">Conciliar con el reporte del sistema</h2>' +
         '<p class="resumen">Sube el Excel <b>"Provisiones por Proveedor"</b> que sacas del sistema. Te digo qué facturas todavía no están registradas aquí, de qué proveedor y con qué fecha de registro. No guarda ni cambia nada.</p>' +
-        '<div class="herr"><input type="file" id="cnArch" accept=".xls,.xlsx" style="max-width:420px"><span class="quien" id="cnInfo"></span></div><div id="cnMsg"></div></div><div id="cnCont"></div>';
+        '<div class="herr"><input type="file" id="cnArch" accept=".xls,.xlsx" style="max-width:420px"><button class="pri oculto" id="cnActualizar">Actualizar con Excel nuevo</button><span class="quien" id="cnInfo"></span></div><div id="cnMsg"></div></div><div id="cnCont"></div>';
       $('cnArch').addEventListener('change', cnSubir);
     }
-    $('cnInfo').textContent = cn.info || '';
+    $('cnInfo').textContent = cn.rep ? cn.info || '' : '';
+    $('cnArch').classList.toggle('oculto', !!cn.rep); $('cnActualizar').classList.toggle('oculto', !cn.rep);
     if (!cn.rep) { $('cnCont').innerHTML = ''; return; }
     if (!cn.sis || cn.sis.emp !== cnEmp()) { cnAnalizar(); return; }
     const X = cnCruzar(), fal = X.filas.filter((x) => x.est === 'falta'), dif = X.filas.filter((x) => x.est === 'distinto'), anr = X.filas.filter((x) => x.est === 'anulada-registrada'),
@@ -5419,7 +5442,7 @@
       if (!rep.docs.size) throw new Error('No encontré facturas en ese archivo. Debe ser el reporte "Provisiones por Proveedor" del sistema, en Excel.');
       cn.rep = rep; cn.sis = null; cn.prov = ''; cn.ver = 'faltan';
       msg(idMsg, '');
-      cn.info = `${a.name} · ${rep.nFilas} líneas, ${rep.docs.size} documentos${rep.raras ? ` · ${rep.raras} línea(s) que no pude leer` : ''}`;
+      await cnGuardarRep(cnEmp(), `${a.name} · ${rep.nFilas} líneas, ${rep.docs.size} documentos${rep.raras ? ` · ${rep.raras} línea(s) que no pude leer` : ''}`);
       cnRefrescar();
     } catch (err) { msg(idMsg, errorTexto(err)); }
   }
@@ -5435,6 +5458,7 @@
   });
   $('cv_con').addEventListener('click', async (e) => {
     const t = e.target;
+    if (t.id === 'cnActualizar') { $('cnArch').value = ''; $('cnArch').click(); return; }
     if (t.classList.contains('cnVer')) { e.preventDefault(); cn.prov = t.dataset.p; cn.ver = 'todo'; cnPintar(); const s = $('cnVerSel'); if (s) s.scrollIntoView({ block: 'start' }); return; }
     if (t.classList.contains('cnCopiar')) { // Fecha · Tipo · Serie · Número · Total, listo para "Pegar desde Excel"
       const filas2 = cn.vista.filter((x) => x.prov === t.dataset.p), txt2 = filas2.map((x) => [dia(x.f).replace(/\//g, '-'), x.tipo, x.doc.split('-')[0], x.doc.split('-').slice(1).join('-'), x.m.toFixed(2)].join('\t')).join('\n');
@@ -5981,7 +6005,8 @@
       if (!rep.docs.size) throw new Error('No encontré facturas en ese archivo. Debe ser el reporte "Provisiones por Proveedor" de Lolfar, en Excel.');
       const al = await getDoc(doc(db, 'config', 'concilia')).catch(() => null);
       cn.alias = (al && al.exists() && al.data().alias) || cn.alias || {};
-      cn.rep = rep; cn.sis = null; cn.info = `${a.name} · ${rep.nFilas} líneas, ${rep.docs.size} documentos`; cn.otros = null;
+      cn.rep = rep; cn.sis = null; cn.otros = null;
+      await cnGuardarRep(pgEmp(), `${a.name} · ${rep.nFilas} líneas, ${rep.docs.size} documentos`);
       msg('gMsg', '');
       lfAbrir();
       lfMarcarOtros().then((o) => { cn.otros = o; }).catch((err) => { cn.otros = { err: errorTexto(err) }; }).then(() => { const c = $('lfOtros'); if (c) c.innerHTML = lfOtrosHtml(); });
@@ -6056,6 +6081,7 @@
     const tabla = (tit, lista, cols, cls) => (lista.length ? `<h3 class="sub" style="margin:14px 0 6px">${tit}</h3><div class="tabla" style="max-height:34vh;overflow:auto"><table style="font-size:13px"><tr>${cols.map((c) => `<th${c[2] ? ' class="num"' : ''}>${c[0]}</th>`).join('')}</tr>${lista.map((x) => `<tr${cls ? ` class="${cls}"` : ''}>${cols.map((c) => `<td${c[2] ? ' class="num"' : ''}>${c[1](x)}</td>`).join('')}</tr>`).join('')}</table></div>` : '');
     const base = [['Fecha', (x) => esc(dia(x.f))], ['Tipo', (x) => esc(x.t)], ['Serie', (x) => esc(x.s)], ['Número', (x) => `<b>${esc(x.n)}</b>`], ['Importe en Lolfar', (x) => mil(x.m), 1]];
     $('dCuerpo').innerHTML = '<div id="dMsg"></div>' +
+      '<p style="margin:0 0 8px"><button class="pri" id="lfActualizar">Actualizar con Excel nuevo</button></p>' +
       `<p class="quien" style="margin:0 0 8px">${esc(cn.info || '')}${cn.rep.desde ? ` · del ${esc(dia(cn.rep.desde))} al ${esc(dia(cn.rep.hasta))}` : ''}. Se compara con todos los meses a pagar de ${esc(dist.nombre)} en ${esc(empDe(pgEmp()).nombre)}.</p>` +
       `<div class="herr"><label style="margin:0" for="lfProv">En el reporte este proveedor se llama</label><select id="lfProv" style="width:auto;max-width:420px"><option value="">— elige el nombre del reporte —</option>${provRep.map(([p, c]) => `<option value="${esc(p)}"${mio.includes(p) ? ' selected' : ''}>${esc(p)} (${c})</option>`).join('')}</select></div>` +
       (!mio.length ? '<div class="msg" style="background:#fff8e6;color:#6b4a00">No reconocí a este distribuidor entre los proveedores del reporte. Elige arriba con qué nombre aparece y quedará recordado.</div>' :
@@ -6074,7 +6100,11 @@
         tabla('Ya subidas', X.ok, base.concat([['Mes a pagar', (x) => esc(perTxt(x.reg.per))]])));
     if (!$('dlg').open) $('dlg').showModal();
   }
-  $('gRep').addEventListener('click', () => { if (!pgDist()) return msg('gMsg', 'Elige el distribuidor.'); $('gRepArch').click(); });
+  $('gRep').addEventListener('click', async () => {
+    if (!pgDist()) return msg('gMsg', 'Elige el distribuidor.');
+    if (await cnTraerRep(pgEmp())) return lfAbrir(); // ya hay un reporte guardado: se compara con ese
+    $('gRepArch').click();
+  });
   $('gRepArch').addEventListener('change', lfSubir);
   { // comparación general con Lolfar (antes en Cuentas por pagar): se abre en una ventana desde Pagos a proveedores
     let lugar = null;
@@ -6083,6 +6113,8 @@
       lugar = [c.parentNode, c.nextSibling];
       $('cnDlgCuerpo').appendChild(c); c.classList.remove('oculto');
       $('dlgCn').showModal(); cnPintar();
+      const emp = pgEmp(); // el último reporte guardado de esta empresa: se muestra sin volver a subirlo
+      if (!(cn.rep && cn.repEmp === emp)) { cn.rep = null; cnPintar(); cnTraerRep(emp).then(() => { if ($('dlgCn').open) cnPintar(); }); }
     });
     const volver = () => { const c = $('cv_con'); if (lugar) { lugar[0].insertBefore(c, lugar[1]); c.classList.toggle('oculto', cpVista !== 'con'); lugar = null; } };
     $('cnCerrar').addEventListener('click', () => $('dlgCn').close());
@@ -6106,6 +6138,7 @@
   });
   $('dCuerpo').addEventListener('click', (e) => {
     if (modo !== 'lolfar' || !lf) return;
+    if (e.target.id === 'lfActualizar') { $('gRepArch').value = ''; $('gRepArch').click(); return; }
     if (e.target.id === 'lfPasar') { // pasa por "Pegar desde Excel": ahí se revisa y se guarda
       const elegidas = lf.falta.filter((x) => lfSel.has(lfK(x)));
       if (!elegidas.length) return msg('dMsg', 'Marca al menos una factura.');
