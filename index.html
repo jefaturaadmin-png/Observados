@@ -479,6 +479,7 @@
           <button id="gQr">Traer del registro de escaneo</button>
           <button id="gXml" class="oculto">Subir XML de facturas</button><input type="file" id="gXmlArch" accept=".xml,text/xml,application/xml" multiple class="oculto">
           <button id="gRep">Comparar con reporte Lolfar</button><input type="file" id="gRepArch" accept=".xls,.xlsx" class="oculto">
+          <button id="gRepGen" title="Sube el reporte de Lolfar y ve, de TODOS los proveedores, qué facturas están en Lolfar pero no registradas aquí">Lolfar · todos los proveedores</button>
           <button class="pel" id="gDel">Eliminar seleccionadas (0)</button>
           <select id="gMover" aria-label="Mover seleccionadas a otro mes"></select>
           <button id="gMigrar" class="oculto" title="Pasa todo lo registrado en Cuentas por pagar a Pagos a proveedores (cada proveedor queda como proveedor en cuotas por grupos)">Pasar Cuentas por pagar</button>
@@ -761,6 +762,10 @@
   </div>
 </section>
 
+<dialog id="dlgCn" style="width:min(1400px,96vw)">
+  <div class="dcab"><h2>Reporte Lolfar · todos los proveedores</h2><button id="cnCerrar">Cerrar</button></div>
+  <div class="dcuerpo" id="cnDlgCuerpo"></div>
+</dialog>
 <dialog id="dlg">
   <div class="dcab"><h2 id="dTit"></h2><button id="dCerrar">Cerrar</button></div>
   <div class="dcuerpo" id="dCuerpo"></div>
@@ -4143,6 +4148,7 @@
   let cpCfg = { provs: [], tasa: 0.03, min: 700, retDesde: '2026-10', alerta: 7 }, cpDoc = null, cpBaja = null, cpClave = '', cpVista = 'reg',
     cpSel = new Set(), cpAviso = '', cpIdx = { emp: '', mapa: new Map(), anios: new Set() }, cpC = null, cpPend = false;
   const cpEmp = () => $('cpEmp').value, cpPer = () => $('cpMes').value;
+  const cnEmp = () => ($('dlgCn').open ? pgEmp() : cpEmp()); // la comparación general se abre desde Pagos a proveedores
   const cpYm = (iso) => (/^\d{4}-\d{2}/.test(iso || '') ? iso.slice(0, 4) + iso.slice(5, 7) : '');
   const cpSigno = (t) => (t === 'FACTURA' || t === 'BONIFICACIÓN' ? 1 : -1);
   const cpProv = (n) => { // los proveedores en cuotas ahora viven en Pagos a proveedores (config/pagos); si no, el de Cuentas por pagar
@@ -5267,7 +5273,7 @@
       const s = await sincroDocs('pagos', (x) => x.emp === emp);
       s.docs.forEach((d) => { const x = d.data(); (x.filas || []).forEach((f) => { if (f.t !== 'FA' || !f.n) return; const o = { mod: 'Pagos', prov: distDe(x.dist).nombre, dist: x.dist, per: x.per, doc: `${f.s}-${f.n}`, m: Number(f.m) || 0 }; guarda(sis.pagos, `${x.dist}|${o.doc}`, o); guarda(sis.porDoc, o.doc, o); sis.nP += 1; }); });
     } catch (e) { sis.avisos.push('No se pudo leer Pagos a proveedores (falta el permiso para verlo): solo se compara con Cuentas por pagar.'); }
-    try {
+    if (!pgCfg.cxpMig) try {
       const s = await getDocs(query(collection(db, 'cpm'), where('emp', '==', emp)));
       s.docs.forEach((d) => { const x = d.data(); (x.filas || []).forEach((f) => { if (f.t !== 'FACTURA' || !f.d) return; const doc2 = cpDocNorm(f.d), o = { mod: 'Cuentas por pagar', prov: f.p, per: x.per, doc: doc2, m: Number(f.m) || 0 }; guarda(sis.cxp, `${f.p}|${doc2}`, o); guarda(sis.porDoc, doc2, o); sis.nC += 1; }); });
     } catch (e) { sis.avisos.push('No se pudo leer Cuentas por pagar.'); }
@@ -5316,23 +5322,24 @@
     });
     return { filas: filas2.sort((a, b) => a.prov.localeCompare(b.prov) || String(a.f).localeCompare(String(b.f))), provs: [...provs.values()].sort((a, b) => b.mFaltan - a.mFaltan || a.prov.localeCompare(b.prov)) };
   }
+  const cnRefrescar = () => ($('dlgCn').open ? cnPintar() : cpPintar(true));
   function cnPintar() {
     const caja = $('cv_con');
     if (!$('cnArch')) {
       caja.innerHTML = '<div class="caja"><h2 class="sec">Conciliar con el reporte del sistema</h2>' +
-        '<p class="resumen">Sube el Excel <b>"Provisiones por Proveedor"</b> que sacas del sistema. Te digo qué facturas todavía no están registradas aquí (en Pagos a proveedores o en Cuentas por pagar), de qué proveedor y con qué fecha de registro. No guarda ni cambia nada.</p>' +
+        '<p class="resumen">Sube el Excel <b>"Provisiones por Proveedor"</b> que sacas del sistema. Te digo qué facturas todavía no están registradas aquí, de qué proveedor y con qué fecha de registro. No guarda ni cambia nada.</p>' +
         '<div class="herr"><input type="file" id="cnArch" accept=".xls,.xlsx" style="max-width:420px"><span class="quien" id="cnInfo"></span></div><div id="cnMsg"></div></div><div id="cnCont"></div>';
       $('cnArch').addEventListener('change', cnSubir);
     }
     $('cnInfo').textContent = cn.info || '';
     if (!cn.rep) { $('cnCont').innerHTML = ''; return; }
-    if (!cn.sis || cn.sis.emp !== cpEmp()) { cnAnalizar(); return; }
+    if (!cn.sis || cn.sis.emp !== cnEmp()) { cnAnalizar(); return; }
     const X = cnCruzar(), fal = X.filas.filter((x) => x.est === 'falta'), dif = X.filas.filter((x) => x.est === 'distinto'), anr = X.filas.filter((x) => x.est === 'anulada-registrada'),
       partes = X.filas.filter((x) => x.partes > 1), vivas = X.filas.filter((x) => ['falta', 'ok', 'distinto'].includes(x.est)), sinId = X.provs.filter((p) => !p.dest.tipo);
     const suma = (a) => r2(a.reduce((s, x) => s + x.m, 0));
     const provOps = (p) => `<select class="cnAli" data-p="${esc(p.prov)}" style="padding:4px;min-width:230px"><option value="">${p.dest.tipo && !p.dest.manual ? '✓ ' + esc(p.dest.nombre) + (p.dest.tipo === 'pagos' ? ' (Pagos)' : ' (Cuentas por pagar)') : '— no lo reconozco: elige —'}</option>` +
       `<optgroup label="Pagos a proveedores">${pgCfg.dists.map((d) => `<option value="D:${esc(d.k)}"${cn.alias[p.prov] === 'D:' + d.k ? ' selected' : ''}>${esc(d.nombre)}</option>`).join('')}</optgroup>` +
-      `<optgroup label="Cuentas por pagar">${cpCfg.provs.map((d) => `<option value="C:${esc(d.n)}"${cn.alias[p.prov] === 'C:' + d.n ? ' selected' : ''}>${esc(d.n)}</option>`).join('')}</optgroup>` +
+      (pgCfg.cxpMig ? '' : `<optgroup label="Cuentas por pagar">${cpCfg.provs.map((d) => `<option value="C:${esc(d.n)}"${cn.alias[p.prov] === 'C:' + d.n ? ' selected' : ''}>${esc(d.n)}</option>`).join('')}</optgroup>`) +
       `<option value="-"${cn.alias[p.prov] === '-' ? ' selected' : ''}>No se registra aquí (ignorar)</option></select>`;
     const lista = cn.ver === 'dif' ? dif : cn.ver === 'anul' ? anr : cn.ver === 'partes' ? partes : cn.ver === 'todo' ? vivas : fal;
     const vista = lista.filter((x) => !cn.prov || x.prov === cn.prov);
@@ -5342,7 +5349,7 @@
     vista.forEach((x, n) => {
       if (x.prov !== ant) {
         const mios = vista.filter((y) => y.prov === x.prov);
-        h += `<tr class="grupo"><td colspan="9"><div class="gtit"><b>${esc(x.prov)}</b><span class="quien">${esc(modulo(x))}</span><span>${mios.length} factura(s) · S/ ${mil(suma(mios))}</span>${cn.ver === 'faltan' && puede('cxp') ? `<button class="mini cnCopiar" data-p="${esc(x.prov)}">Copiar para pegar</button>` : ''}</div></td></tr>`;
+        h += `<tr class="grupo"><td colspan="9"><div class="gtit"><b>${esc(x.prov)}</b><span class="quien">${esc(modulo(x))}</span><span>${mios.length} factura(s) · S/ ${mil(suma(mios))}</span>${cn.ver === 'faltan' && (puede('cxp') || puede('pagos')) ? `<button class="mini cnCopiar" data-p="${esc(x.prov)}">Copiar para pegar</button>` : ''}</div></td></tr>`;
         ant = x.prov;
       }
       h += `<tr><td>${esc(dia(x.f))}</td><td>${esc(x.tipo)}</td><td><b>${esc(x.doc)}</b></td><td>${esc(dia(x.v))}</td><td>${x.v ? esc(perTxt(x.v.slice(0, 7))) : ''}</td><td class="num">${mil(x.m)}</td>` +
@@ -5350,7 +5357,7 @@
         `<td><span class="est ${x.est === 'ok' ? 'e2' : x.est === 'falta' ? 'alerta' : 'e0'}">${esc(estTxt[x.est] || '')}</span>${x.reg ? ` <span class="quien">${esc(x.reg.mod)} · ${esc(perTxt(x.reg.per))}${x.reg.prov && cnNom(x.reg.prov) !== cnNom(x.dest.nombre || '') ? ' · ' + esc(x.reg.prov) : ''}</span>` : ''}${x.partes > 1 ? ` <span class="quien">registrada en ${x.partes} partes</span>` : ''}</td></tr>`;
     });
     $('cnCont').innerHTML = (cn.sis.avisos.length ? `<div class="msg err">${cn.sis.avisos.map(esc).join(' ')}</div>` : '') +
-      `<h3 class="sub" style="margin-top:0">Reporte del ${esc(dia(cn.rep.desde))} al ${esc(dia(cn.rep.hasta))} · ${esc((CP_EMP.find((e) => e.k === cpEmp()) || {}).nombre || '')}</h3><div class="kpis">` +
+      `<h3 class="sub" style="margin-top:0">Reporte del ${esc(dia(cn.rep.desde))} al ${esc(dia(cn.rep.hasta))} · ${esc((CP_EMP.find((e) => e.k === cnEmp()) || {}).nombre || '')}</h3><div class="kpis">` +
       `<div class="kpi"><b>Facturas en el reporte</b><strong>${vivas.length}</strong><small>S/ ${mil(suma(vivas))} · ${X.provs.length} proveedores</small></div>` +
       `<div class="kpi"><b>Ya registradas aquí</b><strong class="sube">${vivas.length - fal.length}</strong><small>S/ ${mil(suma(vivas) - suma(fal))}</small></div>` +
       `<div class="kpi" style="border-color:var(--rojo);background:#fdecea"><b>Faltan subir</b><strong class="baja">${fal.length}</strong><small>S/ ${mil(suma(fal))} · ${unicos(fal.map((x) => x.prov)).length} proveedores</small></div>` +
@@ -5372,9 +5379,9 @@
     cn.cargando = true;
     if ($('cnCont')) $('cnCont').innerHTML = '<p class="resumen">Comparando con lo registrado…</p>';
     try {
-      const emp = cpEmp(), [sis, al] = await Promise.all([cnCargarSistema(emp), getDoc(doc(db, 'config', 'concilia')).catch(() => null)]);
+      const emp = cnEmp(), [sis, al] = await Promise.all([cnCargarSistema(emp), getDoc(doc(db, 'config', 'concilia')).catch(() => null)]);
       cn.sis = sis; cn.alias = (al && al.exists() && al.data().alias) || cn.alias || {};
-      cn.cargando = false; cpPintar(true);
+      cn.cargando = false; cnRefrescar();
     } catch (e) { cn.cargando = false; if ($('cnCont')) $('cnCont').innerHTML = `<div class="msg err">${esc(errorTexto(e))}</div>`; }
   }
   async function cnSubir(e) {
@@ -5390,7 +5397,7 @@
       cn.rep = rep; cn.sis = null; cn.prov = ''; cn.ver = 'faltan';
       msg(idMsg, '');
       cn.info = `${a.name} · ${rep.nFilas} líneas, ${rep.docs.size} documentos${rep.raras ? ` · ${rep.raras} línea(s) que no pude leer` : ''}`;
-      cpPintar(true);
+      cnRefrescar();
     } catch (err) { msg(idMsg, errorTexto(err)); }
   }
   $('cv_con').addEventListener('change', async (e) => {
@@ -5411,7 +5418,7 @@
       try { await navigator.clipboard.writeText(txt2); t.textContent = `Copiadas ${filas2.length} ✓`; } catch (err) { msg('cnMsg', 'El navegador no dejó copiar. Usa "Exportar a Excel".'); }
       return;
     }
-    if (t.id === 'cnExp') exportar(`conciliacion-${cpEmp()}-${cn.ver}`, [['Proveedor (reporte)', 'prov'], ['Corresponde a', (x) => x.dest.nombre || ''], ['Módulo', (x) => (x.dest.tipo === 'pagos' ? 'Pagos a proveedores' : x.dest.tipo === 'cxp' ? 'Cuentas por pagar' : 'Sin identificar')],
+    if (t.id === 'cnExp') exportar(`conciliacion-${cnEmp()}-${cn.ver}`, [['Proveedor (reporte)', 'prov'], ['Corresponde a', (x) => x.dest.nombre || ''], ['Módulo', (x) => (x.dest.tipo === 'pagos' ? 'Pagos a proveedores' : x.dest.tipo === 'cxp' ? 'Cuentas por pagar' : 'Sin identificar')],
       ['Fecha de registro', (x) => dia(x.f)], ['Tipo', 'tipo'], ['Serie', (x) => x.doc.split('-')[0]], ['Número', (x) => x.doc.split('-').slice(1).join('-')], ['Vence', (x) => dia(x.v)], ['Importe reporte', 'm'], ['Registrado aquí', (x) => (x.reg ? x.regM : '')],
       ['Diferencia', (x) => (x.reg ? r2(x.m - x.regM) : '')], ['Situación', (x) => ({ falta: 'FALTA SUBIR', ok: 'Registrada', distinto: 'Monto distinto', 'anulada-registrada': 'Anulada, sigue registrada' }[x.est] || x.est)], ['Mes donde está', (x) => (x.reg ? perTxt(x.reg.per) : '')], ['Partes en el sistema', 'partes']], cn.vista || []);
   });
@@ -6046,6 +6053,18 @@
   }
   $('gRep').addEventListener('click', () => { if (!pgDist()) return msg('gMsg', 'Elige el distribuidor.'); $('gRepArch').click(); });
   $('gRepArch').addEventListener('change', lfSubir);
+  { // comparación general con Lolfar (antes en Cuentas por pagar): se abre en una ventana desde Pagos a proveedores
+    let lugar = null;
+    $('gRepGen').addEventListener('click', () => {
+      const c = $('cv_con');
+      lugar = [c.parentNode, c.nextSibling];
+      $('cnDlgCuerpo').appendChild(c); c.classList.remove('oculto');
+      $('dlgCn').showModal(); cnPintar();
+    });
+    const volver = () => { const c = $('cv_con'); if (lugar) { lugar[0].insertBefore(c, lugar[1]); c.classList.toggle('oculto', cpVista !== 'con'); lugar = null; } };
+    $('cnCerrar').addEventListener('click', () => $('dlgCn').close());
+    $('dlgCn').addEventListener('close', volver);
+  }
   $('dCuerpo').addEventListener('change', async (e) => {
     if (e.target.id !== 'lfProv' || modo !== 'lolfar') return;
     const dk = pgDist();
