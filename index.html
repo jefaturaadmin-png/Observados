@@ -797,7 +797,7 @@
     updatePassword, EmailAuthProvider, reauthenticateWithCredential
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
   import {
-    initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, collection, query, where, orderBy, limit,
+    initializeFirestore, persistentLocalCache, persistentMultipleTabManager, CACHE_SIZE_UNLIMITED, getDocsFromCache, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, collection, query, where, orderBy, limit,
     onSnapshot, runTransaction, writeBatch, serverTimestamp, deleteField
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
@@ -893,7 +893,7 @@
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   // Caché en el navegador: al recargar o con varias pestañas, Firebase solo cobra lo que cambió (cuida la cuota diaria)
-  const db = (() => { try { return initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) }); } catch (e) { console.warn(e); return initializeFirestore(app, {}); } })();
+  const db = (() => { try { return initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager(), cacheSizeBytes: CACHE_SIZE_UNLIMITED }) }); } catch (e) { console.warn(e); return initializeFirestore(app, {}); } })();
   await setPersistence(auth, browserSessionPersistence);
 
   let yo = null, listas = LISTAS_INI, filas = [], pedidos = [], usuarios = [], catalogo = [], catDocs = [], abierto = null;
@@ -936,7 +936,7 @@
   });
 
   function salirLocal() {
-    bajas.forEach((f) => f()); bajas = [];
+    bajas.forEach((f) => f()); bajas = []; oy = {};
     yo = null; filas = []; pedidos = []; usuarios = []; catalogo = [];
     if ($('dlg').open) $('dlg').close();
     if ($('dlgClave').open) $('dlgClave').close();
@@ -1042,6 +1042,39 @@
     } else console.error(e);
   }
 
+  // Cada usuario escucha solo lo que usan sus módulos (cada documento escuchado cuenta como lectura al entrar)
+  let oy = {};
+  function escucharSegun() {
+    if (!yo) return;
+    if (!oy.cat && (yo.area === 'ADMIN' || puede('observar'))) { oy.cat = true; bajas.push(onSnapshot(collection(db, 'catalogo'), (snap) => {
+      catDocs = snap.docs.map((d) => d.id);
+      catalogo = [];
+      [...snap.docs].sort((a, b) => a.id.localeCompare(b.id)).forEach((d) => (d.data().items || []).forEach((linea) => {
+        const [c, n, l] = String(linea).split('\t');
+        catalogo.push({ c, n, l: l || '', b: `${c} ${n}`.toLowerCase() });
+      }));
+      const d0 = snap.docs[0] ? snap.docs[0].data({ serverTimestamps: 'estimate' }) : null;
+      $('catInfo').textContent = catalogo.length
+        ? `${catalogo.length} productos de ${unicos(catalogo.map((p) => p.l)).length} laboratorios` + (d0 && d0.actualizado ? ` · actualizado el ${fecha(d0.actualizado)} por ${d0.por || ''}` : '')
+        : 'Aún no hay catálogo cargado. Sin catálogo, los productos se escriben a mano.';
+      pintarFiltros();
+    }, errorEscucha)); }
+
+    if (!oy.ped && (puede('verPedidos') || puede('observar') || puede('pedidos'))) { oy.ped = true; bajas.push(onSnapshot(query(collection(db, 'pedidos'), orderBy('creado', 'desc'), limit(MAX_PEDIDOS)), (snap) => {
+      pedidos = snap.docs.map((d) => ({ _id: d.id, ...d.data({ serverTimestamps: 'estimate' }) }));
+      pintarFiltros(); pintarPedidos();
+    }, errorEscucha)); }
+
+    if (!oy.obs && ['observar', 'verPend', 'verDev', 'verPagos', 'verCxp', 'verDash', 'verEnt'].some(puede)) { oy.obs = true; bajas.push(onSnapshot(query(collection(db, 'observaciones'), orderBy('creado', 'desc'), limit(MAX_REPORTES)), (snap) => {
+      filas = snap.docs.map((d) => {
+        const f = { _id: d.id, ...d.data({ serverTimestamps: 'estimate' }) };
+        f.estado = ESTADO_ANTIGUO[f.estado] || f.estado;
+        return f;
+      });
+      pintarFiltros(); pintarPend(); pintarDev();
+      if (vista === 'vPagos') pintarPagos();
+    }, errorEscucha)); }
+  }
   function aplicarPermisos() {
     const admin = yo.area === 'ADMIN';
     const tabs = { vInicio: true, vPedidos: puede('verPedidos'), vNuevo: puede('observar'), vPend: puede('verPend'), vDev: puede('verDev'), vPagos: puede('verPagos'), vCxp: puede('verCxp') && !pgCfg.cxpMig, vResPag: puede('verPagos') || puede('verCxp'), vCierre: puede('verPagos') || puede('verCxp') || puede('verXml'), vProvDocs: puede('verPagos') || puede('verCxp'), vRegFac: puede('verXml') && (puede('verPagos') || puede('verCxp')), vDash: puede('verDash'), vSeg: puede('verEnt'), vCot: puede('verCot'), vXml: puede('verXml'),
@@ -1058,6 +1091,7 @@
     inPintar();
     pgSuscribir();
     cpSuscribir();
+    escucharSegun();
   }
 
   function iniciar() {
@@ -1095,34 +1129,7 @@
       pintarListas(); pintarFiltros();
     }, errorEscucha));
 
-    bajas.push(onSnapshot(collection(db, 'catalogo'), (snap) => {
-      catDocs = snap.docs.map((d) => d.id);
-      catalogo = [];
-      [...snap.docs].sort((a, b) => a.id.localeCompare(b.id)).forEach((d) => (d.data().items || []).forEach((linea) => {
-        const [c, n, l] = String(linea).split('\t');
-        catalogo.push({ c, n, l: l || '', b: `${c} ${n}`.toLowerCase() });
-      }));
-      const d0 = snap.docs[0] ? snap.docs[0].data({ serverTimestamps: 'estimate' }) : null;
-      $('catInfo').textContent = catalogo.length
-        ? `${catalogo.length} productos de ${unicos(catalogo.map((p) => p.l)).length} laboratorios` + (d0 && d0.actualizado ? ` · actualizado el ${fecha(d0.actualizado)} por ${d0.por || ''}` : '')
-        : 'Aún no hay catálogo cargado. Sin catálogo, los productos se escriben a mano.';
-      pintarFiltros();
-    }, errorEscucha));
-
-    bajas.push(onSnapshot(query(collection(db, 'pedidos'), orderBy('creado', 'desc'), limit(MAX_PEDIDOS)), (snap) => {
-      pedidos = snap.docs.map((d) => ({ _id: d.id, ...d.data({ serverTimestamps: 'estimate' }) }));
-      pintarFiltros(); pintarPedidos();
-    }, errorEscucha));
-
-    bajas.push(onSnapshot(query(collection(db, 'observaciones'), orderBy('creado', 'desc'), limit(MAX_REPORTES)), (snap) => {
-      filas = snap.docs.map((d) => {
-        const f = { _id: d.id, ...d.data({ serverTimestamps: 'estimate' }) };
-        f.estado = ESTADO_ANTIGUO[f.estado] || f.estado;
-        return f;
-      });
-      pintarFiltros(); pintarPend(); pintarDev();
-      if (vista === 'vPagos') pintarPagos();
-    }, errorEscucha));
+    escucharSegun();
 
     if (yo.area === 'ADMIN') {
       bajas.push(onSnapshot(collection(db, 'usuarios'), (snap) => {
@@ -7484,11 +7491,34 @@
     if (!puede('verXml')) return;
     xl.cargando = true; xlPintar();
     try {
-      const s = await todos('xmlf'); // todos, sin límite de fechas (queda escuchando: solo se cobra lo nuevo)
+      const s = await xmlfTodos(); // todos, sin límite de fechas (lo ya descargado no se vuelve a leer)
       xl.leido = Date.now();
       xl.docs = s.docs.map((d) => ({ k: d.id, ...d.data() })).sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)) || String(a.id).localeCompare(String(b.id), undefined, { numeric: true }));
     } catch (e) { xl.errores.push('No se pudo leer lo guardado: ' + errorTexto(e)); xl.docs = []; }
     xl.cargando = false; xl.listo = true; xlPintar();
+  }
+  let xv = null;
+  const xvClave = () => `xmlfSync:${(yo || {}).uid}`;
+  function xmlfTodos() { // los XML guardados: lo que ya está en este navegador no se vuelve a pedir; solo se descarga lo subido después
+    if (!xv) {
+      const v = xv = { m: new Map() };
+      v.listo = (async () => {
+        let ult = '';
+        try { if (localStorage.getItem(xvClave()) === '1') { (await getDocsFromCache(collection(db, 'xmlf'))).docs.forEach((d) => { v.m.set(d.id, d); const t = String(d.data().subido || ''); if (t > ult) ult = t; }); } } catch (e) { v.m.clear(); ult = ''; }
+        await new Promise((ok, mal) => {
+          const desde = ult && new Date(new Date(ult).getTime() - 2 * 86400000).toISOString(); // 2 días de margen por si el reloj de alguna PC está atrasado
+          const q = desde ? query(collection(db, 'xmlf'), where('subido', '>', desde)) : collection(db, 'xmlf');
+          const baja = onSnapshot(q, (s) => {
+            s.docChanges().forEach((c) => { if (c.type === 'removed') v.m.delete(c.doc.id); else v.m.set(c.doc.id, c.doc); });
+            if (!s.metadata.fromCache) try { localStorage.setItem(xvClave(), '1'); } catch (e) { /* sin almacenamiento: la próxima vez se lee todo */ }
+            ok();
+          }, (e) => { if (xv === v) xv = null; mal(e); });
+          bajas.push(() => { baja(); if (xv === v) xv = null; });
+        });
+      })();
+    }
+    const v = xv;
+    return v.listo.then(() => ({ docs: [...v.m.values()] }));
   }
   function xlAbrirVista() { $('xlZona').classList.toggle('oculto', !puede('xml')); xlCargar(); xbVisto(); } // cuida la cuota diaria de lecturas de Firebase
   async function xlSubir(archivos) {
@@ -7589,7 +7619,7 @@
   $('xlAbrir').addEventListener('click', () => { xl.abiertos = xl.abiertos.size >= (xl.vista || []).length && xl.abiertos.size ? new Set() : new Set((xl.vista || []).map((x) => x.k)); xlPintar(); });
   $('xlCont').addEventListener('click', async (e) => {
     const b = e.target.closest('.xlBorrar');
-    if (b) { const x = xl.docs.find((y) => y.k === b.dataset.k); if (!x || !confirm(`¿Eliminar ${x.tipo} ${x.id} de lo guardado?`)) return; try { await deleteDoc(doc(db, 'xmlf', x.k)); xl.avisos = [`${x.id} eliminado.`]; xl.errores = []; xlCargar(); } catch (err) { xl.errores = [errorTexto(err)]; xlPintar(); } return; }
+    if (b) { const x = xl.docs.find((y) => y.k === b.dataset.k); if (!x || !confirm(`¿Eliminar ${x.tipo} ${x.id} de lo guardado?`)) return; try { await deleteDoc(doc(db, 'xmlf', x.k)); if (xv) xv.m.delete(x.k); xl.avisos = [`${x.id} eliminado.`]; xl.errores = []; xlCargar(); } catch (err) { xl.errores = [errorTexto(err)]; xlPintar(); } return; }
     if (e.target.closest('input, button, .rgIr')) return;
     const tr = e.target.closest('tr.xlFila'); if (!tr) return; const k = tr.dataset.k; if (xl.abiertos.has(k)) xl.abiertos.delete(k); else xl.abiertos.add(k); xlPintar();
   });
