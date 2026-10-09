@@ -797,7 +797,7 @@
     updatePassword, EmailAuthProvider, reauthenticateWithCredential
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
   import {
-    initializeFirestore, persistentLocalCache, persistentMultipleTabManager, CACHE_SIZE_UNLIMITED, getDocsFromCache, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, collection, query, where, orderBy, limit,
+    initializeFirestore, persistentLocalCache, persistentMultipleTabManager, CACHE_SIZE_UNLIMITED, getDocsFromCache, getCountFromServer, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, collection, query, where, orderBy, limit,
     onSnapshot, runTransaction, writeBatch, serverTimestamp, deleteField
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
@@ -898,18 +898,56 @@
 
   let yo = null, listas = LISTAS_INI, filas = [], pedidos = [], usuarios = [], catalogo = [], catDocs = [], abierto = null;
   let bajas = [], sinConfigurar = false, arranque = false, vista = 'vInicio';
-  const vivas = new Map();
-  function todos(nombre) { // toda una colección con un oyente que queda abierto: la 1.ª vez lee todo y después solo lo que cambia (antes se releía entera cada vez)
-    let v = vivas.get(nombre);
-    if (!v) {
-      v = { docs: [] }; vivas.set(nombre, v);
-      v.listo = new Promise((ok, mal) => {
-        const baja = onSnapshot(collection(db, nombre), (s) => { v.docs = s.docs; ok(); }, (e) => { vivas.delete(nombre); mal(e); });
-        bajas.push(() => { baja(); vivas.delete(nombre); });
-      });
-    }
-    return v.listo.then(() => ({ docs: v.docs }));
+  /* Colecciones guardadas en el navegador: la 1.ª vez se lee todo; desde ahí solo se descarga lo que cambió
+     (cada escritura pone su fecha en "campos"). Así una recarga, otro día o una PC que despertó no vuelve a leer lo mismo.
+     Si alguien borró algo, se nota al comparar cuántos hay (cuesta 1 lectura por cada 1000) y se vuelve a leer completo. */
+  const SINCRO = {
+    pagos: { campos: ['act'], margen: 600000 },
+    observaciones: { campos: ['actFecha', 'creado'], margen: 600000 },
+    pedidos: { campos: ['creado', 'conformeFecha'], margen: 600000 },
+    xmlf: { campos: ['subido'], texto: true, margen: 2 * 86400000 } // la fecha la pone la PC: 2 días de margen por relojes atrasados
+  };
+  const sincros = new Map();
+  const msDe = (x) => (!x ? 0 : typeof x === 'string' ? (Date.parse(x) || 0) : x.toMillis ? x.toMillis() : x instanceof Date ? x.getTime() : 0);
+  function sincro(nombre) {
+    let v = sincros.get(nombre);
+    if (v) return v.listo.then(() => v);
+    const cfg = SINCRO[nombre], marca = `sync2:${nombre}:${(yo || {}).uid}`;
+    v = { m: new Map(), cbs: new Set(), ult: 0, bajas: [], docs: () => [...v.m.values()] }; sincros.set(nombre, v);
+    const avisar = () => { clearTimeout(v.t); v.t = setTimeout(() => v.cbs.forEach((f) => { try { f(v); } catch (e) { console.error(e); } }), 30); };
+    const guardar = () => { try { localStorage.setItem(marca, String(v.ult)); } catch (e) { /* sin almacenamiento: la próxima vez se lee todo */ } };
+    const cerrar = () => { v.bajas.forEach((f) => f()); v.bajas = []; };
+    const escuchar = (q, completo) => new Promise((ok, mal) => {
+      let primera = true;
+      v.bajas.push(onSnapshot(q, (sn) => {
+        sn.docChanges().forEach((c) => {
+          if (c.type === 'removed') { if (completo) v.m.delete(c.doc.id); return; } // en las de cambios, lo borrado se nota con el conteo
+          v.m.set(c.doc.id, c.doc);
+          cfg.campos.forEach((k) => { const t = msDe(c.doc.get(k)); if (t > v.ult) v.ult = t; });
+        });
+        if (!sn.metadata.fromCache) guardar();
+        avisar();
+        if (primera) { primera = false; ok(); }
+      }, (e) => { if (primera) { primera = false; mal(e); } else console.error(e); }));
+    });
+    const completo = () => { cerrar(); v.m.clear(); v.ult = 0; return escuchar(collection(db, nombre), true); };
+    v.listo = (async () => {
+      let ult = 0;
+      try { ult = Number(localStorage.getItem(marca)) || 0; } catch (e) { ult = 0; }
+      if (ult) { try { (await getDocsFromCache(collection(db, nombre))).docs.forEach((d) => v.m.set(d.id, d)); } catch (e) { ult = 0; } }
+      if (!ult || !v.m.size) return completo();
+      v.ult = ult;
+      const desde = new Date(ult - cfg.margen), val = cfg.texto ? desde.toISOString() : desde;
+      await Promise.all(cfg.campos.map((k) => escuchar(query(collection(db, nombre), where(k, '>', val)), false)));
+      try { const n = (await getCountFromServer(collection(db, nombre))).data().count; if (n !== v.m.size) await completo(); } catch (e) { console.warn(e); }
+    })().catch((e) => { cerrar(); if (sincros.get(nombre) === v) sincros.delete(nombre); throw e; });
+    bajas.push(() => { cerrar(); if (sincros.get(nombre) === v) sincros.delete(nombre); });
+    return v.listo.then(() => v);
   }
+  const sincroQuitar = (nombre, id) => { const v = sincros.get(nombre); if (v && v.m.delete(id)) v.cbs.forEach((f) => f(v)); };
+  const sincroDocs = (nombre, filtro) => sincro(nombre).then((v) => ({ docs: v.docs().filter((d) => !filtro || filtro(d.data())) }));
+  const xmlfYa = async (k) => { const v = sincros.get('xmlf'); if (v) { try { await v.listo; return v.m.has(k); } catch (e) { /* se pregunta */ } } return (await getDoc(doc(db, 'xmlf', k))).exists(); }; // ¿ese XML ya está guardado?
+  const xmlfDe = (meses) => { const M = new Set(meses); return sincroDocs('xmlf', (x) => M.has(x.ym)).then((s) => s.docs.map((d) => d.data())); };
 
   /* ---------- Arranque ---------- */
   try {
@@ -1044,6 +1082,7 @@
 
   // Cada usuario escucha solo lo que usan sus módulos (cada documento escuchado cuenta como lectura al entrar)
   let oy = {};
+  const recientes = (v, n) => v.docs().map((d) => [msDe(d.get('creado', { serverTimestamps: 'estimate' })) || Date.now(), d]).sort((a, b) => b[0] - a[0]).slice(0, n).map((x) => x[1]);
   function escucharSegun() {
     if (!yo) return;
     if (!oy.cat && (yo.area === 'ADMIN' || puede('observar'))) { oy.cat = true; bajas.push(onSnapshot(collection(db, 'catalogo'), (snap) => {
@@ -1060,20 +1099,20 @@
       pintarFiltros();
     }, errorEscucha)); }
 
-    if (!oy.ped && (puede('verPedidos') || puede('observar') || puede('pedidos'))) { oy.ped = true; bajas.push(onSnapshot(query(collection(db, 'pedidos'), orderBy('creado', 'desc'), limit(MAX_PEDIDOS)), (snap) => {
-      pedidos = snap.docs.map((d) => ({ _id: d.id, ...d.data({ serverTimestamps: 'estimate' }) }));
+    if (!oy.ped && (puede('verPedidos') || puede('observar') || puede('pedidos'))) { oy.ped = true; sincro('pedidos').then((v) => { const f = (v) => {
+      pedidos = recientes(v, MAX_PEDIDOS).map((d) => ({ _id: d.id, ...d.data({ serverTimestamps: 'estimate' }) }));
       pintarFiltros(); pintarPedidos();
-    }, errorEscucha)); }
+    }; v.cbs.add(f); f(v); }, errorEscucha); }
 
-    if (!oy.obs && ['observar', 'verPend', 'verDev', 'verPagos', 'verCxp', 'verDash', 'verEnt'].some(puede)) { oy.obs = true; bajas.push(onSnapshot(query(collection(db, 'observaciones'), orderBy('creado', 'desc'), limit(MAX_REPORTES)), (snap) => {
-      filas = snap.docs.map((d) => {
+    if (!oy.obs && ['observar', 'verPend', 'verDev', 'verPagos', 'verCxp', 'verDash', 'verEnt'].some(puede)) { oy.obs = true; sincro('observaciones').then((v) => { const f = (v) => {
+      filas = recientes(v, MAX_REPORTES).map((d) => {
         const f = { _id: d.id, ...d.data({ serverTimestamps: 'estimate' }) };
         f.estado = ESTADO_ANTIGUO[f.estado] || f.estado;
         return f;
       });
       pintarFiltros(); pintarPend(); pintarDev();
       if (vista === 'vPagos') pintarPagos();
-    }, errorEscucha)); }
+    }; v.cbs.add(f); f(v); }, errorEscucha); }
   }
   function aplicarPermisos() {
     const admin = yo.area === 'ADMIN';
@@ -1452,7 +1491,7 @@
       } else {
         if (!confirm(`¿Eliminar el registro de la factura ${p.factura}?`)) return;
         b.disabled = true;
-        await deleteDoc(doc(db, 'pedidos', id));
+        await deleteDoc(doc(db, 'pedidos', id)); sincroQuitar('pedidos', id);
       }
     } catch (err) { alert(errorTexto(err)); b.disabled = false; }
   });
@@ -3159,7 +3198,7 @@
   const REBATE = 0.03;
   let dash = { emp: '', regs: [], hecho: false, cargando: false };
   async function dashCargar(emp) {
-    const s = await getDocs(query(collection(db, 'pagos'), where('emp', '==', emp)));
+    const s = await sincroDocs('pagos', (x) => x.emp === emp);
     dash = { emp, regs: dashArmar(s.docs.map((d) => d.data())), hecho: true, cargando: false };
   }
   function dashArmar(datos) { // documentos de pagos de UNA empresa → registros con su cruce y si son devolución total
@@ -3867,7 +3906,7 @@
     if (genCache.clave !== clave) {
       caja.innerHTML = '<p class="resumen">Cargando…</p>';
       try {
-        let [a, b] = await Promise.all([getDocs(query(collection(db, 'pagos'), where('emp', '==', emp), where('per', '==', per))), pgCfg.cxpMig ? null : getDoc(doc(db, 'cpm', `${emp}_${per}`)).catch(() => null)]);
+        let [a, b] = await Promise.all([sincroDocs('pagos', (x) => x.emp === emp && x.per === per), pgCfg.cxpMig ? null : getDoc(doc(db, 'cpm', `${emp}_${per}`)).catch(() => null)]);
         if (pgCfg.cxpMig) { const ds = a.docs.map((d) => d.data()); b = comoSnap(cpmDePagos(ds)[0] || null); a = { docs: ds.filter((d) => !pgEsC(d)).map((d) => ({ data: () => d })) }; }
         // los demás proveedores salen del módulo Cuentas por pagar, con su neto (facturas − NC − retención)
         let otros = [];
@@ -4342,7 +4381,7 @@
           czXml.rucs = d.rucs || {}; czXml.rucsExtra = d.rucsExtra || {}; czXml.rucsListo = true;
         }
         const xs = [];
-        for (let i = 0; i < falta.length; i += 30) (await getDocs(query(collection(db, 'xmlf'), where('ym', 'in', falta.slice(i, i + 30))))).docs.forEach((d) => xs.push(d.data()));
+        (await xmlfDe(falta)).forEach((x) => xs.push(x));
         const meses = new Set(falta); // se reemplaza lo de esos meses por lo recién leído
         czXml.idx.forEach((l, k) => { const r = l.filter((y) => !meses.has(y.x.ym)); if (r.length) czXml.idx.set(k, r); else czXml.idx.delete(k); });
         xs.forEach((x) => {
@@ -5225,7 +5264,7 @@
     const sis = { emp, pagos: new Map(), cxp: new Map(), porDoc: new Map(), nP: 0, nC: 0, avisos: [] };
     const guarda = (mapa, k, x) => { if (!mapa.has(k)) mapa.set(k, []); mapa.get(k).push(x); };
     try {
-      const s = await getDocs(query(collection(db, 'pagos'), where('emp', '==', emp)));
+      const s = await sincroDocs('pagos', (x) => x.emp === emp);
       s.docs.forEach((d) => { const x = d.data(); (x.filas || []).forEach((f) => { if (f.t !== 'FA' || !f.n) return; const o = { mod: 'Pagos', prov: distDe(x.dist).nombre, dist: x.dist, per: x.per, doc: `${f.s}-${f.n}`, m: Number(f.m) || 0 }; guarda(sis.pagos, `${x.dist}|${o.doc}`, o); guarda(sis.porDoc, o.doc, o); sis.nP += 1; }); });
     } catch (e) { sis.avisos.push('No se pudo leer Pagos a proveedores (falta el permiso para verlo): solo se compara con Cuentas por pagar.'); }
     try {
@@ -5482,11 +5521,11 @@
     const pares = pers.flatMap((pp) => CP_EMP.map((e) => ({ emp: e.k, pp })));
     let pg, man, cps;
     if (pgCfg.cxpMig) { // los proveedores en cuotas están en Pagos a proveedores: se arman como los meses de Cuentas por pagar
-      const [todos, m2] = await Promise.all([lee(getDocs(query(collection(db, 'pagos'), where('per', 'in', pers)))), lee(getDoc(doc(db, 'cpRes', per)))]);
+      const [todos, m2] = await Promise.all([lee(sincroDocs('pagos', (x) => pers.includes(x.per))), lee(getDoc(doc(db, 'cpRes', per)))]);
       const ds = todos ? todos.docs.map((d) => d.data()) : [], pseudo = cpmDePagos(ds);
       pg = todos ? { docs: ds.filter((d) => d.per === per && !pgEsC(d)).map((d) => ({ data: () => d })) } : null; man = m2;
       cps = pares.map((x) => comoSnap(pseudo.find((c) => c.emp === x.emp && c.per === x.pp) || null));
-    } else [pg, man, ...cps] = await Promise.all([lee(getDocs(query(collection(db, 'pagos'), where('per', '==', per)))), lee(getDoc(doc(db, 'cpRes', per))), ...pares.map((x) => lee(getDoc(doc(db, 'cpm', `${x.emp}_${x.pp}`))))]);
+    } else [pg, man, ...cps] = await Promise.all([lee(sincroDocs('pagos', (x) => x.per === per)), lee(getDoc(doc(db, 'cpRes', per))), ...pares.map((x) => lee(getDoc(doc(db, 'cpm', `${x.emp}_${x.pp}`))))]);
     const filas2 = [], avisos = [];
     // Distribuidores (Pagos a proveedores): total a pagar del mes, letras, cuota e inicio
     if (!pg) avisos.push('No se pudo leer Pagos a proveedores (falta el permiso para verlo): los distribuidores no aparecen.');
@@ -5633,7 +5672,7 @@
   let dg = { regs: null, cargando: false, avisos: [], f: null };
   async function dgCargar() {
     const lee = (p) => p.catch(() => null);
-    let [sp, sc] = await Promise.all([lee(todos('pagos')), pgCfg.cxpMig ? null : lee(getDocs(collection(db, 'cpm')))]);
+    let [sp, sc] = await Promise.all([lee(sincroDocs('pagos')), pgCfg.cxpMig ? null : lee(getDocs(collection(db, 'cpm')))]);
     if (pgCfg.cxpMig && sp) { const ds = sp.docs.map((d) => d.data()); sc = { docs: cpmDePagos(ds).map(comoSnap) }; sp = { docs: ds.filter((d) => !pgEsC(d)).map((d) => ({ data: () => d })) }; } // proveedores en cuotas: como antes, aparte
     const regs = [], avisos = [];
     if (!sp) avisos.push('No se pudo leer Pagos a proveedores: faltan las compras de los distribuidores.');
@@ -6037,7 +6076,7 @@
     ciPintar();
     const lee = (p) => p.catch(() => null);
     const [sp, sc, sa] = await Promise.all([
-      puede('verPagos') ? lee(getDocs(query(collection(db, 'pagos'), where('emp', '==', emp)))) : null,
+      puede('verPagos') ? lee(sincroDocs('pagos', (x) => x.emp === emp)) : null,
       puede('verCxp') && !pgCfg.cxpMig ? lee(getDocs(query(collection(db, 'cpm'), where('emp', '==', emp)))) : null,
       lee(getDoc(doc(db, 'config', 'concilia')))]);
     if (ci.emp !== emp || ci.per !== per || ci.desde !== desde) return;
@@ -6057,7 +6096,7 @@
     if (puede('verXml')) {
       const ms = [...meses].filter((m) => /^\d{4}-\d{2}$/.test(m));
       try {
-        for (let i = 0; i < ms.length; i += 30) (await getDocs(query(collection(db, 'xmlf'), where('ym', 'in', ms.slice(i, i + 30))))).docs.forEach((d) => ci.xml.push(d.data()));
+        (await xmlfDe(ms)).forEach((x) => ci.xml.push(x));
       } catch (e) { ci.xmlErr = errorTexto(e); }
     }
     ci.carg = false; ci.listo = true;
@@ -6374,7 +6413,7 @@
     if (rg.carg || (!forzar && rg.t && Date.now() - rg.t < 60000)) return;
     rg.carg = true;
     const lee = (p) => p.catch(() => null);
-    const [sp, sc, sa] = await Promise.all([puede('verPagos') ? lee(todos('pagos')) : null, puede('verCxp') && !pgCfg.cxpMig ? lee(getDocs(collection(db, 'cpm'))) : null, lee(getDoc(doc(db, 'config', 'concilia')))]);
+    const [sp, sc, sa] = await Promise.all([puede('verPagos') ? lee(sincroDocs('pagos')) : null, puede('verCxp') && !pgCfg.cxpMig ? lee(getDocs(collection(db, 'cpm'))) : null, lee(getDoc(doc(db, 'config', 'concilia')))]);
     rg.pg = sp ? sp.docs.map((d) => d.data()) : []; rg.cp = sc ? sc.docs.map((d) => d.data()) : [];
     rg.rucs = (sa && sa.exists() && sa.data().rucs) || {};
     rg.idx = new Map();
@@ -6496,7 +6535,7 @@
     if (forzar || rg.xmlClave !== clave) {
       rg.xmlClave = clave; rg.xmlCarg = true; rg.xmlErr = ''; rgPintar();
       const xs = [];
-      try { for (let i = 0; i < meses.length; i += 30) (await getDocs(query(collection(db, 'xmlf'), where('ym', 'in', meses.slice(i, i + 30))))).docs.forEach((s) => xs.push(s.data())); } catch (e) { rg.xmlErr = errorTexto(e); }
+      try { (await xmlfDe(meses)).forEach((x) => xs.push(x)); } catch (e) { rg.xmlErr = errorTexto(e); }
       if (rg.xmlClave !== clave) return;
       rg.xml = xs; rg.xmlCarg = false;
     }
@@ -6679,7 +6718,7 @@
   const sgKey = (x) => `${x.src}|${x.provK}|${x.doc}`;
   async function sgCargar() {
     const lee = (p) => p.catch(() => null);
-    const [sp, sc, ...se] = await Promise.all([lee(todos('pagos')), pgCfg.cxpMig ? null : lee(getDocs(collection(db, 'cpm'))), ...CP_EMP.map((e) => lee(getDoc(doc(db, 'devEnt', e.k))))]);
+    const [sp, sc, ...se] = await Promise.all([lee(sincroDocs('pagos')), pgCfg.cxpMig ? null : lee(getDocs(collection(db, 'cpm'))), ...CP_EMP.map((e) => lee(getDoc(doc(db, 'devEnt', e.k))))]);
     const out = [], avisos = [], ent = {};
     CP_EMP.forEach((e, i) => { ent[e.k] = (se[i] && se[i].exists() && se[i].data().m) || {}; });
     if (!sp) avisos.push('No se pudo leer Pagos a proveedores.');
@@ -7491,34 +7530,11 @@
     if (!puede('verXml')) return;
     xl.cargando = true; xlPintar();
     try {
-      const s = await xmlfTodos(); // todos, sin límite de fechas (lo ya descargado no se vuelve a leer)
+      const s = await sincroDocs('xmlf'); // todos, sin límite de fechas (lo ya descargado no se vuelve a leer)
       xl.leido = Date.now();
       xl.docs = s.docs.map((d) => ({ k: d.id, ...d.data() })).sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)) || String(a.id).localeCompare(String(b.id), undefined, { numeric: true }));
     } catch (e) { xl.errores.push('No se pudo leer lo guardado: ' + errorTexto(e)); xl.docs = []; }
     xl.cargando = false; xl.listo = true; xlPintar();
-  }
-  let xv = null;
-  const xvClave = () => `xmlfSync:${(yo || {}).uid}`;
-  function xmlfTodos() { // los XML guardados: lo que ya está en este navegador no se vuelve a pedir; solo se descarga lo subido después
-    if (!xv) {
-      const v = xv = { m: new Map() };
-      v.listo = (async () => {
-        let ult = '';
-        try { if (localStorage.getItem(xvClave()) === '1') { (await getDocsFromCache(collection(db, 'xmlf'))).docs.forEach((d) => { v.m.set(d.id, d); const t = String(d.data().subido || ''); if (t > ult) ult = t; }); } } catch (e) { v.m.clear(); ult = ''; }
-        await new Promise((ok, mal) => {
-          const desde = ult && new Date(new Date(ult).getTime() - 2 * 86400000).toISOString(); // 2 días de margen por si el reloj de alguna PC está atrasado
-          const q = desde ? query(collection(db, 'xmlf'), where('subido', '>', desde)) : collection(db, 'xmlf');
-          const baja = onSnapshot(q, (s) => {
-            s.docChanges().forEach((c) => { if (c.type === 'removed') v.m.delete(c.doc.id); else v.m.set(c.doc.id, c.doc); });
-            if (!s.metadata.fromCache) try { localStorage.setItem(xvClave(), '1'); } catch (e) { /* sin almacenamiento: la próxima vez se lee todo */ }
-            ok();
-          }, (e) => { if (xv === v) xv = null; mal(e); });
-          bajas.push(() => { baja(); if (xv === v) xv = null; });
-        });
-      })();
-    }
-    const v = xv;
-    return v.listo.then(() => ({ docs: [...v.m.values()] }));
   }
   function xlAbrirVista() { $('xlZona').classList.toggle('oculto', !puede('xml')); xlCargar(); xbVisto(); } // cuida la cuota diaria de lecturas de Firebase
   async function xlSubir(archivos) {
@@ -7541,7 +7557,7 @@
     for (const d1 of leidos) { // se guarda solo lo leído; si ya estaba, no se toca
       try {
         const ref = doc(db, 'xmlf', xlKey(d1));
-        if ((await getDoc(ref)).exists()) { ya += 1; continue; }
+        if (await xmlfYa(xlKey(d1))) { ya += 1; continue; }
         await setDoc(ref, { ...d1, lineas: d1.lineas.slice(0, 600), arch: String(d1.arch).split('→').pop().trim().slice(0, 120), ym: d1.fecha.slice(0, 7), subido: ctAhora(), por: firma() });
         czOlvidar(d1.fecha.slice(0, 7)); // Pagos y Cuentas por pagar lo ven al volver a pintar
         nuevos += 1;
@@ -7619,7 +7635,7 @@
   $('xlAbrir').addEventListener('click', () => { xl.abiertos = xl.abiertos.size >= (xl.vista || []).length && xl.abiertos.size ? new Set() : new Set((xl.vista || []).map((x) => x.k)); xlPintar(); });
   $('xlCont').addEventListener('click', async (e) => {
     const b = e.target.closest('.xlBorrar');
-    if (b) { const x = xl.docs.find((y) => y.k === b.dataset.k); if (!x || !confirm(`¿Eliminar ${x.tipo} ${x.id} de lo guardado?`)) return; try { await deleteDoc(doc(db, 'xmlf', x.k)); if (xv) xv.m.delete(x.k); xl.avisos = [`${x.id} eliminado.`]; xl.errores = []; xlCargar(); } catch (err) { xl.errores = [errorTexto(err)]; xlPintar(); } return; }
+    if (b) { const x = xl.docs.find((y) => y.k === b.dataset.k); if (!x || !confirm(`¿Eliminar ${x.tipo} ${x.id} de lo guardado?`)) return; try { await deleteDoc(doc(db, 'xmlf', x.k)); sincroQuitar('xmlf', x.k); xl.avisos = [`${x.id} eliminado.`]; xl.errores = []; xlCargar(); } catch (err) { xl.errores = [errorTexto(err)]; xlPintar(); } return; }
     if (e.target.closest('input, button, .rgIr')) return;
     const tr = e.target.closest('tr.xlFila'); if (!tr) return; const k = tr.dataset.k; if (xl.abiertos.has(k)) xl.abiertos.delete(k); else xl.abiertos.add(k); xlPintar();
   });
@@ -7635,12 +7651,13 @@
   let xbCola = [], xbCorre = false, xbAviso = '', xbHechos = 0;
   function xbEncolar() {
     if (!puede('xml')) return;
-    xb.docs.filter((x) => x.estado === 'nuevo' && !xbEnCurso.has(x._id) && !xbCola.includes(x._id)).forEach((x) => xbCola.push(x._id));
+    xb.docs.filter((x) => x.estado === 'nuevo' && !xbEnCurso.has(x._id) && !xbCola.includes(x._id)).forEach((x) => xbCola.splice(Math.floor(Math.random() * (xbCola.length + 1)), 0, x._id)); // en orden al azar: si hay dos PCs abiertas, no leen el mismo correo a la vez
     xbArrancar();
   }
   async function xbArrancar() {
     if (xbCorre || !xbCola.length) return;
     xbCorre = true; xbAviso = ''; xbHechos = 0;
+    await sincro('xmlf').catch(() => null); // para saber qué XML ya están guardados sin preguntarle a Firebase uno por uno
     while (xbCola.length) {
       const id = xbCola.shift(), b = xb.docs.find((x) => x._id === id);
       if (!b || b.estado !== 'nuevo') continue;
@@ -7678,7 +7695,7 @@
     try {
       const d1 = xlLeer(String(b.xml || ''), b.archivo || 'correo.xml');
       if (!/^\d{4}-\d{2}-\d{2}$/.test(d1.fecha)) throw new Error('no trae fecha de emisión');
-      const k = xlKey(d1), refX = doc(db, 'xmlf', k), ya = (await getDoc(refX)).exists();
+      const k = xlKey(d1), refX = doc(db, 'xmlf', k), ya = await xmlfYa(k);
       if (!ya) await setDoc(refX, { ...d1, lineas: d1.lineas.slice(0, 600), arch: txt(b.archivo, 120), ym: d1.fecha.slice(0, 7), subido: ctAhora(), por: 'Correo · ' + txt(b.de, 100), correo: { de: txt(b.de, 200), asunto: txt(b.asunto, 200), recibido: txt(b.recibido, 40) } });
       if (!ya) czOlvidar(d1.fecha.slice(0, 7));
       await updateDoc(ref, { estado: ya ? 'repetido' : 'leido', k, doc: d1.id, tipo: d1.tipo, emisor: d1.emisor.nom, ruc: d1.emisor.ruc, cliente: d1.cliente.ruc, fecha: d1.fecha, total: d1.total, moneda: d1.moneda, items: d1.lineas.length, ref: d1.ref || '', xml: deleteField(), error: deleteField(), procesado: ctAhora(), por: firma() });
@@ -7703,7 +7720,7 @@
           const d1 = xlLeer(xlTexto(x.datos), x.nombre);
           if (!/^\d{4}-\d{2}-\d{2}$/.test(d1.fecha)) throw new Error('no trae fecha de emisión');
           const refX = doc(db, 'xmlf', xlKey(d1));
-          if ((await getDoc(refX)).exists()) { ya += 1; continue; }
+          if (await xmlfYa(xlKey(d1))) { ya += 1; continue; }
           await setDoc(refX, { ...d1, lineas: d1.lineas.slice(0, 600), arch: String(x.nombre).split('→').pop().trim().slice(0, 120), ym: d1.fecha.slice(0, 7), subido: ctAhora(), por: 'Correo · ' + txt(b.de, 100), correo: { de: txt(b.de, 200), asunto: txt(b.asunto, 200), recibido: txt(b.recibido, 40) } });
           czOlvidar(d1.fecha.slice(0, 7)); nuevos += 1;
         } catch (e) { if (esCuota(e)) throw e; if (!/factura ni una nota/.test(e.message || '')) malos.push(`${String(x.nombre).split('→').pop().trim()}: ${e.message}`); }
