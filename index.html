@@ -319,53 +319,52 @@
   .inPill svg { width:15px; height:15px; } .inPill:hover { border-color:var(--marca); color:var(--marca); }
   @media (max-width:760px) { .inArco { height:auto; display:flex; flex-wrap:wrap; justify-content:center; gap:16px 6px; } .inArco:before { display:none; } .inNodo { position:static; transform:none; width:104px; } .inNodo .c { width:68px; height:68px; } }
 
-  /* ---------- Dashboard oscuro con asistente ---------- */
-  #vDash.dgo { background:none; color:#e6e9ee; padding:0; margin:0; }
-  #vDash.dgo #dgFiltros { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 12px; padding-bottom:12px; border-bottom:1px solid #232b36; }
-  .dgTit { flex:1 1 320px; } .dgProvG { font-size:30px; font-weight:800; color:#ff8a1f; letter-spacing:-.01em; line-height:1.1; margin-bottom:4px; } .dgTit h2 { margin:0; font-size:17px; color:#fff; text-transform:uppercase; letter-spacing:.02em; } .dgTit small { color:#8b95a3; font-size:12px; }
-  #vDash.dgo select { background:#1a212b; border:1px solid #2a3340; color:#cfd6df; border-radius:8px; padding:7px 9px; font-size:12.5px; width:auto; max-width:230px; }
-  .dgBtn { background:#ff7a00; color:#fff; border:0; border-radius:8px; padding:8px 13px; font-weight:600; font-size:12.5px; cursor:pointer; }
-  .dgBtn2 { background:#1a212b; color:#cfd6df; border:1px solid #2a3340; border-radius:8px; padding:7px 11px; font-size:12.5px; cursor:pointer; } .dgBtn2:hover { border-color:#ff7a00; color:#ffb36b; }
+  /* ---------- Dashboard con asistente (fondo blanco, estilo Excel) ---------- */
+  #vDash.dgo { background:none; color:#1f2b24; padding:0; margin:0; }
+  #vDash.dgo #dgFiltros { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 12px; padding-bottom:12px; border-bottom:2px solid #217346; }
+  .dgTit { flex:1 1 320px; } .dgProvG { font-size:30px; font-weight:800; color:#217346; letter-spacing:-.01em; line-height:1.1; margin-bottom:4px; }
+  .dgTit h2 { margin:0; font-size:17px; color:#185c37; text-transform:uppercase; letter-spacing:.02em; } .dgTit small { color:#5f6b66; font-size:12px; }
+  #vDash.dgo select { border:1px solid #c9d9ce; border-radius:6px; padding:7px 9px; font-size:12.5px; width:auto; max-width:230px; background:#fff; color:#1f2b24; }
+  .dgBtn { background:#217346; color:#fff; border:0; border-radius:6px; padding:8px 13px; font-weight:600; font-size:12.5px; cursor:pointer; } .dgBtn:hover { background:#185c37; }
+  .dgBtn2 { background:#fff; color:#185c37; border:1px solid #c9d9ce; border-radius:6px; padding:7px 11px; font-size:12.5px; cursor:pointer; } .dgBtn2:hover { border-color:#217346; background:#e9f5ee; }
   .dgWrap { display:grid; grid-template-columns:minmax(0, 1fr) 330px; gap:14px; } .dgWrap.sinAsis { grid-template-columns:minmax(0, 1fr); }
   .dgIzq { display:flex; flex-direction:column; gap:12px; min-width:0; }
-  .dgS { color:#8b95a3; font-size:11.5px; }
-  .dgKp { display:grid; grid-template-columns:repeat(auto-fit, minmax(165px, 1fr)); gap:10px; } .dgT td.or { color:#ff9a3d; }
-  .dgK { background:#151b23; border:1px solid #232b36; border-radius:12px; padding:10px 12px; display:flex; gap:10px; align-items:center; }
-  .dgK small { display:block; color:#8b95a3; font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; } .dgK b { display:block; font-size:20px; color:#fff; margin:2px 0; }
-  .dgK em { font-style:normal; font-size:11.5px; color:#3fd18b; font-weight:600; } .dgK em.m, .dgK .m { color:#ff6b6b; }
-  .dgCard { background:#151b23; border:1px solid #232b36; border-radius:12px; padding:12px 14px; min-width:0; }
-  .dgCard h3 { margin:0 0 2px; font-size:12.5px; text-transform:uppercase; letter-spacing:.03em; color:#dfe4ea; }
+  .dgS { color:#5f6b66; font-size:11.5px; }
+  .dgKp { display:grid; grid-template-columns:repeat(auto-fit, minmax(165px, 1fr)); gap:10px; }
+  .dgK { background:#fff; border:1px solid #d4e2d8; border-top:3px solid #217346; border-radius:6px; padding:10px 12px; display:flex; gap:10px; align-items:center; }
+  .dgK small { display:block; color:#5f6b66; font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; } .dgK b { display:block; font-size:20px; color:#1f2b24; margin:2px 0; }
+  .dgK em { font-style:normal; font-size:11.5px; color:#107c41; font-weight:600; } .dgK em.m, .dgK .m { color:#c42b1c; }
+  .dgCard { background:#fff; border:1px solid #d4e2d8; border-radius:6px; padding:12px 14px; min-width:0; }
+  .dgCard h3 { margin:0 0 2px; font-size:12.5px; text-transform:uppercase; letter-spacing:.03em; color:#185c37; }
   .dgR3 { display:grid; grid-template-columns:1.3fr 1fr .9fr; gap:12px; } .dgR2 { display:grid; grid-template-columns:1.25fr 1fr; gap:12px; }
-  .dgT { width:100%; border-collapse:collapse; font-size:12px; } .dgT th { color:#8b95a3; font-weight:600; font-size:10.5px; text-align:left; padding:6px; border-bottom:1px solid #232b36; text-transform:uppercase; background:none; }
-  .dgT td { padding:7px 6px; border-bottom:1px solid #1d2530; color:#dfe4ea; } .dgT .n { text-align:right; } .dgT tr.dgHit:hover td, .dgT tr.sel td { background:#1d2530; }
-  .dgTabla { max-height:330px; overflow:auto; } .or { color:#ff9a3d; font-weight:600; } .vd { color:#3fd18b; } .rj { color:#ff6b6b; }
-  .dgBarT { font-size:11px; color:#aab3bf; margin-top:6px; } .dgBar { height:8px; border-radius:9px; background:#232b36; overflow:hidden; } .dgBar i { display:block; height:100%; border-radius:9px; }
-  .dgAl { border-radius:9px; padding:8px 10px; margin-top:7px; font-size:11.5px; border:1px solid; } .dgAl b { display:block; margin-bottom:2px; } .dgAl[data-ir] { cursor:pointer; } .dgAl[data-ir]:hover { filter:brightness(1.2); }
-  .dgAl.a1 { border-color:#5c2626; background:#2a1718; color:#ffb3b3; } .dgAl.a1 b { color:#ff6b6b; } .dgAl.a2 { border-color:#5c4420; background:#2a2114; color:#ffd79a; } .dgAl.a2 b { color:#ffb547; }
-  .dgAl.a3 { border-color:#1f3d5c; background:#14202d; color:#a9cdf2; } .dgAl.a3 b { color:#5aa9f0; } .dgAl.a4 { border-color:#1e4d36; background:#13251c; color:#a7e6c4; } .dgAl.a4 b { color:#3fd18b; }
-  .dgChat { background:#151b23; border:1px solid #232b36; border-radius:12px; display:flex; flex-direction:column; min-height:520px; max-height:calc(100vh - 170px); position:sticky; top:12px; }
-  .dgChat h3 { margin:0; padding:11px 14px; font-size:13.5px; border-bottom:1px solid #232b36; display:flex; align-items:center; gap:8px; color:#fff; }
-  .dgChat h3 i { width:24px; height:24px; border-radius:50%; background:#2a1d10; color:#ff8a1f; display:inline-flex; align-items:center; justify-content:center; font-style:normal; }
-  .dgX { margin-left:auto; background:none; border:0; color:#8b95a3; font-size:18px; cursor:pointer; }
-  .dgMsgs { flex:1; overflow:auto; padding:12px; display:flex; flex-direction:column; gap:9px; }
-  .dgMsg { max-width:90%; padding:8px 11px; border-radius:11px; font-size:12.5px; line-height:1.45; } .dgMsg.bot { background:#1d2530; align-self:flex-start; color:#e6e9ee; } .dgMsg.yo { background:#ff7a00; color:#fff; align-self:flex-end; }
-  .dgMsg ul { margin:4px 0 2px; padding-left:16px; } .dgMsg a { color:#ffb36b; }
-  .dgTag { display:inline-block; font-size:10.5px; border-radius:99px; padding:1px 7px; background:#2a1d10; color:#ffb36b; margin:3px 3px 0 0; }
-  .dgChips { display:flex; flex-wrap:wrap; gap:6px; } .dgChip { font-size:11px; border:1px solid #2a3340; border-radius:99px; padding:4px 9px; color:#cfd6df; background:none; cursor:pointer; } .dgChip:hover { border-color:#ff7a00; color:#ffb36b; }
-  .dgChip.m { border-style:dashed; color:#ff8a1f; border-color:#6b3d14; } .dgChip.c { display:inline-flex; gap:4px; padding:0 4px 0 0; } .dgChip.c button { background:none; border:0; color:inherit; font-size:11px; padding:4px 0 4px 9px; cursor:pointer; } .dgChip .dgQuitar { padding-left:4px; color:#8b95a3; }
-  .dgAc { display:flex; flex-direction:column; padding:0 10px; } .dgAcI { text-align:left; background:#0f141b; border:1px solid #232b36; border-bottom:0; color:#dfe4ea; padding:6px 10px; font-size:12px; cursor:pointer; } .dgAcI:last-child { border-bottom:1px solid #232b36; } .dgAcI:hover { background:#1d2530; } .dgAcI span { color:#8b95a3; }
-  .dgIn { display:flex; gap:7px; padding:10px; border-top:1px solid #232b36; } .dgIn input { flex:1; background:#0f141b !important; border:1px solid #ff7a00 !important; border-radius:9px; padding:8px 10px; color:#e6e9ee !important; font-size:12.5px; margin:0; }
-  .dgIn button { width:38px; border:0; border-radius:9px; background:#ff7a00; color:#fff; cursor:pointer; }
-  .dgPie { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; padding:10px 2px; margin-top:12px; border-top:1px solid #232b36; font-size:12px; color:#aab3bf; } .dgPie b { color:#fff; }
-  .dgOk { margin-left:auto; background:#13251c; color:#3fd18b; border:1px solid #1e4d36; border-radius:99px; padding:3px 10px; font-weight:600; } .dgOk.no { background:#2a2114; color:#ffb547; border-color:#5c4420; }
-  #vDash.dgo .dgSvg text { font-family:inherit; }
-  .dgMsgs > * { flex-shrink:0; }
-  .dgPart td:first-child { max-width:0; width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .dgPart td.n { white-space:nowrap; }
+  .dgT { width:100%; border-collapse:collapse; font-size:12px; } .dgT th { color:#185c37; font-weight:700; font-size:10.5px; text-align:left; padding:6px; border:1px solid #d4e2d8; text-transform:uppercase; background:#e9f2ec; }
+  .dgT td { padding:6px; border:1px solid #e3ece6; color:#1f2b24; } .dgT .n { text-align:right; } .dgT tr.dgHit:hover td, .dgT tr.sel td { background:#e9f5ee; }
+  .dgTabla { max-height:330px; overflow:auto; } .or, .dgT td.or { color:#185c37; font-weight:700; } .vd { color:#107c41; } .rj { color:#c42b1c; }
+  .dgPart td { border-left:none; border-right:none; } .dgPart td:first-child { max-width:0; width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .dgPart td.n { white-space:nowrap; }
   .dgTabla .dgT td { white-space:nowrap; } .dgTabla .dgT td.or { white-space:normal; min-width:160px; }
-  #vDash.dgo .dgTip { background:#1d2530; color:#e6e9ee; border-color:#2a3340; }
+  .dgBarT { font-size:11px; color:#5f6b66; margin-top:6px; } .dgBar { height:8px; border-radius:4px; background:#e3ece6; overflow:hidden; } .dgBar i { display:block; height:100%; border-radius:4px; }
+  .dgAl { border-radius:6px; padding:8px 10px; margin-top:7px; font-size:11.5px; border:1px solid; } .dgAl b { display:block; margin-bottom:2px; } .dgAl[data-ir] { cursor:pointer; } .dgAl[data-ir]:hover { filter:brightness(.97); }
+  .dgAl.a1 { border-color:#f1b8b0; background:#fdeceb; color:#7a1c12; } .dgAl.a1 b { color:#c42b1c; } .dgAl.a2 { border-color:#f2d58e; background:#fff8e1; color:#6b4a00; } .dgAl.a2 b { color:#9a6a00; }
+  .dgAl.a3 { border-color:#b9d4ee; background:#eef5fc; color:#1f4e79; } .dgAl.a3 b { color:#2f6fae; } .dgAl.a4 { border-color:#b6dbc4; background:#e9f5ee; color:#185c37; } .dgAl.a4 b { color:#107c41; }
+  .dgChat { background:#fff; border:1px solid #d4e2d8; border-radius:6px; display:flex; flex-direction:column; min-height:520px; max-height:calc(100vh - 170px); position:sticky; top:72px; overflow:hidden; }
+  .dgChat h3 { margin:0; padding:10px 14px; font-size:13.5px; background:#217346; color:#fff; display:flex; align-items:center; gap:8px; }
+  .dgChat h3 i { width:24px; height:24px; border-radius:50%; background:#fff; color:#217346; display:inline-flex; align-items:center; justify-content:center; font-style:normal; }
+  .dgX { margin-left:auto; background:none; border:0; color:#fff; font-size:18px; cursor:pointer; }
+  .dgMsgs { flex:1; overflow:auto; padding:12px; display:flex; flex-direction:column; gap:9px; background:#f7faf8; } .dgMsgs > * { flex-shrink:0; }
+  .dgMsg { max-width:90%; padding:8px 11px; border-radius:10px; font-size:12.5px; line-height:1.45; } .dgMsg.bot { background:#fff; border:1px solid #d4e2d8; align-self:flex-start; color:#1f2b24; } .dgMsg.yo { background:#217346; color:#fff; align-self:flex-end; }
+  .dgMsg ul { margin:4px 0 2px; padding-left:16px; } .dgMsg a { color:#217346; font-weight:600; }
+  .dgTag { display:inline-block; font-size:10.5px; border-radius:99px; padding:1px 7px; background:#e3f3e9; color:#185c37; border:1px solid #b6dbc4; margin:3px 3px 0 0; }
+  .dgChips { display:flex; flex-wrap:wrap; gap:6px; } .dgChip { font-size:11px; border:1px solid #c9d9ce; border-radius:99px; padding:4px 9px; color:#185c37; background:#fff; cursor:pointer; } .dgChip:hover { border-color:#217346; background:#e9f5ee; }
+  .dgChip.m { border-style:dashed; color:#217346; border-color:#8fc4a3; } .dgChip.c { display:inline-flex; gap:4px; padding:0 4px 0 0; } .dgChip.c button { background:none; border:0; color:inherit; font-size:11px; padding:4px 0 4px 9px; cursor:pointer; } .dgChip .dgQuitar { padding-left:4px; color:#8a948f; }
+  .dgAc { display:flex; flex-direction:column; padding:0 10px; } .dgAcI { text-align:left; background:#fff; border:1px solid #d4e2d8; border-bottom:0; color:#1f2b24; padding:6px 10px; font-size:12px; cursor:pointer; } .dgAcI:last-child { border-bottom:1px solid #d4e2d8; } .dgAcI:hover { background:#e9f5ee; } .dgAcI span { color:#5f6b66; }
+  .dgIn { display:flex; gap:7px; padding:10px; border-top:1px solid #d4e2d8; } .dgIn input { flex:1; border:1px solid #217346 !important; border-radius:6px; padding:8px 10px; font-size:12.5px; margin:0; }
+  .dgIn button { width:38px; border:0; border-radius:6px; background:#217346; color:#fff; cursor:pointer; }
+  .dgPie { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; padding:10px 2px; margin-top:12px; border-top:2px solid #217346; font-size:12px; color:#5f6b66; } .dgPie b { color:#1f2b24; }
+  .dgOk { margin-left:auto; background:#e3f3e9; color:#107c41; border:1px solid #b6dbc4; border-radius:99px; padding:3px 10px; font-weight:600; } .dgOk.no { background:#fff8e1; color:#9a6a00; border-color:#f2d58e; }
+  #vDash.dgo .dgSvg text { font-family:inherit; }
   @media (max-width:1250px) { .dgR3 { grid-template-columns:1fr 1fr; } .dgR3 > :first-child { grid-column:1 / -1; } }
   @media (max-width:1000px) { .dgWrap { grid-template-columns:1fr; } .dgChat { position:static; max-height:none; min-height:380px; } .dgR2 { grid-template-columns:1fr; } }
-  @media (max-width:640px) { .dgR3 { grid-template-columns:1fr; } #vDash.dgo { padding:10px; } }
+  @media (max-width:640px) { .dgR3 { grid-template-columns:1fr; } }
   .inHola { display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin:0 0 16px; } .inHola h2 { margin:0; font-size:24px; letter-spacing:-.02em; } .inHola span { color:var(--gris); }
   .inKpis { display:grid; grid-template-columns:repeat(auto-fill, minmax(186px, 1fr)); gap:14px; margin-bottom:22px; }
   .inKpi { display:block; text-align:left; background:#fff; border:1px solid var(--borde); border-radius:12px; padding:0; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.06); font:inherit; color:inherit; }
@@ -379,45 +378,18 @@
   .inMod:hover { background:var(--suave); } .inMod i { flex:none; width:34px; height:34px; border-radius:9px; background:var(--suave); color:var(--pri); display:flex; align-items:center; justify-content:center; }
   .inMod b { display:block; font-size:14px; } .inMod small { color:var(--gris); font-size:12px; }
 
-  /* =====================  TEMA OSCURO (toda la página, como el Dashboard)  ===================== */
-  :root { --marca:#ff7a00; --pri:#ff7a00; --suave:#2a1d10; --gris:#8b95a3; --borde:#2a3340; --fondo:#0f141b; --casco:#151b23; --casco2:#11161d; --cTxt:#ffffff; --ok:#3fd18b; --ok2:#13251c; --rojo:#ff6b6b; }
-  body { background:#0f141b; color:#e6e9ee; }
-  #app, #cuerpo, main { background:#0f141b; }
-  #lado { border-right-color:#1d2530; } #app header { border-bottom-color:#1d2530; }
-  h1, h2, h3, h3.sub { color:#f1f4f8; } .resumen, .quien, small { color:#8b95a3; }
-  a { color:#ffb36b; }
-  .caja, .kpi, .tabla, .cpCaja, .xlZona, .linea, .permisos fieldset, .detg table, .cbxLista, .sug { background:#151b23; border-color:#232b36; color:#e6e9ee; box-shadow:none; }
-  .kpi b, .kpi small { color:#8b95a3; } .kpi strong { color:#fff; }
-  dialog { background:#151b23; color:#e6e9ee; border:1px solid #2a3340; } .dcab { border-bottom-color:#232b36; }
-  button { background:#1a212b; border-color:#2a3340; color:#e6e9ee; } button:hover { border-color:#ff7a00; }
-  button.pri { background:#ff7a00; border-color:#ff7a00; color:#fff; } button.pri:hover { background:#e86e00; }
-  button.pel { background:#1a212b; color:#ff6b6b; border-color:#7a2f2f; }
-  input, select, textarea { background:#0f141b; border-color:#2a3340; color:#e6e9ee; } input::placeholder, textarea::placeholder { color:#5f6977; }
-  input:focus, select:focus, textarea:focus { border-color:#ff7a00; outline:none; box-shadow:0 0 0 3px rgba(255,122,0,.15); }
-  input[type=date], input[type=month] { color-scheme:dark; } input[readonly] { background:#11161d; }
-  th { background:#11161d; color:#8b95a3; } td { border-color:#1d2530; }
-  tbody tr[data-id]:hover, .rgTab tr.rgFila:hover td { background:#1d2530; }
-  tr.grupo td, tr.tot td, tr.dgGrupo td, .detg tr.tot td, .cpTabla tr.cpSUB td, .cpTabla tr.cpTOT td { background:#1a212b; color:#e6e9ee; }
-  .grid th { background:#11161d; } .grid td.nf, .grid tr.sel td.nf, .grid tr.esnc td.nf { background:#11161d; color:#6b7480; }
-  .grid tr.sel td { background:#2a1d10; } .grid tr.esnc td { background:#131920; } .grid tr.nueva td { background:#13251c; } .grid tr.dup td, .grid tr.dupo td { background:#2a1718; }
-  .grid tr.nuevaFila td { background:#1d1810; } .grid tr.det > td, .rgTab tr.det > td { background:#121820; }
-  .grid tr.conf td.nf { background:#1b7a4b; color:#fff; }
-  .gFis { background:#0f141b; border-color:#4a5462; } .gFis.si { background:#1b7a4b; border-color:#1b7a4b; }
-  tr.cpHDoble td, .cpTabla tr.cpPrg td, tr.ctObs td { background:#2a2114; } tr.cpHFalta td { background:#2a1718; } .cpTabla tr.cpCUO td { background:#131920; } .cpTabla tr.cpLot td { background:#1a212b; color:#ffb36b; } .cpTit { background:#1a212b; border-color:#232b36; }
-  .est { background:#232b36; color:#cfd6df; } .e0 { background:#3a2a10; color:#ffc56b; } .e1 { background:#14263d; color:#7fb6f5; } .e2 { background:#13251c; color:#3fd18b; } .e3 { background:#2a1d3d; color:#c9a3f5; } .e4 { background:#232b36; color:#aab3bf; }
-  .alerta { background:#2a1718; color:#ff8a8a; } .msg.err { background:#2a1718; color:#ff8a8a; } .msg.ok { background:#13251c; color:#3fd18b; }
-  .subnav button { background:none; color:#8b95a3; } .subnav button.act { background:#ff7a00; color:#fff; }
-  .sug div.sel, .sug div:hover, .cbxOp.act, .cbxOp:hover { background:#2a1d10; color:#ffb36b; } .sug .nada { background:#151b23 !important; }
-  .rgFil th { background:#11161d; } .dgTip { background:#1d2530; color:#e6e9ee; border-color:#2a3340; }
-  .ctMsg { background:#1d2530; } .pvPasos { background:#2a2114; border-color:#5c4420; } .xlZona { border-color:#2a3340; }
-  .dgChip { background:#2a1d10; } button.dgFila:hover { background:#1d2530; } .dgB { background:#232b36; }
-  /* Inicio */
-  .inCab h2 { color:#fff; } .inChip, .inPill { background:#151b23; border-color:#2a3340; color:#cfd6df; }
-  .inNodo .c { background:#151b23; border-color:#2a3340; color:#cfd6df; box-shadow:0 6px 18px rgba(0,0,0,.35); } .inNodo .t { color:#e6e9ee; } .inNodo .bd { border-color:#0f141b; }
-  .inArco:before { background:radial-gradient(ellipse at 50% 100%, #1a212b 0, #141a22 55%, transparent 78%); }
-  .inKpi { background:#151b23; border-color:#232b36; box-shadow:none; } .inKpi:hover { border-color:#ff7a00; } .inKpiB { color:#e6e9ee; } .inKpiC { background:#11161d; border-color:#232b36; }
-  /* Las hojas con formato de Excel siguen en blanco, como el archivo */
-  .xlHoja, .rpHoja, .rpHoja table { background:#fff; color:#000; } .rpHoja td { color:#000; }
+  /* =====================  TEMA EXCEL: fondo y celdas blancas, barras y bordes verdes  ===================== */
+  :root { --marca:#217346; --pri:#185c37; --suave:#e9f5ee; --gris:#5f6b66; --borde:#d4e2d8; --fondo:#ffffff; --casco:#185c37; --casco2:#217346; --cTxt:#ffffff; --ok:#107c41; --ok2:#e3f3e9; --rojo:#c42b1c; }
+  body, #app, #cuerpo, main { background:#fff; color:#1f2b24; }
+  #lado { border-right-color:#124a2b; } #app header { border-bottom-color:#1b6b3f; }
+  .navG { color:#a9e0bf !important; } #lado nav button.act { background:#fff; color:#185c37; } #lado nav button.act svg { color:#185c37; }
+  #lado nav button.act .cuenta { background:#c42b1c; color:#fff; } .ladoMarca { background:#124a2b; }
+  th, .grid th, .rgFil th { background:#e9f2ec; color:#185c37; } .grid td.nf { background:#f1f6f3; }
+  .caja, .kpi, .tabla { border-color:#d4e2d8; }
+  button.pri { background:#217346; border-color:#217346; } button.pri:hover { background:#185c37; }
+  input:focus, select:focus, textarea:focus { border-color:#217346; outline:none; box-shadow:0 0 0 3px rgba(33,115,70,.15); }
+  .subnav button.act { background:#217346; } .gFis.si { background:#107c41; border-color:#107c41; }
+  .inNodo.hi .c { box-shadow:0 8px 22px rgba(33,115,70,.25); }
 </style>
 </head>
 <body>
@@ -1043,7 +1015,7 @@
         cx.beginPath();
         cx.moveTo(-20, H * (0.42 + k * 0.32) + ola * 0.4);
         cx.bezierCurveTo(W * 0.35, H * (0.38 + k * 0.18) + ola, W * (0.62 + k * 0.1) + ola2 * 0.3, H * (0.58 + k * 0.05) - ola2, W * (0.78 + k * 0.32), H + 30);
-        cx.strokeStyle = nar ? `rgba(232,113,10,${0.35 + 0.3 * Math.sin(t / 1800 + i)})` : `rgba(60,64,70,${0.12 + 0.5 * (1 - k) * (0.6 + 0.4 * Math.sin(t / 2000 + i * 0.4))})`;
+        cx.strokeStyle = nar ? `rgba(33,115,70,${0.35 + 0.3 * Math.sin(t / 1800 + i)})` : `rgba(60,64,70,${0.12 + 0.5 * (1 - k) * (0.6 + 0.4 * Math.sin(t / 2000 + i * 0.4))})`;
         cx.lineWidth = nar ? 1.4 : 0.9;
         cx.stroke();
       }
@@ -3348,7 +3320,7 @@
     const nuevas = pgPegado.filter((f) => !f.err && !f.dup), dup = pgPegado.filter((f) => f.dup), err = pgPegado.filter((f) => f.err);
     if (!pgPegado.length) { $('pgVista').innerHTML = ''; return; }
     $('pgVista').innerHTML =
-      `<div class="msg" style="background:#2a2114;color:#ffd79a">Pegaste ${pgPegado.length} fila(s): <b>${nuevas.length} nueva(s)</b>` +
+      `<div class="msg" style="background:#fff8e6;color:#6b4a00">Pegaste ${pgPegado.length} fila(s): <b>${nuevas.length} nueva(s)</b>` +
       `${dup.length ? `, <b>${dup.length} repetida(s)</b>` : ''}${err.length ? `, <b>${err.length} con error</b>` : ''}.</div>` +
       '<div class="tabla grid" style="max-height:38vh;overflow:auto"><table><tr><th></th><th>Fecha</th><th>Tipo</th><th>Serie</th><th>Número</th><th class="n">Total</th><th>Laboratorio</th></tr>' +
       pgPegado.map((f) => (f.err
@@ -4705,14 +4677,14 @@
   function czBarra(idCaja, antesDe, col, edita) { // aviso con botón para corregir todas las fechas del mes
     let caja = $(idCaja);
     if (!caja) { caja = document.createElement('div'); caja.id = idCaja; const t = antesDe.closest('.tabla'); t.parentNode.insertBefore(caja, t); }
-    caja.innerHTML = col.length ? `<div class="msg" style="background:#2a2114;color:#ffd79a;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span><b>${col.length}</b> documento(s) con fecha distinta a la de su XML.</span>${edita ? `<button class="mini czFeTodas">Usar la fecha del XML en las ${col.length}</button>` : ''}</div>` : '';
+    caja.innerHTML = col.length ? `<div class="msg" style="background:#fff8e6;color:#6b4a00;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span><b>${col.length}</b> documento(s) con fecha distinta a la de su XML.</span>${edita ? `<button class="mini czFeTodas">Usar la fecha del XML en las ${col.length}</button>` : ''}</div>` : '';
     caja.czCol = col;
   }
   // Productos del XML para observar: se elige el producto y la cantidad; el precio sale del XML
   function czObsBloque(f, X, edita) {
     if (!edita || !X || !X.x || !(X.x.lineas || []).length) return '';
     const ops = X.x.lineas.map((l, i) => { const pu = czPu(l); return `<option value="${i}">${esc(`${l.cod ? l.cod + ' · ' : ''}${l.desc}`)} — facturado ${l.cant ?? ''}${pu === 0 ? ' (bonificación)' : ` · S/ ${xlN(pu, 4)} c/u`}</option>`; }).join('');
-    return `<div class="obXml" data-d="${esc(f.i)}" style="margin:8px 0;padding:8px 10px;background:#151b23;border:1px dashed var(--marca);border-radius:8px"><b style="font-size:12.5px">Observar desde la factura (XML)</b>` +
+    return `<div class="obXml" data-d="${esc(f.i)}" style="margin:8px 0;padding:8px 10px;background:#fff;border:1px dashed var(--marca);border-radius:8px"><b style="font-size:12.5px">Observar desde la factura (XML)</b>` +
       `<div class="herr" style="margin:6px 0 0"><select class="gIn obProd" style="flex:1;min-width:220px;max-width:520px">${ops}</select><label style="margin:0">Cant.</label><input class="gIn n obCant" value="1" inputmode="decimal" style="width:70px"><span class="obMonto quien"></span><button class="mini pri obAdd">Agregar</button></div></div>`;
   }
   function czObsMonto(det, deX) { const X = deX(det), l = X && czObsLinea(det, X), out = det.querySelector('.obMonto'); if (out) out.textContent = l ? `= S/ ${mil(l.m)}` : ''; }
@@ -5073,7 +5045,7 @@
     const nOtro = cpPegado.filter((f) => f.otroMes || f.ojo).length;
     const nuevas = cpPegado.filter((f) => !f.err && !f.dup);
     $('cpVistaP').innerHTML = !cpPegado.length ? '' :
-      `<div class="msg" style="background:#2a2114;color:#ffd79a">Pegaste ${cpPegado.length} fila(s): <b>${nuevas.length} nueva(s)</b>, ${cpPegado.filter((f) => f.dup).length} repetida(s), ${cpPegado.filter((f) => f.err).length} con error.</div>` +
+      `<div class="msg" style="background:#fff8e6;color:#6b4a00">Pegaste ${cpPegado.length} fila(s): <b>${nuevas.length} nueva(s)</b>, ${cpPegado.filter((f) => f.dup).length} repetida(s), ${cpPegado.filter((f) => f.err).length} con error.</div>` +
       '<div class="tabla grid" style="max-height:38vh;overflow:auto"><table><tr><th></th><th>Proveedor</th><th>Tipo</th><th>Emisión</th><th>Documento</th><th>Vence</th><th class="n">Importe</th><th>Aviso</th></tr>' +
       cpPegado.map((f) => (f.err ? `<tr class="dup"><td><span class="est alerta">error</span></td><td colspan="7">${esc(f.err)}: ${esc(f.crudo)}</td></tr>`
         : `<tr class="${f.dup ? 'dup' : 'nueva'}"><td>${f.dup ? '<span class="est alerta">repetida</span>' : (f.ojo ? '<span class="est e0">nueva</span>' : '<span class="est e2">nueva</span>')}</td><td>${esc(f.p)}</td><td>${esc(f.t)}</td><td>${esc(dia(f.f))}</td><td>${esc(f.d)}</td><td>${esc(dia(f.v))}</td><td class="n">${esc(mil(cpSigno(f.t) * f.m))}</td><td>${esc(f.dup || [f.ojo, f.nuevo ? 'proveedor nuevo' : ''].filter(Boolean).join(' · '))}</td></tr>`)).join('') +
@@ -5613,12 +5585,12 @@
       `<h3 class="sub" style="margin-top:0">Reporte del ${esc(dia(cn.rep.desde))} al ${esc(dia(cn.rep.hasta))} · ${esc((CP_EMP.find((e) => e.k === cnEmp()) || {}).nombre || '')}</h3><div class="kpis">` +
       `<div class="kpi"><b>Facturas en el reporte</b><strong>${vivas.length}</strong><small>S/ ${mil(suma(vivas))} · ${X.provs.length} proveedores</small></div>` +
       `<div class="kpi"><b>Ya registradas aquí</b><strong class="sube">${vivas.length - fal.length}</strong><small>S/ ${mil(suma(vivas) - suma(fal))}</small></div>` +
-      `<div class="kpi" style="border-color:var(--rojo);background:#2a1718"><b>Faltan subir</b><strong class="baja">${fal.length}</strong><small>S/ ${mil(suma(fal))} · ${unicos(fal.map((x) => x.prov)).length} proveedores</small></div>` +
+      `<div class="kpi" style="border-color:var(--rojo);background:#fdecea"><b>Faltan subir</b><strong class="baja">${fal.length}</strong><small>S/ ${mil(suma(fal))} · ${unicos(fal.map((x) => x.prov)).length} proveedores</small></div>` +
       `<div class="kpi"><b>Con monto distinto</b><strong>${dif.length}</strong><small>diferencia S/ ${mil(r2(dif.reduce((s, x) => s + (x.m - x.regM), 0)))}</small></div>` +
       `<div class="kpi"><b>Anuladas que siguen aquí</b><strong>${anr.length}</strong><small>revisar si se quitan</small></div>` +
       `<div class="kpi"><b>Proveedores sin identificar</b><strong${sinId.length ? ' class="baja"' : ''}>${sinId.length}</strong><small>elige a cuál corresponden</small></div></div>` +
       '<h3 class="sub">Por proveedor</h3><div class="tabla" style="max-height:44vh;overflow:auto"><table><thead><tr><th>Proveedor en el reporte</th><th>Corresponde a</th><th class="num">Facturas</th><th class="num">Total reporte</th><th class="num">Registradas</th><th class="num">Faltan</th><th class="num">S/ faltan</th><th class="num">Monto distinto</th><th class="num">Anuladas</th></tr></thead><tbody>' +
-      X.provs.map((p) => `<tr${!p.dest.tipo ? ' style="background:#2a2114"' : ''}><td><a href="#" class="cnVer" data-p="${esc(p.prov)}">${esc(p.prov)}</a></td><td>${provOps(p)}</td><td class="num">${p.n}</td><td class="num">${mil(p.total)}</td><td class="num">${p.ok}</td><td class="num${p.faltan ? ' baja' : ''}"><b>${p.faltan}</b></td><td class="num${p.faltan ? ' baja' : ''}">${mil(p.mFaltan)}</td><td class="num">${p.dif || ''}</td><td class="num">${p.anul || ''}</td></tr>`).join('') +
+      X.provs.map((p) => `<tr${!p.dest.tipo ? ' style="background:#fff3d6"' : ''}><td><a href="#" class="cnVer" data-p="${esc(p.prov)}">${esc(p.prov)}</a></td><td>${provOps(p)}</td><td class="num">${p.n}</td><td class="num">${mil(p.total)}</td><td class="num">${p.ok}</td><td class="num${p.faltan ? ' baja' : ''}"><b>${p.faltan}</b></td><td class="num${p.faltan ? ' baja' : ''}">${mil(p.mFaltan)}</td><td class="num">${p.dif || ''}</td><td class="num">${p.anul || ''}</td></tr>`).join('') +
       '</tbody></table></div>' +
       '<div class="herr" style="margin-top:16px"><select id="cnVerSel">' + [['faltan', `Faltan subir (${fal.length})`], ['dif', `Monto distinto (${dif.length})`], ['anul', `Anuladas que siguen registradas (${anr.length})`], ['partes', `Registradas en varias partes en el sistema (${partes.length})`], ['todo', `Todas las del reporte (${vivas.length})`]].map(([v, t]) => `<option value="${v}"${cn.ver === v ? ' selected' : ''}>${t}</option>`).join('') + '</select>' +
       `<select id="cnProvSel"><option value="">Todos los proveedores</option>${unicos(lista.map((x) => x.prov)).map((p) => `<option${p === cn.prov ? ' selected' : ''}>${esc(p)}</option>`).join('')}</select><span style="flex:1"></span><button id="cnExp">Exportar a Excel</button></div>` +
@@ -6026,7 +5998,7 @@
     }).join('') + (lista.length > max ? `<p class="quien" style="margin:6px 0 0">y ${lista.length - max} más por S/ ${mil(r2(lista.slice(max).reduce((s, x) => s + x.v, 0)))} (están completos en el cuadro por trimestre).</p>` : '') + '</div>';
   }
   /* ---------- Dashboard (oscuro) con el Asistente de consultas en la misma ventana ---------- */
-  const DG_COLS = ['#ff7a00', '#ff9a3d', '#ffb36b', '#5aa9f0', '#7c8cff', '#9b7cff'];
+  const DG_COLS = ['#217346', '#33a065', '#6cc08b', '#4f81bd', '#8064a2', '#c0504d'];
   const DG_PREG = ['Compras del mes pasado', 'Compras de este año', 'NC pendientes', 'Proveedores que más subieron', 'Facturas sin Lolfar', 'Solo distribuidores'];
   let dgChat = [{ yo: false, h: 'Pregúntame por compras, NC, observadas o validaciones. El dashboard se filtra con tu consulta.' }], dgVerTodos = false;
   let dgAsis = true; try { dgAsis = localStorage.getItem('dgAsis') !== '0'; } catch (e) { /* nada */ }
@@ -6053,21 +6025,21 @@
     return { F, A, base, per, act, sAnt, fa, conf, pct: { fis: pctOk('fis'), xml: pctOk('xml'), lf: pctOk('lf') }, provs, mesAct: mesV(F.y), mesAnt: mesV(F.y - 1) };
   }
   const dgPctTxt = (v) => (v === null || !isFinite(v) ? '' : `<em class="${v >= 0 ? '' : 'm'}">${v >= 0 ? '▲' : '▼'} ${Math.abs(v).toFixed(1)}%</em>`);
-  const dgAro = (p, col) => `<svg width="44" height="44" viewBox="0 0 42 42" aria-hidden="true"><circle cx="21" cy="21" r="16" fill="none" stroke="#232b36" stroke-width="5"/><circle cx="21" cy="21" r="16" fill="none" stroke="${col}" stroke-width="5" stroke-dasharray="${Math.max(0, Math.min(100, p)).toFixed(1)} ${(100 - Math.max(0, Math.min(100, p))).toFixed(1)}" stroke-dashoffset="25" pathLength="100" stroke-linecap="round"/></svg>`;
+  const dgAro = (p, col) => `<svg width="44" height="44" viewBox="0 0 42 42" aria-hidden="true"><circle cx="21" cy="21" r="16" fill="none" stroke="#e3ece6" stroke-width="5"/><circle cx="21" cy="21" r="16" fill="none" stroke="${col}" stroke-width="5" stroke-dasharray="${Math.max(0, Math.min(100, p)).toFixed(1)} ${(100 - Math.max(0, Math.min(100, p))).toFixed(1)}" stroke-dashoffset="25" pathLength="100" stroke-linecap="round"/></svg>`;
   function dgArea(D) { // evolución mensual del año (línea) y año anterior (punteada); clic en un mes = filtrar ese mes
     const W = 520, H = 190, max = Math.max(1, ...D.mesAct, ...D.mesAnt), X = (i) => 14 + i * ((W - 28) / 11), Y = (v) => H - 24 - (Math.max(0, v) / max) * (H - 50);
     const hasta = D.F.y === +hoy().slice(0, 4) ? +hoy().slice(5, 7) : 12, act = D.mesAct.slice(0, hasta);
     const linea = (arr) => arr.map((v, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
     const selM = D.F.per[0] === 'M' ? +D.F.per.slice(1) : 0;
-    let h = `<svg class="dgSvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolución mensual">` + [0.25, 0.5, 0.75].map((f) => `<line x1="0" x2="${W}" y1="${(H - 24 - f * (H - 50)).toFixed(1)}" y2="${(H - 24 - f * (H - 50)).toFixed(1)}" stroke="#232b36"/>`).join('') +
-      '<defs><linearGradient id="dgG1" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ff7a00" stop-opacity=".45"/><stop offset="1" stop-color="#ff7a00" stop-opacity="0"/></linearGradient></defs>' +
-      `<path d="${linea(D.mesAnt)}" fill="none" stroke="#5aa9f0" stroke-width="2" stroke-dasharray="6 5"/>` +
-      (act.length ? `<path d="${linea(act)} L${X(act.length - 1).toFixed(1)},${H - 24} L${X(0)},${H - 24}Z" fill="url(#dgG1)"/><path d="${linea(act)}" fill="none" stroke="#ff7a00" stroke-width="3"/>` : '');
+    let h = `<svg class="dgSvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolución mensual">` + [0.25, 0.5, 0.75].map((f) => `<line x1="0" x2="${W}" y1="${(H - 24 - f * (H - 50)).toFixed(1)}" y2="${(H - 24 - f * (H - 50)).toFixed(1)}" stroke="#e3ece6"/>`).join('') +
+      '<defs><linearGradient id="dgG1" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#217346" stop-opacity=".45"/><stop offset="1" stop-color="#217346" stop-opacity="0"/></linearGradient></defs>' +
+      `<path d="${linea(D.mesAnt)}" fill="none" stroke="#9aa5a0" stroke-width="2" stroke-dasharray="6 5"/>` +
+      (act.length ? `<path d="${linea(act)} L${X(act.length - 1).toFixed(1)},${H - 24} L${X(0)},${H - 24}Z" fill="url(#dgG1)"/><path d="${linea(act)}" fill="none" stroke="#217346" stroke-width="3"/>` : '');
     for (let i = 0; i < 12; i += 1) {
       const sel = selM === i + 1;
-      h += `<text x="${X(i).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="10.5" fill="${sel ? '#ff9a3d' : '#8b95a3'}"${sel ? ' font-weight="700"' : ''}>${MESES[i + 1].slice(0, 3).toLowerCase()}</text>`;
-      if (sel && i < act.length) h += `<circle cx="${X(i).toFixed(1)}" cy="${Y(act[i]).toFixed(1)}" r="5" fill="#ff7a00"/><text x="${X(i).toFixed(1)}" y="${(Y(act[i]) - 10).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">${dgCorto(act[i])}</text>`;
-      h += `<rect class="dgHit" tabindex="0" data-act="per:M${i + 1}" x="${(X(i) - 20).toFixed(1)}" y="0" width="40" height="${H}" fill="transparent" data-tip="${esc(`<b>${MESES[i + 1]} ${D.F.y}</b><br>S/ ${mil(D.mesAct[i])}<br><span style='color:#8b95a3'>${D.F.y - 1}: S/ ${mil(D.mesAnt[i])}</span>`)}"/>`;
+      h += `<text x="${X(i).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="10.5" fill="${sel ? '#217346' : '#5f6b66'}"${sel ? ' font-weight="700"' : ''}>${MESES[i + 1].slice(0, 3).toLowerCase()}</text>`;
+      if (sel && i < act.length) h += `<circle cx="${X(i).toFixed(1)}" cy="${Y(act[i]).toFixed(1)}" r="5" fill="#217346"/><text x="${X(i).toFixed(1)}" y="${(Y(act[i]) - 10).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="700" fill="#1f2b24">${dgCorto(act[i])}</text>`;
+      h += `<rect class="dgHit" tabindex="0" data-act="per:M${i + 1}" x="${(X(i) - 20).toFixed(1)}" y="0" width="40" height="${H}" fill="transparent" data-tip="${esc(`<b>${MESES[i + 1]} ${D.F.y}</b><br>S/ ${mil(D.mesAct[i])}<br><span style='color:#5f6b66'>${D.F.y - 1}: S/ ${mil(D.mesAnt[i])}</span>`)}"/>`;
     }
     return h + '</svg>';
   }
@@ -6077,8 +6049,8 @@
     return `<svg class="dgSvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Compras por proveedor">` + top.map((p, i) => {
       const h = Math.max(4, (p.v / max) * (H - 50)), x = 10 + i * ancho + ancho * 0.18, w = ancho * 0.64, y = H - 22 - h;
       return `<g class="dgHit" tabindex="0" data-act="prov:${esc(p.k)}" data-tip="${esc(`<b>${p.nom}</b><br>S/ ${mil(p.v)} · ${p.s.n} facturas`)}"><rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="5" fill="${DG_COLS[i]}"${D.F.prov && D.F.prov !== p.k ? ' opacity=".35"' : ''}/>` +
-        `<text x="${(x + w / 2).toFixed(1)}" y="${(y - 6).toFixed(1)}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#fff">${dgCorto(p.v)}</text>` +
-        `<text x="${(x + w / 2).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="9.5" fill="#8b95a3">${esc(p.nom.replace(/^(DROGUERIA|DISTRIBUIDORA|REPRESENTACIONES|LABORATORIOS|DROGUERIAS)\s+/, '').split(/\s+/)[0].slice(0, 10))}</text></g>`;
+        `<text x="${(x + w / 2).toFixed(1)}" y="${(y - 6).toFixed(1)}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#1f2b24">${dgCorto(p.v)}</text>` +
+        `<text x="${(x + w / 2).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="9.5" fill="#5f6b66">${esc(p.nom.replace(/^(DROGUERIA|DISTRIBUIDORA|REPRESENTACIONES|LABORATORIOS|DROGUERIAS)\s+/, '').split(/\s+/)[0].slice(0, 10))}</text></g>`;
     }).join('') + '</svg>';
   }
   function dgAlertas(D) {
@@ -6185,16 +6157,16 @@
     const html = (dg.avisos.length ? `<div class="msg err">${dg.avisos.map(esc).join(' ')}</div>` : '') +
       `<div class="dgWrap${dgAsis ? '' : ' sinAsis'}"><div class="dgIzq">` +
       '<div class="dgKp">' +
-        k(dgAro(Math.min(100, act.comprasT && dgVal(D.sAnt) ? (act.comprasT / Math.max(act.comprasT, D.sAnt.comprasT)) * 100 : 100), '#ff7a00'), 'Compras totales', `S/ ${dgCorto(act.comprasT)}`, dgPctTxt(varA(act.comprasT, D.sAnt.comprasT)) + `<span class="dgS"> vs ${esc(antT)}</span>`) +
-        k(dgAro(act.comprasT ? (act.neta / act.comprasT) * 100 : 0, '#3fd18b'), 'Compra neta', `S/ ${dgCorto(act.neta)}`, dgPctTxt(varA(act.neta, D.sAnt.neta)) + `<span class="dgS"> ${act.comprasT ? ((act.neta / act.comprasT) * 100).toFixed(0) : 0}% de lo facturado</span>`) +
-        k(dgAro(ncPct * 5, '#ff6b6b'), 'Notas de crédito', `S/ ${dgCorto(Math.abs(act.ncN))}`, `<em class="m">${ncPct.toFixed(1)}% de compras</em>`) +
+        k(dgAro(Math.min(100, act.comprasT && dgVal(D.sAnt) ? (act.comprasT / Math.max(act.comprasT, D.sAnt.comprasT)) * 100 : 100), '#217346'), 'Compras totales', `S/ ${dgCorto(act.comprasT)}`, dgPctTxt(varA(act.comprasT, D.sAnt.comprasT)) + `<span class="dgS"> vs ${esc(antT)}</span>`) +
+        k(dgAro(act.comprasT ? (act.neta / act.comprasT) * 100 : 0, '#33a065'), 'Compra neta', `S/ ${dgCorto(act.neta)}`, dgPctTxt(varA(act.neta, D.sAnt.neta)) + `<span class="dgS"> ${act.comprasT ? ((act.neta / act.comprasT) * 100).toFixed(0) : 0}% de lo facturado</span>`) +
+        k(dgAro(ncPct * 5, '#c42b1c'), 'Notas de crédito', `S/ ${dgCorto(Math.abs(act.ncN))}`, `<em class="m">${ncPct.toFixed(1)}% de compras</em>`) +
         k('', 'NC pendiente', `S/ ${dgCorto(act.pend)}`, `<span class="dgS">observado S/ ${dgCorto(act.obs)}</span>`) +
         k('', 'Proveedores', String(D.provs.filter((p) => p.s.n).length), `<span class="dgS">factura promedio S/ ${dgCorto(act.n ? act.comprasT / act.n : 0)}</span>`) +
       '</div><div class="dgR3">' +
         `<div class="dgCard"><h3>Evolución mensual ${D.F.y}</h3><div class="dgS">${F.modo === 'neto' ? 'Compra neta' : 'Compras totales'} por mes · punteada = ${D.F.y - 1} · clic en un mes para filtrar</div>${dgArea(D)}</div>` +
         `<div class="dgCard"><h3>Compras por proveedor (top 6)</h3><div class="dgS">${esc(dgPerTxt(F.per, F.y))} · clic para filtrar</div>${dgBarrasTop(D)}</div>` +
-        `<div class="dgCard"><h3>Participación</h3><div class="dgS">% del total del periodo</div><table class="dgT dgPart">${D.provs.slice(0, 4).map((p, i) => `<tr class="dgHit" data-act="prov:${esc(p.k)}"><td><span style="color:${DG_COLS[i]}">●</span> ${esc(p.nom)}</td><td class="n">${((p.v / tot) * 100).toFixed(1)}%</td></tr>`).join('')}${D.provs.length > 4 ? `<tr><td><span style="color:#8b95a3">●</span> Otros ${D.provs.length - 4}</td><td class="n">${((otros / tot) * 100).toFixed(1)}%</td></tr>` : ''}</table>` +
-          `<h3 style="margin-top:12px">Validación de facturas</h3><div class="dgS">Del periodo</div>${[['Física', D.pct.fis, '#3fd18b'], ['XML', D.pct.xml, '#5aa9f0'], ['Lolfar', D.pct.lf, '#ff7a00']].map(([t, p, c]) => `<div class="dgBarT">${t} ${p}%</div><div class="dgBar"><i style="width:${p}%;background:${c}"></i></div>`).join('')}</div>` +
+        `<div class="dgCard"><h3>Participación</h3><div class="dgS">% del total del periodo</div><table class="dgT dgPart">${D.provs.slice(0, 4).map((p, i) => `<tr class="dgHit" data-act="prov:${esc(p.k)}"><td><span style="color:${DG_COLS[i]}">●</span> ${esc(p.nom)}</td><td class="n">${((p.v / tot) * 100).toFixed(1)}%</td></tr>`).join('')}${D.provs.length > 4 ? `<tr><td><span style="color:#9aa5a0">●</span> Otros ${D.provs.length - 4}</td><td class="n">${((otros / tot) * 100).toFixed(1)}%</td></tr>` : ''}</table>` +
+          `<h3 style="margin-top:12px">Validación de facturas</h3><div class="dgS">Del periodo</div>${[['Física', D.pct.fis, '#33a065'], ['XML', D.pct.xml, '#4f81bd'], ['Lolfar', D.pct.lf, '#217346']].map(([t, p, c]) => `<div class="dgBarT">${t} ${p}%</div><div class="dgBar"><i style="width:${p}%;background:${c}"></i></div>`).join('')}</div>` +
       '</div><div class="dgR2">' +
         `<div class="dgCard"><h3>Proveedores del periodo</h3><div class="dgS">Ordenado por ${F.modo === 'neto' ? 'compra neta' : 'compras'} · clic para filtrar</div><div class="dgTabla"><table class="dgT"><tr><th>Proveedor</th><th>Tipo</th><th class="n">Facturas</th><th class="n">${F.modo === 'neto' ? 'Compra neta' : 'Compras'}</th><th class="n">NC</th><th class="n">Vs ${esc(antT)}</th></tr>` +
           filas.map((p) => `<tr class="dgHit${F.prov === p.k ? ' sel' : ''}" data-act="prov:${esc(p.k)}"><td class="or">${esc(p.nom)}</td><td>${esc(dgTipoProv(p.k))}</td><td class="n">${p.s.n}</td><td class="n">${mil(p.v)}</td><td class="n">${p.s.ncN ? mil(p.s.ncN) : '—'}</td><td class="n">${p.pct === null ? '—' : `<span class="${p.pct >= 0 ? 'vd' : 'rj'}">${p.pct >= 0 ? '▲' : '▼'} ${Math.abs(p.pct).toFixed(1)}%</span>`}</td></tr>`).join('') + '</table></div>' +
@@ -6396,7 +6368,7 @@
       '<p style="margin:0 0 8px"><button class="pri" id="lfActualizar">Actualizar con Excel nuevo</button></p>' +
       `<p class="quien" style="margin:0 0 8px">${esc(cn.info || '')}${cn.rep.desde ? ` · del ${esc(dia(cn.rep.desde))} al ${esc(dia(cn.rep.hasta))}` : ''}. Se compara con todos los meses a pagar de ${esc(dist.nombre)} en ${esc(empDe(pgEmp()).nombre)}.</p>` +
       `<div class="herr"><label style="margin:0" for="lfProv">En el reporte este proveedor se llama</label><select id="lfProv" style="width:auto;max-width:420px"><option value="">— elige el nombre del reporte —</option>${provRep.map(([p, c]) => `<option value="${esc(p)}"${mio.includes(p) ? ' selected' : ''}>${esc(p)} (${c})</option>`).join('')}</select></div>` +
-      (!mio.length ? '<div class="msg" style="background:#2a2114;color:#ffd79a">No reconocí a este distribuidor entre los proveedores del reporte. Elige arriba con qué nombre aparece y quedará recordado.</div>' :
+      (!mio.length ? '<div class="msg" style="background:#fff8e6;color:#6b4a00">No reconocí a este distribuidor entre los proveedores del reporte. Elige arriba con qué nombre aparece y quedará recordado.</div>' :
         '<div id="lfOtros">' + lfOtrosHtml() + '</div>' + (X.ok.length ? `<div class="msg ok">Se puso ✓ Lolfar a ${X.ok.length} documento(s), en el mes a pagar donde está cada uno: ${esc(unicos(X.ok.map((x) => perTxt(x.reg.per))).join(', '))}.${X.sobra.length ? ` Las ${X.sobra.length} de "Registradas aquí que no aparecen en el reporte" quedan sin ✓ porque Lolfar no las tiene.` : ''}</div>` : '') +
         '<div class="kpis">' +
         `<div class="kpi"><b>En el reporte</b><strong>${n}</strong><small>documentos vigentes</small></div>` +
@@ -7582,7 +7554,7 @@
     const p = ctPubDe(c), pv = ct.cfg.provs.find((x) => x.n === c.prov) || {}, nom = new Map((c.items || []).map((x) => [x.c, x.d])), o = Object.entries(p.obsI || {});
     const F = 'font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#222;line-height:1.5;';
     const boton = (t) => `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:18px 0"><tr><td align="center" bgcolor="#e8710a" style="background:#e8710a;border-radius:6px"><a href="${esc(ctLink(c))}" target="_blank" style="display:inline-block;padding:14px 30px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;letter-spacing:1px;color:#ffffff;text-decoration:none;border-radius:6px">${t}</a></td></tr></table>`;
-    const codigo = `<p style="${F}">Código de acceso: <b style="font-family:Consolas,monospace;font-size:17px;letter-spacing:2px;background:#2a1d10;padding:3px 8px;border-radius:4px">${esc(pv.cod || '')}</b></p>`;
+    const codigo = `<p style="${F}">Código de acceso: <b style="font-family:Consolas,monospace;font-size:17px;letter-spacing:2px;background:#e9f5ee;padding:3px 8px;border-radius:4px">${esc(pv.cod || '')}</b></p>`;
     const firma2 = `<p style="${F}">Saludos cordiales,<br><b>Departamento de Compras</b> | FS Socorro SAC</p>`;
     if (obs) return `<div style="${F}"><p style="${F}">Estimado proveedor,</p><p style="${F}">La cotización <b>${esc(c.cod)}</b> (N° ${esc(c.n)}) fue <b style="color:#b45309">OBSERVADA</b>${p.nota ? ': ' + esc(p.nota) : '.'}</p>` +
       (o.length ? `<p style="${F}margin-bottom:4px"><b>Productos observados:</b></p><ul style="${F}margin-top:0">${o.map(([k, v]) => `<li><b>${esc(nom.get(k) || k)}</b>: ${esc(v)}</li>`).join('')}</ul>` : '') +
@@ -7823,7 +7795,7 @@
       `<details style="margin-top:10px"${ab && !d.enviado ? ' open' : ''}><summary style="cursor:pointer;font-weight:700">Condiciones obligatorias</summary><ul style="margin:8px 0 0;padding-left:20px">${CT_COND.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></details></div>` +
       (apro ? `<div class="msg ok"><b>Cotización APROBADA el ${esc(dia(d.decFecha))}.</b> Puede atender y facturar únicamente lo detallado en "Pedido aprobado". La mercadería debe llegar en un máximo de 5 días.${d.nota ? ' Comentario: ' + esc(d.nota) : ''}</div>` : '') +
       (d.dec === 'RECHAZADA' ? `<div class="msg err"><b>Cotización no aprobada.</b> ${esc(d.nota || '')} No facturar.</div>` : '') +
-      (libre && d.dec === 'OBSERVADA' ? `<div class="msg" style="background:#2a2114;color:#ffd79a"><b>Cotización observada por FS Socorro.</b> ${esc(d.nota || '')} ${corrige ? `Corrija los ${nObs} producto(s) resaltados (lo demás no se puede modificar) y pulse "Enviar corrección".` : 'Corrija y vuelva a enviar.'}</div>` : '') +
+      (libre && d.dec === 'OBSERVADA' ? `<div class="msg" style="background:#fff8e6;color:#6b4a00"><b>Cotización observada por FS Socorro.</b> ${esc(d.nota || '')} ${corrige ? `Corrija los ${nObs} producto(s) resaltados (lo demás no se puede modificar) y pulse "Enviar corrección".` : 'Corrija y vuelva a enviar.'}</div>` : '') +
       (ab && d.enviado ? `<div class="msg ok"><b>✓ Cotización enviada${d.respFecha ? ' el ' + esc(ctHora(d.respFecha)) : ''}.</b> Ya no se puede modificar; si FS Socorro observa algún producto, se habilitará aquí mismo para corregirlo. <b>No facture hasta recibir la conformidad.</b></div>` : '') +
       (vencida && !d.enviado ? '<div class="msg err">El plazo de respuesta ya venció. Envíela cuanto antes.</div>' : '') + '<div id="pvMsg"></div>' +
       (apro ? `<h3 class="sub">Pedido aprobado</h3><div class="tabla"><table><tr><th>Cód.</th><th>Descripción</th><th class="num">Cantidad</th><th class="num">Bonif.</th><th class="num">Precio final</th><th class="num">Total S/</th></tr>${apro.map((a) => `<tr><td>${esc(a.c)}</td><td><b>${esc((nomDe.get(a.c) || {}).d || '')}</b></td><td class="num">${a.q}</td><td class="num">${a.b || ''}</td><td class="num">${mil(a.p)}</td><td class="num">${mil(r2(a.q * a.p))}</td></tr>`).join('')}<tr class="tot"><td colspan="5">Total</td><td class="num">${mil(r2(apro.reduce((s, a) => s + a.q * a.p, 0)))}</td></tr></table></div><h3 class="sub">Su cotización</h3>` : '') +
@@ -8216,7 +8188,7 @@
       '<div class="tabla"><table><thead><tr><th>Llegó</th><th>Correo de</th><th>Documento</th><th>Emisor</th><th>Emisión</th><th class="num">Total</th><th class="num">Ítems</th><th>Estado</th></tr></thead><tbody>' +
       lista.map((x) => {
         const ok = x.estado === 'leido' || x.estado === 'repetido', ajena = ok && mias.length && x.cliente && !mias.includes(x.cliente);
-        const estilo = [ok ? 'cursor:pointer' : '', String(x.recibido || '') > xb.marca ? 'background:#2a1d10' : ''].filter(Boolean).join(';');
+        const estilo = [ok ? 'cursor:pointer' : '', String(x.recibido || '') > xb.marca ? 'background:var(--suave)' : ''].filter(Boolean).join(';');
         return `<tr${ok ? ` class="xbIr" data-k="${esc(x.k)}" data-f="${esc(x.fecha)}" title="Ver el detalle"` : ''}${estilo ? ` style="${estilo}"` : ''}>` +
           `<td>${esc(ctHora(x.recibido))}</td><td class="larga">${esc(x.de || '')}<div class="quien">${esc(x.asunto || '')}</div></td>` +
           `<td>${ok ? `<b>${esc(x.doc)}</b> <span class="quien">${esc(x.tipo === 'FACTURA' ? 'Factura' : x.tipo === 'NOTA DE CRÉDITO' ? 'NC' : x.tipo || '')}</span>${x.ref ? `<div class="quien">afecta a ${esc(x.ref)}</div>` : ''}` : esc(x.archivo || '')}</td>` +
