@@ -319,48 +319,48 @@
   .inPill svg { width:15px; height:15px; } .inPill:hover { border-color:var(--marca); color:var(--marca); }
   @media (max-width:760px) { .inArco { height:auto; display:flex; flex-wrap:wrap; justify-content:center; gap:16px 6px; } .inArco:before { display:none; } .inNodo { position:static; transform:none; width:104px; } .inNodo .c { width:68px; height:68px; } }
 
-  /* ---------- Dashboard con asistente (fondo blanco, estilo Excel) ---------- */
-  #vDash.dgo { background:none; color:#1f2b24; padding:0; margin:0; }
-  #vDash.dgo #dgFiltros { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 12px; padding-bottom:12px; border-bottom:2px solid #217346; }
-  .dgTit { flex:1 1 320px; } .dgProvG { font-size:30px; font-weight:800; color:#217346; letter-spacing:-.01em; line-height:1.1; margin-bottom:4px; }
-  .dgTit h2 { margin:0; font-size:17px; color:#185c37; text-transform:uppercase; letter-spacing:.02em; } .dgTit small { color:#5f6b66; font-size:12px; }
-  #vDash.dgo select { border:1px solid #c9d9ce; border-radius:6px; padding:7px 9px; font-size:12.5px; width:auto; max-width:230px; background:#fff; color:#1f2b24; }
-  .dgBtn { background:#217346; color:#fff; border:0; border-radius:6px; padding:8px 13px; font-weight:600; font-size:12.5px; cursor:pointer; } .dgBtn:hover { background:#185c37; }
-  .dgBtn2 { background:#fff; color:#185c37; border:1px solid #c9d9ce; border-radius:6px; padding:7px 11px; font-size:12.5px; cursor:pointer; } .dgBtn2:hover { border-color:#217346; background:#e9f5ee; }
+  /* ---------- Dashboard con asistente (fondo blanco, gris oscuro y naranja) ---------- */
+  #vDash.dgo { background:none; color:#2b2f33; padding:0; margin:0; }
+  #vDash.dgo #dgFiltros { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 12px; padding-bottom:12px; border-bottom:2px solid #e8710a; }
+  .dgTit { flex:1 1 320px; } .dgProvG { font-size:30px; font-weight:800; color:#e8710a; letter-spacing:-.01em; line-height:1.1; margin-bottom:4px; }
+  .dgTit h2 { margin:0; font-size:17px; color:#3a3f45; text-transform:uppercase; letter-spacing:.02em; } .dgTit small { color:#5f6468; font-size:12px; }
+  #vDash.dgo select { border:1px solid #d3d0cc; border-radius:6px; padding:7px 9px; font-size:12.5px; width:auto; max-width:230px; background:#fff; color:#2b2f33; }
+  .dgBtn { background:#e8710a; color:#fff; border:0; border-radius:6px; padding:8px 13px; font-weight:600; font-size:12.5px; cursor:pointer; } .dgBtn:hover { background:#c25e08; }
+  .dgBtn2 { background:#fff; color:#3a3f45; border:1px solid #d3d0cc; border-radius:6px; padding:7px 11px; font-size:12.5px; cursor:pointer; } .dgBtn2:hover { border-color:#e8710a; background:#fff1e5; }
   .dgWrap { display:grid; grid-template-columns:minmax(0, 1fr) 330px; gap:14px; } .dgWrap.sinAsis { grid-template-columns:minmax(0, 1fr); }
   .dgIzq { display:flex; flex-direction:column; gap:12px; min-width:0; }
-  .dgS { color:#5f6b66; font-size:11.5px; }
+  .dgS { color:#5f6468; font-size:11.5px; }
   .dgKp { display:grid; grid-template-columns:repeat(auto-fit, minmax(165px, 1fr)); gap:10px; }
-  .dgK { background:#fff; border:1px solid #d4e2d8; border-top:3px solid #217346; border-radius:6px; padding:10px 12px; display:flex; gap:10px; align-items:center; }
-  .dgK small { display:block; color:#5f6b66; font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; } .dgK b { display:block; font-size:20px; color:#1f2b24; margin:2px 0; }
+  .dgK { background:#fff; border:1px solid #dedcd9; border-top:3px solid #e8710a; border-radius:6px; padding:10px 12px; display:flex; gap:10px; align-items:center; }
+  .dgK small { display:block; color:#5f6468; font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; } .dgK b { display:block; font-size:20px; color:#2b2f33; margin:2px 0; }
   .dgK em { font-style:normal; font-size:11.5px; color:#107c41; font-weight:600; } .dgK em.m, .dgK .m { color:#c42b1c; }
-  .dgCard { background:#fff; border:1px solid #d4e2d8; border-radius:6px; padding:12px 14px; min-width:0; }
-  .dgCard h3 { margin:0 0 2px; font-size:12.5px; text-transform:uppercase; letter-spacing:.03em; color:#185c37; }
+  .dgCard { background:#fff; border:1px solid #dedcd9; border-radius:6px; padding:12px 14px; min-width:0; }
+  .dgCard h3 { margin:0 0 2px; font-size:12.5px; text-transform:uppercase; letter-spacing:.03em; color:#3a3f45; }
   .dgR3 { display:grid; grid-template-columns:1.3fr 1fr .9fr; gap:12px; } .dgR2 { display:grid; grid-template-columns:1.25fr 1fr; gap:12px; }
-  .dgT { width:100%; border-collapse:collapse; font-size:12px; } .dgT th { color:#185c37; font-weight:700; font-size:10.5px; text-align:left; padding:6px; border:1px solid #d4e2d8; text-transform:uppercase; background:#e9f2ec; }
-  .dgT td { padding:6px; border:1px solid #e3ece6; color:#1f2b24; } .dgT .n { text-align:right; } .dgT tr.dgHit:hover td, .dgT tr.sel td { background:#e9f5ee; }
-  .dgTabla { max-height:330px; overflow:auto; } .or, .dgT td.or { color:#185c37; font-weight:700; } .vd { color:#107c41; } .rj { color:#c42b1c; }
+  .dgT { width:100%; border-collapse:collapse; font-size:12px; } .dgT th { color:#3a3f45; font-weight:700; font-size:10.5px; text-align:left; padding:6px; border:1px solid #dedcd9; text-transform:uppercase; background:#f3f2f0; }
+  .dgT td { padding:6px; border:1px solid #ecebe9; color:#2b2f33; } .dgT .n { text-align:right; } .dgT tr.dgHit:hover td, .dgT tr.sel td { background:#fff1e5; }
+  .dgTabla { max-height:330px; overflow:auto; } .or, .dgT td.or { color:#3a3f45; font-weight:700; } .vd { color:#107c41; } .rj { color:#c42b1c; }
   .dgPart td { border-left:none; border-right:none; } .dgPart td:first-child { max-width:0; width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .dgPart td.n { white-space:nowrap; }
   .dgTabla .dgT td { white-space:nowrap; } .dgTabla .dgT td.or { white-space:normal; min-width:160px; }
-  .dgBarT { font-size:11px; color:#5f6b66; margin-top:6px; } .dgBar { height:8px; border-radius:4px; background:#e3ece6; overflow:hidden; } .dgBar i { display:block; height:100%; border-radius:4px; }
+  .dgBarT { font-size:11px; color:#5f6468; margin-top:6px; } .dgBar { height:8px; border-radius:4px; background:#ecebe9; overflow:hidden; } .dgBar i { display:block; height:100%; border-radius:4px; }
   .dgAl { border-radius:6px; padding:8px 10px; margin-top:7px; font-size:11.5px; border:1px solid; } .dgAl b { display:block; margin-bottom:2px; } .dgAl[data-ir] { cursor:pointer; } .dgAl[data-ir]:hover { filter:brightness(.97); }
   .dgAl.a1 { border-color:#f1b8b0; background:#fdeceb; color:#7a1c12; } .dgAl.a1 b { color:#c42b1c; } .dgAl.a2 { border-color:#f2d58e; background:#fff8e1; color:#6b4a00; } .dgAl.a2 b { color:#9a6a00; }
-  .dgAl.a3 { border-color:#b9d4ee; background:#eef5fc; color:#1f4e79; } .dgAl.a3 b { color:#2f6fae; } .dgAl.a4 { border-color:#b6dbc4; background:#e9f5ee; color:#185c37; } .dgAl.a4 b { color:#107c41; }
-  .dgChat { background:#fff; border:1px solid #d4e2d8; border-radius:6px; display:flex; flex-direction:column; min-height:520px; max-height:calc(100vh - 170px); position:sticky; top:72px; overflow:hidden; }
-  .dgChat h3 { margin:0; padding:10px 14px; font-size:13.5px; background:#217346; color:#fff; display:flex; align-items:center; gap:8px; }
-  .dgChat h3 i { width:24px; height:24px; border-radius:50%; background:#fff; color:#217346; display:inline-flex; align-items:center; justify-content:center; font-style:normal; }
+  .dgAl.a3 { border-color:#b9d4ee; background:#eef5fc; color:#1f4e79; } .dgAl.a3 b { color:#2f6fae; } .dgAl.a4 { border-color:#f6c99a; background:#fff1e5; color:#3a3f45; } .dgAl.a4 b { color:#107c41; }
+  .dgChat { background:#fff; border:1px solid #dedcd9; border-radius:6px; display:flex; flex-direction:column; min-height:520px; max-height:calc(100vh - 170px); position:sticky; top:72px; overflow:hidden; }
+  .dgChat h3 { margin:0; padding:10px 14px; font-size:13.5px; background:#3a3f45; color:#fff; display:flex; align-items:center; gap:8px; }
+  .dgChat h3 i { width:24px; height:24px; border-radius:50%; background:#e8710a; color:#fff; display:inline-flex; align-items:center; justify-content:center; font-style:normal; }
   .dgX { margin-left:auto; background:none; border:0; color:#fff; font-size:18px; cursor:pointer; }
-  .dgMsgs { flex:1; overflow:auto; padding:12px; display:flex; flex-direction:column; gap:9px; background:#f7faf8; } .dgMsgs > * { flex-shrink:0; }
-  .dgMsg { max-width:90%; padding:8px 11px; border-radius:10px; font-size:12.5px; line-height:1.45; } .dgMsg.bot { background:#fff; border:1px solid #d4e2d8; align-self:flex-start; color:#1f2b24; } .dgMsg.yo { background:#217346; color:#fff; align-self:flex-end; }
-  .dgMsg ul { margin:4px 0 2px; padding-left:16px; } .dgMsg a { color:#217346; font-weight:600; }
-  .dgTag { display:inline-block; font-size:10.5px; border-radius:99px; padding:1px 7px; background:#e3f3e9; color:#185c37; border:1px solid #b6dbc4; margin:3px 3px 0 0; }
-  .dgChips { display:flex; flex-wrap:wrap; gap:6px; } .dgChip { font-size:11px; border:1px solid #c9d9ce; border-radius:99px; padding:4px 9px; color:#185c37; background:#fff; cursor:pointer; } .dgChip:hover { border-color:#217346; background:#e9f5ee; }
-  .dgChip.m { border-style:dashed; color:#217346; border-color:#8fc4a3; } .dgChip.c { display:inline-flex; gap:4px; padding:0 4px 0 0; } .dgChip.c button { background:none; border:0; color:inherit; font-size:11px; padding:4px 0 4px 9px; cursor:pointer; } .dgChip .dgQuitar { padding-left:4px; color:#8a948f; }
-  .dgAc { display:flex; flex-direction:column; padding:0 10px; } .dgAcI { text-align:left; background:#fff; border:1px solid #d4e2d8; border-bottom:0; color:#1f2b24; padding:6px 10px; font-size:12px; cursor:pointer; } .dgAcI:last-child { border-bottom:1px solid #d4e2d8; } .dgAcI:hover { background:#e9f5ee; } .dgAcI span { color:#5f6b66; }
-  .dgIn { display:flex; gap:7px; padding:10px; border-top:1px solid #d4e2d8; } .dgIn input { flex:1; border:1px solid #217346 !important; border-radius:6px; padding:8px 10px; font-size:12.5px; margin:0; }
-  .dgIn button { width:38px; border:0; border-radius:6px; background:#217346; color:#fff; cursor:pointer; }
-  .dgPie { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; padding:10px 2px; margin-top:12px; border-top:2px solid #217346; font-size:12px; color:#5f6b66; } .dgPie b { color:#1f2b24; }
-  .dgOk { margin-left:auto; background:#e3f3e9; color:#107c41; border:1px solid #b6dbc4; border-radius:99px; padding:3px 10px; font-weight:600; } .dgOk.no { background:#fff8e1; color:#9a6a00; border-color:#f2d58e; }
+  .dgMsgs { flex:1; overflow:auto; padding:12px; display:flex; flex-direction:column; gap:9px; background:#f7f6f4; } .dgMsgs > * { flex-shrink:0; }
+  .dgMsg { max-width:90%; padding:8px 11px; border-radius:10px; font-size:12.5px; line-height:1.45; } .dgMsg.bot { background:#fff; border:1px solid #dedcd9; align-self:flex-start; color:#2b2f33; } .dgMsg.yo { background:#e8710a; color:#fff; align-self:flex-end; }
+  .dgMsg ul { margin:4px 0 2px; padding-left:16px; } .dgMsg a { color:#e8710a; font-weight:600; }
+  .dgTag { display:inline-block; font-size:10.5px; border-radius:99px; padding:1px 7px; background:#fff1e5; color:#3a3f45; border:1px solid #f6c99a; margin:3px 3px 0 0; }
+  .dgChips { display:flex; flex-wrap:wrap; gap:6px; } .dgChip { font-size:11px; border:1px solid #d3d0cc; border-radius:99px; padding:4px 9px; color:#3a3f45; background:#fff; cursor:pointer; } .dgChip:hover { border-color:#e8710a; background:#fff1e5; }
+  .dgChip.m { border-style:dashed; color:#e8710a; border-color:#f2a65a; } .dgChip.c { display:inline-flex; gap:4px; padding:0 4px 0 0; } .dgChip.c button { background:none; border:0; color:inherit; font-size:11px; padding:4px 0 4px 9px; cursor:pointer; } .dgChip .dgQuitar { padding-left:4px; color:#8a8f94; }
+  .dgAc { display:flex; flex-direction:column; padding:0 10px; } .dgAcI { text-align:left; background:#fff; border:1px solid #dedcd9; border-bottom:0; color:#2b2f33; padding:6px 10px; font-size:12px; cursor:pointer; } .dgAcI:last-child { border-bottom:1px solid #dedcd9; } .dgAcI:hover { background:#fff1e5; } .dgAcI span { color:#5f6468; }
+  .dgIn { display:flex; gap:7px; padding:10px; border-top:1px solid #dedcd9; } .dgIn input { flex:1; border:1px solid #e8710a !important; border-radius:6px; padding:8px 10px; font-size:12.5px; margin:0; }
+  .dgIn button { width:38px; border:0; border-radius:6px; background:#e8710a; color:#fff; cursor:pointer; }
+  .dgPie { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; padding:10px 2px; margin-top:12px; border-top:2px solid #e8710a; font-size:12px; color:#5f6468; } .dgPie b { color:#2b2f33; }
+  .dgOk { margin-left:auto; background:#fff1e5; color:#107c41; border:1px solid #f6c99a; border-radius:99px; padding:3px 10px; font-weight:600; } .dgOk.no { background:#fff8e1; color:#9a6a00; border-color:#f2d58e; }
   #vDash.dgo .dgSvg text { font-family:inherit; }
   @media (max-width:1250px) { .dgR3 { grid-template-columns:1fr 1fr; } .dgR3 > :first-child { grid-column:1 / -1; } }
   @media (max-width:1000px) { .dgWrap { grid-template-columns:1fr; } .dgChat { position:static; max-height:none; min-height:380px; } .dgR2 { grid-template-columns:1fr; } }
@@ -378,18 +378,18 @@
   .inMod:hover { background:var(--suave); } .inMod i { flex:none; width:34px; height:34px; border-radius:9px; background:var(--suave); color:var(--pri); display:flex; align-items:center; justify-content:center; }
   .inMod b { display:block; font-size:14px; } .inMod small { color:var(--gris); font-size:12px; }
 
-  /* =====================  TEMA EXCEL: fondo y celdas blancas, barras y bordes verdes  ===================== */
-  :root { --marca:#217346; --pri:#185c37; --suave:#e9f5ee; --gris:#5f6b66; --borde:#d4e2d8; --fondo:#ffffff; --casco:#185c37; --casco2:#217346; --cTxt:#ffffff; --ok:#107c41; --ok2:#e3f3e9; --rojo:#c42b1c; }
-  body, #app, #cuerpo, main { background:#fff; color:#1f2b24; }
-  #lado { border-right-color:#124a2b; } #app header { border-bottom-color:#1b6b3f; }
-  .navG { color:#a9e0bf !important; } #lado nav button.act { background:#fff; color:#185c37; } #lado nav button.act svg { color:#185c37; }
-  #lado nav button.act .cuenta { background:#c42b1c; color:#fff; } .ladoMarca { background:#124a2b; }
-  th, .grid th, .rgFil th { background:#e9f2ec; color:#185c37; } .grid td.nf { background:#f1f6f3; }
-  .caja, .kpi, .tabla { border-color:#d4e2d8; }
-  button.pri { background:#217346; border-color:#217346; } button.pri:hover { background:#185c37; }
-  input:focus, select:focus, textarea:focus { border-color:#217346; outline:none; box-shadow:0 0 0 3px rgba(33,115,70,.15); }
-  .subnav button.act { background:#217346; } .gFis.si { background:#107c41; border-color:#107c41; }
-  .inNodo.hi .c { box-shadow:0 8px 22px rgba(33,115,70,.25); }
+  /* =====================  TEMA: blanco, gris oscuro y naranja  ===================== */
+  :root { --marca:#e8710a; --pri:#c25e08; --suave:#fff1e5; --gris:#5f6468; --borde:#dedcd9; --fondo:#ffffff; --casco:#3a3f45; --casco2:#2f3439; --cTxt:#ffffff; --ok:#1b7a4b; --ok2:#e7f4ec; --rojo:#c42b1c; }
+  body, #app, #cuerpo, main { background:#fff; color:#2b2f33; }
+  #lado { border-right-color:#2a2e33; } #app header { border-bottom-color:#2a2e33; }
+  .navG { color:#f39a3d !important; } #lado nav button.act { background:#e8710a; color:#fff; }
+  #lado nav button.act .cuenta { background:#fff; color:#c25e08; } .ladoMarca { background:#2f3439; }
+  th, .grid th, .rgFil th { background:#f3f2f0; color:#3a3f45; } .grid td.nf { background:#f6f5f3; }
+  .caja, .kpi, .tabla { border-color:#dedcd9; }
+  button.pri { background:#e8710a; border-color:#e8710a; } button.pri:hover { background:#c25e08; }
+  input:focus, select:focus, textarea:focus { border-color:#e8710a; outline:none; box-shadow:0 0 0 3px rgba(232,113,10,.15); }
+  .subnav button.act { background:#e8710a; }
+  .inNodo.hi .c { box-shadow:0 8px 22px rgba(232,113,10,.25); }
 </style>
 </head>
 <body>
@@ -1015,7 +1015,7 @@
         cx.beginPath();
         cx.moveTo(-20, H * (0.42 + k * 0.32) + ola * 0.4);
         cx.bezierCurveTo(W * 0.35, H * (0.38 + k * 0.18) + ola, W * (0.62 + k * 0.1) + ola2 * 0.3, H * (0.58 + k * 0.05) - ola2, W * (0.78 + k * 0.32), H + 30);
-        cx.strokeStyle = nar ? `rgba(33,115,70,${0.35 + 0.3 * Math.sin(t / 1800 + i)})` : `rgba(60,64,70,${0.12 + 0.5 * (1 - k) * (0.6 + 0.4 * Math.sin(t / 2000 + i * 0.4))})`;
+        cx.strokeStyle = nar ? `rgba(232,113,10,${0.35 + 0.3 * Math.sin(t / 1800 + i)})` : `rgba(60,64,70,${0.12 + 0.5 * (1 - k) * (0.6 + 0.4 * Math.sin(t / 2000 + i * 0.4))})`;
         cx.lineWidth = nar ? 1.4 : 0.9;
         cx.stroke();
       }
@@ -5998,7 +5998,7 @@
     }).join('') + (lista.length > max ? `<p class="quien" style="margin:6px 0 0">y ${lista.length - max} más por S/ ${mil(r2(lista.slice(max).reduce((s, x) => s + x.v, 0)))} (están completos en el cuadro por trimestre).</p>` : '') + '</div>';
   }
   /* ---------- Dashboard (oscuro) con el Asistente de consultas en la misma ventana ---------- */
-  const DG_COLS = ['#217346', '#33a065', '#6cc08b', '#4f81bd', '#8064a2', '#c0504d'];
+  const DG_COLS = ['#e8710a', '#f39a3d', '#f7bb7d', '#3a3f45', '#6f767d', '#a9afb5'];
   const DG_PREG = ['Compras del mes pasado', 'Compras de este año', 'NC pendientes', 'Proveedores que más subieron', 'Facturas sin Lolfar', 'Solo distribuidores'];
   let dgChat = [{ yo: false, h: 'Pregúntame por compras, NC, observadas o validaciones. El dashboard se filtra con tu consulta.' }], dgVerTodos = false;
   let dgAsis = true; try { dgAsis = localStorage.getItem('dgAsis') !== '0'; } catch (e) { /* nada */ }
@@ -6025,21 +6025,21 @@
     return { F, A, base, per, act, sAnt, fa, conf, pct: { fis: pctOk('fis'), xml: pctOk('xml'), lf: pctOk('lf') }, provs, mesAct: mesV(F.y), mesAnt: mesV(F.y - 1) };
   }
   const dgPctTxt = (v) => (v === null || !isFinite(v) ? '' : `<em class="${v >= 0 ? '' : 'm'}">${v >= 0 ? '▲' : '▼'} ${Math.abs(v).toFixed(1)}%</em>`);
-  const dgAro = (p, col) => `<svg width="44" height="44" viewBox="0 0 42 42" aria-hidden="true"><circle cx="21" cy="21" r="16" fill="none" stroke="#e3ece6" stroke-width="5"/><circle cx="21" cy="21" r="16" fill="none" stroke="${col}" stroke-width="5" stroke-dasharray="${Math.max(0, Math.min(100, p)).toFixed(1)} ${(100 - Math.max(0, Math.min(100, p))).toFixed(1)}" stroke-dashoffset="25" pathLength="100" stroke-linecap="round"/></svg>`;
+  const dgAro = (p, col) => `<svg width="44" height="44" viewBox="0 0 42 42" aria-hidden="true"><circle cx="21" cy="21" r="16" fill="none" stroke="#ecebe9" stroke-width="5"/><circle cx="21" cy="21" r="16" fill="none" stroke="${col}" stroke-width="5" stroke-dasharray="${Math.max(0, Math.min(100, p)).toFixed(1)} ${(100 - Math.max(0, Math.min(100, p))).toFixed(1)}" stroke-dashoffset="25" pathLength="100" stroke-linecap="round"/></svg>`;
   function dgArea(D) { // evolución mensual del año (línea) y año anterior (punteada); clic en un mes = filtrar ese mes
     const W = 520, H = 190, max = Math.max(1, ...D.mesAct, ...D.mesAnt), X = (i) => 14 + i * ((W - 28) / 11), Y = (v) => H - 24 - (Math.max(0, v) / max) * (H - 50);
     const hasta = D.F.y === +hoy().slice(0, 4) ? +hoy().slice(5, 7) : 12, act = D.mesAct.slice(0, hasta);
     const linea = (arr) => arr.map((v, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
     const selM = D.F.per[0] === 'M' ? +D.F.per.slice(1) : 0;
-    let h = `<svg class="dgSvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolución mensual">` + [0.25, 0.5, 0.75].map((f) => `<line x1="0" x2="${W}" y1="${(H - 24 - f * (H - 50)).toFixed(1)}" y2="${(H - 24 - f * (H - 50)).toFixed(1)}" stroke="#e3ece6"/>`).join('') +
-      '<defs><linearGradient id="dgG1" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#217346" stop-opacity=".45"/><stop offset="1" stop-color="#217346" stop-opacity="0"/></linearGradient></defs>' +
-      `<path d="${linea(D.mesAnt)}" fill="none" stroke="#9aa5a0" stroke-width="2" stroke-dasharray="6 5"/>` +
-      (act.length ? `<path d="${linea(act)} L${X(act.length - 1).toFixed(1)},${H - 24} L${X(0)},${H - 24}Z" fill="url(#dgG1)"/><path d="${linea(act)}" fill="none" stroke="#217346" stroke-width="3"/>` : '');
+    let h = `<svg class="dgSvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolución mensual">` + [0.25, 0.5, 0.75].map((f) => `<line x1="0" x2="${W}" y1="${(H - 24 - f * (H - 50)).toFixed(1)}" y2="${(H - 24 - f * (H - 50)).toFixed(1)}" stroke="#ecebe9"/>`).join('') +
+      '<defs><linearGradient id="dgG1" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#e8710a" stop-opacity=".45"/><stop offset="1" stop-color="#e8710a" stop-opacity="0"/></linearGradient></defs>' +
+      `<path d="${linea(D.mesAnt)}" fill="none" stroke="#9aa0a6" stroke-width="2" stroke-dasharray="6 5"/>` +
+      (act.length ? `<path d="${linea(act)} L${X(act.length - 1).toFixed(1)},${H - 24} L${X(0)},${H - 24}Z" fill="url(#dgG1)"/><path d="${linea(act)}" fill="none" stroke="#e8710a" stroke-width="3"/>` : '');
     for (let i = 0; i < 12; i += 1) {
       const sel = selM === i + 1;
-      h += `<text x="${X(i).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="10.5" fill="${sel ? '#217346' : '#5f6b66'}"${sel ? ' font-weight="700"' : ''}>${MESES[i + 1].slice(0, 3).toLowerCase()}</text>`;
-      if (sel && i < act.length) h += `<circle cx="${X(i).toFixed(1)}" cy="${Y(act[i]).toFixed(1)}" r="5" fill="#217346"/><text x="${X(i).toFixed(1)}" y="${(Y(act[i]) - 10).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="700" fill="#1f2b24">${dgCorto(act[i])}</text>`;
-      h += `<rect class="dgHit" tabindex="0" data-act="per:M${i + 1}" x="${(X(i) - 20).toFixed(1)}" y="0" width="40" height="${H}" fill="transparent" data-tip="${esc(`<b>${MESES[i + 1]} ${D.F.y}</b><br>S/ ${mil(D.mesAct[i])}<br><span style='color:#5f6b66'>${D.F.y - 1}: S/ ${mil(D.mesAnt[i])}</span>`)}"/>`;
+      h += `<text x="${X(i).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="10.5" fill="${sel ? '#e8710a' : '#5f6468'}"${sel ? ' font-weight="700"' : ''}>${MESES[i + 1].slice(0, 3).toLowerCase()}</text>`;
+      if (sel && i < act.length) h += `<circle cx="${X(i).toFixed(1)}" cy="${Y(act[i]).toFixed(1)}" r="5" fill="#e8710a"/><text x="${X(i).toFixed(1)}" y="${(Y(act[i]) - 10).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="700" fill="#2b2f33">${dgCorto(act[i])}</text>`;
+      h += `<rect class="dgHit" tabindex="0" data-act="per:M${i + 1}" x="${(X(i) - 20).toFixed(1)}" y="0" width="40" height="${H}" fill="transparent" data-tip="${esc(`<b>${MESES[i + 1]} ${D.F.y}</b><br>S/ ${mil(D.mesAct[i])}<br><span style='color:#5f6468'>${D.F.y - 1}: S/ ${mil(D.mesAnt[i])}</span>`)}"/>`;
     }
     return h + '</svg>';
   }
@@ -6049,8 +6049,8 @@
     return `<svg class="dgSvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Compras por proveedor">` + top.map((p, i) => {
       const h = Math.max(4, (p.v / max) * (H - 50)), x = 10 + i * ancho + ancho * 0.18, w = ancho * 0.64, y = H - 22 - h;
       return `<g class="dgHit" tabindex="0" data-act="prov:${esc(p.k)}" data-tip="${esc(`<b>${p.nom}</b><br>S/ ${mil(p.v)} · ${p.s.n} facturas`)}"><rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="5" fill="${DG_COLS[i]}"${D.F.prov && D.F.prov !== p.k ? ' opacity=".35"' : ''}/>` +
-        `<text x="${(x + w / 2).toFixed(1)}" y="${(y - 6).toFixed(1)}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#1f2b24">${dgCorto(p.v)}</text>` +
-        `<text x="${(x + w / 2).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="9.5" fill="#5f6b66">${esc(p.nom.replace(/^(DROGUERIA|DISTRIBUIDORA|REPRESENTACIONES|LABORATORIOS|DROGUERIAS)\s+/, '').split(/\s+/)[0].slice(0, 10))}</text></g>`;
+        `<text x="${(x + w / 2).toFixed(1)}" y="${(y - 6).toFixed(1)}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#2b2f33">${dgCorto(p.v)}</text>` +
+        `<text x="${(x + w / 2).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="9.5" fill="#5f6468">${esc(p.nom.replace(/^(DROGUERIA|DISTRIBUIDORA|REPRESENTACIONES|LABORATORIOS|DROGUERIAS)\s+/, '').split(/\s+/)[0].slice(0, 10))}</text></g>`;
     }).join('') + '</svg>';
   }
   function dgAlertas(D) {
@@ -6157,16 +6157,16 @@
     const html = (dg.avisos.length ? `<div class="msg err">${dg.avisos.map(esc).join(' ')}</div>` : '') +
       `<div class="dgWrap${dgAsis ? '' : ' sinAsis'}"><div class="dgIzq">` +
       '<div class="dgKp">' +
-        k(dgAro(Math.min(100, act.comprasT && dgVal(D.sAnt) ? (act.comprasT / Math.max(act.comprasT, D.sAnt.comprasT)) * 100 : 100), '#217346'), 'Compras totales', `S/ ${dgCorto(act.comprasT)}`, dgPctTxt(varA(act.comprasT, D.sAnt.comprasT)) + `<span class="dgS"> vs ${esc(antT)}</span>`) +
-        k(dgAro(act.comprasT ? (act.neta / act.comprasT) * 100 : 0, '#33a065'), 'Compra neta', `S/ ${dgCorto(act.neta)}`, dgPctTxt(varA(act.neta, D.sAnt.neta)) + `<span class="dgS"> ${act.comprasT ? ((act.neta / act.comprasT) * 100).toFixed(0) : 0}% de lo facturado</span>`) +
+        k(dgAro(Math.min(100, act.comprasT && dgVal(D.sAnt) ? (act.comprasT / Math.max(act.comprasT, D.sAnt.comprasT)) * 100 : 100), '#e8710a'), 'Compras totales', `S/ ${dgCorto(act.comprasT)}`, dgPctTxt(varA(act.comprasT, D.sAnt.comprasT)) + `<span class="dgS"> vs ${esc(antT)}</span>`) +
+        k(dgAro(act.comprasT ? (act.neta / act.comprasT) * 100 : 0, '#3a3f45'), 'Compra neta', `S/ ${dgCorto(act.neta)}`, dgPctTxt(varA(act.neta, D.sAnt.neta)) + `<span class="dgS"> ${act.comprasT ? ((act.neta / act.comprasT) * 100).toFixed(0) : 0}% de lo facturado</span>`) +
         k(dgAro(ncPct * 5, '#c42b1c'), 'Notas de crédito', `S/ ${dgCorto(Math.abs(act.ncN))}`, `<em class="m">${ncPct.toFixed(1)}% de compras</em>`) +
         k('', 'NC pendiente', `S/ ${dgCorto(act.pend)}`, `<span class="dgS">observado S/ ${dgCorto(act.obs)}</span>`) +
         k('', 'Proveedores', String(D.provs.filter((p) => p.s.n).length), `<span class="dgS">factura promedio S/ ${dgCorto(act.n ? act.comprasT / act.n : 0)}</span>`) +
       '</div><div class="dgR3">' +
         `<div class="dgCard"><h3>Evolución mensual ${D.F.y}</h3><div class="dgS">${F.modo === 'neto' ? 'Compra neta' : 'Compras totales'} por mes · punteada = ${D.F.y - 1} · clic en un mes para filtrar</div>${dgArea(D)}</div>` +
         `<div class="dgCard"><h3>Compras por proveedor (top 6)</h3><div class="dgS">${esc(dgPerTxt(F.per, F.y))} · clic para filtrar</div>${dgBarrasTop(D)}</div>` +
-        `<div class="dgCard"><h3>Participación</h3><div class="dgS">% del total del periodo</div><table class="dgT dgPart">${D.provs.slice(0, 4).map((p, i) => `<tr class="dgHit" data-act="prov:${esc(p.k)}"><td><span style="color:${DG_COLS[i]}">●</span> ${esc(p.nom)}</td><td class="n">${((p.v / tot) * 100).toFixed(1)}%</td></tr>`).join('')}${D.provs.length > 4 ? `<tr><td><span style="color:#9aa5a0">●</span> Otros ${D.provs.length - 4}</td><td class="n">${((otros / tot) * 100).toFixed(1)}%</td></tr>` : ''}</table>` +
-          `<h3 style="margin-top:12px">Validación de facturas</h3><div class="dgS">Del periodo</div>${[['Física', D.pct.fis, '#33a065'], ['XML', D.pct.xml, '#4f81bd'], ['Lolfar', D.pct.lf, '#217346']].map(([t, p, c]) => `<div class="dgBarT">${t} ${p}%</div><div class="dgBar"><i style="width:${p}%;background:${c}"></i></div>`).join('')}</div>` +
+        `<div class="dgCard"><h3>Participación</h3><div class="dgS">% del total del periodo</div><table class="dgT dgPart">${D.provs.slice(0, 4).map((p, i) => `<tr class="dgHit" data-act="prov:${esc(p.k)}"><td><span style="color:${DG_COLS[i]}">●</span> ${esc(p.nom)}</td><td class="n">${((p.v / tot) * 100).toFixed(1)}%</td></tr>`).join('')}${D.provs.length > 4 ? `<tr><td><span style="color:#9aa0a6">●</span> Otros ${D.provs.length - 4}</td><td class="n">${((otros / tot) * 100).toFixed(1)}%</td></tr>` : ''}</table>` +
+          `<h3 style="margin-top:12px">Validación de facturas</h3><div class="dgS">Del periodo</div>${[['Física', D.pct.fis, '#3a3f45'], ['XML', D.pct.xml, '#f39a3d'], ['Lolfar', D.pct.lf, '#e8710a']].map(([t, p, c]) => `<div class="dgBarT">${t} ${p}%</div><div class="dgBar"><i style="width:${p}%;background:${c}"></i></div>`).join('')}</div>` +
       '</div><div class="dgR2">' +
         `<div class="dgCard"><h3>Proveedores del periodo</h3><div class="dgS">Ordenado por ${F.modo === 'neto' ? 'compra neta' : 'compras'} · clic para filtrar</div><div class="dgTabla"><table class="dgT"><tr><th>Proveedor</th><th>Tipo</th><th class="n">Facturas</th><th class="n">${F.modo === 'neto' ? 'Compra neta' : 'Compras'}</th><th class="n">NC</th><th class="n">Vs ${esc(antT)}</th></tr>` +
           filas.map((p) => `<tr class="dgHit${F.prov === p.k ? ' sel' : ''}" data-act="prov:${esc(p.k)}"><td class="or">${esc(p.nom)}</td><td>${esc(dgTipoProv(p.k))}</td><td class="n">${p.s.n}</td><td class="n">${mil(p.v)}</td><td class="n">${p.s.ncN ? mil(p.s.ncN) : '—'}</td><td class="n">${p.pct === null ? '—' : `<span class="${p.pct >= 0 ? 'vd' : 'rj'}">${p.pct >= 0 ? '▲' : '▼'} ${Math.abs(p.pct).toFixed(1)}%</span>`}</td></tr>`).join('') + '</table></div>' +
