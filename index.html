@@ -519,7 +519,7 @@
       </div>
       <div class="subnav" id="gSub">
         <button data-gv="grid">Facturas y NC</button><button data-gv="dash" class="oculto">Dashboard compras</button><button data-gv="res">Resumen de pago</button>
-        <button data-gv="cruce">Cruce observaciones</button><button data-gv="ncp">NC pendientes</button>
+        <button data-gv="cruce">Cruce observaciones</button><button data-gv="ncp" class="oculto">NC pendientes</button>
         <button data-gv="gen" class="oculto">Resumen general</button>
       </div>
       <div id="gv_grid">
@@ -2585,7 +2585,7 @@
 
   // Sub-pestañas dentro de Pagos
   function pgVer(v) {
-    if (v === 'gen') v = 'grid'; // el Resumen general se quitó (está en el módulo Resumen de pagos)
+    if (v === 'gen' || v === 'ncp') v = 'grid'; // el Resumen general se quitó (está en el módulo Resumen de pagos)
     pgVista = v;
     ['grid', 'dash', 'res', 'cruce', 'cxp', 'gen'].forEach((x) => $('gv_' + x).classList.toggle('oculto', x !== (v === 'ncp' ? 'cruce' : v)));
     document.querySelectorAll('#gSub button').forEach((b) => b.classList.toggle('act', b.dataset.gv === v));
