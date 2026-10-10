@@ -4281,7 +4281,8 @@
     const totBase = new Map();
     fs.forEach((f) => {
       const sg = cpSigno(f.t), m = Number(f.m) || 0, prov = cpProv(f.p), g = deFila.get(f.i) || '';
-      const base = f.t === 'FACTURA' ? r2(m - (dinamica ? (ncDe.get(`${f.p}|${cpDocNorm(f.d)}`) || 0) : 0)) : 0;
+      const calc = dinamica || f.q === undefined || f.q === null || f.q === ''; // retención calculada aquí (no la guardada de antes)
+      const base = f.t === 'FACTURA' ? r2(m - (calc ? (ncDe.get(`${f.p}|${cpDocNorm(f.d)}`) || 0) : 0)) : 0; // primero se resta la NC del mismo mes que afecta a esta factura
       let plazo = f.t === 'FACTURA' || f.v ? cpDias(f.f, f.v) : null;
       if (plazo === null) plazo = (f.pl !== undefined && f.pl !== null && f.pl !== '') ? Number(f.pl) : (prov && prov.pl !== '' && prov.pl !== undefined ? Number(prov.pl) : '');
       const r = { sg, base, g, k: `${f.p}|${g}`, plazo, q: 0, neto: 0, sit: '', dup: '', obsL: [], obs: 0, ncAp: 0, obsEst: '' };
