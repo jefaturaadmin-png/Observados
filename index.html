@@ -318,6 +318,54 @@
   .inPill { display:inline-flex; gap:7px; align-items:center; background:#fff; border:1px solid var(--borde); border-radius:99px; padding:7px 13px; font:inherit; font-size:13px; color:#3a3f45; cursor:pointer; }
   .inPill svg { width:15px; height:15px; } .inPill:hover { border-color:var(--marca); color:var(--marca); }
   @media (max-width:760px) { .inArco { height:auto; display:flex; flex-wrap:wrap; justify-content:center; gap:16px 6px; } .inArco:before { display:none; } .inNodo { position:static; transform:none; width:104px; } .inNodo .c { width:68px; height:68px; } }
+
+  /* ---------- Dashboard oscuro con asistente ---------- */
+  #vDash.dgo { background:#0f141b; color:#e6e9ee; border-radius:14px; padding:14px 16px 0; margin:-6px 0 0; }
+  #vDash.dgo #dgFiltros { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 12px; padding-bottom:12px; border-bottom:1px solid #232b36; }
+  .dgTit { flex:1 1 320px; } .dgTit h2 { margin:0; font-size:17px; color:#fff; text-transform:uppercase; letter-spacing:.02em; } .dgTit small { color:#8b95a3; font-size:12px; }
+  #vDash.dgo select { background:#1a212b; border:1px solid #2a3340; color:#cfd6df; border-radius:8px; padding:7px 9px; font-size:12.5px; width:auto; max-width:230px; }
+  .dgBtn { background:#ff7a00; color:#fff; border:0; border-radius:8px; padding:8px 13px; font-weight:600; font-size:12.5px; cursor:pointer; }
+  .dgBtn2 { background:#1a212b; color:#cfd6df; border:1px solid #2a3340; border-radius:8px; padding:7px 11px; font-size:12.5px; cursor:pointer; } .dgBtn2:hover { border-color:#ff7a00; color:#ffb36b; }
+  .dgWrap { display:grid; grid-template-columns:minmax(0, 1fr) 330px; gap:14px; } .dgWrap.sinAsis { grid-template-columns:minmax(0, 1fr); }
+  .dgIzq { display:flex; flex-direction:column; gap:12px; min-width:0; }
+  .dgS { color:#8b95a3; font-size:11.5px; }
+  .dgKp { display:grid; grid-template-columns:repeat(auto-fill, minmax(185px, 1fr)); gap:10px; }
+  .dgK { background:#151b23; border:1px solid #232b36; border-radius:12px; padding:10px 12px; display:flex; gap:10px; align-items:center; }
+  .dgK small { display:block; color:#8b95a3; font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; } .dgK b { display:block; font-size:20px; color:#fff; margin:2px 0; }
+  .dgK em { font-style:normal; font-size:11.5px; color:#3fd18b; font-weight:600; } .dgK em.m, .dgK .m { color:#ff6b6b; }
+  .dgCard { background:#151b23; border:1px solid #232b36; border-radius:12px; padding:12px 14px; min-width:0; }
+  .dgCard h3 { margin:0 0 2px; font-size:12.5px; text-transform:uppercase; letter-spacing:.03em; color:#dfe4ea; }
+  .dgR3 { display:grid; grid-template-columns:1.3fr 1fr .9fr; gap:12px; } .dgR2 { display:grid; grid-template-columns:1.25fr 1fr; gap:12px; }
+  .dgT { width:100%; border-collapse:collapse; font-size:12px; } .dgT th { color:#8b95a3; font-weight:600; font-size:10.5px; text-align:left; padding:6px; border-bottom:1px solid #232b36; text-transform:uppercase; background:none; }
+  .dgT td { padding:7px 6px; border-bottom:1px solid #1d2530; color:#dfe4ea; } .dgT .n { text-align:right; } .dgT tr.dgHit:hover td, .dgT tr.sel td { background:#1d2530; }
+  .dgTabla { max-height:330px; overflow:auto; } .or { color:#ff9a3d; font-weight:600; } .vd { color:#3fd18b; } .rj { color:#ff6b6b; }
+  .dgBarT { font-size:11px; color:#aab3bf; margin-top:6px; } .dgBar { height:8px; border-radius:9px; background:#232b36; overflow:hidden; } .dgBar i { display:block; height:100%; border-radius:9px; }
+  .dgAl { border-radius:9px; padding:8px 10px; margin-top:7px; font-size:11.5px; border:1px solid; } .dgAl b { display:block; margin-bottom:2px; } .dgAl[data-ir] { cursor:pointer; } .dgAl[data-ir]:hover { filter:brightness(1.2); }
+  .dgAl.a1 { border-color:#5c2626; background:#2a1718; color:#ffb3b3; } .dgAl.a1 b { color:#ff6b6b; } .dgAl.a2 { border-color:#5c4420; background:#2a2114; color:#ffd79a; } .dgAl.a2 b { color:#ffb547; }
+  .dgAl.a3 { border-color:#1f3d5c; background:#14202d; color:#a9cdf2; } .dgAl.a3 b { color:#5aa9f0; } .dgAl.a4 { border-color:#1e4d36; background:#13251c; color:#a7e6c4; } .dgAl.a4 b { color:#3fd18b; }
+  .dgChat { background:#151b23; border:1px solid #232b36; border-radius:12px; display:flex; flex-direction:column; min-height:520px; max-height:calc(100vh - 170px); position:sticky; top:12px; }
+  .dgChat h3 { margin:0; padding:11px 14px; font-size:13.5px; border-bottom:1px solid #232b36; display:flex; align-items:center; gap:8px; color:#fff; }
+  .dgChat h3 i { width:24px; height:24px; border-radius:50%; background:#2a1d10; color:#ff8a1f; display:inline-flex; align-items:center; justify-content:center; font-style:normal; }
+  .dgX { margin-left:auto; background:none; border:0; color:#8b95a3; font-size:18px; cursor:pointer; }
+  .dgMsgs { flex:1; overflow:auto; padding:12px; display:flex; flex-direction:column; gap:9px; }
+  .dgMsg { max-width:90%; padding:8px 11px; border-radius:11px; font-size:12.5px; line-height:1.45; } .dgMsg.bot { background:#1d2530; align-self:flex-start; color:#e6e9ee; } .dgMsg.yo { background:#ff7a00; color:#fff; align-self:flex-end; }
+  .dgMsg ul { margin:4px 0 2px; padding-left:16px; } .dgMsg a { color:#ffb36b; }
+  .dgTag { display:inline-block; font-size:10.5px; border-radius:99px; padding:1px 7px; background:#2a1d10; color:#ffb36b; margin:3px 3px 0 0; }
+  .dgChips { display:flex; flex-wrap:wrap; gap:6px; } .dgChip { font-size:11px; border:1px solid #2a3340; border-radius:99px; padding:4px 9px; color:#cfd6df; background:none; cursor:pointer; } .dgChip:hover { border-color:#ff7a00; color:#ffb36b; }
+  .dgChip.m { border-style:dashed; color:#ff8a1f; border-color:#6b3d14; } .dgChip.c { display:inline-flex; gap:4px; padding:0 4px 0 0; } .dgChip.c button { background:none; border:0; color:inherit; font-size:11px; padding:4px 0 4px 9px; cursor:pointer; } .dgChip .dgQuitar { padding-left:4px; color:#8b95a3; }
+  .dgAc { display:flex; flex-direction:column; padding:0 10px; } .dgAcI { text-align:left; background:#0f141b; border:1px solid #232b36; border-bottom:0; color:#dfe4ea; padding:6px 10px; font-size:12px; cursor:pointer; } .dgAcI:last-child { border-bottom:1px solid #232b36; } .dgAcI:hover { background:#1d2530; } .dgAcI span { color:#8b95a3; }
+  .dgIn { display:flex; gap:7px; padding:10px; border-top:1px solid #232b36; } .dgIn input { flex:1; background:#0f141b !important; border:1px solid #ff7a00 !important; border-radius:9px; padding:8px 10px; color:#e6e9ee !important; font-size:12.5px; margin:0; }
+  .dgIn button { width:38px; border:0; border-radius:9px; background:#ff7a00; color:#fff; cursor:pointer; }
+  .dgPie { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; padding:10px 2px; margin-top:12px; border-top:1px solid #232b36; font-size:12px; color:#aab3bf; } .dgPie b { color:#fff; }
+  .dgOk { margin-left:auto; background:#13251c; color:#3fd18b; border:1px solid #1e4d36; border-radius:99px; padding:3px 10px; font-weight:600; } .dgOk.no { background:#2a2114; color:#ffb547; border-color:#5c4420; }
+  #vDash.dgo .dgSvg text { font-family:inherit; }
+  .dgMsgs > * { flex-shrink:0; }
+  .dgPart td:first-child { max-width:0; width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .dgPart td.n { white-space:nowrap; }
+  .dgTabla .dgT td { white-space:nowrap; } .dgTabla .dgT td.or { white-space:normal; min-width:160px; }
+  #vDash.dgo .dgTip { background:#1d2530; color:#e6e9ee; border-color:#2a3340; }
+  @media (max-width:1250px) { .dgR3 { grid-template-columns:1fr 1fr; } .dgR3 > :first-child { grid-column:1 / -1; } }
+  @media (max-width:1000px) { .dgWrap { grid-template-columns:1fr; } .dgChat { position:static; max-height:none; min-height:380px; } .dgR2 { grid-template-columns:1fr; } }
+  @media (max-width:640px) { .dgR3 { grid-template-columns:1fr; } #vDash.dgo { padding:10px; } }
   .inHola { display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin:0 0 16px; } .inHola h2 { margin:0; font-size:24px; letter-spacing:-.02em; } .inHola span { color:var(--gris); }
   .inKpis { display:grid; grid-template-columns:repeat(auto-fill, minmax(186px, 1fr)); gap:14px; margin-bottom:22px; }
   .inKpi { display:block; text-align:left; background:#fff; border:1px solid var(--borde); border-radius:12px; padding:0; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.06); font:inherit; color:inherit; }
@@ -5855,7 +5903,7 @@
       porEmp.forEach((docs, emp) => dashArmar(docs).forEach((x) => {
         if (x.f.t !== 'FA' && x.f.t !== 'NC') return;
         const conObs = x.c && x.c.lineas.length;
-        regs.push({ src: 'L', emp, prov: distDe(x.dist).nombre, y: x.y, m: x.m, t: x.f.t, v: Number(x.f.m) || 0, dev: !!x.dev, reb: x.f.t === 'NC' && !!rebDe(x.f), lab: x.f.t === 'FA' ? may(x.f.l || '', 60) : '', obs: conObs ? x.c.obs : 0, pend: conObs ? pendDe(x.c) : 0, doc: `${x.f.s}-${x.f.n}`, f: x.f.f });
+        regs.push({ src: 'L', emp, prov: distDe(x.dist).nombre, y: x.y, m: x.m, t: x.f.t, v: Number(x.f.m) || 0, dev: !!x.dev, reb: x.f.t === 'NC' && !!rebDe(x.f), lab: x.f.t === 'FA' ? may(x.f.l || '', 60) : '', obs: conObs ? x.c.obs : 0, pend: conObs ? pendDe(x.c) : 0, doc: `${x.f.s}-${x.f.n}`, f: x.f.f, fis: !!x.f.fis, xml: !!x.f.cz, lf: lfOk(x.f) });
       }));
     }
     if (!sc) avisos.push('No se pudo leer Cuentas por pagar: faltan las compras de los demás proveedores.');
@@ -5877,7 +5925,7 @@
           const fe = /^\d{4}-\d{2}-\d{2}$/.test(f.f || '') ? f.f : '';
           if (!fe) return;
           const esF = f.t === 'FACTURA', m = Number(f.m) || 0;
-          regs.push({ src: 'C', emp, prov: f.p || '(SIN PROVEEDOR)', y: +fe.slice(0, 4), m: +fe.slice(5, 7), t: esF ? 'FA' : 'NC', v: esF ? m : -m, dev: esF ? anuladas.has(`${f.p}|${cpDocNorm(f.d)}`) : (!!f.af && anuladas.has(`${f.p}|${cpDocNorm(f.af)}`)), reb: false, lab: '', obs: 0, pend: 0, doc: f.d || '', f: fe, pl: esF && f.v ? cpDias(fe, f.v) : null });
+          regs.push({ fis: !!f.fis, xml: !!f.cz, lf: lfOk(f), src: 'C', emp, prov: f.p || '(SIN PROVEEDOR)', y: +fe.slice(0, 4), m: +fe.slice(5, 7), t: esF ? 'FA' : 'NC', v: esF ? m : -m, dev: esF ? anuladas.has(`${f.p}|${cpDocNorm(f.d)}`) : (!!f.af && anuladas.has(`${f.p}|${cpDocNorm(f.af)}`)), reb: false, lab: '', obs: 0, pend: 0, doc: f.d || '', f: fe, pl: esF && f.v ? cpDias(fe, f.v) : null });
         });
       });
     }
@@ -5937,110 +5985,216 @@
         `<span class="dgN">${esc(x.n)}</span><span class="dgB"><i style="width:${x.v > 0 ? Math.max(1, (x.v / tope) * 100) : 0}%;background:${DG_COL[src]}"></i></span><span class="dgV">${mil(x.v)}</span><span class="dgP">${pc.toFixed(1)}%</span></button>`;
     }).join('') + (lista.length > max ? `<p class="quien" style="margin:6px 0 0">y ${lista.length - max} más por S/ ${mil(r2(lista.slice(max).reduce((s, x) => s + x.v, 0)))} (están completos en el cuadro por trimestre).</p>` : '') + '</div>';
   }
+  /* ---------- Dashboard (oscuro) con el Asistente de consultas en la misma ventana ---------- */
+  const DG_COLS = ['#ff7a00', '#ff9a3d', '#ffb36b', '#5aa9f0', '#7c8cff', '#9b7cff'];
+  const DG_PREG = ['Compras del mes pasado', 'Compras de este año', 'NC pendientes', 'Proveedores que más subieron', 'Facturas sin Lolfar', 'Solo distribuidores'];
+  let dgChat = [{ yo: false, h: 'Pregúntame por compras, NC, observadas o validaciones. El dashboard se filtra con tu consulta.' }], dgVerTodos = false;
+  let dgAsis = true; try { dgAsis = localStorage.getItem('dgAsis') !== '0'; } catch (e) { /* nada */ }
+  const dgNorm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const dgPk = (x) => x.src + '|' + x.prov;
+  const dgTipoProv = (pk) => (pk[0] === 'C' ? 'Cuotas' : (() => { const d = pgCfg.dists.find((z) => z.nombre === pk.slice(2)); const p = d ? modoPago(d) : 'letras'; return p === 'letras' ? 'Letras' : p === 'cuotas' ? 'Cuotas' : p === 'fecha' ? 'Por fecha' : 'Vencimiento'; })());
+  function dgAnt(F) { // periodo anterior al elegido
+    if (F.per[0] === 'M') { const m = +F.per.slice(1); return { y: m === 1 ? F.y - 1 : F.y, ms: [m === 1 ? 12 : m - 1], txt: `${MESES[m === 1 ? 12 : m - 1].toLowerCase()} ${m === 1 ? F.y - 1 : F.y}` }; }
+    if (F.per[0] === 'T') { const q = +F.per[1], pq = q === 1 ? 4 : q - 1, py = q === 1 ? F.y - 1 : F.y; return { y: py, ms: dgMeses('T' + pq), txt: `T${pq} ${py}` }; }
+    return { y: F.y - 1, ms: dgMeses('A'), txt: String(F.y - 1) };
+  }
+  function dgDatos() { // todo lo que muestra el dashboard, con los filtros actuales
+    const F = dg.f, emp = (x) => !F.emp || x.emp === F.emp, src = (x) => !F.src || x.src === F.src;
+    const todo = dg.regs.filter((x) => emp(x) && src(x)), base = F.prov ? todo.filter((x) => dgPk(x) === F.prov) : todo;
+    const ms = dgMeses(F.per), A = dgAnt(F), enPer = (x) => x.y === F.y && ms.includes(x.m), enAnt = (x) => x.y === A.y && A.ms.includes(x.m);
+    const per = base.filter(enPer), ant = base.filter(enAnt), act = dgSuma(per), sAnt = dgSuma(ant);
+    const fa = per.filter((x) => x.t === 'FA' && !x.dev), pctOk = (k) => (fa.length ? Math.round((fa.filter((x) => x[k]).length / fa.length) * 100) : 0);
+    const conf = fa.filter((x) => x.fis && x.xml && x.lf).length;
+    const porProv = new Map(); todo.filter(enPer).forEach((x) => { const k = dgPk(x); if (!porProv.has(k)) porProv.set(k, []); porProv.get(k).push(x); });
+    const antProv = new Map(); todo.filter(enAnt).forEach((x) => { const k = dgPk(x); if (!antProv.has(k)) antProv.set(k, []); antProv.get(k).push(x); });
+    const provs = [...porProv].map(([k, l]) => { const s = dgSuma(l), a = dgSuma(antProv.get(k) || []); return { k, nom: k.slice(2), s, v: dgVal(s), a: dgVal(a), pct: dgVal(a) ? ((dgVal(s) - dgVal(a)) / Math.abs(dgVal(a))) * 100 : null }; })
+      .filter((p) => p.s.n || p.s.ncN).sort((a, b) => b.v - a.v);
+    const mesV = (y) => { const o = []; for (let m = 1; m <= 12; m += 1) o.push(dgVal(dgSuma(base.filter((x) => x.y === y && x.m === m)))); return o; };
+    return { F, A, base, per, act, sAnt, fa, conf, pct: { fis: pctOk('fis'), xml: pctOk('xml'), lf: pctOk('lf') }, provs, mesAct: mesV(F.y), mesAnt: mesV(F.y - 1) };
+  }
+  const dgPctTxt = (v) => (v === null || !isFinite(v) ? '' : `<em class="${v >= 0 ? '' : 'm'}">${v >= 0 ? '▲' : '▼'} ${Math.abs(v).toFixed(1)}%</em>`);
+  const dgAro = (p, col) => `<svg width="44" height="44" viewBox="0 0 42 42" aria-hidden="true"><circle cx="21" cy="21" r="16" fill="none" stroke="#232b36" stroke-width="5"/><circle cx="21" cy="21" r="16" fill="none" stroke="${col}" stroke-width="5" stroke-dasharray="${Math.max(0, Math.min(100, p)).toFixed(1)} ${(100 - Math.max(0, Math.min(100, p))).toFixed(1)}" stroke-dashoffset="25" pathLength="100" stroke-linecap="round"/></svg>`;
+  function dgArea(D) { // evolución mensual del año (línea) y año anterior (punteada); clic en un mes = filtrar ese mes
+    const W = 520, H = 190, max = Math.max(1, ...D.mesAct, ...D.mesAnt), X = (i) => 14 + i * ((W - 28) / 11), Y = (v) => H - 24 - (Math.max(0, v) / max) * (H - 50);
+    const hasta = D.F.y === +hoy().slice(0, 4) ? +hoy().slice(5, 7) : 12, act = D.mesAct.slice(0, hasta);
+    const linea = (arr) => arr.map((v, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
+    const selM = D.F.per[0] === 'M' ? +D.F.per.slice(1) : 0;
+    let h = `<svg class="dgSvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolución mensual">` + [0.25, 0.5, 0.75].map((f) => `<line x1="0" x2="${W}" y1="${(H - 24 - f * (H - 50)).toFixed(1)}" y2="${(H - 24 - f * (H - 50)).toFixed(1)}" stroke="#232b36"/>`).join('') +
+      '<defs><linearGradient id="dgG1" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ff7a00" stop-opacity=".45"/><stop offset="1" stop-color="#ff7a00" stop-opacity="0"/></linearGradient></defs>' +
+      `<path d="${linea(D.mesAnt)}" fill="none" stroke="#5aa9f0" stroke-width="2" stroke-dasharray="6 5"/>` +
+      (act.length ? `<path d="${linea(act)} L${X(act.length - 1).toFixed(1)},${H - 24} L${X(0)},${H - 24}Z" fill="url(#dgG1)"/><path d="${linea(act)}" fill="none" stroke="#ff7a00" stroke-width="3"/>` : '');
+    for (let i = 0; i < 12; i += 1) {
+      const sel = selM === i + 1;
+      h += `<text x="${X(i).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="10.5" fill="${sel ? '#ff9a3d' : '#8b95a3'}"${sel ? ' font-weight="700"' : ''}>${MESES[i + 1].slice(0, 3).toLowerCase()}</text>`;
+      if (sel && i < act.length) h += `<circle cx="${X(i).toFixed(1)}" cy="${Y(act[i]).toFixed(1)}" r="5" fill="#ff7a00"/><text x="${X(i).toFixed(1)}" y="${(Y(act[i]) - 10).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">${dgCorto(act[i])}</text>`;
+      h += `<rect class="dgHit" tabindex="0" data-act="per:M${i + 1}" x="${(X(i) - 20).toFixed(1)}" y="0" width="40" height="${H}" fill="transparent" data-tip="${esc(`<b>${MESES[i + 1]} ${D.F.y}</b><br>S/ ${mil(D.mesAct[i])}<br><span style='color:#8b95a3'>${D.F.y - 1}: S/ ${mil(D.mesAnt[i])}</span>`)}"/>`;
+    }
+    return h + '</svg>';
+  }
+  function dgBarrasTop(D) {
+    const top = D.provs.slice(0, 6), max = Math.max(1, ...top.map((p) => p.v)), W = 360, H = 190, ancho = (W - 20) / Math.max(top.length, 1);
+    if (!top.length) return '<p class="dgS">Sin compras en el periodo.</p>';
+    return `<svg class="dgSvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Compras por proveedor">` + top.map((p, i) => {
+      const h = Math.max(4, (p.v / max) * (H - 50)), x = 10 + i * ancho + ancho * 0.18, w = ancho * 0.64, y = H - 22 - h;
+      return `<g class="dgHit" tabindex="0" data-act="prov:${esc(p.k)}" data-tip="${esc(`<b>${p.nom}</b><br>S/ ${mil(p.v)} · ${p.s.n} facturas`)}"><rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="5" fill="${DG_COLS[i]}"${D.F.prov && D.F.prov !== p.k ? ' opacity=".35"' : ''}/>` +
+        `<text x="${(x + w / 2).toFixed(1)}" y="${(y - 6).toFixed(1)}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#fff">${dgCorto(p.v)}</text>` +
+        `<text x="${(x + w / 2).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="9.5" fill="#8b95a3">${esc(p.nom.replace(/^(DROGUERIA|DISTRIBUIDORA|REPRESENTACIONES|LABORATORIOS|DROGUERIAS)\s+/, '').split(/\s+/)[0].slice(0, 10))}</text></g>`;
+    }).join('') + '</svg>';
+  }
+  function dgAlertas(D) {
+    const al = [], pend = D.fa.filter((x) => x.pend > 0.05), sinLf = D.fa.filter((x) => !x.lf), dev = D.per.filter((x) => x.t === 'FA' && x.dev), nx = Number($('nXml').textContent) || 0;
+    if (pend.length) al.push(['a1', `⚠ ${pend.length} FACTURA(S) CON NC PENDIENTE`, `S/ ${mil(r2(pend.reduce((s, x) => s + x.pend, 0)))} · ${unicos(pend.map((x) => x.prov)).slice(0, 3).join(', ')}`, 'vPagosObs']);
+    if (sinLf.length) al.push(['a2', `⏳ ${sinLf.length} FACTURA(S) SIN ✓ LOLFAR`, `de ${D.fa.length} del periodo · sube el reporte en Ingreso de facturas`, 'vPagos']);
+    if (nx) al.push(['a3', `✉ ${nx} XML NUEVO(S) POR CORREO`, 'Revísalos en el Lector de XML', 'vXml']);
+    if (dev.length) al.push(['a2', `↩ ${dev.length} DEVOLUCIÓN(ES) TOTAL(ES)`, `S/ ${mil(r2(dev.reduce((s, x) => s + x.v, 0)))} · no suman a la compra neta`, '']);
+    al.push(['a4', `✓ ${D.conf} DE ${D.fa.length} FACTURAS CONFORMES`, 'Con física, XML y Lolfar', '']);
+    return al.map(([c, t, d, ir]) => `<div class="dgAl ${c}"${ir ? ` data-ir="${ir}" role="button" tabindex="0"` : ''}><b>${esc(t)}</b>${esc(d)}</div>`).join('');
+  }
+  function dgChatPintar() {
+    const caja = $('dgMsgs'); if (!caja) return;
+    const extra = (listas.preguntas || []).filter(Boolean), adm = yo && yo.area === 'ADMIN';
+    caja.innerHTML = dgChat.map((m) => `<div class="dgMsg ${m.yo ? 'yo' : 'bot'}">${m.h}</div>`).join('') +
+      `<div class="dgChips">${DG_PREG.map((p) => `<button type="button" class="dgChip" data-q="${esc(p)}">${esc(p)}</button>`).join('')}${extra.map((p) => `<span class="dgChip c"><button type="button" data-q="${esc(p)}">${esc(p)}</button>${adm ? `<button type="button" class="dgQuitar" data-x="${esc(p)}" title="Quitar">×</button>` : ''}</span>`).join('')}${adm ? '<button type="button" class="dgChip m" id="dgMasP">+ Agregar</button>' : ''}</div>`;
+    caja.scrollTop = caja.scrollHeight;
+  }
+  const DG_MESN = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
+  const DG_GEN = new Set(['drogueria', 'droguerias', 'distribuidora', 'distribuidores', 'distribuciones', 'representaciones', 'laboratorios', 'laboratorio', 'peru', 'sac', 'eirl', 'srl', 'internacional', 'corporacion', 'productos', 'farmaceutica', 'pharma', 'farma', 'medic', 'group']);
+  function dgEntender(txt) { // texto libre → filtros e intención (sin inteligencia artificial: proveedores, meses y palabras clave)
+    const t = dgNorm(txt), F = { ...dg.f }, tags = [], hoyY = +hoy().slice(0, 4), hoyM = +hoy().slice(5, 7);
+    let prov = null;
+    unicos(dg.regs.map(dgPk)).forEach((pk) => {
+      const pal = dgNorm(pk.slice(2)).split(/[^a-z0-9]+/).filter((w) => w.length >= 4 && !DG_GEN.has(w)), hit = pal.filter((w) => new RegExp(`\\b${w}`).test(t)).length;
+      if (hit && (!prov || hit > prov.h || (hit === prov.h && dg.regs.filter((x) => dgPk(x) === pk).length > prov.n))) prov = { pk, h: hit, n: dg.regs.filter((x) => dgPk(x) === pk).length };
+    });
+    if (prov) { F.prov = prov.pk; F.src = ''; tags.push('Proveedor: ' + prov.pk.slice(2)); }
+    else if (/\b(todos|general|todas|quitar filtro|sin filtro)\b/.test(t)) { F.prov = ''; tags.push('Todos los proveedores'); }
+    const ym = t.match(/\b(20\d\d)\b/); if (ym) F.y = +ym[1];
+    let mi = DG_MESN.findIndex((m) => t.includes(m) || (m === 'setiembre' && t.includes('septiembre')));
+    if (/mes pasado|mes anterior/.test(t)) { mi = hoyM === 1 ? 11 : hoyM - 2; if (!ym) F.y = hoyM === 1 ? hoyY - 1 : hoyY; }
+    else if (/este mes|mes actual/.test(t)) { mi = hoyM - 1; if (!ym) F.y = hoyY; }
+    const tq = t.match(/\b(?:trimestre\s*|t)([1-4])\b/);
+    if (mi >= 0) { F.per = 'M' + (mi + 1); if (!ym && !/mes pasado|mes anterior|este mes/.test(t)) F.y = (mi + 1) > hoyM ? hoyY - 1 : hoyY; tags.push(`Mes: ${DG_MESN[mi]} ${F.y}`); }
+    else if (tq) { F.per = 'T' + tq[1]; tags.push(`Trimestre ${tq[1]} ${F.y}`); }
+    else if (/\b(ano|anual|este ano|del ano)\b/.test(t)) { F.per = 'A'; if (!ym && /este ano/.test(t)) F.y = hoyY; tags.push(`Año ${F.y}`); }
+    else if (ym) tags.push(`Año ${F.y}`);
+    if (/distribuidor|letras/.test(t)) { F.src = 'L'; if (F.prov && F.prov[0] !== 'L') F.prov = ''; tags.push('Distribuidores'); } else if (/cuotas|grupos/.test(t)) { F.src = 'C'; if (F.prov && F.prov[0] !== 'C') F.prov = ''; tags.push('Proveedores en cuotas'); }
+    const quiere = /pendiente|falta.*nc|nc.*falta|sin nc/.test(t) ? 'pend' : /subieron|subio|aument|crec/.test(t) ? 'sube' : /bajaron|bajo|dismin/.test(t) ? 'baja' : /lolfar/.test(t) ? 'lf' : /\bxml\b/.test(t) ? 'xml' : /fisica/.test(t) ? 'fis' : /devoluc/.test(t) ? 'dev' : /\b(top|mayores|mas compr|principales|ranking)\b/.test(t) ? 'top' : /\bnc\b|notas? de credito/.test(t) ? 'nc' : 'compras';
+    const nombres = { pend: 'NC pendientes', sube: 'Los que más subieron', baja: 'Los que más bajaron', lf: 'Sin Lolfar', xml: 'Sin XML', fis: 'Sin revisión física', dev: 'Devoluciones totales', top: 'Ranking', nc: 'Notas de crédito', compras: 'Compras' };
+    tags.push('Reporte: ' + nombres[quiere]);
+    const entendio = !!(prov || mi >= 0 || tq || ym || quiere !== 'compras' || /compr|todos|general|distribuidor|cuotas|ano/.test(t));
+    return { F, tags, quiere, entendio };
+  }
+  function dgResponder(txt) {
+    const q = String(txt || '').trim(); if (!q) return;
+    dgChat.push({ yo: true, h: esc(q) });
+    if (!dg.regs) { dgChat.push({ yo: false, h: 'Espera un momento, aún estoy cargando las compras.' }); return dgChatPintar(); }
+    const E = dgEntender(q);
+    if (!E.entendio) { dgChat.push({ yo: false, h: 'No te entendí. Prueba con un proveedor, un mes o una de estas: <i>compras de dimexa en setiembre</i>, <i>NC pendientes</i>, <i>proveedores que más subieron</i>.' }); return dgChatPintar(); }
+    dg.f = E.F; dgVerTodos = false;
+    const D = dgDatos(), per = dgPerTxt(D.F.per, D.F.y).toLowerCase(), quien = D.F.prov ? D.F.prov.slice(2) : 'todos los proveedores', lst = (a) => `<ul>${a.join('')}</ul>`;
+    let r = `Entendí:<br>${E.tags.map((x) => `<span class="dgTag">${esc(x)}</span>`).join('')}<br>`;
+    const fa = D.fa;
+    if (E.quiere === 'pend') { const l = fa.filter((x) => x.pend > 0.05).sort((a, b) => b.pend - a.pend); r += l.length ? `${l.length} factura(s) con NC pendiente por <b>S/ ${mil(r2(l.reduce((s, x) => s + x.pend, 0)))}</b>:` + lst(l.slice(0, 6).map((x) => `<li>${esc(x.doc)} · ${esc(x.prov)} · S/ ${mil(x.pend)}</li>`)) + 'El detalle está en <a href="#" data-ir="vPagosObs">Observaciones</a>.' : 'No hay NC pendientes en ese periodo. ✓'; }
+    else if (E.quiere === 'sube' || E.quiere === 'baja') { const l = D.provs.filter((p) => p.pct !== null).sort((a, b) => (E.quiere === 'sube' ? b.pct - a.pct : a.pct - b.pct)).slice(0, 5); r += l.length ? `Comparado con ${esc(D.A.txt)}:` + lst(l.map((p) => `<li>${esc(p.nom)} · ${p.pct >= 0 ? '▲' : '▼'} ${Math.abs(p.pct).toFixed(1)}% · S/ ${mil(p.v)}</li>`)) : 'No hay datos del periodo anterior para comparar.'; }
+    else if (E.quiere === 'lf' || E.quiere === 'xml' || E.quiere === 'fis') { const k = E.quiere, l = fa.filter((x) => !x[k]); r += `${l.length} de ${fa.length} factura(s) sin ${k === 'lf' ? '✓ Lolfar' : k === 'xml' ? '✓ XML' : 'revisión física'}` + (l.length ? ':' + lst(l.slice(0, 6).map((x) => `<li>${esc(x.doc)} · ${esc(x.prov)} · S/ ${mil(x.v)}</li>`)) : '. ✓'); }
+    else if (E.quiere === 'dev') { const l = D.per.filter((x) => x.t === 'FA' && x.dev); r += l.length ? `${l.length} devolución(es) total(es) por S/ ${mil(r2(l.reduce((s, x) => s + x.v, 0)))}:` + lst(l.slice(0, 6).map((x) => `<li>${esc(x.doc)} · ${esc(x.prov)}</li>`)) : 'No hay devoluciones totales en ese periodo.'; }
+    else if (E.quiere === 'top') r += 'Los que más se compraron:' + lst(D.provs.slice(0, 5).map((p, i) => `<li>${i + 1}. ${esc(p.nom)} · S/ ${mil(p.v)}</li>`));
+    else r += `${esc(quien)} · ${esc(per)}: compras <b>S/ ${mil(D.act.comprasT)}</b> (${D.act.n} facturas), compra neta <b>S/ ${mil(D.act.neta)}</b>, NC S/ ${mil(D.act.ncN)}` + (dgVal(D.sAnt) ? ` · ${dgVal(D.act) >= dgVal(D.sAnt) ? '▲' : '▼'} ${Math.abs(((dgVal(D.act) - dgVal(D.sAnt)) / Math.abs(dgVal(D.sAnt))) * 100).toFixed(1)}% vs ${esc(D.A.txt)}` : '') + '.';
+    dgChat.push({ yo: false, h: r + '<br><span class="dgS">El dashboard ya está filtrado →</span>' });
+    if (dgChat.length > 40) dgChat = dgChat.slice(-40);
+    dgPintar();
+  }
+  function dgSugerir() { // mientras escribes: proveedores, meses y palabras clave que empiezan igual
+    const inp = $('dgIn'), caja = $('dgAc'); if (!inp || !caja) return;
+    const ult = dgNorm(inp.value).split(/\s+/).pop() || '';
+    if (ult.length < 2 || !dg.regs) { caja.innerHTML = ''; return; }
+    const provs = unicos(dg.regs.map((x) => x.prov)).filter((p) => dgNorm(p).split(/[^a-z0-9]+/).some((w) => w.startsWith(ult))).slice(0, 3).map((p) => ['🏷', p, 'proveedor']);
+    const meses = DG_MESN.filter((m) => m.startsWith(ult)).slice(0, 2).map((m) => ['📅', m, 'mes']);
+    const pal = ['compras', 'nc pendientes', 'lolfar', 'xml', 'devoluciones', 'distribuidores', 'cuotas', 'subieron', 'top'].filter((w) => w.startsWith(ult) && w !== ult).slice(0, 2).map((w) => ['📄', w, 'reporte']);
+    const l = provs.concat(meses, pal).slice(0, 5);
+    caja.innerHTML = l.map(([i, v, t]) => `<button type="button" class="dgAcI" data-v="${esc(v)}">${i} ${esc(v)} <span>· ${t}</span></button>`).join('');
+  }
   function dgPintar() {
     const caja = $('dgCont');
+    $('vDash').classList.add('dgo');
     if (!dg.regs) {
       if (dg.cargando) return;
-      dg.cargando = true; caja.innerHTML = '<p class="resumen">Cargando las compras de todas las empresas…</p>';
+      dg.cargando = true; caja.innerHTML = '<p class="dgS" style="padding:20px">Cargando las compras de todas las empresas…</p>';
       dgCargar().then(() => { dgPintar(); }, (e) => { dg.cargando = false; caja.innerHTML = `<div class="msg err">${esc(errorTexto(e))}</div>`; });
       return;
     }
-    const fa = dg.regs.filter((x) => x.t === 'FA');
-    if (!fa.length) { $('dgFiltros').innerHTML = ''; caja.innerHTML = (dg.avisos.length ? `<div class="msg err">${dg.avisos.map(esc).join(' ')}</div>` : '') + '<div class="caja"><p class="resumen" style="margin:0">Aún no hay compras registradas.</p></div>'; return; }
-    const anios = unicos(fa.map((x) => x.y)).filter((a) => a >= 2015 && a <= +hoy().slice(0, 4) + 1).sort((a, b) => b - a);
-    if (!dg.f) { const ult = fa.filter((x) => x.f <= hoy()).sort((a, b) => String(b.f).localeCompare(String(a.f)))[0] || fa[0]; dg.f = { emp: '', y: ult.y, per: 'A', src: '', modo: 'neto', prov: '' }; }
+    const fa0 = dg.regs.filter((x) => x.t === 'FA');
+    if (!fa0.length) { $('dgFiltros').innerHTML = ''; caja.innerHTML = (dg.avisos.length ? `<div class="msg err">${dg.avisos.map(esc).join(' ')}</div>` : '') + '<p class="dgS" style="padding:20px">Aún no hay compras registradas.</p>'; return; }
+    const anios = unicos(fa0.map((x) => x.y)).filter((a) => a >= 2015 && a <= +hoy().slice(0, 4) + 1).sort((a, b) => b - a);
+    if (!dg.f) { const ult = fa0.filter((x) => x.f <= hoy()).sort((a, b) => String(b.f).localeCompare(String(a.f)))[0] || fa0[0]; dg.f = { emp: '', y: ult.y, per: 'M' + ult.m, src: '', modo: 'neto', prov: '' }; }
     const F = dg.f, op = (v, t, sel) => `<option value="${esc(v)}"${String(sel) === String(v) ? ' selected' : ''}>${esc(t)}</option>`;
-    $('dgFiltros').innerHTML =
+    if (!anios.includes(F.y)) anios.unshift(F.y);
+    const provsAll = unicos(dg.regs.filter((x) => (!F.emp || x.emp === F.emp) && (!F.src || x.src === F.src)).map(dgPk)).sort((a, b) => a.slice(2).localeCompare(b.slice(2)));
+    $('dgFiltros').innerHTML = `<div class="dgTit"><h2>Dashboard de compras · ${esc(dgPerTxt(F.per, F.y))}</h2><small>${F.emp ? esc(CP_EMP.find((e) => e.k === F.emp).nombre) : 'Todas las empresas'} · ${F.src === 'L' ? 'Distribuidores' : F.src === 'C' ? 'Proveedores en cuotas' : 'Distribuidores y proveedores en cuotas'} · ${F.modo === 'neto' ? 'Compra neta' : 'Compras totales'}</small></div>` +
       `<select id="dgEmp" aria-label="Empresa">${op('', 'Todas las empresas', F.emp)}${CP_EMP.map((e) => op(e.k, e.nombre, F.emp)).join('')}</select>` +
       `<select id="dgAnio" aria-label="Año">${anios.map((a) => op(a, a, F.y)).join('')}</select>` +
-      `<select id="dgPer" aria-label="Periodo">${op('A', 'Todo el año', F.per)}${[1, 2, 3, 4].map((q) => op('T' + q, `Trimestre ${q} (${dgMeses('T' + q).map((m) => MESES[m].slice(0, 3)).join('–')})`, F.per)).join('')}${MESES.slice(1).map((n, i) => op('M' + (i + 1), n, F.per)).join('')}</select>` +
-      `<select id="dgSrc" aria-label="Tipo de proveedor">${op('', 'Letras y cuentas por pagar', F.src)}${op('L', 'Solo letras · distribuidores', F.src)}${op('C', 'Solo cuentas por pagar', F.src)}</select>` +
-      `<select id="dgModo" aria-label="Qué monto mostrar">${op('neto', 'Compra NETA (sin devoluciones totales, menos NC)', F.modo)}${op('total', 'Compras TOTALES (todo lo facturado)', F.modo)}</select>` +
-      '<button id="dgAct">Actualizar</button>';
-    const emp = (x) => !F.emp || x.emp === F.emp, src = (x) => !F.src || x.src === F.src, pk = (x) => x.src + '|' + x.prov;
-    const todo = dg.regs.filter((x) => emp(x) && src(x)), base = F.prov ? todo.filter((x) => pk(x) === F.prov) : todo;
-    const ms = dgMeses(F.per), enPer = (x, y) => x.y === (y || F.y) && ms.includes(x.m);
-    const act = dgSuma(base.filter((x) => enPer(x))), aL = dgSuma(base.filter((x) => enPer(x) && x.src === 'L')), aC = dgSuma(base.filter((x) => enPer(x) && x.src === 'C'));
-    // comparaciones: periodo anterior y mismo periodo del año anterior
-    let antL = null, antTxt = '';
-    if (F.per[0] === 'T') { const q = +F.per[1], pq = q === 1 ? 4 : q - 1, py = q === 1 ? F.y - 1 : F.y, mm = dgMeses('T' + pq); antL = base.filter((x) => x.y === py && mm.includes(x.m)); antTxt = `T${pq} ${py}`; }
-    else if (F.per[0] === 'M') { const m = +F.per.slice(1), pm = m === 1 ? 12 : m - 1, py = m === 1 ? F.y - 1 : F.y; antL = base.filter((x) => x.y === py && x.m === pm); antTxt = `${MESES[pm].toLowerCase()} ${py}`; }
-    const ant = antL ? dgSuma(antL) : null, anio = dgSuma(base.filter((x) => enPer(x, F.y - 1)));
-    const pct = (a, b) => (b ? ((a - b) / Math.abs(b)) * 100 : null);
-    const vari = (v) => (v === null ? '<strong>—</strong>' : `<strong class="${v >= 0 ? 'sube' : 'baja'}">${v >= 0 ? '▲ +' : '▼ −'}${Math.abs(v).toFixed(1)}%</strong>`);
-    const k = (t, v, sub, dest) => `<div class="kpi"${dest ? ' style="border-color:var(--marca);background:var(--suave)"' : ''}><b>${t}</b>${v}<small>${sub}</small></div>`;
-    const S = (v) => `<strong>S/ ${mil(v)}</strong>`, valTxt = F.modo === 'neto' ? 'compra neta' : 'compras totales';
-    const provs = unicos(base.filter((x) => enPer(x) && x.t === 'FA').map(pk));
-    const part = (o) => { const t = dgVal(act); return t > 0 ? ((dgVal(o) / t) * 100).toFixed(1) + '%' : '—'; };
-    let h = (dg.avisos.length ? `<div class="msg err">${dg.avisos.map(esc).join(' ')}</div>` : '') +
-      (F.prov ? `<div class="dgChip">Viendo solo: <b>${esc(F.prov.slice(2))}</b> (${DG_NOM[F.prov[0]]}) <button class="mini" data-act="prov:">✕ Quitar filtro</button></div>` : '') +
-      `<h3 class="sub">${esc(dgPerTxt(F.per, F.y))} · ${F.emp ? esc(CP_EMP.find((e) => e.k === F.emp).nombre) : 'todas las empresas'}</h3><div class="kpis">` +
-      k('Compras totales', S(act.comprasT), `${act.n} facturas · todo lo facturado`) +
-      k('Devoluciones totales', S(act.mDev), `${act.nDev} factura(s) anuladas por completo, no suman`) +
-      k('Compras netas', S(act.comprasN), 'sin las devoluciones totales', true) +
-      k('Notas de crédito', `<strong class="baja">S/ ${mil(act.ncN)}</strong>`, `${act.comprasN ? ((Math.abs(act.ncN) / act.comprasN) * 100).toFixed(1) : '0.0'}% de las compras netas${act.rb ? ' · aparte, rebates S/ ' + mil(act.rb) : ''}`) +
-      k('Compra neta', S(act.neta), 'compras netas menos NC', true) + '</div><div class="kpis">' +
-      k('Letras · distribuidores', S(dgVal(aL)), `${part(aL)} de la ${valTxt} · ${aL.n} facturas`) +
-      k('Cuentas por pagar', S(dgVal(aC)), `${part(aC)} de la ${valTxt} · ${aC.n} facturas`) +
-      (ant ? k('Vs periodo anterior', vari(pct(dgVal(act), dgVal(ant))), `${antTxt}: S/ ${mil(dgVal(ant))}`) : '') +
-      k('Vs año anterior', vari(pct(dgVal(act), dgVal(anio))), `mismo periodo de ${F.y - 1}: S/ ${mil(dgVal(anio))}`) +
-      k('Proveedores con compras', `<strong>${provs.length}</strong>`, `factura promedio S/ ${mil(act.n ? r2(act.comprasT / act.n) : 0)}`) + '</div>';
-
-    // Evolución mensual y trimestres del año elegido
-    const delAnio = base.filter((x) => x.y === F.y), prev = base.filter((x) => x.y === F.y - 1), series = F.src ? [F.src] : ['L', 'C'];
-    const corte = (lista, mm) => { const o = {}; ['L', 'C'].forEach((s2) => { o[s2] = dgSuma(lista.filter((x) => mm.includes(x.m) && x.src === s2)); }); o.T = dgSuma(lista.filter((x) => mm.includes(x.m))); return o; };
-    const tipDe = (tit, c, cp) => dgTip(tit, series.map((s2) => [DG_NOM[s2], 'S/ ' + mil(dgVal(c[s2])), DG_COL[s2]]).concat([[F.modo === 'neto' ? 'Compra neta' : 'Compras totales', 'S/ ' + mil(dgVal(c.T))], ['Compras totales', 'S/ ' + mil(c.T.comprasT)], ['Devoluciones totales', c.T.nDev ? `${c.T.nDev} · S/ ${mil(c.T.mDev)}` : '—'], ['NC', 'S/ ' + mil(c.T.ncN)], [`En ${F.y - 1}`, 'S/ ' + mil(dgVal(cp.T))]]));
-    const cm = [], cq = [];
-    for (let m = 1; m <= 12; m += 1) { const c = corte(delAnio, [m]); cm.push({ c, nombre: MESES[m].slice(0, 3), sel: F.per === 'M' + m, act: 'per:M' + m, tip: tipDe(`${MESES[m]} ${F.y}`, c, corte(prev, [m])), vals: { L: dgVal(c.L), C: dgVal(c.C) } }); }
-    for (let q = 1; q <= 4; q += 1) { const mm = dgMeses('T' + q), c = corte(delAnio, mm); cq.push({ c, nombre: `T${q} · ${mm.map((m) => MESES[m].slice(0, 3)).join('–')}`, sel: F.per === 'T' + q, act: 'per:T' + q, tip: tipDe(`Trimestre ${q} de ${F.y}`, c, corte(prev, mm)), vals: { L: dgVal(c.L), C: dgVal(c.C) } }); }
-    const tablaMes = '<details class="dgDet"><summary>Ver estos datos en tabla</summary><div class="tabla"><table><tr><th>Mes</th><th class="num">Compras totales</th><th class="num">Dev. totales</th><th class="num">Compras netas</th><th class="num">NC</th><th class="num">Compra neta</th><th class="num">Letras</th><th class="num">Cuentas por pagar</th></tr>' +
-      cm.map((x, i) => `<tr><td>${MESES[i + 1]}</td><td class="num">${mil(x.c.T.comprasT)}</td><td class="num">${x.c.T.nDev ? mil(x.c.T.mDev) : '—'}</td><td class="num">${mil(x.c.T.comprasN)}</td><td class="num">${mil(x.c.T.ncN)}</td><td class="num"><b>${mil(x.c.T.neta)}</b></td><td class="num">${mil(dgVal(x.c.L))}</td><td class="num">${mil(dgVal(x.c.C))}</td></tr>`).join('') + '</table></div></details>';
-    h += '<div class="dgDos"><div class="caja dgCaja"><h3 class="sub">Evolución mensual ' + F.y + ' · ' + valTxt + '</h3>' + (series.length > 1 ? dgLeyenda(series) : '') + dgBarras(cm, series, false) + '<p class="quien">Clic en un mes para ver solo ese mes; clic de nuevo para volver al año.</p>' + tablaMes + '</div>' +
-      '<div class="caja dgCaja"><h3 class="sub">Por trimestre ' + F.y + ' · letras y cuentas por pagar por separado</h3>' + (series.length > 1 ? dgLeyenda(series) : '') + dgBarras(cq, series, true) + '<p class="quien">Clic en un trimestre para filtrar todo el tablero.</p></div></div>';
-
-    // Proveedores del periodo, cada tipo por separado (no depende del proveedor elegido)
-    const rank = (s2) => { const m = new Map(); todo.filter((x) => enPer(x) && x.src === s2).forEach((x) => { if (!m.has(x.prov)) m.set(x.prov, []); m.get(x.prov).push(x); }); return [...m].map(([n, l]) => { const o = dgSuma(l); return { k: s2 + '|' + n, n, o, v: dgVal(o) }; }).sort((a, b) => b.v - a.v); };
-    const rk = { L: rank('L'), C: rank('C') }, totR = (s2) => r2(rk[s2].reduce((s, x) => s + x.v, 0));
-    h += '<div class="dgDos">' + series.map((s2) => `<div class="caja dgCaja"><h3 class="sub">${DG_NOM[s2]} · ${esc(dgPerTxt(F.per, F.y))} · S/ ${mil(totR(s2))}</h3>${dgRanking(rk[s2], totR(s2), s2, 12)}<p class="quien">Clic en un proveedor para ver su evolución y sus trimestres.</p></div>`).join('') + '</div>';
-
-    // Cuadro proveedor × trimestre
-    const trimDe = (s2) => { const m = new Map(); todo.filter((x) => x.y === F.y && x.src === s2).forEach((x) => { if (!m.has(x.prov)) m.set(x.prov, []); m.get(x.prov).push(x); }); return [...m].map(([n, l]) => ({ n, q: [1, 2, 3, 4].map((q) => dgVal(dgSuma(l.filter((x) => dgMeses('T' + q).includes(x.m))))), t: dgVal(dgSuma(l)) })).sort((a, b) => b.t - a.t); };
-    dg.cuadro = [];
-    let tq = '<tr><th>Proveedor</th><th class="num">T1 · ENE–MAR</th><th class="num">T2 · ABR–JUN</th><th class="num">T3 · JUL–SET</th><th class="num">T4 · OCT–DIC</th><th class="num">Total ' + F.y + '</th><th class="num">%</th></tr>';
-    const gen = [0, 0, 0, 0, 0];
-    series.forEach((s2) => {
-      const l = trimDe(s2), st = [0, 1, 2, 3].map((i) => r2(l.reduce((s, x) => s + x.q[i], 0))), tt = r2(l.reduce((s, x) => s + x.t, 0));
-      tq += `<tr class="dgGrupo"><td colspan="7"><i style="background:${DG_COL[s2]}"></i>${DG_NOM[s2].toUpperCase()}</td></tr>`;
-      l.forEach((x) => { tq += `<tr${F.prov === s2 + '|' + x.n ? ' class="hoy"' : ''}><td><button type="button" class="dgLink" data-act="prov:${esc(s2 + '|' + x.n)}">${esc(x.n)}</button></td>${x.q.map((v) => `<td class="num">${v ? mil(v) : '—'}</td>`).join('')}<td class="num"><b>${mil(x.t)}</b></td><td class="num">${tt > 0 ? ((x.t / tt) * 100).toFixed(1) : '0.0'}%</td></tr>`; dg.cuadro.push([DG_NOM[s2], x.n, ...x.q, x.t]); });
-      tq += `<tr class="tot"><td>Subtotal ${DG_NOM[s2].toLowerCase()}</td>${st.map((v) => `<td class="num">${mil(v)}</td>`).join('')}<td class="num">${mil(tt)}</td><td class="num">100.0%</td></tr>`;
-      st.forEach((v, i) => { gen[i] += v; }); gen[4] += tt; dg.cuadro.push([DG_NOM[s2], 'SUBTOTAL', ...st, tt]);
-    });
-    if (series.length > 1) { tq += `<tr class="tot"><td>TOTAL GENERAL</td>${gen.map((v) => `<td class="num">${mil(r2(v))}</td>`).join('')}<td></td></tr>`; dg.cuadro.push(['TOTAL GENERAL', '', ...gen.map(r2)]); }
-    h += `<div class="herr" style="margin-top:6px"><h3 class="sub" style="margin:0">Compra por proveedor y trimestre · ${F.y} · ${valTxt}</h3><span style="flex:1"></span><button id="dgXls">Descargar Excel</button></div><div class="tabla">` + `<table>${tq}</table></div>`;
-
-    // Más información: empresas, laboratorios, concentración, observados, rebate, plazo
-    const perL = todo.filter((x) => enPer(x)), todosR = rk.L.concat(F.src === 'L' ? [] : rk.C).concat([]).filter((x) => !F.src || x.k[0] === F.src).sort((a, b) => b.v - a.v), tR = r2(todosR.reduce((s, x) => s + x.v, 0));
-    const top5 = r2(todosR.slice(0, 5).reduce((s, x) => s + x.v, 0)), sL = dgSuma(perL.filter((x) => x.src === 'L')), sC = dgSuma(perL.filter((x) => x.src === 'C'));
-    h += '<h3 class="sub">Más información del periodo</h3><div class="kpis">' +
-      k('Concentración', `<strong>${tR > 0 ? ((top5 / tR) * 100).toFixed(1) : '0.0'}%</strong>`, `de la ${valTxt} está en los 5 primeros proveedores`) +
-      (F.src !== 'C' ? k('Observado en distribuidores', S(sL.obs), `pendiente de NC: S/ ${mil(sL.pend)}`) : '') +
-      (F.src !== 'C' ? k(`Rebate ${(REBATE * 100).toFixed(0)}% estimado`, S(r2(sL.neta * REBATE)), `sobre la compra neta de distribuidores${sL.rb ? ' · NC de rebate recibidas S/ ' + mil(sL.rb) : ''}`) : '') +
-      (F.src !== 'L' ? k('Plazo promedio de pago', `<strong>${sC.plB > 0 ? Math.round(sC.plS / sC.plB) + ' días' : '—'}</strong>`, 'cuentas por pagar, ponderado por importe') : '') + '</div><div class="dgDos">';
-    if (!F.emp) {
-      const es = CP_EMP.map((e) => ({ e, o: dgSuma(dg.regs.filter((x) => x.emp === e.k && src(x) && enPer(x))) })), mx = Math.max(1, ...es.map((x) => dgVal(x.o))), te = es.reduce((s, x) => s + Math.max(0, dgVal(x.o)), 0);
-      h += '<div class="caja dgCaja"><h3 class="sub">Por empresa</h3><div class="dgRank">' + es.map((x) => `<button type="button" class="dgFila" data-act="emp:${x.e.k}" data-tip="${esc(dgTip(x.e.nombre, [['Compras totales', 'S/ ' + mil(x.o.comprasT)], ['Compras netas', 'S/ ' + mil(x.o.comprasN)], ['NC', 'S/ ' + mil(x.o.ncN)], ['Compra neta', 'S/ ' + mil(x.o.neta)]]))}"><span class="dgN">${esc(x.e.nombre)}</span><span class="dgB"><i style="width:${dgVal(x.o) > 0 ? Math.max(1, (dgVal(x.o) / mx) * 100) : 0}%;background:#7a8088"></i></span><span class="dgV">${mil(dgVal(x.o))}</span><span class="dgP">${te > 0 ? ((Math.max(0, dgVal(x.o)) / te) * 100).toFixed(1) : '0.0'}%</span></button>`).join('') + '</div></div>';
-    }
-    if (F.src !== 'C') {
-      const ml = new Map(); base.filter((x) => enPer(x) && x.src === 'L' && x.t === 'FA' && (F.modo === 'total' || !x.dev)).forEach((x) => { const n = x.lab || '(SIN LABORATORIO)'; ml.set(n, (ml.get(n) || 0) + x.v); });
-      const labs = [...ml].map(([n, v]) => ({ n, v: r2(v) })).sort((a, b) => b.v - a.v), tl = labs.reduce((s, x) => s + x.v, 0), mxl = Math.max(1, ...labs.map((x) => x.v));
-      h += `<div class="caja dgCaja"><h3 class="sub">Laboratorios más comprados a distribuidores (${F.modo === 'neto' ? 'compras netas' : 'compras totales'})</h3><div class="dgRank">` + (labs.length ? labs.slice(0, 10).map((x) => `<div class="dgFila fija"><span class="dgN">${esc(x.n)}</span><span class="dgB"><i style="width:${Math.max(1, (x.v / mxl) * 100)}%;background:${DG_COL.L}"></i></span><span class="dgV">${mil(x.v)}</span><span class="dgP">${tl > 0 ? ((x.v / tl) * 100).toFixed(1) : '0.0'}%</span></div>`).join('') : '<p class="resumen" style="margin:4px 0">Sin datos.</p>') + '</div></div>';
-    }
-    h += '</div><p class="quien" style="margin:8px 0 0">Los montos van por la fecha de emisión de la factura o de la NC. Una factura cuenta como devolución total cuando sus notas de crédito cubren todo su importe (margen de S/ ' + TOL_NC.toFixed(2) + '); esa factura y sus NC no entran en lo neto. En Cuentas por pagar solo se cuentan facturas y notas de crédito (no retenciones, bonificaciones ni pagos).</p>';
-    caja.innerHTML = h;
+      `<select id="dgPer" aria-label="Periodo">${op('A', 'Todo el año', F.per)}${[1, 2, 3, 4].map((q) => op('T' + q, `Trimestre ${q}`, F.per)).join('')}${MESES.slice(1).map((n, i) => op('M' + (i + 1), n, F.per)).join('')}</select>` +
+      `<select id="dgProv" aria-label="Proveedor">${op('', 'Todos los proveedores', F.prov)}${provsAll.map((k) => op(k, k.slice(2), F.prov)).join('')}</select>` +
+      `<select id="dgSrc" aria-label="Tipo de proveedor">${op('', 'Distribuidores y cuotas', F.src)}${op('L', 'Solo distribuidores', F.src)}${op('C', 'Solo proveedores en cuotas', F.src)}</select>` +
+      `<select id="dgModo" aria-label="Monto">${op('neto', 'Compra neta', F.modo)}${op('total', 'Compras totales', F.modo)}</select>` +
+      `<button id="dgAsisB" class="dgBtn2">${dgAsis ? 'Ocultar asistente' : '✦ Asistente'}</button><button id="dgExp" class="dgBtn">Exportar a Excel</button>`;
+    const D = dgDatos(), act = D.act, varA = (a, b) => (b ? ((a - b) / Math.abs(b)) * 100 : null), antT = D.A.txt;
+    const k = (aro, t, v, sub) => `<div class="dgK">${aro || ''}<div><small>${t}</small><b>${v}</b>${sub}</div></div>`;
+    const ncPct = act.comprasN ? (Math.abs(act.ncN) / act.comprasN) * 100 : 0, confPct = D.fa.length ? (D.conf / D.fa.length) * 100 : 0;
+    const filas = dgVerTodos ? D.provs : D.provs.slice(0, 10), otros = r2(D.provs.slice(4).reduce((s, p) => s + p.v, 0)), tot = D.provs.reduce((s, p) => s + p.v, 0) || 1;
+    const html = (dg.avisos.length ? `<div class="msg err">${dg.avisos.map(esc).join(' ')}</div>` : '') +
+      `<div class="dgWrap${dgAsis ? '' : ' sinAsis'}"><div class="dgIzq">` +
+      '<div class="dgKp">' +
+        k(dgAro(Math.min(100, act.comprasT && dgVal(D.sAnt) ? (act.comprasT / Math.max(act.comprasT, D.sAnt.comprasT)) * 100 : 100), '#ff7a00'), 'Compras totales', `S/ ${dgCorto(act.comprasT)}`, dgPctTxt(varA(act.comprasT, D.sAnt.comprasT)) + `<span class="dgS"> vs ${esc(antT)}</span>`) +
+        k(dgAro(act.comprasT ? (act.neta / act.comprasT) * 100 : 0, '#3fd18b'), 'Compra neta', `S/ ${dgCorto(act.neta)}`, dgPctTxt(varA(act.neta, D.sAnt.neta)) + `<span class="dgS"> ${act.comprasT ? ((act.neta / act.comprasT) * 100).toFixed(0) : 0}% de lo facturado</span>`) +
+        k(dgAro(ncPct * 5, '#ff6b6b'), 'Notas de crédito', `S/ ${dgCorto(Math.abs(act.ncN))}`, `<em class="m">${ncPct.toFixed(1)}% de compras</em>`) +
+        k(dgAro(confPct, '#5aa9f0'), 'Facturas conformes', `${confPct.toFixed(0)}%`, `<span class="dgS">${D.conf} de ${D.fa.length} · física, XML y Lolfar</span>`) +
+        k('', 'NC pendiente', `S/ ${dgCorto(act.pend)}`, `<span class="dgS">observado S/ ${dgCorto(act.obs)}</span>`) +
+        k('', 'Proveedores', String(D.provs.filter((p) => p.s.n).length), `<span class="dgS">factura promedio S/ ${dgCorto(act.n ? act.comprasT / act.n : 0)}</span>`) +
+      '</div><div class="dgR3">' +
+        `<div class="dgCard"><h3>Evolución mensual ${D.F.y}</h3><div class="dgS">${F.modo === 'neto' ? 'Compra neta' : 'Compras totales'} por mes · punteada = ${D.F.y - 1} · clic en un mes para filtrar</div>${dgArea(D)}</div>` +
+        `<div class="dgCard"><h3>Compras por proveedor (top 6)</h3><div class="dgS">${esc(dgPerTxt(F.per, F.y))} · clic para filtrar</div>${dgBarrasTop(D)}</div>` +
+        `<div class="dgCard"><h3>Participación</h3><div class="dgS">% del total del periodo</div><table class="dgT dgPart">${D.provs.slice(0, 4).map((p, i) => `<tr class="dgHit" data-act="prov:${esc(p.k)}"><td><span style="color:${DG_COLS[i]}">●</span> ${esc(p.nom)}</td><td class="n">${((p.v / tot) * 100).toFixed(1)}%</td></tr>`).join('')}${D.provs.length > 4 ? `<tr><td><span style="color:#8b95a3">●</span> Otros ${D.provs.length - 4}</td><td class="n">${((otros / tot) * 100).toFixed(1)}%</td></tr>` : ''}</table>` +
+          `<h3 style="margin-top:12px">Validación de facturas</h3><div class="dgS">Del periodo</div>${[['Física', D.pct.fis, '#3fd18b'], ['XML', D.pct.xml, '#5aa9f0'], ['Lolfar', D.pct.lf, '#ff7a00']].map(([t, p, c]) => `<div class="dgBarT">${t} ${p}%</div><div class="dgBar"><i style="width:${p}%;background:${c}"></i></div>`).join('')}</div>` +
+      '</div><div class="dgR2">' +
+        `<div class="dgCard"><h3>Proveedores del periodo</h3><div class="dgS">Ordenado por ${F.modo === 'neto' ? 'compra neta' : 'compras'} · clic para filtrar</div><div class="dgTabla"><table class="dgT"><tr><th>Proveedor</th><th>Tipo</th><th class="n">Facturas</th><th class="n">${F.modo === 'neto' ? 'Compra neta' : 'Compras'}</th><th class="n">NC</th><th class="n">Vs ${esc(antT)}</th></tr>` +
+          filas.map((p) => `<tr class="dgHit${F.prov === p.k ? ' sel' : ''}" data-act="prov:${esc(p.k)}"><td class="or">${esc(p.nom)}</td><td>${esc(dgTipoProv(p.k))}</td><td class="n">${p.s.n}</td><td class="n">${mil(p.v)}</td><td class="n">${p.s.ncN ? mil(p.s.ncN) : '—'}</td><td class="n">${p.pct === null ? '—' : `<span class="${p.pct >= 0 ? 'vd' : 'rj'}">${p.pct >= 0 ? '▲' : '▼'} ${Math.abs(p.pct).toFixed(1)}%</span>`}</td></tr>`).join('') + '</table></div>' +
+          (D.provs.length > 10 ? `<button class="dgBtn2" id="dgTodos" style="margin-top:8px">${dgVerTodos ? 'Ver solo los 10 primeros' : `Ver los ${D.provs.length}`}</button>` : '') + '</div>' +
+        `<div class="dgCard"><h3>Alertas</h3><div class="dgS">Lo que necesita atención</div>${dgAlertas(D)}</div>` +
+      '</div></div>' +
+      (dgAsis ? '<div class="dgChat"><h3><i>✦</i>Asistente<button type="button" id="dgCerrarA" class="dgX" title="Ocultar">›</button></h3><div class="dgMsgs" id="dgMsgs"></div><div id="dgAc" class="dgAc"></div><form id="dgF" class="dgIn"><input id="dgIn" autocomplete="off" placeholder="Ej.: compras de dimexa en setiembre"><button type="submit" aria-label="Enviar">➤</button></form></div>' : '') +
+      '</div>' +
+      `<div class="dgPie">${esc(dgPerTxt(F.per, F.y))} · <b>Compras S/ ${mil(act.comprasT)}</b> · NC <b>S/ ${mil(act.ncN)}</b> · Compra neta <b>S/ ${mil(act.neta)}</b> · Proveedores <b>${D.provs.filter((p) => p.s.n).length}</b>${F.prov ? ` · <button class="dgBtn2" data-act="prov:${esc(F.prov)}">✕ Quitar filtro ${esc(F.prov.slice(2))}</button>` : ''}<span class="dgOk${D.fa.length && D.conf === D.fa.length ? '' : ' no'}">● ${D.fa.length && D.conf === D.fa.length ? 'Todo conforme' : `${D.fa.length - D.conf} factura(s) por validar`}</span></div>`;
+    const enfoque = document.activeElement && document.activeElement.id === 'dgIn';
+    caja.innerHTML = html;
+    dg.vista = D;
+    dgChatPintar();
+    if (enfoque && $('dgIn')) $('dgIn').focus();
   }
+  $('dgCont').addEventListener('submit', (e) => { if (e.target.id !== 'dgF') return; e.preventDefault(); const v = $('dgIn').value; $('dgIn').value = ''; $('dgAc').innerHTML = ''; dgResponder(v); setTimeout(() => $('dgIn') && $('dgIn').focus(), 0); });
+  $('dgCont').addEventListener('input', (e) => { if (e.target.id === 'dgIn') dgSugerir(); });
+  $('dgCont').addEventListener('click', async (e) => {
+    const t = e.target;
+    const q = t.closest('[data-q]'); if (q) { dgResponder(q.dataset.q); return; }
+    const ac = t.closest('.dgAcI'); if (ac) { const i = $('dgIn'), p = i.value.split(/\s+/); p.pop(); p.push(ac.dataset.v); i.value = p.join(' ') + ' '; $('dgAc').innerHTML = ''; i.focus(); return; }
+    const ir = t.closest('[data-ir]'); if (ir) { e.preventDefault(); ver(ir.dataset.ir); return; }
+    if (t.id === 'dgCerrarA') { dgAsis = false; try { localStorage.setItem('dgAsis', '0'); } catch (err) { /* nada */ } return dgPintar(); }
+    if (t.id === 'dgTodos') { dgVerTodos = !dgVerTodos; return dgPintar(); }
+    if (t.id === 'dgMasP' || t.classList.contains('dgQuitar')) {
+      const actual = (listas.preguntas || []).filter(Boolean);
+      let nuevas = actual;
+      if (t.id === 'dgMasP') { const p = prompt('Pregunta rápida para todos (por ejemplo: "compras de dimexa este año"):'); if (!p || !p.trim()) return; nuevas = unicos(actual.concat([p.trim().slice(0, 80)])); }
+      else nuevas = actual.filter((x) => x !== t.dataset.x);
+      try { await setDoc(doc(db, 'config', 'listas'), { preguntas: nuevas }, { merge: true }); listas.preguntas = nuevas; dgChatPintar(); } catch (err) { alert(errorTexto(err)); }
+    }
+  });
+  $('dgFiltros').addEventListener('click', (e) => {
+    if (e.target.id === 'dgAsisB') { dgAsis = !dgAsis; try { localStorage.setItem('dgAsis', dgAsis ? '1' : '0'); } catch (err) { /* nada */ } dgPintar(); }
+    if (e.target.id === 'dgExp' && dg.vista) exportar(`dashboard-${dg.f.y}-${dg.f.per}`, [['Proveedor', 'nom'], ['Tipo', (p) => dgTipoProv(p.k)], ['Facturas', (p) => p.s.n], ['Compras totales', (p) => p.s.comprasT], ['Devoluciones totales', (p) => p.s.mDev], ['Notas de crédito', (p) => p.s.ncN], ['Compra neta', (p) => p.s.neta], [`Periodo anterior (${dg.vista.A.txt})`, 'a'], ['Variación %', (p) => (p.pct === null ? '' : r2(p.pct))], ['NC pendiente', (p) => p.s.pend]], dg.vista.provs);
+  });
   $('dgFiltros').addEventListener('change', (e) => {
     const t = e.target, F = dg.f; if (!F) return;
-    if (t.id === 'dgEmp') F.emp = t.value; else if (t.id === 'dgAnio') F.y = +t.value; else if (t.id === 'dgPer') F.per = t.value; else if (t.id === 'dgSrc') { F.src = t.value; if (F.prov && F.src && F.prov[0] !== F.src) F.prov = ''; } else if (t.id === 'dgModo') F.modo = t.value;
+    if (t.id === 'dgEmp') F.emp = t.value; else if (t.id === 'dgAnio') F.y = +t.value; else if (t.id === 'dgPer') F.per = t.value; else if (t.id === 'dgSrc') { F.src = t.value; if (F.prov && F.src && F.prov[0] !== F.src) F.prov = ''; } else if (t.id === 'dgModo') F.modo = t.value; else if (t.id === 'dgProv') F.prov = t.value;
     dgPintar();
   });
   $('dgFiltros').addEventListener('click', (e) => { if (e.target.id === 'dgAct') { dg.regs = null; dgPintar(); } });
