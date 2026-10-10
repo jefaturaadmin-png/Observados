@@ -3531,7 +3531,7 @@
     if (R.dist.pago === 'cuotas' && R.CP) { // cada grupo con sus cuotas
       fila('txt1', [`Programación de facturas${mesCompra ? ' del mes de ' + mesCompra : ''} por S/${mil(R.tPagar)} en cuotas por grupos${R.ret ? ` (con retención 3% de S/${mil(Math.abs(R.ret))})` : ''}`]);
       R.CP.cuadros.forEach((c) => {
-        fila('txt2', [`${c.g ? cpEtq(c.g) : 'GRUPO ÚNICO'}: S/${mil(c.neto)}${c.n ? ` EN ${c.n} ${c.n === 1 ? 'CUOTA' : 'CUOTAS'}${c.mod ? ' · ' + c.mod : ''}` : ' · FALTA PROGRAMAR'}${c.retTxt ? ' · ' + c.retTxt : ''}`]);
+        fila('txt2', [`${c.g ? cpEtq(c.g) : 'GRUPO ÚNICO'}: S/${mil(c.neto)}${c.n ? ` EN ${c.n} ${c.n === 1 ? 'CUOTA' : 'CUOTAS'}${c.mod ? ' · ' + c.mod : ''}` : (c.est === 'PAGADO' ? ' · PAGADO' : ' · FALTA PROGRAMAR')}${c.retTxt ? ' · ' + c.retTxt : ''}`]);
         c.cuotas.forEach((q) => fila('txt2', [`      CUOTA ${q.n}${q.l ? ' (' + q.l + ')' : ''}: ${q.v ? `${fechaLarga(q.v)} DEL ${q.v.slice(0, 4)}` : 'SIN FECHA'} · S/${mil(q.m)}${q.pg ? ' · PAGADA' : ''}`]));
       });
     } else if (R.dist.pago === 'letras') {
@@ -3554,6 +3554,12 @@
       fila('txt2', [`FALTA NOTA DE CRÉDITO POR S/${mil(R.obsAnt.reduce((s, o) => s + (Number(o.falta) || 0), 0))} EN ${R.obsAnt.length} FACTURA(S) DE MESES ANTERIORES. NO MODIFICA EL TOTAL A PAGAR DE ESTE MES.`]);
       fila('');
     }
+    if (R.dist.pago === 'cuotas' && R.CP && R.CP.cuadros.length > 1) R.CP.cuadros.forEach((c) => { // cada grupo por separado, con sus documentos y su retención
+      fila('txt1', [c.g ? cpEtq(c.g) : 'GRUPO ÚNICO']);
+      c.docs.forEach((f) => { const o = (R.d.filas || []).find((x) => x.i === f.i); if (o) doc1(o); });
+      fila('res', ['', '', '', '', 'COMPRAS', c.bruto]); if (c.ncT) fila('resNc', ['', '', '', '', 'N.CRÉDITO', c.ncT]); if (c.ret) fila('resNc', ['', '', '', '', 'RET. 3%', -c.ret]); fila('resPg', ['', '', '', '', 'A PAGAR', c.neto]);
+      fila('');
+    });
     fila('res', ['', '', '', '', 'T.COMPRAS', R.tCompras]); fila('resNc', ['', '', '', '', 'N.CRÉDITO', R.nCredito]); if (R.ret) fila('resNc', ['', '', '', '', 'RET. 3%', R.ret]); fila('resPg', ['', '', '', '', 'T.PAGAR', R.tPagar]);
     if (R.ncs.length) {
       fila(''); fila(''); cab(true);
@@ -4290,13 +4296,14 @@
         }
       }
       R.set(f.i, r);
-      if (f.t === 'FACTURA' && f.ar) totBase.set(`${f.p}|${g}`, r2((totBase.get(`${f.p}|${g}`) || 0) + base));
+      if (f.t === 'FACTURA' && f.ar && (dinamica || f.q === undefined || f.q === null || f.q === '')) totBase.set(`${f.p}|${g}`, r2((totBase.get(`${f.p}|${g}`) || 0) + base));
     });
     const veces = new Map();
     fs.forEach((f) => { const k = cpClaveFac(f); if (k) veces.set(k, (veces.get(k) || 0) + 1); });
     fs.forEach((f) => {
       const r = R.get(f.i);
-      if (f.t === 'FACTURA') r.q = dinamica ? ((f.ar && (totBase.get(r.k) || 0) > cpCfg.min) ? r2(r.base * cpCfg.tasa) : 0) : (Number(f.q) || 0);
+      const sinQ = f.q === undefined || f.q === null || f.q === ''; // las agregadas después (sin retención guardada) se calculan por su grupo
+      if (f.t === 'FACTURA') r.q = (dinamica || sinQ) ? ((f.ar && (totBase.get(r.k) || 0) > cpCfg.min) ? r2(r.base * cpCfg.tasa) : 0) : (Number(f.q) || 0);
       r.neto = r2(r.sg * (Number(f.m) || 0) - r.q);
       const k = cpClaveFac(f);
       if (k) r.dup = veces.get(k) > 1 ? 'mes' : ((cpIdx.mapa.get(k) || []).some((p) => p !== per) ? 'otro' : '');
@@ -4324,8 +4331,9 @@
         const est = !n ? ((Math.abs(saldo) < 0.05 && pagado) ? 'PAGADO' : '⚠ FALTA PROGRAMAR')
           : (cuotas.every((c) => c.pg) ? 'PAGADO' : (cuotas.some((c) => !c.v) ? '⚠ FALTAN FECHAS' : 'PROGRAMADO'));
         const conRet = facs.some((f) => f.ar), base = totBase.get(k) || 0;
-        const c = { k, prov, g, multi, docs, neto, pagado, saldo, n, mod: pr ? (pr.mod || '') : '', cuotas, est, plazo: cpModa(docs, R),
-          retTxt: !conRet ? '' : (dinamica ? (base > cpCfg.min ? `RET. 3%: SÍ (pago > ${cpCfg.min})` : `SIN RET. (pago ≤ ${cpCfg.min})`) : ''), base, pagadoTodo: Math.abs(saldo) < 0.05 && pagado !== 0 };
+        const ret = r2(facs.reduce((s2, f) => s2 + (R.get(f.i).q || 0), 0)), bruto = r2(facs.reduce((s2, f) => s2 + (Number(f.m) || 0), 0)), ncT = r2(docs.filter((f) => f.t !== 'FACTURA').reduce((s2, f) => s2 + R.get(f.i).sg * (Number(f.m) || 0), 0));
+        const c = { k, prov, g, multi, docs, neto, pagado, saldo, n, mod: pr ? (pr.mod || '') : '', cuotas, est, plazo: cpModa(docs, R), ret, bruto, ncT,
+          retTxt: ret > 0 ? `RET. 3%: S/ ${mil(ret)}` : (!conRet ? '' : (base > cpCfg.min ? '' : `SIN RET. (pago ≤ ${cpCfg.min})`)), base, pagadoTodo: Math.abs(saldo) < 0.05 && pagado !== 0 };
         cuadros.push(c); mios.push(c);
       });
       porProv.set(prov, mios);
