@@ -275,6 +275,48 @@
   .caja, .kpi { border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04); }
   .subnav button.act { background:var(--marca); }
   /* Inicio */
+
+  /* ---------- Ingreso: dos mitades, líneas en movimiento a la izquierda ---------- */
+  .lgPant { display:flex; min-height:100vh; background:#fff; }
+  .lgPant.oculto { display:none; }
+  .lgIzq { position:relative; flex:1; background:#f5f3ef; overflow:hidden; border-right:1px solid #ebe6de; }
+  .lgIzq canvas { position:absolute; inset:0; width:100%; height:100%; }
+  .lgLogo { display:flex; align-items:center; gap:10px; font-weight:800; font-size:18px; color:#3a3f45; }
+  .lgIzq .lgLogo { position:absolute; top:28px; left:32px; }
+  .lgLogo i { width:30px; height:30px; border-radius:8px; background:var(--marca); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-style:normal; }
+  .lgLogoM { display:none; margin-bottom:22px; }
+  .lgFrase { position:absolute; left:40px; right:40px; bottom:40px; font-size:21px; line-height:1.4; color:#231d17; }
+  .lgFrase small { display:block; margin-top:10px; font:600 13px ui-monospace, Consolas, monospace; color:#3a3f45; }
+  .lgDer { flex:1; display:flex; align-items:center; justify-content:center; padding:24px 16px; background:radial-gradient(circle at 70% 60%, #f7f5f2 0, #fff 55%); }
+  .lgForm { width:380px; max-width:100%; }
+  .lgForm h1 { font-size:26px; margin:0 0 6px; color:#231d17; } .lgSub { margin:0 0 22px; color:#6b7280; font-size:14.5px; }
+  .lgForm label { display:block; font-size:12.5px; color:#6b7280; margin:0 0 6px; font-weight:400; }
+  .lgIn { display:flex; align-items:center; gap:8px; border:1px solid #ddd6cc; border-radius:8px; padding:0 11px; margin-bottom:12px; background:#fff; }
+  .lgIn:focus-within { border-color:var(--marca); box-shadow:0 0 0 3px rgba(232,113,10,.15); }
+  .lgIn > svg { color:#8a8f96; flex:none; }
+  .lgIn input { border:0 !important; outline:0; box-shadow:none !important; flex:1; padding:10px 0 !important; margin:0 !important; font-size:14px; background:transparent; width:auto; }
+  .lgOjo { border:0; background:none; padding:4px; color:#8a8f96; cursor:pointer; display:flex; } .lgOjo:hover { color:var(--marca); }
+  .lgBtn { width:100%; padding:11px; font-size:14.5px; margin-top:4px; }
+  .lgSep { display:flex; align-items:center; gap:10px; color:#9aa0a6; font-size:11.5px; margin:22px 0 12px; } .lgSep:before, .lgSep:after { content:""; flex:1; height:1px; background:#ebe6de; }
+  .lgAy { font-size:13px; color:#6b7280; line-height:1.55; margin:0; } .lgAy b { color:#3a3f45; }
+  @media (max-width:820px) { .lgIzq { display:none; } .lgLogoM { display:flex; } }
+  /* ---------- Inicio: módulos en arco ---------- */
+  .inCab { text-align:center; margin:6px 0 4px; }
+  .inChip { display:inline-block; border:1px solid var(--borde); background:#fff; border-radius:99px; padding:5px 14px; font-size:13px; color:#423d38; }
+  .inCab h2 { margin:12px 0 4px; font-size:34px; letter-spacing:-.02em; color:#231d17; } .inCab p { margin:0; color:var(--gris); font-size:15px; }
+  .inArco { position:relative; max-width:880px; height:400px; margin:6px auto 0; }
+  .inArco:before { content:""; position:absolute; left:6%; right:6%; top:70px; bottom:-30px; border-radius:50% 50% 0 0 / 100% 100% 0 0; background:radial-gradient(ellipse at 50% 100%, #efebe5 0, #f3f0eb 55%, transparent 78%); }
+  .inNodo { position:absolute; width:150px; transform:translate(-50%, -44px); text-align:center; border:0; background:none; padding:0; font:inherit; color:inherit; cursor:pointer; }
+  .inNodo .c { position:relative; width:88px; height:88px; margin:0 auto; border-radius:50%; background:#fff; border:1px solid #e6e1d9; box-shadow:0 6px 18px rgba(0,0,0,.08); display:flex; align-items:center; justify-content:center; color:#3a3f45; transition:transform .15s, box-shadow .15s; }
+  .inNodo .c svg { width:30px; height:30px; }
+  .inNodo:hover .c, .inNodo:focus-visible .c { transform:translateY(-3px); box-shadow:0 10px 24px rgba(0,0,0,.12); }
+  .inNodo.hi .c { border:2px solid var(--marca); color:var(--marca); box-shadow:0 8px 22px rgba(232,113,10,.25); }
+  .inNodo .t { display:block; margin-top:8px; font-size:13.5px; font-weight:600; }
+  .inNodo .bd { position:absolute; top:-2px; right:-2px; background:#e03131; color:#fff; font-size:11px; font-weight:700; border-radius:99px; min-width:22px; height:22px; padding:0 5px; display:flex; align-items:center; justify-content:center; border:2px solid var(--fondo); }
+  .inPills { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; max-width:900px; margin:22px auto 26px; }
+  .inPill { display:inline-flex; gap:7px; align-items:center; background:#fff; border:1px solid var(--borde); border-radius:99px; padding:7px 13px; font:inherit; font-size:13px; color:#3a3f45; cursor:pointer; }
+  .inPill svg { width:15px; height:15px; } .inPill:hover { border-color:var(--marca); color:var(--marca); }
+  @media (max-width:760px) { .inArco { height:auto; display:flex; flex-wrap:wrap; justify-content:center; gap:16px 6px; } .inArco:before { display:none; } .inNodo { position:static; transform:none; width:104px; } .inNodo .c { width:68px; height:68px; } }
   .inHola { display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin:0 0 16px; } .inHola h2 { margin:0; font-size:24px; letter-spacing:-.02em; } .inHola span { color:var(--gris); }
   .inKpis { display:grid; grid-template-columns:repeat(auto-fill, minmax(186px, 1fr)); gap:14px; margin-bottom:22px; }
   .inKpi { display:block; text-align:left; background:#fff; border:1px solid var(--borde); border-radius:12px; padding:0; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.06); font:inherit; color:inherit; }
@@ -308,17 +350,25 @@
 </section>
 
 <section id="prov" class="oculto"></section>
-<section id="login" class="centro oculto">
-  <div class="caja">
-    <!-- El logo se toma del archivo logo.png que esté junto a esta página. Si no existe, se muestra el nombre. -->
-    <div class="marca"><img src="logo.png" alt="Farmacia Socorro" onerror="this.remove()"><div class="nombre">Farmacia Socorro</div><div class="sub">Pedidos y productos observados</div></div>
+<section id="login" class="oculto lgPant">
+  <div class="lgIzq" aria-hidden="true"><canvas id="lgCv"></canvas>
+    <div class="lgLogo"><i>✚</i>Farmacia Socorro</div>
+    <div class="lgFrase">“Pedidos, observados, XML y pagos a proveedores en un solo lugar.”<small>~ Farmacia Socorro</small></div>
+  </div>
+  <div class="lgDer"><div class="lgForm">
+    <div class="lgLogo lgLogoM"><i>✚</i>Farmacia Socorro</div>
+    <h1>Bienvenido</h1><p class="lgSub">Ingresa con tu usuario y contraseña.</p>
     <div id="loginMsg"></div>
     <form id="fLogin">
-      <div class="campo"><label for="lu">Usuario</label><input id="lu" autocomplete="username" required></div>
-      <div class="campo"><label for="lc">Contraseña</label><input id="lc" type="password" autocomplete="current-password" required></div>
-      <button class="pri" style="width:100%" type="submit">Ingresar</button>
+      <label for="lu">Usuario</label>
+      <div class="lgIn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg><input id="lu" autocomplete="username" placeholder="tu usuario" required></div>
+      <label for="lc">Contraseña</label>
+      <div class="lgIn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><input id="lc" type="password" autocomplete="current-password" required><button type="button" class="lgOjo" aria-label="Mostrar u ocultar la contraseña" title="Mostrar u ocultar"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+      <button class="pri lgBtn" type="submit">Ingresar</button>
     </form>
-  </div>
+    <div class="lgSep">¿NO PUEDES INGRESAR?</div>
+    <p class="lgAy">Pide al <b>administrador</b> que te cree el usuario o te dé una contraseña temporal. Al primer ingreso crearás tu propia contraseña.</p>
+  </div></div>
 </section>
 
 <section id="cambio" class="centro oculto">
@@ -892,7 +942,30 @@
     return (e && e.message) || String(e);
   };
   const MODO_PROV = new URLSearchParams(location.search).get('cot') || ''; // enlace de cotización para un proveedor: no pide iniciar sesión
-  const pantalla = (id) => { if (MODO_PROV) return; ['aviso', 'inicio', 'login', 'cambio', 'app'].forEach((x) => $(x).classList.toggle('oculto', x !== id)); };
+  /* Ingreso: líneas que se mueven (solo mientras se ve la pantalla de ingreso) y botón para ver la contraseña */
+  {
+    const cv = $('lgCv'), cx = cv.getContext('2d'), quieto = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let W = 0, H = 0;
+    const tam = () => { const r = cv.getBoundingClientRect(), d = window.devicePixelRatio || 1; W = r.width; H = r.height; cv.width = W * d; cv.height = H * d; cx.setTransform(d, 0, 0, d, 0, 0); };
+    const dibujar = (t) => {
+      cx.clearRect(0, 0, W, H);
+      for (let i = 0; i < 46; i += 1) {
+        const k = i / 46, ola = Math.sin(t / 2600 + i * 0.22) * 28, ola2 = Math.cos(t / 3400 + i * 0.15) * 40, nar = i % 9 === 0;
+        cx.beginPath();
+        cx.moveTo(-20, H * (0.42 + k * 0.32) + ola * 0.4);
+        cx.bezierCurveTo(W * 0.35, H * (0.38 + k * 0.18) + ola, W * (0.62 + k * 0.1) + ola2 * 0.3, H * (0.58 + k * 0.05) - ola2, W * (0.78 + k * 0.32), H + 30);
+        cx.strokeStyle = nar ? `rgba(232,113,10,${0.35 + 0.3 * Math.sin(t / 1800 + i)})` : `rgba(60,64,70,${0.12 + 0.5 * (1 - k) * (0.6 + 0.4 * Math.sin(t / 2000 + i * 0.4))})`;
+        cx.lineWidth = nar ? 1.4 : 0.9;
+        cx.stroke();
+      }
+    };
+    let corre = false;
+    const cuadro = (t) => { if ($('login').classList.contains('oculto') || !cv.offsetWidth) { corre = false; return; } if (cv.width !== Math.round(cv.getBoundingClientRect().width * (window.devicePixelRatio || 1))) tam(); dibujar(quieto ? 0 : t); if (quieto) { corre = false; return; } requestAnimationFrame(cuadro); };
+    window.lgAnimar = () => { if (corre) return; corre = true; tam(); requestAnimationFrame(cuadro); };
+    addEventListener('resize', () => { if (!$('login').classList.contains('oculto')) { tam(); window.lgAnimar(); } });
+    document.querySelector('.lgOjo').addEventListener('click', () => { const c = $('lc'); c.type = c.type === 'password' ? 'text' : 'password'; c.focus(); });
+  }
+  const pantalla = (id) => { if (MODO_PROV) return; ['aviso', 'inicio', 'login', 'cambio', 'app'].forEach((x) => $(x).classList.toggle('oculto', x !== id)); if (id === 'login') window.lgAnimar(); };
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
@@ -7982,9 +8055,19 @@
     if (visible('vXml')) K.push(['vXml', num('nXml'), 'XML nuevos llegados por correo', true]);
     const f = new Date(), fecha = `${DIAS[f.getDay()].toLowerCase()} ${f.getDate()} de ${MESES[f.getMonth() + 1].toLowerCase()} de ${f.getFullYear()}`;
     const grupos = [...document.querySelectorAll('#lado .navGrupo')].map((g) => ({ t: (g.querySelector('.navG') || {}).textContent || '', vs: [...g.querySelectorAll('button:not(.oculto)')].map((b) => b.dataset.v).filter((v) => v && v !== 'vInicio') })).filter((g) => g.vs.length);
-    caja.innerHTML = `<div class="inHola"><h2>Hola, ${esc(String(yo.nombre || '').split(' ')[0])}</h2><span>${esc(fecha)} · ${esc(yo.area)}</span></div>` +
+    // Arco: los módulos más usados (los que tiene este usuario); el resto va debajo como botones pequeños
+    const todos = grupos.flatMap((g) => g.vs), pref = ['vPedidos', 'vNuevo', 'vPend', 'vCot', 'vPagos', 'vXml', 'vResPag', 'vDev', 'vCierre', 'vProvDocs', 'vSeg', 'vDash'];
+    const arco = pref.filter((v) => todos.includes(v)).slice(0, 7), resto = todos.filter((v) => !arco.includes(v));
+    const avisos = { vPedidos: num('nPed'), vPend: num('nPend'), vDev: num('nDev'), vXml: num('nXml'), vCot: visible('vCot') ? ct.lista.map(ctEstado).filter((x) => /^RESPONDIDA|^CORREGIDA/.test(x)).length : 0 };
+    const hi = arco.includes('vPagos') ? 'vPagos' : arco[Math.floor(arco.length / 2)];
+    const nodos = arco.map((v, i) => {
+      const a = Math.PI * (1 - (i + 0.5) / arco.length), x = 50 + 41 * Math.cos(a), y = 92 - 70 * Math.sin(a); // % del ancho y del alto del arco
+      return `<button type="button" class="inNodo${v === hi ? ' hi' : ''}" data-ir="${v}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%"><span class="c">${ico(v)}${avisos[v] ? `<span class="bd">${avisos[v]}</span>` : ''}</span><span class="t">${esc(nom(v))}</span></button>`;
+    }).join('');
+    caja.innerHTML = `<div class="inCab"><span class="inChip">${esc(fecha)} · ${esc(yo.area)}</span><h2>Hola, ${esc(String(yo.nombre || '').split(' ')[0])}</h2><p>${arco.length ? 'Elige un módulo para empezar' : ''}</p></div>` +
+      (arco.length ? `<div class="inArco">${nodos}</div>` : '') +
+      (resto.length ? `<div class="inPills">${resto.map((v) => `<button type="button" class="inPill" data-ir="${v}" title="${esc(IN_DESC[v] || '')}">${ico(v)}${esc(nom(v))}</button>`).join('')}</div>` : '') +
       (K.length ? '<p class="inSec">Por atender</p><div class="inKpis">' + K.map(([v, n, t, av]) => `<button type="button" class="inKpi${av && n ? ' aviso' : ''}" data-ir="${v}"><div class="inKpiA">${ico(v)}<strong>${n}</strong></div><div class="inKpiB">${esc(t)}</div><div class="inKpiC"><span>Abrir ${esc(nom(v))}</span><span aria-hidden="true">→</span></div></button>`).join('') + '</div>' : '') +
-      '<p class="inSec">Módulos</p><div class="inMods">' + grupos.map((g) => `<div class="inGrupo"><h3>${esc(g.t)}</h3>${g.vs.map((v) => `<button type="button" class="inMod" data-ir="${v}"><i>${ico(v)}</i><span><b>${esc(nom(v))}</b><small>${esc(IN_DESC[v] || '')}</small></span></button>`).join('')}</div>`).join('') + '</div>' +
       (grupos.length ? '' : '<div class="caja"><p class="resumen" style="margin:0">Tu usuario aún no tiene módulos habilitados. Consulta con el administrador.</p></div>') +
       (yo.area === 'ADMIN' ? `<p class="inSec">Uso de Firebase en esta PC hoy</p><div class="caja"><p class="resumen" style="margin:0">Lecturas aproximadas: <b>${mil(lect.total).replace('.00', '')}</b> de 50,000 al día (se suman las de todas las PC)${Object.keys(lect.por).length ? ' · ' + Object.entries(lect.por).filter((x) => x[1] > 0).sort((x, y) => y[1] - x[1]).map(([k, n]) => `${esc(k)} ${n}`).join(' · ') : ''}</p>` +
         (lect.completas.length ? `<p class="quien" style="margin:6px 0 0">Lecturas completas: ${esc(lect.completas.join(' · '))}</p>` : '') + '</div>' : '');
