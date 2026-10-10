@@ -320,16 +320,16 @@
   @media (max-width:760px) { .inArco { height:auto; display:flex; flex-wrap:wrap; justify-content:center; gap:16px 6px; } .inArco:before { display:none; } .inNodo { position:static; transform:none; width:104px; } .inNodo .c { width:68px; height:68px; } }
 
   /* ---------- Dashboard oscuro con asistente ---------- */
-  #vDash.dgo { background:#0f141b; color:#e6e9ee; border-radius:14px; padding:14px 16px 0; margin:-6px 0 0; }
+  #vDash.dgo { background:none; color:#e6e9ee; padding:0; margin:0; }
   #vDash.dgo #dgFiltros { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 12px; padding-bottom:12px; border-bottom:1px solid #232b36; }
-  .dgTit { flex:1 1 320px; } .dgTit h2 { margin:0; font-size:17px; color:#fff; text-transform:uppercase; letter-spacing:.02em; } .dgTit small { color:#8b95a3; font-size:12px; }
+  .dgTit { flex:1 1 320px; } .dgProvG { font-size:30px; font-weight:800; color:#ff8a1f; letter-spacing:-.01em; line-height:1.1; margin-bottom:4px; } .dgTit h2 { margin:0; font-size:17px; color:#fff; text-transform:uppercase; letter-spacing:.02em; } .dgTit small { color:#8b95a3; font-size:12px; }
   #vDash.dgo select { background:#1a212b; border:1px solid #2a3340; color:#cfd6df; border-radius:8px; padding:7px 9px; font-size:12.5px; width:auto; max-width:230px; }
   .dgBtn { background:#ff7a00; color:#fff; border:0; border-radius:8px; padding:8px 13px; font-weight:600; font-size:12.5px; cursor:pointer; }
   .dgBtn2 { background:#1a212b; color:#cfd6df; border:1px solid #2a3340; border-radius:8px; padding:7px 11px; font-size:12.5px; cursor:pointer; } .dgBtn2:hover { border-color:#ff7a00; color:#ffb36b; }
   .dgWrap { display:grid; grid-template-columns:minmax(0, 1fr) 330px; gap:14px; } .dgWrap.sinAsis { grid-template-columns:minmax(0, 1fr); }
   .dgIzq { display:flex; flex-direction:column; gap:12px; min-width:0; }
   .dgS { color:#8b95a3; font-size:11.5px; }
-  .dgKp { display:grid; grid-template-columns:repeat(auto-fill, minmax(185px, 1fr)); gap:10px; }
+  .dgKp { display:grid; grid-template-columns:repeat(auto-fit, minmax(165px, 1fr)); gap:10px; } .dgT td.or { color:#ff9a3d; }
   .dgK { background:#151b23; border:1px solid #232b36; border-radius:12px; padding:10px 12px; display:flex; gap:10px; align-items:center; }
   .dgK small { display:block; color:#8b95a3; font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; } .dgK b { display:block; font-size:20px; color:#fff; margin:2px 0; }
   .dgK em { font-style:normal; font-size:11.5px; color:#3fd18b; font-weight:600; } .dgK em.m, .dgK .m { color:#ff6b6b; }
@@ -378,6 +378,46 @@
   .inMod { display:flex; align-items:center; gap:12px; width:100%; text-align:left; border:none; background:none; border-radius:8px; padding:9px 8px; font:inherit; color:inherit; }
   .inMod:hover { background:var(--suave); } .inMod i { flex:none; width:34px; height:34px; border-radius:9px; background:var(--suave); color:var(--pri); display:flex; align-items:center; justify-content:center; }
   .inMod b { display:block; font-size:14px; } .inMod small { color:var(--gris); font-size:12px; }
+
+  /* =====================  TEMA OSCURO (toda la página, como el Dashboard)  ===================== */
+  :root { --marca:#ff7a00; --pri:#ff7a00; --suave:#2a1d10; --gris:#8b95a3; --borde:#2a3340; --fondo:#0f141b; --casco:#151b23; --casco2:#11161d; --cTxt:#ffffff; --ok:#3fd18b; --ok2:#13251c; --rojo:#ff6b6b; }
+  body { background:#0f141b; color:#e6e9ee; }
+  #app, #cuerpo, main { background:#0f141b; }
+  #lado { border-right-color:#1d2530; } #app header { border-bottom-color:#1d2530; }
+  h1, h2, h3, h3.sub { color:#f1f4f8; } .resumen, .quien, small { color:#8b95a3; }
+  a { color:#ffb36b; }
+  .caja, .kpi, .tabla, .cpCaja, .xlZona, .linea, .permisos fieldset, .detg table, .cbxLista, .sug { background:#151b23; border-color:#232b36; color:#e6e9ee; box-shadow:none; }
+  .kpi b, .kpi small { color:#8b95a3; } .kpi strong { color:#fff; }
+  dialog { background:#151b23; color:#e6e9ee; border:1px solid #2a3340; } .dcab { border-bottom-color:#232b36; }
+  button { background:#1a212b; border-color:#2a3340; color:#e6e9ee; } button:hover { border-color:#ff7a00; }
+  button.pri { background:#ff7a00; border-color:#ff7a00; color:#fff; } button.pri:hover { background:#e86e00; }
+  button.pel { background:#1a212b; color:#ff6b6b; border-color:#7a2f2f; }
+  input, select, textarea { background:#0f141b; border-color:#2a3340; color:#e6e9ee; } input::placeholder, textarea::placeholder { color:#5f6977; }
+  input:focus, select:focus, textarea:focus { border-color:#ff7a00; outline:none; box-shadow:0 0 0 3px rgba(255,122,0,.15); }
+  input[type=date], input[type=month] { color-scheme:dark; } input[readonly] { background:#11161d; }
+  th { background:#11161d; color:#8b95a3; } td { border-color:#1d2530; }
+  tbody tr[data-id]:hover, .rgTab tr.rgFila:hover td { background:#1d2530; }
+  tr.grupo td, tr.tot td, tr.dgGrupo td, .detg tr.tot td, .cpTabla tr.cpSUB td, .cpTabla tr.cpTOT td { background:#1a212b; color:#e6e9ee; }
+  .grid th { background:#11161d; } .grid td.nf, .grid tr.sel td.nf, .grid tr.esnc td.nf { background:#11161d; color:#6b7480; }
+  .grid tr.sel td { background:#2a1d10; } .grid tr.esnc td { background:#131920; } .grid tr.nueva td { background:#13251c; } .grid tr.dup td, .grid tr.dupo td { background:#2a1718; }
+  .grid tr.nuevaFila td { background:#1d1810; } .grid tr.det > td, .rgTab tr.det > td { background:#121820; }
+  .grid tr.conf td.nf { background:#1b7a4b; color:#fff; }
+  .gFis { background:#0f141b; border-color:#4a5462; } .gFis.si { background:#1b7a4b; border-color:#1b7a4b; }
+  tr.cpHDoble td, .cpTabla tr.cpPrg td, tr.ctObs td { background:#2a2114; } tr.cpHFalta td { background:#2a1718; } .cpTabla tr.cpCUO td { background:#131920; } .cpTabla tr.cpLot td { background:#1a212b; color:#ffb36b; } .cpTit { background:#1a212b; border-color:#232b36; }
+  .est { background:#232b36; color:#cfd6df; } .e0 { background:#3a2a10; color:#ffc56b; } .e1 { background:#14263d; color:#7fb6f5; } .e2 { background:#13251c; color:#3fd18b; } .e3 { background:#2a1d3d; color:#c9a3f5; } .e4 { background:#232b36; color:#aab3bf; }
+  .alerta { background:#2a1718; color:#ff8a8a; } .msg.err { background:#2a1718; color:#ff8a8a; } .msg.ok { background:#13251c; color:#3fd18b; }
+  .subnav button { background:none; color:#8b95a3; } .subnav button.act { background:#ff7a00; color:#fff; }
+  .sug div.sel, .sug div:hover, .cbxOp.act, .cbxOp:hover { background:#2a1d10; color:#ffb36b; } .sug .nada { background:#151b23 !important; }
+  .rgFil th { background:#11161d; } .dgTip { background:#1d2530; color:#e6e9ee; border-color:#2a3340; }
+  .ctMsg { background:#1d2530; } .pvPasos { background:#2a2114; border-color:#5c4420; } .xlZona { border-color:#2a3340; }
+  .dgChip { background:#2a1d10; } button.dgFila:hover { background:#1d2530; } .dgB { background:#232b36; }
+  /* Inicio */
+  .inCab h2 { color:#fff; } .inChip, .inPill { background:#151b23; border-color:#2a3340; color:#cfd6df; }
+  .inNodo .c { background:#151b23; border-color:#2a3340; color:#cfd6df; box-shadow:0 6px 18px rgba(0,0,0,.35); } .inNodo .t { color:#e6e9ee; } .inNodo .bd { border-color:#0f141b; }
+  .inArco:before { background:radial-gradient(ellipse at 50% 100%, #1a212b 0, #141a22 55%, transparent 78%); }
+  .inKpi { background:#151b23; border-color:#232b36; box-shadow:none; } .inKpi:hover { border-color:#ff7a00; } .inKpiB { color:#e6e9ee; } .inKpiC { background:#11161d; border-color:#232b36; }
+  /* Las hojas con formato de Excel siguen en blanco, como el archivo */
+  .xlHoja, .rpHoja, .rpHoja table { background:#fff; color:#000; } .rpHoja td { color:#000; }
 </style>
 </head>
 <body>
@@ -1677,7 +1717,7 @@
       '<div class="campo"><label>Motivo *</label><select class="lMot"></select></div>' +
       '<div class="campo cPO"><label>Precio unit. sin IGV (S/)</label><input class="lPrecioS" type="number" min="0" step="any" placeholder="Opcional"></div>' +
       '<div class="campo cPO"><label>Precio unit. con IGV (S/)</label><input class="lPrecio" type="number" min="0" step="any" placeholder="Opcional"></div>' +
-      '<div class="campo cPO"><label>Monto total con IGV (S/)</label><input class="lTotal" readonly tabindex="-1" placeholder="Cantidad × precio" style="background:#f6f3ef;font-weight:700"><div class="quien lTot" style="margin-top:4px"></div></div>' +
+      '<div class="campo cPO"><label>Monto total con IGV (S/)</label><input class="lTotal" readonly tabindex="-1" placeholder="Cantidad × precio" style="font-weight:700"><div class="quien lTot" style="margin-top:4px"></div></div>' +
       '<div class="campo ancho"><label>Observación</label><input class="lObs" maxlength="500"></div>' +
       '</div>';
     d.dataset.cod = '';
@@ -3308,7 +3348,7 @@
     const nuevas = pgPegado.filter((f) => !f.err && !f.dup), dup = pgPegado.filter((f) => f.dup), err = pgPegado.filter((f) => f.err);
     if (!pgPegado.length) { $('pgVista').innerHTML = ''; return; }
     $('pgVista').innerHTML =
-      `<div class="msg" style="background:#fff8e6;color:#6b4a00">Pegaste ${pgPegado.length} fila(s): <b>${nuevas.length} nueva(s)</b>` +
+      `<div class="msg" style="background:#2a2114;color:#ffd79a">Pegaste ${pgPegado.length} fila(s): <b>${nuevas.length} nueva(s)</b>` +
       `${dup.length ? `, <b>${dup.length} repetida(s)</b>` : ''}${err.length ? `, <b>${err.length} con error</b>` : ''}.</div>` +
       '<div class="tabla grid" style="max-height:38vh;overflow:auto"><table><tr><th></th><th>Fecha</th><th>Tipo</th><th>Serie</th><th>Número</th><th class="n">Total</th><th>Laboratorio</th></tr>' +
       pgPegado.map((f) => (f.err
@@ -4665,14 +4705,14 @@
   function czBarra(idCaja, antesDe, col, edita) { // aviso con botón para corregir todas las fechas del mes
     let caja = $(idCaja);
     if (!caja) { caja = document.createElement('div'); caja.id = idCaja; const t = antesDe.closest('.tabla'); t.parentNode.insertBefore(caja, t); }
-    caja.innerHTML = col.length ? `<div class="msg" style="background:#fff8e6;color:#6b4a00;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span><b>${col.length}</b> documento(s) con fecha distinta a la de su XML.</span>${edita ? `<button class="mini czFeTodas">Usar la fecha del XML en las ${col.length}</button>` : ''}</div>` : '';
+    caja.innerHTML = col.length ? `<div class="msg" style="background:#2a2114;color:#ffd79a;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span><b>${col.length}</b> documento(s) con fecha distinta a la de su XML.</span>${edita ? `<button class="mini czFeTodas">Usar la fecha del XML en las ${col.length}</button>` : ''}</div>` : '';
     caja.czCol = col;
   }
   // Productos del XML para observar: se elige el producto y la cantidad; el precio sale del XML
   function czObsBloque(f, X, edita) {
     if (!edita || !X || !X.x || !(X.x.lineas || []).length) return '';
     const ops = X.x.lineas.map((l, i) => { const pu = czPu(l); return `<option value="${i}">${esc(`${l.cod ? l.cod + ' · ' : ''}${l.desc}`)} — facturado ${l.cant ?? ''}${pu === 0 ? ' (bonificación)' : ` · S/ ${xlN(pu, 4)} c/u`}</option>`; }).join('');
-    return `<div class="obXml" data-d="${esc(f.i)}" style="margin:8px 0;padding:8px 10px;background:#fff;border:1px dashed var(--marca);border-radius:8px"><b style="font-size:12.5px">Observar desde la factura (XML)</b>` +
+    return `<div class="obXml" data-d="${esc(f.i)}" style="margin:8px 0;padding:8px 10px;background:#151b23;border:1px dashed var(--marca);border-radius:8px"><b style="font-size:12.5px">Observar desde la factura (XML)</b>` +
       `<div class="herr" style="margin:6px 0 0"><select class="gIn obProd" style="flex:1;min-width:220px;max-width:520px">${ops}</select><label style="margin:0">Cant.</label><input class="gIn n obCant" value="1" inputmode="decimal" style="width:70px"><span class="obMonto quien"></span><button class="mini pri obAdd">Agregar</button></div></div>`;
   }
   function czObsMonto(det, deX) { const X = deX(det), l = X && czObsLinea(det, X), out = det.querySelector('.obMonto'); if (out) out.textContent = l ? `= S/ ${mil(l.m)}` : ''; }
@@ -5033,7 +5073,7 @@
     const nOtro = cpPegado.filter((f) => f.otroMes || f.ojo).length;
     const nuevas = cpPegado.filter((f) => !f.err && !f.dup);
     $('cpVistaP').innerHTML = !cpPegado.length ? '' :
-      `<div class="msg" style="background:#fff8e6;color:#6b4a00">Pegaste ${cpPegado.length} fila(s): <b>${nuevas.length} nueva(s)</b>, ${cpPegado.filter((f) => f.dup).length} repetida(s), ${cpPegado.filter((f) => f.err).length} con error.</div>` +
+      `<div class="msg" style="background:#2a2114;color:#ffd79a">Pegaste ${cpPegado.length} fila(s): <b>${nuevas.length} nueva(s)</b>, ${cpPegado.filter((f) => f.dup).length} repetida(s), ${cpPegado.filter((f) => f.err).length} con error.</div>` +
       '<div class="tabla grid" style="max-height:38vh;overflow:auto"><table><tr><th></th><th>Proveedor</th><th>Tipo</th><th>Emisión</th><th>Documento</th><th>Vence</th><th class="n">Importe</th><th>Aviso</th></tr>' +
       cpPegado.map((f) => (f.err ? `<tr class="dup"><td><span class="est alerta">error</span></td><td colspan="7">${esc(f.err)}: ${esc(f.crudo)}</td></tr>`
         : `<tr class="${f.dup ? 'dup' : 'nueva'}"><td>${f.dup ? '<span class="est alerta">repetida</span>' : (f.ojo ? '<span class="est e0">nueva</span>' : '<span class="est e2">nueva</span>')}</td><td>${esc(f.p)}</td><td>${esc(f.t)}</td><td>${esc(dia(f.f))}</td><td>${esc(f.d)}</td><td>${esc(dia(f.v))}</td><td class="n">${esc(mil(cpSigno(f.t) * f.m))}</td><td>${esc(f.dup || [f.ojo, f.nuevo ? 'proveedor nuevo' : ''].filter(Boolean).join(' · '))}</td></tr>`)).join('') +
@@ -5573,12 +5613,12 @@
       `<h3 class="sub" style="margin-top:0">Reporte del ${esc(dia(cn.rep.desde))} al ${esc(dia(cn.rep.hasta))} · ${esc((CP_EMP.find((e) => e.k === cnEmp()) || {}).nombre || '')}</h3><div class="kpis">` +
       `<div class="kpi"><b>Facturas en el reporte</b><strong>${vivas.length}</strong><small>S/ ${mil(suma(vivas))} · ${X.provs.length} proveedores</small></div>` +
       `<div class="kpi"><b>Ya registradas aquí</b><strong class="sube">${vivas.length - fal.length}</strong><small>S/ ${mil(suma(vivas) - suma(fal))}</small></div>` +
-      `<div class="kpi" style="border-color:var(--rojo);background:#fdecea"><b>Faltan subir</b><strong class="baja">${fal.length}</strong><small>S/ ${mil(suma(fal))} · ${unicos(fal.map((x) => x.prov)).length} proveedores</small></div>` +
+      `<div class="kpi" style="border-color:var(--rojo);background:#2a1718"><b>Faltan subir</b><strong class="baja">${fal.length}</strong><small>S/ ${mil(suma(fal))} · ${unicos(fal.map((x) => x.prov)).length} proveedores</small></div>` +
       `<div class="kpi"><b>Con monto distinto</b><strong>${dif.length}</strong><small>diferencia S/ ${mil(r2(dif.reduce((s, x) => s + (x.m - x.regM), 0)))}</small></div>` +
       `<div class="kpi"><b>Anuladas que siguen aquí</b><strong>${anr.length}</strong><small>revisar si se quitan</small></div>` +
       `<div class="kpi"><b>Proveedores sin identificar</b><strong${sinId.length ? ' class="baja"' : ''}>${sinId.length}</strong><small>elige a cuál corresponden</small></div></div>` +
       '<h3 class="sub">Por proveedor</h3><div class="tabla" style="max-height:44vh;overflow:auto"><table><thead><tr><th>Proveedor en el reporte</th><th>Corresponde a</th><th class="num">Facturas</th><th class="num">Total reporte</th><th class="num">Registradas</th><th class="num">Faltan</th><th class="num">S/ faltan</th><th class="num">Monto distinto</th><th class="num">Anuladas</th></tr></thead><tbody>' +
-      X.provs.map((p) => `<tr${!p.dest.tipo ? ' style="background:#fff3d6"' : ''}><td><a href="#" class="cnVer" data-p="${esc(p.prov)}">${esc(p.prov)}</a></td><td>${provOps(p)}</td><td class="num">${p.n}</td><td class="num">${mil(p.total)}</td><td class="num">${p.ok}</td><td class="num${p.faltan ? ' baja' : ''}"><b>${p.faltan}</b></td><td class="num${p.faltan ? ' baja' : ''}">${mil(p.mFaltan)}</td><td class="num">${p.dif || ''}</td><td class="num">${p.anul || ''}</td></tr>`).join('') +
+      X.provs.map((p) => `<tr${!p.dest.tipo ? ' style="background:#2a2114"' : ''}><td><a href="#" class="cnVer" data-p="${esc(p.prov)}">${esc(p.prov)}</a></td><td>${provOps(p)}</td><td class="num">${p.n}</td><td class="num">${mil(p.total)}</td><td class="num">${p.ok}</td><td class="num${p.faltan ? ' baja' : ''}"><b>${p.faltan}</b></td><td class="num${p.faltan ? ' baja' : ''}">${mil(p.mFaltan)}</td><td class="num">${p.dif || ''}</td><td class="num">${p.anul || ''}</td></tr>`).join('') +
       '</tbody></table></div>' +
       '<div class="herr" style="margin-top:16px"><select id="cnVerSel">' + [['faltan', `Faltan subir (${fal.length})`], ['dif', `Monto distinto (${dif.length})`], ['anul', `Anuladas que siguen registradas (${anr.length})`], ['partes', `Registradas en varias partes en el sistema (${partes.length})`], ['todo', `Todas las del reporte (${vivas.length})`]].map(([v, t]) => `<option value="${v}"${cn.ver === v ? ' selected' : ''}>${t}</option>`).join('') + '</select>' +
       `<select id="cnProvSel"><option value="">Todos los proveedores</option>${unicos(lista.map((x) => x.prov)).map((p) => `<option${p === cn.prov ? ' selected' : ''}>${esc(p)}</option>`).join('')}</select><span style="flex:1"></span><button id="cnExp">Exportar a Excel</button></div>` +
@@ -6130,7 +6170,7 @@
     const F = dg.f, op = (v, t, sel) => `<option value="${esc(v)}"${String(sel) === String(v) ? ' selected' : ''}>${esc(t)}</option>`;
     if (!anios.includes(F.y)) anios.unshift(F.y);
     const provsAll = unicos(dg.regs.filter((x) => (!F.emp || x.emp === F.emp) && (!F.src || x.src === F.src)).map(dgPk)).sort((a, b) => a.slice(2).localeCompare(b.slice(2)));
-    $('dgFiltros').innerHTML = `<div class="dgTit"><h2>Dashboard de compras · ${esc(dgPerTxt(F.per, F.y))}</h2><small>${F.emp ? esc(CP_EMP.find((e) => e.k === F.emp).nombre) : 'Todas las empresas'} · ${F.src === 'L' ? 'Distribuidores' : F.src === 'C' ? 'Proveedores en cuotas' : 'Distribuidores y proveedores en cuotas'} · ${F.modo === 'neto' ? 'Compra neta' : 'Compras totales'}</small></div>` +
+    $('dgFiltros').innerHTML = `<div class="dgTit">${F.prov ? `<div class="dgProvG">${esc(F.prov.slice(2))}</div>` : ''}<h2>Dashboard de compras · ${esc(dgPerTxt(F.per, F.y))}</h2><small>${F.emp ? esc(CP_EMP.find((e) => e.k === F.emp).nombre) : 'Todas las empresas'} · ${F.src === 'L' ? 'Distribuidores' : F.src === 'C' ? 'Proveedores en cuotas' : 'Distribuidores y proveedores en cuotas'} · ${F.modo === 'neto' ? 'Compra neta' : 'Compras totales'}</small></div>` +
       `<select id="dgEmp" aria-label="Empresa">${op('', 'Todas las empresas', F.emp)}${CP_EMP.map((e) => op(e.k, e.nombre, F.emp)).join('')}</select>` +
       `<select id="dgAnio" aria-label="Año">${anios.map((a) => op(a, a, F.y)).join('')}</select>` +
       `<select id="dgPer" aria-label="Periodo">${op('A', 'Todo el año', F.per)}${[1, 2, 3, 4].map((q) => op('T' + q, `Trimestre ${q}`, F.per)).join('')}${MESES.slice(1).map((n, i) => op('M' + (i + 1), n, F.per)).join('')}</select>` +
@@ -6148,7 +6188,6 @@
         k(dgAro(Math.min(100, act.comprasT && dgVal(D.sAnt) ? (act.comprasT / Math.max(act.comprasT, D.sAnt.comprasT)) * 100 : 100), '#ff7a00'), 'Compras totales', `S/ ${dgCorto(act.comprasT)}`, dgPctTxt(varA(act.comprasT, D.sAnt.comprasT)) + `<span class="dgS"> vs ${esc(antT)}</span>`) +
         k(dgAro(act.comprasT ? (act.neta / act.comprasT) * 100 : 0, '#3fd18b'), 'Compra neta', `S/ ${dgCorto(act.neta)}`, dgPctTxt(varA(act.neta, D.sAnt.neta)) + `<span class="dgS"> ${act.comprasT ? ((act.neta / act.comprasT) * 100).toFixed(0) : 0}% de lo facturado</span>`) +
         k(dgAro(ncPct * 5, '#ff6b6b'), 'Notas de crédito', `S/ ${dgCorto(Math.abs(act.ncN))}`, `<em class="m">${ncPct.toFixed(1)}% de compras</em>`) +
-        k(dgAro(confPct, '#5aa9f0'), 'Facturas conformes', `${confPct.toFixed(0)}%`, `<span class="dgS">${D.conf} de ${D.fa.length} · física, XML y Lolfar</span>`) +
         k('', 'NC pendiente', `S/ ${dgCorto(act.pend)}`, `<span class="dgS">observado S/ ${dgCorto(act.obs)}</span>`) +
         k('', 'Proveedores', String(D.provs.filter((p) => p.s.n).length), `<span class="dgS">factura promedio S/ ${dgCorto(act.n ? act.comprasT / act.n : 0)}</span>`) +
       '</div><div class="dgR3">' +
@@ -6357,7 +6396,7 @@
       '<p style="margin:0 0 8px"><button class="pri" id="lfActualizar">Actualizar con Excel nuevo</button></p>' +
       `<p class="quien" style="margin:0 0 8px">${esc(cn.info || '')}${cn.rep.desde ? ` · del ${esc(dia(cn.rep.desde))} al ${esc(dia(cn.rep.hasta))}` : ''}. Se compara con todos los meses a pagar de ${esc(dist.nombre)} en ${esc(empDe(pgEmp()).nombre)}.</p>` +
       `<div class="herr"><label style="margin:0" for="lfProv">En el reporte este proveedor se llama</label><select id="lfProv" style="width:auto;max-width:420px"><option value="">— elige el nombre del reporte —</option>${provRep.map(([p, c]) => `<option value="${esc(p)}"${mio.includes(p) ? ' selected' : ''}>${esc(p)} (${c})</option>`).join('')}</select></div>` +
-      (!mio.length ? '<div class="msg" style="background:#fff8e6;color:#6b4a00">No reconocí a este distribuidor entre los proveedores del reporte. Elige arriba con qué nombre aparece y quedará recordado.</div>' :
+      (!mio.length ? '<div class="msg" style="background:#2a2114;color:#ffd79a">No reconocí a este distribuidor entre los proveedores del reporte. Elige arriba con qué nombre aparece y quedará recordado.</div>' :
         '<div id="lfOtros">' + lfOtrosHtml() + '</div>' + (X.ok.length ? `<div class="msg ok">Se puso ✓ Lolfar a ${X.ok.length} documento(s), en el mes a pagar donde está cada uno: ${esc(unicos(X.ok.map((x) => perTxt(x.reg.per))).join(', '))}.${X.sobra.length ? ` Las ${X.sobra.length} de "Registradas aquí que no aparecen en el reporte" quedan sin ✓ porque Lolfar no las tiene.` : ''}</div>` : '') +
         '<div class="kpis">' +
         `<div class="kpi"><b>En el reporte</b><strong>${n}</strong><small>documentos vigentes</small></div>` +
@@ -6972,7 +7011,7 @@
     const ls = x.lineas || [];
     return `<tr class="det"><td colspan="${cols}"><div class="ctDatos" style="margin-bottom:8px"><div><b>Valor de venta</b>${xlN(x.base)}</div><div><b>IGV</b>${xlN(x.igv)}</div><div><b>Total</b>${x.moneda && x.moneda !== 'PEN' ? esc(x.moneda) + ' ' : ''}${xlN(x.total)}</div>` +
       `${x.forma ? `<div><b>Pago</b>${esc(x.forma)}</div>` : ''}${(x.cuotas || []).length ? `<div><b>Cuotas</b>${x.cuotas.map((c) => `${xlN(c.m)} al ${esc(dia(c.v))}`).join(' · ')}</div>` : ''}${x.motivo ? `<div><b>Motivo</b>${esc(x.motivo)}</div>` : ''}</div>` +
-      (ls.length ? `<table style="background:#fff;font-size:13px;width:auto;min-width:60%;max-width:100%"><tr><th>#</th><th>Código</th><th>Descripción</th><th class="num">Cant.</th><th>Und.</th><th class="num">P. unit. con IGV</th><th class="num">Total</th></tr>` +
+      (ls.length ? `<table style="font-size:13px;width:auto;min-width:60%;max-width:100%"><tr><th>#</th><th>Código</th><th>Descripción</th><th class="num">Cant.</th><th>Und.</th><th class="num">P. unit. con IGV</th><th class="num">Total</th></tr>` +
         ls.map((l) => `<tr><td>${esc(l.n)}</td><td>${esc(l.cod)}</td><td style="white-space:normal;min-width:260px">${esc(l.desc)}</td><td class="num">${l.cant ?? ''}</td><td>${esc(l.um || '')}</td><td class="num">${xlN(l.puIgv ?? (l.cant ? (Number(l.total) || 0) / l.cant : null), 4)}</td><td class="num"><b>${xlN(l.total)}</b></td></tr>`).join('') +
         `<tr class="tot"><td colspan="6">Total del documento</td><td class="num">${xlN(x.total)}</td></tr></table>`
         : '<p class="quien" style="margin:0">Este XML no trae el detalle de productos.</p>') + '</td></tr>';
@@ -7543,7 +7582,7 @@
     const p = ctPubDe(c), pv = ct.cfg.provs.find((x) => x.n === c.prov) || {}, nom = new Map((c.items || []).map((x) => [x.c, x.d])), o = Object.entries(p.obsI || {});
     const F = 'font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#222;line-height:1.5;';
     const boton = (t) => `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:18px 0"><tr><td align="center" bgcolor="#e8710a" style="background:#e8710a;border-radius:6px"><a href="${esc(ctLink(c))}" target="_blank" style="display:inline-block;padding:14px 30px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;letter-spacing:1px;color:#ffffff;text-decoration:none;border-radius:6px">${t}</a></td></tr></table>`;
-    const codigo = `<p style="${F}">Código de acceso: <b style="font-family:Consolas,monospace;font-size:17px;letter-spacing:2px;background:#fff3e6;padding:3px 8px;border-radius:4px">${esc(pv.cod || '')}</b></p>`;
+    const codigo = `<p style="${F}">Código de acceso: <b style="font-family:Consolas,monospace;font-size:17px;letter-spacing:2px;background:#2a1d10;padding:3px 8px;border-radius:4px">${esc(pv.cod || '')}</b></p>`;
     const firma2 = `<p style="${F}">Saludos cordiales,<br><b>Departamento de Compras</b> | FS Socorro SAC</p>`;
     if (obs) return `<div style="${F}"><p style="${F}">Estimado proveedor,</p><p style="${F}">La cotización <b>${esc(c.cod)}</b> (N° ${esc(c.n)}) fue <b style="color:#b45309">OBSERVADA</b>${p.nota ? ': ' + esc(p.nota) : '.'}</p>` +
       (o.length ? `<p style="${F}margin-bottom:4px"><b>Productos observados:</b></p><ul style="${F}margin-top:0">${o.map(([k, v]) => `<li><b>${esc(nom.get(k) || k)}</b>: ${esc(v)}</li>`).join('')}</ul>` : '') +
@@ -7784,7 +7823,7 @@
       `<details style="margin-top:10px"${ab && !d.enviado ? ' open' : ''}><summary style="cursor:pointer;font-weight:700">Condiciones obligatorias</summary><ul style="margin:8px 0 0;padding-left:20px">${CT_COND.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></details></div>` +
       (apro ? `<div class="msg ok"><b>Cotización APROBADA el ${esc(dia(d.decFecha))}.</b> Puede atender y facturar únicamente lo detallado en "Pedido aprobado". La mercadería debe llegar en un máximo de 5 días.${d.nota ? ' Comentario: ' + esc(d.nota) : ''}</div>` : '') +
       (d.dec === 'RECHAZADA' ? `<div class="msg err"><b>Cotización no aprobada.</b> ${esc(d.nota || '')} No facturar.</div>` : '') +
-      (libre && d.dec === 'OBSERVADA' ? `<div class="msg" style="background:#fff8e6;color:#6b4a00"><b>Cotización observada por FS Socorro.</b> ${esc(d.nota || '')} ${corrige ? `Corrija los ${nObs} producto(s) resaltados (lo demás no se puede modificar) y pulse "Enviar corrección".` : 'Corrija y vuelva a enviar.'}</div>` : '') +
+      (libre && d.dec === 'OBSERVADA' ? `<div class="msg" style="background:#2a2114;color:#ffd79a"><b>Cotización observada por FS Socorro.</b> ${esc(d.nota || '')} ${corrige ? `Corrija los ${nObs} producto(s) resaltados (lo demás no se puede modificar) y pulse "Enviar corrección".` : 'Corrija y vuelva a enviar.'}</div>` : '') +
       (ab && d.enviado ? `<div class="msg ok"><b>✓ Cotización enviada${d.respFecha ? ' el ' + esc(ctHora(d.respFecha)) : ''}.</b> Ya no se puede modificar; si FS Socorro observa algún producto, se habilitará aquí mismo para corregirlo. <b>No facture hasta recibir la conformidad.</b></div>` : '') +
       (vencida && !d.enviado ? '<div class="msg err">El plazo de respuesta ya venció. Envíela cuanto antes.</div>' : '') + '<div id="pvMsg"></div>' +
       (apro ? `<h3 class="sub">Pedido aprobado</h3><div class="tabla"><table><tr><th>Cód.</th><th>Descripción</th><th class="num">Cantidad</th><th class="num">Bonif.</th><th class="num">Precio final</th><th class="num">Total S/</th></tr>${apro.map((a) => `<tr><td>${esc(a.c)}</td><td><b>${esc((nomDe.get(a.c) || {}).d || '')}</b></td><td class="num">${a.q}</td><td class="num">${a.b || ''}</td><td class="num">${mil(a.p)}</td><td class="num">${mil(r2(a.q * a.p))}</td></tr>`).join('')}<tr class="tot"><td colspan="5">Total</td><td class="num">${mil(r2(apro.reduce((s, a) => s + a.q * a.p, 0)))}</td></tr></table></div><h3 class="sub">Su cotización</h3>` : '') +
@@ -8177,7 +8216,7 @@
       '<div class="tabla"><table><thead><tr><th>Llegó</th><th>Correo de</th><th>Documento</th><th>Emisor</th><th>Emisión</th><th class="num">Total</th><th class="num">Ítems</th><th>Estado</th></tr></thead><tbody>' +
       lista.map((x) => {
         const ok = x.estado === 'leido' || x.estado === 'repetido', ajena = ok && mias.length && x.cliente && !mias.includes(x.cliente);
-        const estilo = [ok ? 'cursor:pointer' : '', String(x.recibido || '') > xb.marca ? 'background:var(--suave)' : ''].filter(Boolean).join(';');
+        const estilo = [ok ? 'cursor:pointer' : '', String(x.recibido || '') > xb.marca ? 'background:#2a1d10' : ''].filter(Boolean).join(';');
         return `<tr${ok ? ` class="xbIr" data-k="${esc(x.k)}" data-f="${esc(x.fecha)}" title="Ver el detalle"` : ''}${estilo ? ` style="${estilo}"` : ''}>` +
           `<td>${esc(ctHora(x.recibido))}</td><td class="larga">${esc(x.de || '')}<div class="quien">${esc(x.asunto || '')}</div></td>` +
           `<td>${ok ? `<b>${esc(x.doc)}</b> <span class="quien">${esc(x.tipo === 'FACTURA' ? 'Factura' : x.tipo === 'NOTA DE CRÉDITO' ? 'NC' : x.tipo || '')}</span>${x.ref ? `<div class="quien">afecta a ${esc(x.ref)}</div>` : ''}` : esc(x.archivo || '')}</td>` +
