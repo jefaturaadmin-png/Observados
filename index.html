@@ -7822,7 +7822,7 @@
   let xbCola = [], xbCorre = false, xbAviso = '', xbHechos = 0;
   function xbEncolar() {
     if (!puede('xml')) return;
-    xb.docs.filter((x) => x.estado === 'nuevo' && !xbEnCurso.has(x._id) && !xbCola.includes(x._id)).forEach((x) => xbCola.splice(Math.floor(Math.random() * (xbCola.length + 1)), 0, x._id)); // en orden al azar: si hay dos PCs abiertas, no leen el mismo correo a la vez
+    xb.docs.concat([...xb.pend.values()].filter((x) => !xb.docs.some((y) => y._id === x._id))).filter((x) => x.estado === 'nuevo' && !xbEnCurso.has(x._id) && !xbCola.includes(x._id)).forEach((x) => xbCola.splice(Math.floor(Math.random() * (xbCola.length + 1)), 0, x._id)); // en orden al azar: si hay dos PCs abiertas, no leen el mismo correo a la vez
     xbArrancar();
   }
   async function xbArrancar() {
@@ -7830,7 +7830,7 @@
     xbCorre = true; xbAviso = ''; xbHechos = 0;
     await sincro('xmlf').catch(() => null); // para saber qué XML ya están guardados sin preguntarle a Firebase uno por uno
     while (xbCola.length) {
-      const id = xbCola.shift(), b = xb.docs.find((x) => x._id === id);
+      const id = xbCola.shift(), b = xbDoc(id);
       if (!b || b.estado !== 'nuevo') continue;
       const r = await xbProcesar(b);
       xbHechos += 1;
@@ -7843,7 +7843,7 @@
   const esCuota = (e) => e && (e.code === 'resource-exhausted' || /quota|exhausted/i.test(e.message || ''));
   const xbClave = () => 'xbVisto_' + (yo ? yo.uid : '');
   function xbIniciar() {
-    xb = { docs: [], visto: '', marca: '', todos: false, err: '' };
+    xb = { docs: [], pend: new Map(), visto: '', marca: '', todos: false, err: '' };
     try { xb.visto = localStorage.getItem(xbClave()) || ''; } catch (e) { xb.visto = ''; }
     xb.marca = xb.visto;
     contador('nXml', 0);
@@ -7857,7 +7857,14 @@
       xbContar();
       if (vista === 'vXml') { xbVisto(); xbPintar(); }
     }, (e) => { xb.err = errorTexto(e); if (vista === 'vXml') xbPintar(); }));
+    // Los pendientes de leer, aunque no estén entre los 150 más recientes (un correo con un ZIP de cientos de XML)
+    if (puede('xml')) bajas.push(onSnapshot(query(collection(db, 'xmlBuzon'), where('estado', '==', 'nuevo')), (s) => {
+      xb.pend = new Map(s.docs.map((d) => [d.id, { _id: d.id, ...d.data() }]));
+      xbEncolar();
+      if (vista === 'vXml') xbPintar();
+    }, console.error));
   }
+  const xbDoc = (id) => xb.docs.find((x) => x._id === id) || xb.pend.get(id);
   async function xbProcesar(b) { // lee el XML del correo, lo guarda en xmlf (si no estaba) y deja el resultado en el buzón
     if (xbEnCurso.has(b._id)) return;
     xbEnCurso.add(b._id);
@@ -7923,7 +7930,7 @@
     const lista = xb.todos ? D : D.slice(0, 10);
     const estado = (x) => (x.estado === 'leido' ? '<span class="est e2">✓ Guardado</span>' : x.estado === 'repetido' ? '<span class="est e4">Ya estaba guardado</span>' : x.estado === 'error' ? `<span class="est alerta">No se pudo leer</span><div class="quien">${esc(x.error || '')}</div>${puede('xml') && (x.xml || x.rar) ? `<button class="mini xbRe" data-id="${esc(x._id)}">Reintentar</button>` : ''}` : (xbCorre || xbEnCurso.has(x._id) ? '<span class="est e0">Leyendo…</span>' : '<span class="est e0">Pendiente</span>'));
     caja.innerHTML = '<div class="caja" style="padding:12px 16px">' +
-      `<div class="herr" style="margin-bottom:8px"><h3 class="sub" style="margin:0">Llegados por correo</h3><span class="quien">${nuevos ? `<b>${nuevos} nuevo(s) desde tu última visita</b> · ` : ''}último: ${esc(ctHora(D[0].recibido))}</span>${(() => { const pend = D.filter((x) => x.estado === 'nuevo').length; return xbCorre ? `<span class="est e0">Leyendo ${xbHechos} de ${xbHechos + xbCola.length + 1}…</span>` : (pend && puede('xml') ? `<button class="mini pri" id="xbLeer">Leer pendientes (${pend})</button>` : ''); })()}<span style="flex:1"></span>${D.length > 10 ? `<button id="xbTodos">${xb.todos ? 'Ver solo los últimos 10' : `Ver los ${D.length}`}</button>` : ''}</div>` +
+      `<div class="herr" style="margin-bottom:8px"><h3 class="sub" style="margin:0">Llegados por correo</h3><span class="quien">${nuevos ? `<b>${nuevos} nuevo(s) desde tu última visita</b> · ` : ''}último: ${esc(ctHora(D[0].recibido))}</span>${(() => { const pend = new Set(D.filter((x) => x.estado === 'nuevo').map((x) => x._id).concat([...xb.pend.keys()])).size; return xbCorre ? `<span class="est e0">Leyendo ${xbHechos} de ${xbHechos + xbCola.length + 1}…</span>` : (pend && puede('xml') ? `<button class="mini pri" id="xbLeer">Leer pendientes (${pend})</button>` : ''); })()}<span style="flex:1"></span>${D.length > 10 ? `<button id="xbTodos">${xb.todos ? 'Ver solo los últimos 10' : `Ver los ${D.length}`}</button>` : ''}</div>` +
       (xbAviso ? `<div class="msg err">${esc(xbAviso)}</div>` : '') +
       '<div class="tabla"><table><thead><tr><th>Llegó</th><th>Correo de</th><th>Documento</th><th>Emisor</th><th>Emisión</th><th class="num">Total</th><th class="num">Ítems</th><th>Estado</th></tr></thead><tbody>' +
       lista.map((x) => {
