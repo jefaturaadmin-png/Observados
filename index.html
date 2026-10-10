@@ -1003,7 +1003,7 @@
   });
 
   function salirLocal() {
-    bajas.forEach((f) => f()); bajas = []; oy = {};
+    bajas.forEach((f) => f()); bajas = []; oy = {}; rgOyente = false;
     yo = null; filas = []; pedidos = []; usuarios = []; catalogo = [];
     if ($('dlg').open) $('dlg').close();
     if ($('dlgClave').open) $('dlgClave').close();
@@ -6537,18 +6537,29 @@
   const rgEmpDeRuc = (ruc) => (pgCfg.empresas.find((e) => e.ruc && e.ruc === ruc) || {}).k || '';
   const rgKey = (x) => (CI_T[x.tipo] && x.serie ? `${CI_T[x.tipo]}|${serDoc(x.serie)}|${numDoc(x.num)}` : '');
   const rgId = (x) => `${(x.emisor || {}).ruc}|${rgKey(x)}`;
-  async function rgCargarBase(forzar) { // lo registrado en Pagos a proveedores y Cuentas por pagar, todas las empresas y meses
-    if (rg.carg || (!forzar && rg.t && Date.now() - rg.t < 60000)) return;
-    rg.carg = true;
-    const lee = (p) => p.catch(() => null);
-    const [sp, sc, sa] = await Promise.all([puede('verPagos') ? lee(sincroDocs('pagos')) : null, puede('verCxp') && !pgCfg.cxpMig ? lee(getDocs(collection(db, 'cpm'))) : null, lee(getDoc(doc(db, 'config', 'concilia')))]);
-    rg.pg = sp ? sp.docs.map((d) => d.data()) : []; rg.cp = sc ? sc.docs.map((d) => d.data()) : [];
-    rg.rucs = (sa && sa.exists() && sa.data().rucs) || {};
+  function rgIndexar() { // índice de lo registrado; lo del proveedor abierto en Pagos se toma de la pantalla (incluye lo recién guardado)
+    const vivos = new Map(pgDocs.map((d) => [d.id, d]));
+    rg.pg = rg.pg.map((d) => vivos.get(`${d.emp}_${d.dist}_${d.per}`) || d).concat(pgDocs.filter((d) => !rg.pg.some((x) => x.emp === d.emp && x.dist === d.dist && x.per === d.per)));
     rg.idx = new Map();
     const pon = (k, r) => { if (!rg.idx.has(k)) rg.idx.set(k, []); rg.idx.get(k).push(r); };
     rg.pg.forEach((d) => (d.filas || []).forEach((f) => { if (f.n && ['FA', 'NC', 'ND'].includes(f.t)) pon(`${f.t}|${serDoc(f.s)}|${numDoc(f.n)}`, { mod: 'D', emp: d.emp, per: d.per, k: d.dist, prov: distDe(d.dist).nombre, i: f.i, m: Math.abs(Number(f.m) || 0) }); }));
     rg.cp.forEach((d) => (d.filas || []).forEach((f) => { const x = CI_T[f.t] ? ciDocCp(f.d) : null; if (x) pon(`${CI_T[f.t]}|${x.s}|${x.n}`, { mod: 'C', emp: d.emp, per: d.per, k: f.p, prov: f.p, i: f.i, m: Math.abs(Number(f.m) || 0) }); }));
+  }
+  let rgOyente = false, rgRepintar = null;
+  async function rgCargarBase(forzar) { // lo registrado en Pagos a proveedores y Cuentas por pagar, todas las empresas y meses
+    if (rg.carg || (!forzar && rg.t && Date.now() - rg.t < 60000)) return;
+    rg.carg = true;
+    const lee = (p) => p.catch(() => null), conc = !rg.saT || Date.now() - rg.saT > 600000; // las equivalencias se releen cada 10 min como máximo
+    const [sp, sc, sa] = await Promise.all([puede('verPagos') ? lee(sincroDocs('pagos')) : null, puede('verCxp') && !pgCfg.cxpMig ? lee(getDocs(collection(db, 'cpm'))) : null, conc ? lee(getDoc(doc(db, 'config', 'concilia'))) : null]);
+    rg.pg = sp ? sp.docs.map((d) => d.data()) : []; rg.cp = sc ? sc.docs.map((d) => d.data()) : [];
+    if (sa) { rg.rucs = (sa.exists() && sa.data().rucs) || {}; rg.saT = Date.now(); }
+    rgIndexar();
     rg.carg = false; rg.t = Date.now();
+    if (!rgOyente && sp) { // cuando cambia algo en Pagos (aquí o en otra PC), el Lector y el Registro se actualizan solos, sin leer de nuevo
+      rgOyente = true;
+      const v = sincros.get('pagos');
+      if (v) v.cbs.add((v2) => { rg.pg = v2.docs().map((d) => d.data()); rgIndexar(); clearTimeout(rgRepintar); rgRepintar = setTimeout(() => { if (vista === 'vXml') xlPintar(); else if (vista === 'vRegFac') rgPintar(); }, 300); });
+    }
   }
   function rgDonde(x) { // dónde está registrado este comprobante (o null)
     const k = rgKey(x), emp = rgEmpDeRuc((x.cliente || {}).ruc);
@@ -6649,6 +6660,7 @@
   }
   // --- Módulo Registro de facturas y NC ---
   function rgAbrir() {
+    if (rg.t) rgIndexar();
     if (!$('rgEmp').options.length) {
       $('rgEmp').innerHTML = CP_EMP.map((x) => `<option value="${x.k}">${esc(x.nombre)}</option>`).join('');
       $('rgHasta').value = hoy().slice(0, 7); $('rgDesde').value = ciMesAnt(hoy().slice(0, 7), 5);
@@ -7664,7 +7676,10 @@
     } catch (e) { xl.errores.push('No se pudo leer lo guardado: ' + errorTexto(e)); xl.docs = []; }
     xl.cargando = false; xl.listo = true; xlPintar();
   }
-  function xlAbrirVista() { $('xlZona').classList.toggle('oculto', !puede('xml')); xlCargar(); xbVisto(); } // cuida la cuota diaria de lecturas de Firebase
+  function xlAbrirVista() {
+    if (rg.t) rgIndexar(); // lo recién agregado en Pagos ya cuenta como registrado
+    $('xlZona').classList.toggle('oculto', !puede('xml')); xlCargar(); xbVisto();
+  }
   async function xlSubir(archivos) {
     const cola = []; xl.errores = []; xl.avisos = [];
     for (const a of archivos) {
