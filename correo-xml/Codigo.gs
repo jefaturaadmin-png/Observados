@@ -89,6 +89,8 @@ function xmlsDe(m) {
 /** Texto del XML respetando la codificación que declara (muchos vienen en ISO-8859-1). */
 function textoDe(blob) {
   const bytes = blob.getBytes();
+  if ((bytes[0] & 255) === 0xFF && (bytes[1] & 255) === 0xFE) return blob.getDataAsString('UTF-16LE').replace(/^\uFEFF/, ''); // XML guardado en UTF-16
+  if ((bytes[0] & 255) === 0xFE && (bytes[1] & 255) === 0xFF) return blob.getDataAsString('UTF-16BE').replace(/^\uFEFF/, '');
   const cab = Utilities.newBlob(bytes.slice(0, 200)).getDataAsString('ISO-8859-1');
   const m = cab.match(/encoding=["']([\w-]+)["']/i);
   let t;

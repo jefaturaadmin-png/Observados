@@ -7650,6 +7650,9 @@
     return out;
   }
   function xlTexto(buf) { // respeta la codificación que declara el XML (muchos vienen en ISO-8859-1)
+    const b0 = new Uint8Array(buf, 0, Math.min(2, buf.byteLength));
+    if (b0[0] === 0xFF && b0[1] === 0xFE) return new TextDecoder('utf-16le').decode(buf); // algunos sistemas guardan el XML en UTF-16
+    if (b0[0] === 0xFE && b0[1] === 0xFF) return new TextDecoder('utf-16be').decode(buf);
     const cab = new TextDecoder('latin1').decode(new Uint8Array(buf, 0, Math.min(200, buf.byteLength))), m = cab.match(/encoding=["']([\w-]+)["']/i);
     try { return new TextDecoder((m ? m[1] : 'utf-8').toLowerCase()).decode(buf); } catch (e) { return new TextDecoder('utf-8').decode(buf); }
   }
