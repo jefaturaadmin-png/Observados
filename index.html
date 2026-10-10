@@ -259,7 +259,8 @@
   #lado nav button.act + .navSub { display:block; }
   #lado nav .navSub button { font-size:13px; font-weight:500; padding:6px 10px; color:rgba(255,255,255,.72); }
   #lado nav .navSub button.on { color:#fff; font-weight:700; background:rgba(254,110,0,.25); box-shadow:inset 3px 0 0 var(--marca); }
-  body:not(.menuMin) #gSub, body:not(.menuMin) #ctSub, body:not(.menuMin) #cpSub { display:none; }
+  #gSub { display:none !important; }
+  body:not(.menuMin) #ctSub, body:not(.menuMin) #cpSub { display:none; }
   body.menuMin .navSub { display:none !important; }
   body.menuMin #lado { width:64px; } body.menuMin .navT, body.menuMin .navG, body.menuMin .ladoMarca b { display:none; } body.menuMin .ladoMarca { padding:0 17px; }
   body.menuMin #lado nav button { justify-content:center; padding:10px 0; position:relative; } body.menuMin #lado nav .cuenta { position:absolute; top:2px; right:4px; padding:0 5px; font-size:10px; }
@@ -392,7 +393,7 @@
       <div class="navGrupo"><button data-v="vInicio" title="Inicio"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span class="navT">Inicio</span></button></div>
       <div class="navGrupo"><div class=navG>Recepción</div><button data-v="vPedidos" title="Ingreso de pedidos"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><span class="navT">Ingreso de pedidos</span><span class="cuenta oculto" id="nPed"></span></button><button data-v="vNuevo" id="tabNuevo" title="Observar productos"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span class="navT">Observar productos</span></button><button data-v="vPend" title="Por devolver"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg><span class="navT">Por devolver</span><span class="cuenta oculto" id="nPend"></span></button><button data-v="vDev" title="Devueltos y NC"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="navT">Devueltos y NC</span><span class="cuenta oculto" id="nDev"></span></button><button data-v="vSeg" id="tabSeg" title="Seguimiento de devoluciones"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg><span class="navT">Seguimiento de devoluciones</span></button></div>
       <div class="navGrupo"><div class=navG>Compras</div><button data-v="vCot" id="tabCot" title="Cotizaciones"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span class="navT">Cotizaciones</span></button></div>
-      <div class="navGrupo"><div class=navG>Pagos</div><button data-v="vPagos" id="tabPagos" title="Pagos a proveedores"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg><span class="navT">Pagos a proveedores</span></button><button data-v="vResPag" id="tabResPag" title="Resumen de pagos del mes: créditos, distribuidores, proveedores y otros pagos"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg><span class="navT">Resumen de pagos</span></button></div>
+      <div class="navGrupo"><div class=navG>Pagos</div><button data-v="vPagos" id="tabPagos" title="Ingreso de facturas y NC de cada proveedor"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg><span class="navT">Ingreso de facturas y NC</span></button><button data-v="vPagosRes" id="tabPagosRes" title="Resumen de pago de cada proveedor y mes"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg><span class="navT">Resumen de pago</span></button><button data-v="vPagosObs" id="tabPagosObs" title="Facturas observadas y sus notas de crédito"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span class="navT">Observaciones</span></button><button data-v="vResPag" id="tabResPag" title="Resumen de pagos del mes: créditos, distribuidores, proveedores y otros pagos"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg><span class="navT">Resumen general</span></button></div>
       <div class="navGrupo"><div class=navG>Análisis de datos</div><button data-v="vDash" id="tabDash" title="Dashboard"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="navT">Dashboard</span></button></div>
       <div class="navGrupo"><div class=navG>Herramientas</div><button data-v="vXml" id="tabXml" title="Lector de XML"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg><span class="navT">Lector de XML</span><span class="cuenta oculto" id="nXml"></span></button></div>
       <div class="navGrupo"><div class=navG>Configuración</div><button data-v="vUsuarios" id="tabUsuarios" title="Usuarios"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="navT">Usuarios</span></button><button data-v="vCat" id="tabCat" title="Productos"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg><span class="navT">Productos</span></button><button data-v="vListas" id="tabListas" title="Listas"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span class="navT">Listas</span></button></div>
@@ -1218,7 +1219,7 @@
   }
   function aplicarPermisos() {
     const admin = yo.area === 'ADMIN';
-    const tabs = { vInicio: true, vPedidos: puede('verPedidos'), vNuevo: puede('observar'), vPend: puede('verPend'), vDev: puede('verDev'), vPagos: puede('verPagos'), vCxp: false, vResPag: puede('verPagos') || puede('verCxp'), vCierre: false, vProvDocs: false, vRegFac: false, vDash: puede('verDash'), vSeg: puede('verEnt'), vCot: puede('verCot'), vXml: puede('verXml'),
+    const tabs = { vInicio: true, vPedidos: puede('verPedidos'), vNuevo: puede('observar'), vPend: puede('verPend'), vDev: puede('verDev'), vPagos: puede('verPagos'), vPagosRes: puede('verPagos'), vPagosObs: puede('verPagos'), vCxp: false, vResPag: puede('verPagos') || puede('verCxp'), vCierre: false, vProvDocs: false, vRegFac: false, vDash: puede('verDash'), vSeg: puede('verEnt'), vCot: puede('verCot'), vXml: puede('verXml'),
       vUsuarios: admin, vCat: admin, vListas: admin };
     $('quien').textContent = `${yo.nombre} · ${yo.area}`;
     Object.entries(tabs).forEach(([v, ok]) => { const b = document.querySelector(`nav button[data-v="${v}"]`); if (b) b.classList.toggle('oculto', !ok); });
@@ -1293,8 +1294,16 @@
   /* ---------- Navegación ---------- */
   const NAV_DE = { vRegFac: 'vCierre' }; // vistas que comparten un mismo botón del menú
   const VISTAS = ['vInicio', 'vPedidos', 'vNuevo', 'vPend', 'vDev', 'vPagos', 'vCxp', 'vProvDocs', 'vResPag', 'vCierre', 'vRegFac', 'vDash', 'vSeg', 'vCot', 'vXml', 'vUsuarios', 'vCat', 'vListas', 'vNada'];
-  document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => ver(b.dataset.v)));
+  document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => { ver(b.dataset.v); if (b.dataset.v === 'vPagos') pgVer('grid'); }));
+  // Pagos a proveedores se abre en tres ventanas del menú (antes eran pestañas dentro del módulo)
+  const PG_ALIAS = { vPagosRes: 'res', vPagosObs: 'cruce' };
+  function navMarcar() {
+    const k = vista === 'vPagos' ? ({ res: 'vPagosRes', cruce: 'vPagosObs', ncp: 'vPagosObs' }[pgVista] || 'vPagos') : (NAV_DE[vista] || vista);
+    document.querySelectorAll('nav button[data-v]').forEach((b) => b.classList.toggle('act', b.dataset.v === k));
+    const bt = document.querySelector(`nav button[data-v="${k}"] .navT`); $('tituloVista').dataset.mod = bt ? bt.textContent : 'Farmacia Socorro'; menuSubPintar();
+  }
   function ver(v) {
+    if (PG_ALIAS[v]) { ver('vPagos'); pgVer(PG_ALIAS[v]); return; }
     vista = v;
     { const bt = document.querySelector(`nav button[data-v="${NAV_DE[v] || v}"] .navT`); $('tituloVista').dataset.mod = bt ? bt.textContent : 'Farmacia Socorro'; document.body.classList.remove('menuAbierto'); window.scrollTo(0, 0); menuSubPintar(); }
     if (v === 'vInicio') inPintar();
@@ -1310,6 +1319,7 @@
     if (v === 'vRegFac') rgAbrir();
     if (v === 'vProvDocs') pdAbrir();
     if (v === 'vResPag') { if (!$('rpMes').value) $('rpMes').value = hoy().slice(0, 7); rpPintar(); }
+    navMarcar();
   }
   const contador = (id, n) => { $(id).textContent = n; $(id).classList.toggle('oculto', !n); };
 
@@ -2589,6 +2599,7 @@
     pgVista = v;
     ['grid', 'dash', 'res', 'cruce', 'cxp', 'gen'].forEach((x) => $('gv_' + x).classList.toggle('oculto', x !== (v === 'ncp' ? 'cruce' : v)));
     document.querySelectorAll('#gSub button').forEach((b) => b.classList.toggle('act', b.dataset.gv === v));
+    if (vista === 'vPagos') navMarcar();
     const porDist = !['cxp', 'gen'].includes(v);
     $('gDistCbx').classList.toggle('oculto', !porDist || v === 'dash'); // el dashboard tiene su propio filtro de distribuidor
     $('gPer').classList.toggle('oculto', !['grid', 'res'].includes(v));
@@ -8089,7 +8100,7 @@
   $('velo').addEventListener('click', () => document.body.classList.remove('menuAbierto'));
 
   /* ---------- Ventanas de cada módulo dentro del menú (Pagos, Cuentas por pagar y Cotizaciones) ---------- */
-  const MENU_SUB = { vPagos: 'gSub', vCxp: 'cpSub', vCot: 'ctSub' };
+  const MENU_SUB = { vCxp: 'cpSub', vCot: 'ctSub' };
   function menuSubPintar() {
     Object.entries(MENU_SUB).forEach(([v, id]) => {
       const bot = document.querySelector(`#lado nav button[data-v="${v}"]`), orig = $(id);
