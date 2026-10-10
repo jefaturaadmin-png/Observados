@@ -6613,7 +6613,13 @@
     const r = rgDonde(x);
     if (r) return `<button class="mini rgIr" data-mod="${r.mod}" data-emp="${esc(r.emp)}" data-k="${esc(r.k)}" data-per="${esc(r.per)}" data-i="${esc(r.i)}" title="Ir a la fila">${r.dif ? '<span class="baja">≠ total</span> · ' : '✓ '}${r.mod === 'D' ? 'Pagos' : 'CxP'} · ${esc(perTxt(r.per))}</button>`;
     const id = rgId(x);
-    return `<label class="sgChk"><input type="checkbox" class="rgCk" data-id="${esc(id)}"${rg.sel.has(id) ? ' checked' : ''}> <span class="est alerta">Falta registrar</span></label>`;
+    return `<label class="sgChk"><input type="checkbox" class="rgCk" data-id="${esc(id)}"${rg.sel.has(id) ? ' checked' : ''}> <span class="est alerta">Falta registrar</span></label>` + xlNotaHtml(x);
+  }
+  // Comentario de un XML (por qué no se registró, etc.): queda guardado y lo ven todos
+  function xlNotaHtml(x) {
+    if (!x.k) return '';
+    if (x.nota) return `<div class="quien" style="margin-top:3px;max-width:220px;white-space:normal" title="${esc(`${x.notaPor || ''} · ${dia(x.notaF || '')}`)}">💬 ${esc(x.nota)}${puede('xml') ? ` <button class="mini xlNota" data-k="${esc(x.k)}" title="Cambiar o quitar el comentario">✎</button>` : ''}</div>`;
+    return puede('xml') ? `<div><button class="mini xlNota" data-k="${esc(x.k)}" style="margin-top:3px">+ comentario</button></div>` : '';
   }
   function rgBarra(pre, xs) { // barra para llevar lo marcado a un mes de pago
     if (!rg.t) return (puede('verPagos') || puede('verCxp')) ? '<p class="quien" style="margin:0 0 8px">Revisando qué está registrado en Pagos y Cuentas por pagar…</p>' : '';
@@ -7723,7 +7729,7 @@
   const xlMia = (ruc) => { const e = pgCfg.empresas.find((x) => x.ruc === ruc); return e ? ` <span class="est e3">${esc(e.k)}</span>` : ''; };
   const xlN = (v, dec) => (v === null || v === undefined ? '' : (dec ? Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: dec }) : mil(v)));
   function xlPintar() {
-    const t = xl.txt.trim().toLowerCase(), D0 = xl.docs.filter((x) => !t || [x.id, x.emisor.nom, x.emisor.ruc, x.cliente.nom, x.cliente.ruc, x.ref, x.lineas.map((l) => l.desc).join(' ')].join(' ').toLowerCase().includes(t)), F = xl.f || (xl.f = {}), D = D0.filter((x) => xlPasa(x, F)), sg2 = (x) => (x.tipo === 'NOTA DE CRÉDITO' ? -1 : 1), suma = (k) => r2(D.reduce((s, x) => s + sg2(x) * (Number(x[k]) || 0), 0));
+    const t = xl.txt.trim().toLowerCase(), D0 = xl.docs.filter((x) => !t || [x.id, x.emisor.nom, x.emisor.ruc, x.cliente.nom, x.cliente.ruc, x.ref, x.nota || '', x.lineas.map((l) => l.desc).join(' ')].join(' ').toLowerCase().includes(t)), F = xl.f || (xl.f = {}), D = D0.filter((x) => xlPasa(x, F)), sg2 = (x) => (x.tipo === 'NOTA DE CRÉDITO' ? -1 : 1), suma = (k) => r2(D.reduce((s, x) => s + sg2(x) * (Number(x[k]) || 0), 0));
     if (!rg.t && !rg.carg && (puede('verPagos') || puede('verCxp'))) rgCargarBase().then(() => { if (vista === 'vXml') xlPintar(); });
     $('xlCont').innerHTML = rgBarra('xl', D) + (xl.avisos.length ? `<div class="msg ok">${xl.avisos.map(esc).join('<br>')}</div>` : '') + (xl.errores.length ? `<div class="msg err">${xl.errores.map(esc).join('<br>')}</div>` : '') + (xl.cargando ? '<p class="resumen">Cargando…</p>' : !xl.docs.length ? `<div class="caja"><p class="resumen" style="margin:0">${xl.docs.length ? 'Nada coincide con la búsqueda.' : `Aún no hay documentos guardados. Sube los XML o los ZIP de las facturas.`}</p></div>` :
       '<div class="kpis">' + [[xl.txt.trim() ? 'Documentos encontrados' : 'Documentos guardados', String(D.length), `${D.filter((x) => x.tipo === 'FACTURA').length} facturas · ${D.filter((x) => x.tipo !== 'FACTURA').length} notas`], ['Valor de venta (sin IGV)', 'S/ ' + mil(suma('base')), 'las NC restan'], ['IGV', 'S/ ' + mil(suma('igv')), ''], ['Total', 'S/ ' + mil(suma('total')), `${D.reduce((s, x) => s + x.lineas.length, 0)} líneas de producto`]].map(([a, b, c], i) => `<div class="kpi"${i === 3 ? ' style="border-color:var(--marca);background:var(--suave)"' : ''}><b>${a}</b><strong>${b}</strong><small>${c}</small></div>`).join('') + '</div>' +
@@ -7786,6 +7792,19 @@
   $('xlQuitar').addEventListener('click', () => { xl.f = {}; xl.txt = ''; $('xlTxt').value = ''; xlPintar(); });
   $('xlAbrir').addEventListener('click', () => { xl.abiertos = xl.abiertos.size >= (xl.vista || []).length && xl.abiertos.size ? new Set() : new Set((xl.vista || []).map((x) => x.k)); xlPintar(); });
   $('xlCont').addEventListener('click', async (e) => {
+    const nb = e.target.closest('.xlNota');
+    if (nb) {
+      const x = xl.docs.find((y) => y.k === nb.dataset.k); if (!x) return;
+      const t = prompt(`Comentario para ${x.tipo} ${x.id} (por qué no se registró, etc.). Déjalo vacío para quitarlo.`, x.nota || '');
+      if (t === null) return;
+      const v = t.trim().slice(0, 300);
+      try {
+        await updateDoc(doc(db, 'xmlf', x.k), v ? { nota: v, notaPor: firma(), notaF: hoy(), subT: serverTimestamp() } : { nota: deleteField(), notaPor: deleteField(), notaF: deleteField(), subT: serverTimestamp() });
+        if (v) Object.assign(x, { nota: v, notaPor: firma(), notaF: hoy() }); else { delete x.nota; delete x.notaPor; delete x.notaF; }
+        xlPintar();
+      } catch (err) { alert(errorTexto(err)); }
+      return;
+    }
     const b = e.target.closest('.xlBorrar');
     if (b) { const x = xl.docs.find((y) => y.k === b.dataset.k); if (!x || !confirm(`¿Eliminar ${x.tipo} ${x.id} de lo guardado?`)) return; try { await deleteDoc(doc(db, 'xmlf', x.k)); sincroQuitar('xmlf', x.k); xl.avisos = [`${x.id} eliminado.`]; xl.errores = []; xlCargar(); } catch (err) { xl.errores = [errorTexto(err)]; xlPintar(); } return; }
     if (e.target.closest('input, button, .rgIr')) return;
