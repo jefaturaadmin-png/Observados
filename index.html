@@ -517,6 +517,7 @@
             <div class="campo"><label for="nProv">Proveedor *</label><div class="buscador"><input id="nProv" maxlength="80" placeholder="Escribe para buscar…" autocomplete="off" required><div class="sug oculto"></div></div></div>
           </div>
           <h2 class="sec" style="margin-top:6px">Productos observados de esta factura</h2>
+          <div id="nXmlInfo" class="quien oculto" style="margin:-4px 0 10px;padding:8px 12px;border:1px solid var(--marca);border-radius:8px;background:var(--suave);color:inherit"></div>
           <div id="lineas"></div>
           <datalist id="dlLab"></datalist>
           <div class="fila-bot">
@@ -1738,12 +1739,13 @@
   function pintarSug(linea) {
     const s = linea.querySelector('.sug');
     s.innerHTML = sugeridos.length
-      ? sugeridos.map((p, i) => `<div data-i="${i}"${i === sel ? ' class="sel"' : ''}><b>${esc(p.c)}</b>${esc(p.n)}<small>${esc(p.l)}</small></div>`).join('')
+      ? sugeridos.map((p, i) => `<div data-i="${i}"${i === sel ? ' class="sel"' : ''}><b>${p.x ? 'XML' : ''}${esc(p.c)}</b>${esc(p.n)}<small>${esc(p.l)}</small></div>`).join('')
       : '<div class="nada">Sin coincidencias en el catálogo. Puedes escribirlo a mano.</div>';
     s.classList.remove('oculto');
     const act = s.querySelector('.sel'); if (act) act.scrollIntoView({ block: 'nearest' });
   }
   function elegir(linea, p) {
+    if (p.x) return elegirXml(linea, p.x);
     linea.querySelector('.lProd').value = p.n;
     linea.querySelector('.lLab').value = p.l;
     linea.dataset.cod = p.c;
@@ -1755,9 +1757,17 @@
     if (!e.target.classList.contains('lProd')) return;
     const linea = e.target.closest('.linea');
     linea.dataset.cod = ''; linea.querySelector('.lCodTxt').textContent = '';
-    if (!catalogo.length || e.target.value.trim().length < 2) return cerrarSug(linea);
-    sugeridos = buscarCatalogo(e.target.value); sel = sugeridos.length ? 0 : -1;
+    const xs = nXmlSug(e.target.value);
+    if ((!catalogo.length || e.target.value.trim().length < 2) && !xs.length) return cerrarSug(linea);
+    sugeridos = [...xs, ...(catalogo.length ? buscarCatalogo(e.target.value) : [])]; sel = sugeridos.length ? 0 : -1;
     pintarSug(linea);
+  });
+  // Al entrar al producto, si la factura tiene XML, se muestran sus productos para elegir
+  $('lineas').addEventListener('focusin', (e) => {
+    if (!e.target.classList.contains('lProd') || e.target.value.trim() || !nXml.x) return;
+    const linea = e.target.closest('.linea');
+    sugeridos = nXmlSug(''); sel = sugeridos.length ? 0 : -1;
+    if (sugeridos.length) pintarSug(linea);
   });
   $('lineas').addEventListener('keydown', (e) => {
     if (!e.target.classList.contains('lProd')) return;
@@ -1787,7 +1797,62 @@
   ['nSer', 'nNum'].forEach((id) => $(id).addEventListener('change', () => {
     const k = facturaDe('n'), p = k && pedidos.find((x) => refDoc(x.factura) === k);
     if (p) $('nProv').value = p.proveedor;
+    nXmlBuscar();
   }));
+
+  // --- Si la factura ya tiene su XML guardado, sus productos aparecen para elegir y el precio sale solo ---
+  const nXml = { k: '', x: null, cache: new Map() };
+  const norm = (v) => String(v ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+  const nXmlPintar = () => {
+    const i = $('nXmlInfo'), x = nXml.x;
+    i.classList.toggle('oculto', !x);
+    i.innerHTML = x ? `<b>XML encontrado:</b> ${esc(x.id)} · ${esc(x.emisor?.nom || '')} · ${esc(dia(x.fecha))} · ${x.lineas.length} producto(s). En cada producto elige uno de la lista: el precio se llena solo y solo falta la cantidad.` : '';
+  };
+  async function nXmlBuscar() {
+    const k = facturaDe('n');
+    if (k === nXml.k) return;
+    nXml.k = k; nXml.x = null; nXmlPintar();
+    if (!k || !(puede('verXml') || puede('observar'))) return;
+    const [ser, num] = k.split('-');
+    try {
+      let xs = nXml.cache.get(k);
+      if (!xs) {
+        const v = sincros.get('xmlf'); // si el lector de XML ya está cargado no se lee nada más
+        if (v) { await v.listo; xs = v.docs().map((d) => d.data()).filter((x) => x.serie === ser && numDoc(x.num) === num); }
+        else xs = (await getDocs(query(collection(db, 'xmlf'), where('serie', '==', ser), where('num', '==', num)))).docs.map((d) => d.data());
+        nXml.cache.set(k, xs);
+      }
+      if (nXml.k !== k) return; // ya cambiaron la factura
+      xs = xs.filter((x) => x.tipo === 'FACTURA' && (x.lineas || []).length);
+      const prov = norm($('nProv').value);
+      nXml.x = xs.find((x) => prov && norm(x.emisor?.nom || '').includes(prov.split(' ')[0])) || xs[0] || null;
+      nXmlPintar();
+    } catch (e) { console.warn('XML de la factura:', e); }
+  }
+  const nXmlPu = (l) => { // precio unitario con IGV de la línea del XML
+    if (l.puIgv > 0) return l.puIgv;
+    if (l.total > 0 && l.cant > 0) return l.total / l.cant;
+    return l.pu > 0 ? l.pu * 1.18 : null;
+  };
+  const nXmlSug = (q) => {
+    if (!nXml.x) return [];
+    const ts = norm(q).split(/\s+/).filter(Boolean), f2 = (x) => x.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return nXml.x.lineas.filter((l) => ts.every((t) => norm(`${l.cod} ${l.desc}`).includes(t))).slice(0, 60).map((l) => {
+      const pu = nXmlPu(l);
+      return { x: l, c: l.cod ? ' · ' + l.cod : '', n: l.desc, l: `Facturado: ${l.cant ?? '?'} ${l.um || ''}${pu ? ` · S/ ${f2(pu)} c/IGV` : ''}` };
+    });
+  };
+  function elegirXml(linea, l) {
+    const pu = nXmlPu(l), r4 = (x) => String(Math.round(x * 10000) / 10000);
+    linea.querySelector('.lProd').value = txt(l.desc, 150);
+    linea.dataset.cod = '';
+    const c = catalogo.find((p) => norm(p.n) === norm(l.desc)); // si el nombre coincide con el catálogo, también sale el laboratorio
+    if (c) { linea.dataset.cod = c.c; linea.querySelector('.lLab').value = c.l; }
+    linea.querySelector('.lCodTxt').textContent = `Del XML${l.cod ? ' · código del proveedor ' + l.cod : ''} · facturado: ${l.cant ?? '?'}${c ? ` · Código ${c.c} · ${c.l}` : ''}`;
+    if (pu) { linea.querySelector('.lPrecio').value = r4(pu); linea.querySelector('.lPrecioS').value = r4(l.pu > 0 ? l.pu : pu / 1.18); }
+    cerrarSug(linea);
+    const q = linea.querySelector('.lCant'); q.dispatchEvent(new Event('input', { bubbles: true })); q.focus();
+  }
 
   $('fNuevo').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1843,7 +1908,7 @@
       msg('nuevoMsg', cods.length === 1
         ? `Se guardó 1 producto observado (${cods[0]}) de la factura ${factura}.`
         : `Se guardaron ${cods.length} productos observados (${cods[0]} a ${cods[cods.length - 1]}) de la factura ${factura}.`, 'ok');
-      $('nSer').value = ''; $('nNum').value = ''; $('nProv').value = '';
+      $('nSer').value = ''; $('nNum').value = ''; $('nProv').value = ''; nXml.k = ''; nXml.x = null; nXmlPintar();
       $('lineas').innerHTML = ''; agregarLinea();
       window.scrollTo(0, 0);
     } catch (err) { msg('nuevoMsg', errorTexto(err)); }
