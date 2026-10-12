@@ -912,7 +912,7 @@
     updatePassword, EmailAuthProvider, reauthenticateWithCredential
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
   import {
-    initializeFirestore, persistentLocalCache, persistentMultipleTabManager, CACHE_SIZE_UNLIMITED, getDocsFromCache, getCountFromServer, doc, getDoc as getDoc0, getDocs as getDocs0, setDoc, updateDoc, deleteDoc, addDoc, collection, query, where, orderBy, limit,
+    initializeFirestore, persistentLocalCache, persistentSingleTabManager, CACHE_SIZE_UNLIMITED, getDocsFromCache, getCountFromServer, doc, getDoc as getDoc0, getDocs as getDocs0, setDoc, updateDoc, deleteDoc, addDoc, collection, query, where, orderBy, limit,
     onSnapshot as onSnapshot0, runTransaction, writeBatch, serverTimestamp, deleteField
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
@@ -1030,8 +1030,28 @@
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
-  // Caché en el navegador: al recargar o con varias pestañas, Firebase solo cobra lo que cambió (cuida la cuota diaria)
-  const db = (() => { try { return initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager(), cacheSizeBytes: CACHE_SIZE_UNLIMITED }) }); } catch (e) { console.warn(e); return initializeFirestore(app, {}); } })();
+  // Caché en el navegador: al recargar, Firebase solo cobra lo que cambió (cuida la cuota diaria)
+  // Si Firebase se trabó ("INTERNAL ASSERTION FAILED"), se borra su memoria local y se recarga una sola vez
+  const FS_FALLA = /INTERNAL ASSERTION FAILED|Unexpected state/i;
+  const fsRecuperar = (m) => {
+    if (!FS_FALLA.test(String(m || ''))) return;
+    let ya = 0; try { ya = +sessionStorage.getItem('fsRecargado') || 0; } catch (e) {}
+    if (Date.now() - ya < 60000) return; // ya se intentó hace menos de un minuto: no entrar en bucle
+    try { localStorage.setItem('fsLimpiar', '1'); sessionStorage.setItem('fsRecargado', String(Date.now())); } catch (e) {}
+    location.reload();
+  };
+  window.addEventListener('error', (e) => fsRecuperar(e?.error?.message || e?.message));
+  window.addEventListener('unhandledrejection', (e) => fsRecuperar(e?.reason?.message || e?.reason));
+  try {
+    if (localStorage.getItem('fsLimpiar')) {
+      localStorage.removeItem('fsLimpiar');
+      Object.keys(localStorage).filter((k) => k.startsWith('sync2:')).forEach((k) => localStorage.removeItem(k));
+      const bases = indexedDB.databases ? await indexedDB.databases() : [];
+      await Promise.all(bases.filter((b) => (b.name || '').startsWith('firestore/')).map((b) => new Promise((ok) => { const r = indexedDB.deleteDatabase(b.name); r.onsuccess = r.onerror = r.onblocked = () => ok(); })));
+    }
+  } catch (e) { console.warn(e); }
+  // Caché de una sola pestaña: la de varias pestañas tiene fallas internas en esta versión de Firebase
+  const db = (() => { try { return initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentSingleTabManager(), cacheSizeBytes: CACHE_SIZE_UNLIMITED }) }); } catch (e) { console.warn(e); return initializeFirestore(app, {}); } })();
   await setPersistence(auth, browserSessionPersistence);
 
   let yo = null, listas = LISTAS_INI, filas = [], pedidos = [], usuarios = [], catalogo = [], catDocs = [], abierto = null;
