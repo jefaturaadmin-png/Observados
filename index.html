@@ -2438,6 +2438,24 @@
         mejor.c.det.push({ k: o.k, monto: Math.abs(Number(o.f.m) || 0), aplicado: a, fecha: o.f.f, per: o.per, tipo: 'auto: sobrante de NC', comp: true });
         mejor.c.auto = mejor.c.auto || 'Sobrante de otra NC';
       });
+    // NC parcial: qué productos siguen pendientes. Con el XML de la NC, los que la NC no trae;
+    // sin XML, el producto (o los productos) cuyo monto es justo lo que falta (margen de TOL_NC).
+    res.forEach((c) => {
+      const falta = (c.obs > 0 && c.obs - c.aplicada > TOL_NC) ? r2(c.obs - c.aplicada) : 0, ls = c.lineas;
+      c.pendI = null;
+      if (!falta || !c.det.length || ls.length < 2) return;
+      const prods = c.det.flatMap((d) => (ncs.get(d.k) || {}).prods || []);
+      if (prods.length) { const idx = ls.map((l, i) => i).filter((i) => !prodCoincide(ls[i].p, prods)); if (idx.length && idx.length < ls.length) { c.pendI = idx; return; } }
+      const conM = ls.map((l, i) => ({ i, m: Number(l.m) || 0 })).filter((o) => o.m > 0);
+      if (conM.length > 14) return;
+      let mejor = null;
+      for (let mask = 1; mask < (1 << conM.length); mask += 1) {
+        let suma = 0; const sel = [];
+        conM.forEach((o, b) => { if (mask & (1 << b)) { suma += o.m; sel.push(o.i); } });
+        if (Math.abs(suma - falta) <= TOL_NC && (!mejor || sel.length < mejor.length)) mejor = sel;
+      }
+      if (mejor && mejor.length < ls.length) c.pendI = mejor;
+    });
     return { res, usadas: new Set(usos.keys()), ncs };
   }
 
@@ -3648,6 +3666,7 @@
   };
   // Qué va en la columna G de cada producto observado: la NC que lo cubre o "FALTA NOTA CRED"
   function obsEstados(c) {
+    if (c.pendI) { const ks = c.det.map((d) => d.k).join(' + '), falta0 = pendDe(c); return c.lineas.map((l, i) => (c.pendI.includes(i) ? { t: c.pendI.length === 1 ? `FALTA NOTA CRED (S/ ${mil(falta0)})` : 'FALTA NOTA CRED', ok: false } : { t: ks, ok: true })); }
     const ls = c.lineas, det = c.det.map((d) => ({ ...d })), suyas = ls.map(() => []), falta = pendDe(c);
     ls.forEach((l, i) => { const m = Number(l.m) || 0, j = det.findIndex((d) => !d.u && m > 0 && Math.abs(d.aplicado - m) <= TOL_NC); if (j >= 0) { det[j].u = 1; suyas[i].push(det[j]); } });
     const resto = det.filter((d) => !d.u);
@@ -3902,7 +3921,7 @@
       $('cTxt').addEventListener('input', () => pintarCruce());
       $('cExp').addEventListener('click', () => exportar(soloPend ? `nc-pendientes-${pgDist()}` : `cruce-observaciones-${pgDist()}`, [
         ['Fecha', (x) => dia(x.f.f)], ['Factura', (x) => `${x.f.s}-${x.f.n}`], ['Total factura', (x) => x.f.m], ['Laboratorio', (x) => labDe(x.f)],
-        ['Productos observados', (x) => x.c.lineas.map((l) => `${l.p} (${mil(l.m)})`).join('\n')], ['Monto observado', (x) => x.c.obs],
+        ['Productos observados', (x) => x.c.lineas.map((l) => `${l.p} (${mil(l.m)})`).join('\n')], ['Pendiente de NC (productos)', (x) => (x.c.pendI ? x.c.pendI.map((i) => `${x.c.lineas[i].p} (${mil(x.c.lineas[i].m)})`).join('\n') : '')], ['Monto observado', (x) => x.c.obs],
         ['NC aplicadas', (x) => x.c.det.map((n) => `${n.k} (${mil(n.aplicado)}, ${n.tipo})`).join('\n')], ['NC aplicada total', (x) => x.c.aplicada], ['Pendiente de NC', 'pend'],
         ['Estado', 'est'], ['Tipo de devolución', 'tipo'], ['Mes a pagar', (x) => perTxt(x.per)], ['Alerta', 'alerta']
       ], cruceVista()));
@@ -3912,7 +3931,7 @@
       `pendiente de NC S/ ${mil(lista.reduce((s, x) => s + x.pend, 0))} en ${lista.filter((x) => x.pend).length} factura(s)`;
     $('cCuerpo').innerHTML = lista.map((x) =>
       `<tr data-id="${esc(x.f.i)}" data-per="${esc(x.per)}"><td>${esc(dia(x.f.f))}</td><td><b>${esc(x.f.s)}-${esc(x.f.n)}</b></td><td>${esc(labDe(x.f))}</td>` +
-      `<td class="larga">${x.c.lineas.map((l) => `${esc(l.p)}${l.m !== null && l.m !== undefined ? ` <span class="quien">(${esc(mil(l.m))})</span>` : ''}`).join('<br>')}</td>` +
+      `<td class="larga">${(x.c.pendI ? x.c.pendI.map((i) => x.c.lineas[i]) : x.c.lineas).map((l) => `${esc(l.p)}${l.m !== null && l.m !== undefined ? ` <span class="quien">(${esc(mil(l.m))})</span>` : ''}`).join('<br>')}${x.c.pendI ? `<br><span class="quien" title="${esc(x.c.lineas.filter((l, i) => !x.c.pendI.includes(i)).map((l) => l.p).join(' · '))}">✓ ${x.c.lineas.length - x.c.pendI.length} producto(s) ya con NC</span>` : ''}</td>` +
       `<td class="num">${esc(mil(x.c.obs))}</td><td>${x.c.det.map((n) => `${esc(n.k)} <span class="quien">${esc(n.tipo)}</span>`).join('<br>') || '<span class="quien">—</span>'}</td>` +
       `<td class="num">${esc(mil(x.c.aplicada))}</td><td class="num${x.pend ? ' baja' : ''}">${esc(mil(x.pend))}</td>` +
       `<td><span class="est ${claseEst(x.est)}">${esc(x.est)}</span></td><td><span class="est ${x.tipo === DEV_INM ? 'e3' : 'e1'}">${esc(x.tipo)}</span></td><td>${esc(perTxt(x.per))}</td><td class="larga quien">${esc(x.alerta)}</td></tr>`).join('') ||
