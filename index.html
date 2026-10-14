@@ -2415,6 +2415,7 @@
     const t = soloAlfa(p), cod = (String(p || '').trim().match(/^([A-Za-z0-9-]{3,})\s/) || [])[1];
     return prods.some((q) => (q.cod && cod && soloAlfa(cod) === q.cod) || (q.desc.length >= 6 && t.length >= 6 && (t.includes(q.desc.slice(0, 18)) || q.desc.includes(t.replace(/^\d+/, '').slice(0, 18)))));
   };
+  const ncQuitada = (x, o) => (x.f.ncX || []).includes(o.k); // NC que el usuario quitó de esa factura: no se le vuelve a aplicar sola
   function cruzar(docs, lineasDe) {
     const ncs = new Map(), porNum = new Map(), usos = new Map(), facturas = [], rebs = new Set();
     docs.forEach((d) => (d.filas || []).forEach((f) => {
@@ -2444,7 +2445,7 @@
     const lista = facturas.filter((x) => x.lineas.length || (x.f.nc || []).length).map((x) => {
       const mias = [], faltan = [];
       (x.f.nc || []).forEach((k) => { if (rebs.has(k) && !ncs.has(k) && !(porNum.get(String(k).split('-').pop()) || []).length) return; const o = hallar(k, x.f); if (o) { if (!mias.some((l) => l.o === o)) mias.push({ o, tipo: 'anotada' }); } else faltan.push(k); });
-      [`${x.f.s}-${x.f.n}`, x.f.n].forEach((ref) => (refs.get(ref) || []).forEach((o) => { if (!mias.some((l) => l.o === o)) mias.push({ o, tipo: 'referencia' }); }));
+      [`${x.f.s}-${x.f.n}`, x.f.n].forEach((ref) => (refs.get(ref) || []).forEach((o) => { if (!mias.some((l) => l.o === o) && !ncQuitada(x, o)) mias.push({ o, tipo: 'referencia' }); }));
       mias.forEach((l) => { usos.set(l.o, (usos.get(l.o) || 0) + 1); l.o.libre = false; });
       return { ...x, mias, faltan };
     }).sort((a, b) => String(a.f.f).localeCompare(String(b.f.f)) || String(a.f.n).localeCompare(String(b.f.n), undefined, { numeric: true }));
@@ -2471,7 +2472,7 @@
         let mejor = null;
         lista.forEach((x) => {
           const c = res.get(`${x.per}|${x.f.i}`), falta = r2(c.obs - c.aplicada);
-          if (falta <= TOL_NC || !x.lineas.some((l) => prodCoincide(l.p, [q]))) return;
+          if (falta <= TOL_NC || ncQuitada(x, o) || !x.lineas.some((l) => prodCoincide(l.p, [q]))) return;
           const d = diasEntre(x.f.f, o.f.f);
           if (d !== null && (d < 0 || d > DIAS_NC)) return;
           const pri = (o.ref && (o.ref === `${x.f.s}-${x.f.n}` || o.ref === String(x.f.n))) ? 0 : 1;
@@ -2493,7 +2494,7 @@
     const buscar = (x, monto, ls) => {
       let mejor = null;
       candidatas().forEach((o) => {
-        if (Math.abs(o.resto - monto) > TOL_NC || !concuerda(o, ls)) return;
+        if (Math.abs(o.resto - monto) > TOL_NC || ncQuitada(x, o) || !concuerda(o, ls)) return;
         const d = diasEntre(x.f.f, o.f.f);
         if (d !== null && (d < 0 || d > DIAS_NC)) return;
         if (!mejor || String(o.f.f).localeCompare(String(mejor.f.f)) < 0) mejor = o;
@@ -2522,7 +2523,7 @@
       const c = res.get(`${x.per}|${x.f.i}`);
       if (c.aplicada > 0 || c.obs <= 1) return;
       const cand = candidatas().filter((o) => {
-        if (o.resto > c.obs + TOL_NC || !concuerda(o, x.lineas)) return false;
+        if (o.resto > c.obs + TOL_NC || ncQuitada(x, o) || !concuerda(o, x.lineas)) return false;
         const d = diasEntre(x.f.f, o.f.f);
         return d === null || (d >= 0 && d <= DIAS_NC);
       }).sort((p, q) => (diasEntre(x.f.f, p.f.f) ?? 9e6) - (diasEntre(x.f.f, q.f.f) ?? 9e6)).slice(0, 18);
@@ -3033,16 +3034,17 @@
           `<td class="n">${cuenta ? esc(mil(montoObs(o))) : ''}</td></tr>`;
       }).join('') + '</table>' : '';
     const ncs = c.det.map((x) => `<tr><td>${esc(x.k)} <span class="quien">${esc(x.tipo)}${x.comp ? ' · repartida' : ''}</span></td><td>${esc(dia(x.fecha))}</td>` +
-      `<td class="n">${esc(mil(x.monto))}</td><td class="n">${esc(mil(x.aplicado))}</td></tr>`).join('') +
-      c.faltan.map((k) => `<tr><td>${esc(k)}</td><td colspan="3"><span class="est alerta">No está registrada en la lista</span></td></tr>`).join('');
+      `<td class="n">${esc(mil(x.monto))}</td><td class="n">${esc(mil(x.aplicado))}</td><td>${edita ? `<button class="mini pel ncQuitar" data-k="${esc(x.k)}" data-tipo="${esc(x.tipo)}" title="Esta NC no es de esta factura: quitarla">✕</button>` : ''}</td></tr>`).join('') +
+      c.faltan.map((k) => `<tr><td>${esc(k)}</td><td colspan="4"><span class="est alerta">No está registrada en la lista</span></td></tr>`).join('') +
+      (f.ncX || []).map((k) => `<tr><td colspan="5" class="quien">Quitada de esta factura: <b>${esc(k)}</b>${edita ? ` <button class="mini ncVolver" data-k="${esc(k)}">volver a permitir</button>` : ''}</td></tr>`).join('');
     const falta = r2(c.obs - c.aplicada);
     return `<tr class="det" data-d="${esc(f.i)}"><td colspan="16"><div class="detg">` +
       `<div><h4>Productos observados de ${esc(f.s)}-${esc(f.n)}</h4>` +
       ((f.o || []).length || !rec.length ? `<table><tr><th>Producto observado (anotado a mano)</th><th class="n" style="width:80px">Cant.</th><th class="n" style="width:160px">Monto total con IGV</th><th style="width:40px"></th></tr>${manual}</table>` : '') +
       `${edita ? '<button class="mini oMas">+ Agregar producto observado</button>' : ''}${czObsBloque(f, czXmlDe(`${f.t}|${serDoc(f.s)}|${numDoc(f.n)}`, f.m, distDe(pgDist()).nombre), edita)}${recHtml}` +
       `<table style="margin-top:8px"><tr class="tot"><td>Total observado</td><td class="n" style="width:140px">${esc(mil(c.obs))}</td></tr></table></div>` +
-      `<div><h4>Notas de crédito aplicadas</h4><table><tr><th>NC</th><th>Fecha</th><th class="n">Monto de la NC</th><th class="n">Aplicado aquí</th></tr>${ncs || '<tr><td colspan="4" class="quien">Ninguna todavía. Anota la serie y número en la columna "NC anotadas".</td></tr>'}` +
-      `<tr class="tot"><td colspan="3">Total aplicado${Math.abs(falta) > TOL_NC ? (falta > 0 ? ` · falta S/ ${esc(mil(falta))}` : '') : ''}</td><td class="n">${esc(mil(c.aplicada))}</td></tr></table></div>` +
+      `<div><h4>Notas de crédito aplicadas</h4><table><tr><th>NC</th><th>Fecha</th><th class="n">Monto de la NC</th><th class="n">Aplicado aquí</th><th style="width:34px"></th></tr>${ncs || '<tr><td colspan="5" class="quien">Ninguna todavía. Anota la serie y número en la columna "NC anotadas".</td></tr>'}` +
+      `<tr class="tot"><td colspan="3">Total aplicado${Math.abs(falta) > TOL_NC ? (falta > 0 ? ` · falta S/ ${esc(mil(falta))}` : '') : ''}</td><td class="n">${esc(mil(c.aplicada))}</td><td></td></tr></table></div>` +
       '</div></td></tr>';
   }
 
@@ -3284,6 +3286,19 @@
       const suyas = f.t === 'FA' ? cruceDe(per, f).det.map((x) => x.k) : [];
       return pgGuardar(per, (lista) => { lista.forEach((x) => { if (x.i === f.i || (x.t === 'NC' && suyas.includes(`${x.s}-${x.n}`))) { if (pone) x.pg = 1; else delete x.pg; } }); },
         'Devolución total', `${f.t} ${f.s}-${f.n}: ${pone ? 'se incluye en el listado de pago' : 'vuelve a ir aparte'}`).then(() => pintarPagos(true)).catch(pgError);
+    }
+    if (t.classList.contains('ncQuitar') || t.classList.contains('ncVolver')) { // quitar una NC que se aplicó a esta factura sin corresponder (o volver a permitirla)
+      const f = pgFila(t.closest('tr.det').dataset.d), k = t.dataset.k, quita = t.classList.contains('ncQuitar');
+      if (quita && !confirm(`¿Quitar la NC ${k} de la factura ${f.s}-${f.n}?\n\nYa no se le aplicará sola; quedará libre para otra factura.`)) return;
+      pgAbiertas.add(f.i);
+      return pgGuardar(pgPer(), (lista) => {
+        const x = lista.find((y) => y.i === f.i); if (!x) return;
+        if (quita) {
+          if (t.dataset.tipo === 'anotada') x.nc = (x.nc || []).filter((n) => n !== k && n !== k.split('-').pop()); // anotada a mano: se borra de "NC anotadas"
+          else x.ncX = unicos((x.ncX || []).concat([k]));
+          lista.forEach((y) => { if (y.t === 'NC' && `${y.s}-${y.n}` === k && y.r && refDoc(y.r) === refDoc(`${x.s}-${x.n}`)) delete y.r; }); // si la NC apuntaba a esta factura, se suelta
+        } else { x.ncX = (x.ncX || []).filter((n) => n !== k); if (!x.ncX.length) delete x.ncX; }
+      }, 'NC', `${f.s}-${f.n}: ${quita ? 'quitó' : 'volvió a permitir'} la NC ${k}`).then(() => pintarPagos(true)).catch(pgError);
     }
     if (t.classList.contains('oMas')) {
       const f = pgFila(t.closest('tr.det').dataset.d);
