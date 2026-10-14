@@ -1390,7 +1390,7 @@
     if (v === 'vInicio') inPintar();
     VISTAS.forEach((x) => $(x).classList.toggle('oculto', x !== v));
     document.querySelectorAll('nav button').forEach((b) => b.classList.toggle('act', b.dataset.v === (NAV_DE[v] || v)));
-    if (v === 'vPagos') pintarPagos(true);
+    if (v === 'vPagos') { pintarPagos(true); setTimeout(cnAutoDesdePagos, 800); }
     if (v === 'vCxp') cpPintar(true);
     if (v === 'vDash') dgPintar();
     if (v === 'vSeg') sgPintar();
@@ -6623,9 +6623,14 @@
   }
   // Al subir (o abrir) el reporte en "Reporte Lolfar y XML" se anota ✓ Lolfar solo, en TODAS las empresas y meses.
   // Lo ya anotado con el mismo importe no se vuelve a escribir: solo se guardan las filas nuevas o que cambiaron.
+  async function cnAutoDesdePagos() { // al abrir Ingreso de facturas y NC también se anota con el último reporte guardado
+    const emp = pgEmp();
+    if (!emp || !puede('pagos')) return;
+    try { if (await cnTraerRep(emp)) await cnAutoMarcar(); } catch (e) { console.warn(e); }
+  }
   async function cnAutoMarcar() {
     if (!cn.rep || !puede('pagos')) return;
-    const clave = `${cnEmp()}|${cn.info || ''}`;
+    const clave = `${cn.repEmp}|${cn.info || ''}`;
     if (cn.autoK === clave) return;
     cn.autoK = clave;
     const ks = new Set();
