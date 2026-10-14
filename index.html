@@ -199,6 +199,8 @@
   .kpi strong { display:block; font-size:20px; }
   .kpi small { color:var(--gris); font-size:12px; }
   .sube { color:var(--ok); } .baja { color:var(--rojo); }
+  .cnDos { display:grid; grid-template-columns:minmax(0, 1.5fr) minmax(0, 1fr); gap:18px; align-items:start; margin-top:14px; } @media (max-width:1250px) { .cnDos { grid-template-columns:minmax(0, 1fr); } }
+  .cnDos .tabla { max-height:70vh; overflow:auto; } details.cnProvs { margin-top:14px; } details.cnProvs summary { cursor:pointer; font-weight:700; color:var(--marca); padding:6px 0; }
   .dos { display:grid; grid-template-columns:repeat(auto-fit, minmax(420px, 1fr)); gap:16px; align-items:start; }
   h3.sub { font-size:14px; color:var(--pri); margin:14px 0 8px; }
   .barra { height:12px; border-radius:6px; background:var(--marca); }
@@ -5660,7 +5662,7 @@
     }
     $('cnInfo').textContent = cn.rep ? cn.info || '' : '';
     $('cnArch').classList.toggle('oculto', !!cn.rep); $('cnActualizar').classList.toggle('oculto', !cn.rep);
-    if (!cn.rep) { $('cnCont').innerHTML = ''; return; }
+    if (!cn.rep) { $('cnCont').innerHTML = cnGeneral() ? cnXmlHtml([]) : ''; return; }
     if (!cn.sis || cn.sis.emp !== cnEmp()) { cnAnalizar(); return; }
     const X = cnCruzar(), fal = X.filas.filter((x) => x.est === 'falta'), dif = X.filas.filter((x) => x.est === 'distinto'), anr = X.filas.filter((x) => x.est === 'anulada-registrada'),
       partes = X.filas.filter((x) => x.partes > 1), vivas = X.filas.filter((x) => ['falta', 'ok', 'distinto'].includes(x.est)), sinId = X.provs.filter((p) => !p.dest.tipo);
@@ -5692,15 +5694,48 @@
       `<div class="kpi"><b>Con monto distinto</b><strong>${dif.length}</strong><small>diferencia S/ ${mil(r2(dif.reduce((s, x) => s + (x.m - x.regM), 0)))}</small></div>` +
       `<div class="kpi"><b>Anuladas que siguen aquí</b><strong>${anr.length}</strong><small>revisar si se quitan</small></div>` +
       `<div class="kpi"><b>Proveedores sin identificar</b><strong${sinId.length ? ' class="baja"' : ''}>${sinId.length}</strong><small>elige a cuál corresponden</small></div></div>` +
-      '<h3 class="sub">Por proveedor</h3><div class="tabla" style="max-height:44vh;overflow:auto"><table><thead><tr><th>Proveedor en el reporte</th><th>Corresponde a</th><th class="num">Facturas</th><th class="num">Total reporte</th><th class="num">Registradas</th><th class="num">Faltan</th><th class="num">S/ faltan</th><th class="num">Monto distinto</th><th class="num">Anuladas</th></tr></thead><tbody>' +
+      `<details class="cnProvs"${sinId.length ? ' open' : ''}><summary>Proveedores del reporte (${X.provs.length})${sinId.length ? ` · <b class="baja">${sinId.length} sin identificar: elige a cuál corresponden</b>` : ''}</summary><div class="tabla" style="max-height:44vh;overflow:auto"><table>` +
+      '<thead><tr><th>Proveedor en el reporte</th><th>Corresponde a</th><th class="num">Facturas</th><th class="num">Total reporte</th><th class="num">Registradas</th><th class="num">Faltan</th><th class="num">S/ faltan</th><th class="num">Monto distinto</th><th class="num">Anuladas</th></tr></thead><tbody>' +
       X.provs.map((p) => `<tr${!p.dest.tipo ? ' style="background:#fff3d6"' : ''}><td><a href="#" class="cnVer" data-p="${esc(p.prov)}">${esc(p.prov)}</a></td><td>${provOps(p)}</td><td class="num">${p.n}</td><td class="num">${mil(p.total)}</td><td class="num">${p.ok}</td><td class="num${p.faltan ? ' baja' : ''}"><b>${p.faltan}</b></td><td class="num${p.faltan ? ' baja' : ''}">${mil(p.mFaltan)}</td><td class="num">${p.dif || ''}</td><td class="num">${p.anul || ''}</td></tr>`).join('') +
-      '</tbody></table></div>' +
-      '<div class="herr" style="margin-top:16px"><select id="cnVerSel">' + [['faltan', `Faltan subir (${fal.length})`], ['dif', `Monto distinto (${dif.length})`], ['anul', `Anuladas que siguen registradas (${anr.length})`], ['partes', `Registradas en varias partes en el sistema (${partes.length})`], ['todo', `Todas las del reporte (${vivas.length})`]].map(([v, t]) => `<option value="${v}"${cn.ver === v ? ' selected' : ''}>${t}</option>`).join('') + '</select>' +
+      '</tbody></table></div></details>' +
+      `<div class="${cnGeneral() ? 'cnDos' : ''}"><div><h3 class="sub">Lolfar: facturas que faltan subir</h3>` +
+      '<div class="herr"><select id="cnVerSel">' + [['faltan', `Faltan subir (${fal.length})`], ['dif', `Monto distinto (${dif.length})`], ['anul', `Anuladas que siguen registradas (${anr.length})`], ['partes', `Registradas en varias partes en el sistema (${partes.length})`], ['todo', `Todas las del reporte (${vivas.length})`]].map(([v, t]) => `<option value="${v}"${cn.ver === v ? ' selected' : ''}>${t}</option>`).join('') + '</select>' +
       `<select id="cnProvSel"><option value="">Todos los proveedores</option>${unicos(lista.map((x) => x.prov)).map((p) => `<option${p === cn.prov ? ' selected' : ''}>${esc(p)}</option>`).join('')}</select><span style="flex:1"></span><button id="cnExp">Exportar a Excel</button></div>` +
       `<p class="resumen">${vista.length} factura(s) · S/ ${mil(suma(vista))}. La fecha es la de registro en el sistema, no la de emisión.</p>` +
       '<div class="tabla"><table><thead><tr><th>Registro en el sistema</th><th>Tipo</th><th>Documento</th><th>Vence</th><th>Mes de pago sugerido</th><th class="num">Importe reporte</th><th class="num">Registrado aquí</th><th class="num">Diferencia</th><th>Situación</th></tr></thead><tbody>' +
-      (h || '<tr><td colspan="9" class="vacio">Nada en esta lista</td></tr>') + '</tbody></table></div>';
+      (h || '<tr><td colspan="9" class="vacio">Nada en esta lista</td></tr>') + '</tbody></table></div></div>' +
+      (cnGeneral() ? cnXmlHtml(fal) : '') + '</div>';
     cn.vista = vista;
+  }
+  // XML recibidos (Lector de XML) de esta empresa que todavía no están registrados en Pagos
+  function cnXmlCargar() {
+    if (cn.xCarg || cn.xT) return;
+    cn.xCarg = true;
+    Promise.all([sincroDocs('xmlf').then((s) => { cn.xdocs = s.docs.map((d) => d.data()); }), rgCargarBase()])
+      .catch((e) => { cn.xErr = errorTexto(e); })
+      .then(() => { cn.xCarg = false; cn.xT = Date.now(); if (cnGeneral()) cnPintar(); });
+  }
+  function cnXmlHtml(fal) {
+    if (!puede('verXml')) return '';
+    const tit = '<h3 class="sub">XML: facturas y NC que faltan registrar</h3>';
+    if (!cn.xT) { cnXmlCargar(); return `<div>${tit}<p class="resumen">Revisando los XML recibidos…</p></div>`; }
+    if (cn.xErr) return `<div>${tit}<div class="msg err">${esc(cn.xErr)}</div></div>`;
+    const emp = cnEmp(), hoy = new Date().toISOString().slice(0, 10);
+    const desde = cn.rep ? cn.rep.desde : ciMesAnt(hoy.slice(0, 7), 2) + '-01', hasta = cn.rep ? cn.rep.hasta : hoy;
+    const enLf = new Set(fal.map((x) => { const m = String(x.doc).match(/^([A-Z0-9]+)-0*(\d+)$/i); return m ? `${serDoc(m[1])}-${numDoc(m[2])}` : x.doc; }));
+    const xs = (cn.xdocs || []).filter((x) => ['FACTURA', 'NOTA DE CRÉDITO'].includes(x.tipo) && rgEmpDeRuc((x.cliente || {}).ruc) === emp && x.fecha >= desde && x.fecha <= hasta && !rgDonde(x))
+      .sort((a, b) => String((a.emisor || {}).nom).localeCompare(String((b.emisor || {}).nom)) || String(a.fecha).localeCompare(String(b.fecha)));
+    const tot = r2(xs.reduce((t, x) => t + (x.tipo === 'FACTURA' ? 1 : -1) * Math.abs(Number(x.total) || 0), 0));
+    let h = '', ant = null;
+    xs.forEach((x) => {
+      const prov = (x.emisor || {}).nom || (x.emisor || {}).ruc || '';
+      if (prov !== ant) { const mios = xs.filter((y) => ((y.emisor || {}).nom || (y.emisor || {}).ruc || '') === prov); h += `<tr class="grupo"><td colspan="5"><div class="gtit"><b>${esc(prov)}</b><span>${mios.length} documento(s)</span></div></td></tr>`; ant = prov; }
+      const tam = enLf.has(`${serDoc(x.serie)}-${numDoc(x.num)}`);
+      h += `<tr><td>${esc(dia(x.fecha))}</td><td>${x.tipo === 'FACTURA' ? 'FA' : 'NC'}</td><td><b>${esc(x.id)}</b>${tam ? ' <span class="est alerta" title="También falta según Lolfar">también en Lolfar</span>' : ''}</td><td>${esc(dia(x.vence || ''))}</td><td class="num">${x.tipo === 'FACTURA' ? '' : '-'}${mil(Math.abs(Number(x.total) || 0))}</td></tr>`;
+    });
+    return `<div>${tit}<p class="resumen">${xs.length} documento(s) · S/ ${mil(tot)} · emitidos del ${esc(dia(desde))} al ${esc(dia(hasta))}${cn.rep ? ' (mismas fechas del reporte)' : ''}. Se registran en Ingreso de facturas y NC o desde el Lector de XML.</p>` +
+      '<div class="tabla"><table><thead><tr><th>Emisión</th><th>Tipo</th><th>Documento</th><th>Vence</th><th class="num">Total S/</th></tr></thead><tbody>' +
+      (h || '<tr><td colspan="5" class="vacio">Todos los XML de estas fechas ya están registrados</td></tr>') + '</tbody></table></div></div>';
   }
   async function cnAnalizar() {
     if (cn.cargando) return;
@@ -6914,7 +6949,7 @@
     if (!rgOyente && sp) { // cuando cambia algo en Pagos (aquí o en otra PC), el Lector y el Registro se actualizan solos, sin leer de nuevo
       rgOyente = true;
       const v = sincros.get('pagos');
-      if (v) v.cbs.add((v2) => { rg.pg = v2.docs().map((d) => d.data()); rgIndexar(); clearTimeout(rgRepintar); rgRepintar = setTimeout(() => { if (vista === 'vXml') xlPintar(); else if (vista === 'vRegFac') rgPintar(); }, 300); });
+      if (v) v.cbs.add((v2) => { rg.pg = v2.docs().map((d) => d.data()); rgIndexar(); clearTimeout(rgRepintar); rgRepintar = setTimeout(() => { if (vista === 'vXml') xlPintar(); else if (vista === 'vRegFac') rgPintar(); else if (cnGeneral()) cnPintar(); }, 300); });
     }
   }
   function rgDonde(x) { // dónde está registrado este comprobante (o null)
