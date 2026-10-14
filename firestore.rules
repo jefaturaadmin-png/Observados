@@ -58,7 +58,14 @@ service cloud.firestore {
     // Comentarios en Observaciones (los pone, por ejemplo, el usuario de la droguería que solo ve Observaciones)
     match /obsCom/{id} {
       allow read: if puede('verPagos') || puede('verObs');
-      allow write: if puede('pagos') || puede('verObs');
+      allow write: if puede('pagos');
+      // El usuario de Observaciones solo agrega o cambia SU comentario (lst.<su uid>); no toca los de otros ni lo oculto
+      allow create: if puede('verObs')
+        && request.resource.data.keys().hasOnly(['emp', 'dist', 'doc', 'lst'])
+        && request.resource.data.lst.keys().hasOnly([request.auth.uid]);
+      allow update: if puede('verObs')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lst', 'emp', 'dist', 'doc'])
+        && request.resource.data.get('lst', {}).diff(resource.data.get('lst', {})).affectedKeys().hasOnly([request.auth.uid]);
     }
     // Índice de facturas que ya están en pagos: lo lee cualquier usuario activo para cerrar las observaciones
     match /pagosIdx/{id} {
