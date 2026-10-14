@@ -946,7 +946,7 @@
     ['Observar productos', [['observar', 'Registrar productos observados'], ['precioObs', 'Poner el precio unitario al observar'], ['observarCerrada', 'Observar facturas que ya están en pagos']]],
     ['Por devolver', [['verPend', 'Ver los productos por devolver'], ['devolver', 'Confirmar devolución al proveedor'], ['decidir', 'Decidir que un producto se queda (no devolver)']]],
     ['Devueltos y NC', [['verDev', 'Ver los productos devueltos'], ['verPrecios', 'Ver precios y montos'], ['parcial', 'Aprobar devoluciones parciales'], ['precios', 'Poner precios y nota de crédito']]],
-    ['Pagos a proveedores', [['verPagos', 'Ver pagos: facturas, NC, dashboard y resúmenes'], ['pagos', 'Registrar y corregir facturas, NC y programación'], ['pagosBorrar', 'Eliminar o mover facturas y NC']]],
+    ['Pagos a proveedores', [['verPagos', 'Ver pagos: facturas, NC, dashboard y resúmenes'], ['pagos', 'Registrar y corregir facturas, NC y programación'], ['pagosBorrar', 'Eliminar o mover facturas y NC'], ['verObs', 'Solo Observaciones: ver pendientes y parciales de todos los proveedores y comentar']]],
     ['Resumen de pagos', [['verCxp', 'Ver el resumen de pagos, cierre y documentos por proveedor'], ['cxp', 'Llenar créditos bancarios y otros pagos del resumen; configurar la retención']]],
     ['Dashboard', [['verDash', 'Ver el dashboard general de compras (todas las empresas)']]],
     ['Seguimiento de devoluciones', [['verEnt', 'Ver las facturas observadas y si ya se entregaron'], ['ent', 'Marcar entregado / falta entregar']]],
@@ -1320,7 +1320,7 @@
   }
   function aplicarPermisos() {
     const admin = yo.area === 'ADMIN';
-    const tabs = { vInicio: true, vPedidos: puede('verPedidos'), vNuevo: puede('observar'), vPend: puede('verPend'), vDev: puede('verDev'), vPagos: puede('verPagos'), vPagosRes: puede('verPagos'), vPagosObs: puede('verPagos'), vPagosLf: puede('verPagos'), vLetras: puede('verPagos'), vCxp: false, vResPag: puede('verPagos') || puede('verCxp'), vCierre: false, vProvDocs: false, vRegFac: false, vDash: puede('verDash'), vSeg: puede('verEnt'), vCot: puede('verCot'), vXml: puede('verXml'),
+    const tabs = { vInicio: true, vPedidos: puede('verPedidos'), vNuevo: puede('observar'), vPend: puede('verPend'), vDev: puede('verDev'), vPagos: puede('verPagos'), vPagosRes: puede('verPagos'), vPagosObs: puede('verPagos') || puede('verObs'), vPagosLf: puede('verPagos'), vLetras: puede('verPagos'), vCxp: false, vResPag: puede('verPagos') || puede('verCxp'), vCierre: false, vProvDocs: false, vRegFac: false, vDash: puede('verDash'), vSeg: puede('verEnt'), vCot: puede('verCot'), vXml: puede('verXml'),
       vUsuarios: admin, vCat: admin, vListas: admin };
     $('quien').textContent = `${yo.nombre} · ${yo.area}`;
     Object.entries(tabs).forEach(([v, ok]) => { const b = document.querySelector(`nav button[data-v="${v}"]`); if (b) b.classList.toggle('oculto', !ok); });
@@ -1330,7 +1330,7 @@
     $('vNuevo').classList.toggle('sinPO', !puede('precioObs'));
     $('peQuien').textContent = 'Recepciona: ' + firma();
     // Si no puedo ver la interfaz en la que estoy, paso a la primera que sí tengo habilitada
-    if (!tabs[vista]) ver(VISTAS.find((v) => tabs[v]) || 'vNada');
+    if (!tabs[vista] && !(vista === 'vPagos' && tabs.vPagosObs && pgVista === 'cruce')) ver(VISTAS.find((v) => tabs[v]) || 'vNada'); // Observaciones vive dentro de vPagos
     inPintar();
     pgSuscribir();
     cpSuscribir();
@@ -2615,6 +2615,8 @@
   };
   const mil = (n) => ((n === null || n === undefined || n === '') ? '' : Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
   const pgEmp = () => $('gEmp').value, pgDist = () => $('gDist').value, pgPer = () => $('gPer').value;
+  const TODOS_K = '*', distTxt = (k) => (k === TODOS_K ? 'TODOS LOS PROVEEDORES' : (k ? distDe(k).nombre : ''));
+  const obsSolo = () => puede('verObs') && !puede('verPagos'); // usuario que solo ve Observaciones
   const pgDoc = () => pgDocs.find((d) => d.per === pgPer());
   const pgId = (per) => `${pgEmp()}_${pgDist()}_${per}`;
   const pgFila = (i) => ((pgDoc() || {}).filas || []).find((f) => f.i === i);
@@ -2639,16 +2641,18 @@
     if (a.length < 4) return false;
     return a === b || a === k || b.includes(a) || a.includes(k) || a.startsWith(b);
   }
-  function indexarObservados() { // observaciones de Recepción del distribuidor elegido, por factura
-    pgObs = new Map();
-    const dist = distDe(pgDist());
+  function indexarObservados() { pgObs = obsMapDe(pgDist()); } // observaciones de Recepción del distribuidor elegido, por factura
+  function obsMapDe(dk) {
+    const m = new Map(), dist = distDe(dk);
+    if (dk === TODOS_K) return m;
     filas.forEach((o) => {
       if (o.estado === 'Anulado' || !provCoincide(o.proveedor, dist)) return;
       const k = refDoc(o.factura);
       if (!k) return;
-      if (!pgObs.has(k)) pgObs.set(k, []);
-      pgObs.get(k).push(o);
+      if (!m.has(k)) m.set(k, []);
+      m.get(k).push(o);
     });
+    return m;
   }
   const enlazadas = (f) => pgObs.get(`${f.s}-${f.n}`) || [];
   const montoObs = (o) => { // lo devuelto vale cantidad devuelta por precio; lo que aún está por devolver, cantidad observada por precio
@@ -2684,21 +2688,23 @@
       sel('gEmp', pgCfg.empresas);
       { // distribuidores y, aparte, los proveedores que se pagan en cuotas por grupos
         const v = $('gDist').value, op = (x) => `<option value="${esc(x.k)}">${esc(x.nombre)}</option>`, D = pgCfg.dists.filter((x) => x.tipo !== 'C'), C = pgCfg.dists.filter((x) => x.tipo === 'C');
-        $('gDist').innerHTML = C.length ? `<optgroup label="Distribuidores">${D.map(op).join('')}</optgroup><optgroup label="Proveedores (cuotas por grupos)">${C.slice().sort((a, b) => a.nombre.localeCompare(b.nombre)).map(op).join('')}</optgroup>` : D.map(op).join('');
-        if (pgCfg.dists.some((x) => x.k === v)) $('gDist').value = v;
-        if (document.activeElement !== $('gDistTxt')) $('gDistTxt').value = $('gDist').value ? distDe($('gDist').value).nombre : '';
+        $('gDist').innerHTML = `<option value="${TODOS_K}">TODOS LOS PROVEEDORES</option>` + (C.length ? `<optgroup label="Distribuidores">${D.map(op).join('')}</optgroup><optgroup label="Proveedores (cuotas por grupos)">${C.slice().sort((a, b) => a.nombre.localeCompare(b.nombre)).map(op).join('')}</optgroup>` : D.map(op).join(''));
+        if (pgCfg.dists.some((x) => x.k === v) || v === TODOS_K) $('gDist').value = v;
+        else if ($('gDist').value === TODOS_K && pgCfg.dists.length) $('gDist').value = (D[0] || C[0]).k; // TODOS solo se usa en Observaciones
+        if (obsSolo() && !pgObsIni) { pgObsIni = true; $('gDist').value = TODOS_K; } // el usuario de Observaciones entra viendo todos los proveedores
+        if (document.activeElement !== $('gDistTxt')) $('gDistTxt').value = distTxt($('gDist').value);
       }
       pgSuscribir();
     }, errorEscucha));
     bajas.push(() => { if (pgBaja) pgBaja(); pgBaja = null; pgClave = ''; pgDocs = []; if (cxBaja) cxBaja(); cxBaja = null; cxClave = ''; cxDoc = null; });
   }
   function pgSuscribir() {
-    if (document.activeElement !== $('gDistTxt')) $('gDistTxt').value = pgDist() ? distDe(pgDist()).nombre : '';
-    const clave = (puede('verPagos') && pgEmp() && pgDist()) ? `${pgEmp()}|${pgDist()}` : '';
+    if (document.activeElement !== $('gDistTxt')) $('gDistTxt').value = distTxt(pgDist());
+    const clave = ((puede('verPagos') || puede('verObs')) && pgEmp() && pgDist()) ? `${pgEmp()}|${pgDist()}` : '';
     if (clave === pgClave) { pintarPagos(); return; }
     if (pgBaja) pgBaja();
     pgBaja = null; pgClave = clave; pgDocs = []; pgSel.clear(); pgAbiertas.clear();
-    if (!clave) { pintarPagos(); return; }
+    if (!clave || pgDist() === TODOS_K) { pintarPagos(); return; } // TODOS: Observaciones lee todos los meses de la empresa
     pgBaja = onSnapshot(query(collection(db, 'pagos'), where('emp', '==', pgEmp()), where('dist', '==', pgDist())), (snap) => {
       pgDocs = snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) })).sort((a, b) => String(b.per).localeCompare(String(a.per)));
       const v = pgPer();
@@ -2718,15 +2724,16 @@
     const D = pgCfg.dists.filter((d) => d.tipo !== 'C' && ok(d)), C = pgCfg.dists.filter((d) => d.tipo === 'C' && ok(d)).sort((a, b) => a.nombre.localeCompare(b.nombre));
     cbxVis = D.concat(C);
     if (cbxAct >= cbxVis.length) cbxAct = Math.max(0, cbxVis.length - 1);
+    if (pgVista === 'cruce' && (!q || 'TODOS'.includes(q.split(' ')[0] || ''))) { cbxVis = [{ k: TODOS_K, nombre: 'TODOS LOS PROVEEDORES' }].concat(cbxVis); }
     const item = (d) => { const i = cbxVis.indexOf(d); return `<div class="cbxOp${i === cbxAct ? ' act' : ''}${d.k === pgDist() ? ' sel' : ''}" data-k="${esc(d.k)}" data-i="${i}" role="option">${esc(d.nombre)}</div>`; };
-    $('gDistLista').innerHTML = (D.length ? `<div class="cbxG">Distribuidores</div>${D.map(item).join('')}` : '') + (C.length ? `<div class="cbxG">Proveedores (cuotas por grupos)</div>${C.map(item).join('')}` : '') || '<div class="cbxG">Ninguno coincide</div>';
+    $('gDistLista').innerHTML = (cbxVis[0] && cbxVis[0].k === TODOS_K ? item(cbxVis[0]) : '') + (D.length ? `<div class="cbxG">Distribuidores</div>${D.map(item).join('')}` : '') + (C.length ? `<div class="cbxG">Proveedores (cuotas por grupos)</div>${C.map(item).join('')}` : '') || '<div class="cbxG">Ninguno coincide</div>';
     $('gDistLista').classList.remove('oculto');
     const a = $('gDistLista').querySelector('.cbxOp.act'); if (a) a.scrollIntoView({ block: 'nearest' });
   }
   function cbxElegir(k) {
     $('gDistLista').classList.add('oculto');
     if (!k) return;
-    $('gDistTxt').value = distDe(k).nombre;
+    $('gDistTxt').value = distTxt(k);
     if (k !== pgDist()) { $('gDist').value = k; $('gDist').dispatchEvent(new Event('change')); }
     $('gDistTxt').blur();
   }
@@ -2736,9 +2743,9 @@
   $('gDistTxt').addEventListener('keydown', (e) => {
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); if ($('gDistLista').classList.contains('oculto')) cbxPintar(true); cbxAct = Math.min(cbxVis.length - 1, Math.max(0, cbxAct + (e.key === 'ArrowDown' ? 1 : -1))); cbxPintar(!!$('gDistTxt').value && $('gDistTxt').value !== distDe(pgDist()).nombre); }
     else if (e.key === 'Enter') { e.preventDefault(); cbxElegir((cbxVis[cbxAct] || {}).k); }
-    else if (e.key === 'Escape') { $('gDistTxt').value = distDe(pgDist()).nombre; $('gDistLista').classList.add('oculto'); $('gDistTxt').blur(); }
+    else if (e.key === 'Escape') { $('gDistTxt').value = distTxt(pgDist()); $('gDistLista').classList.add('oculto'); $('gDistTxt').blur(); }
   });
-  $('gDistTxt').addEventListener('blur', () => setTimeout(() => { if (document.activeElement === $('gDistTxt')) return; $('gDistLista').classList.add('oculto'); $('gDistTxt').value = pgDist() ? distDe(pgDist()).nombre : ''; }, 150));
+  $('gDistTxt').addEventListener('blur', () => setTimeout(() => { if (document.activeElement === $('gDistTxt')) return; $('gDistLista').classList.add('oculto'); $('gDistTxt').value = distTxt(pgDist()); }, 150));
   $('gDistLista').addEventListener('mousedown', (e) => { const o = e.target.closest('.cbxOp'); e.preventDefault(); if (o) cbxElegir(o.dataset.k); });
   $('gPer').addEventListener('change', () => { pgAviso = ''; pgSel.clear(); pgAbiertas.clear(); pintarPagos(true); });
   $('gFiltro').addEventListener('change', () => pintarPagos(true));
@@ -2778,9 +2785,13 @@
   });
 
   // Sub-pestañas dentro de Pagos
+  let pgObsIni = false;
   function pgVer(v) {
     if (v === 'gen' || v === 'ncp') v = 'grid'; // el Resumen general se quitó (está en el módulo Resumen de pagos)
+    if (obsSolo()) v = 'cruce'; // el usuario de Observaciones solo ve esta ventana
     pgVista = v;
+    if (v === 'cruce' && obsSolo() && pgDist() !== TODOS_K && !pgObsIni && [...$('gDist').options].some((o) => o.value === TODOS_K)) { pgObsIni = true; $('gDist').value = TODOS_K; pgSuscribir(); }
+    if (v !== 'cruce' && pgDist() === TODOS_K) { const o = [...$('gDist').options].find((x) => x.value !== TODOS_K); if (o) { $('gDist').value = o.value; pgSuscribir(); } }
     ['grid', 'dash', 'res', 'cruce', 'cxp', 'gen', 'lf'].forEach((x) => $('gv_' + x).classList.toggle('oculto', x !== (v === 'ncp' ? 'cruce' : v)));
     document.querySelectorAll('#gSub button').forEach((b) => b.classList.toggle('act', b.dataset.gv === v));
     if (vista === 'vPagos') navMarcar();
@@ -4000,37 +4011,74 @@
   }
 
   /* =====================  D. CRUCE DE OBSERVACIONES Y NC PENDIENTES  ===================== */
-  function cruceFilas() {
+  function cruceFilas(docs = pgDocs, cruce = pgCruce, dk = pgDist()) {
+    if (dk === TODOS_K && docs === pgDocs) return crTodos || [];
     const out = [];
-    pgDocs.forEach((d) => (d.filas || []).forEach((f) => {
+    docs.forEach((d) => (d.filas || []).forEach((f) => {
       if (f.t !== 'FA') return;
-      const c = cruceDe(d.per, f);
+      const c = cruce.res.get(`${d.per}|${f.i}`) || { obs: 0, aplicada: 0, det: [], faltan: [], lineas: [], auto: '' };
       if (!c.lineas.length) return;
       const al = [];
       c.faltan.forEach((k) => al.push(`La NC ${k} no está registrada en la lista.`));
       if (c.auto) al.push(`NC encontrada sola por monto (${c.auto}).`);
       if (c.obs === 0) al.push('La observación no tiene monto.');
       c.det.forEach((x) => {
-        const o = pgCruce.ncs.get(x.k);
+        const o = cruce.ncs.get(x.k);
         if (x.tipo === 'auto: sobrante de NC') al.push(`Cubierta con el sobrante de la NC ${x.k}.`);
         else if (o && o.resto > TOL_NC) al.push(`La NC ${x.k} tiene un sobrante sin usar de S/ ${mil(o.resto)}.`);
         else if (x.comp) al.push(`La NC ${x.k} cubre varias facturas.`);
       });
       if (/QUEDA/i.test(f.x || '')) al.push('Marcada SE QUEDA en el Excel.');
-      out.push({ f, per: d.per, c, est: estadoCruce(c), pend: pendDe(c), alerta: al.join(' '), tipo: tipoDevFac(`${f.s}-${f.n}`, distDe(pgDist()), f.o) });
+      out.push({ f, per: d.per, dk, c, est: estadoCruce(c), pend: pendDe(c), alerta: al.join(' '), tipo: tipoDevFac(`${f.s}-${f.n}`, distDe(dk), f.o) });
     }));
     return out.sort((a, b) => String(b.f.f).localeCompare(String(a.f.f)));
   }
-  function pintarCruce() {
-    const caja = $('gv_cruce'), soloPend = pgVista === 'ncp';
+  // TODOS LOS PROVEEDORES: se arma con todos los meses de la empresa (lo ya descargado no se vuelve a leer)
+  let crTodos = null, crCalc = false;
+  function cruceTodos() {
+    if (crCalc) return;
+    crCalc = true;
+    const emp = pgEmp();
+    sincroDocs('pagos', (x) => x.emp === emp).then((s) => {
+      const porDist = new Map();
+      s.docs.forEach((d0) => { const d = { id: d0.id, ...d0.data() }; if (!porDist.has(d.dist)) porDist.set(d.dist, []); porDist.get(d.dist).push(d); });
+      const out = [], antes = pgObs;
+      porDist.forEach((docs, dk) => { pgObs = obsMapDe(dk); out.push(...cruceFilas(docs, cruzar(docs, lineasDe), dk)); });
+      pgObs = antes;
+      crTodos = out.sort((a, b) => String(b.f.f).localeCompare(String(a.f.f)));
+    }).catch((e) => { crTodos = []; msg('gMsg', errorTexto(e)); }).then(() => { crCalc = false; if (pgVista === 'cruce' && pgDist() === TODOS_K) pintarCruce(true); });
+  }
+  // Comentario de cada factura en Observaciones (lo pone, por ejemplo, el usuario de la droguería): colección obsCom
+  let obsCom = new Map(), obsComEmp = '', obsComBaja = null;
+  function obsComOir() {
+    const emp = pgEmp();
+    if (emp === obsComEmp) return;
+    if (obsComBaja) obsComBaja();
+    obsComEmp = emp; obsCom = new Map();
+    obsComBaja = onSnapshot(query(collection(db, 'obsCom'), where('emp', '==', emp)), (sn) => { obsCom = new Map(sn.docs.map((d) => [d.id, d.data()])); if (pgVista === 'cruce') pintarCruce(true); }, (e) => console.warn('Comentarios de observaciones:', e));
+    bajas.push(() => { if (obsComBaja) obsComBaja(); obsComBaja = null; obsComEmp = ''; });
+  }
+  const obsComId = (x) => `${pgEmp()}_${x.dk}_${serDoc(x.f.s)}-${numDoc(x.f.n)}`;
+  const obsComEdita = () => puede('pagos') || puede('verObs');
+  function obsComHtml(x) {
+    const c = obsCom.get(obsComId(x)), ed = obsComEdita();
+    if (c) return `<div style="white-space:normal;min-width:160px" title="${esc(`${c.por || ''} · ${dia(c.f || '')}`)}">💬 ${esc(c.t)} <span class="quien">${esc(String(c.por || '').split(' (')[0])} · ${esc(dia(c.f || ''))}</span>${ed ? ` <button class="mini obsComEd" data-id="${esc(obsComId(x))}" data-dk="${esc(x.dk)}" data-doc="${esc(`${x.f.s}-${x.f.n}`)}" title="Cambiar o quitar">✎</button>` : ''}</div>`;
+    return ed ? `<button class="mini obsComEd" data-id="${esc(obsComId(x))}" data-dk="${esc(x.dk)}" data-doc="${esc(`${x.f.s}-${x.f.n}`)}">+ comentario</button>` : '';
+  }
+  function pintarCruce(yaCalc) {
+    const caja = $('gv_cruce'), soloPend = pgVista === 'ncp', todosP = pgDist() === TODOS_K;
+    obsComOir();
+    if (todosP && !yaCalc) cruceTodos();
     const todas = cruceFilas();
     if (!$('cAnio') || caja.dataset.clave !== pgClave + pgVista) {
       caja.dataset.clave = pgClave + pgVista;
+      caja.dataset.todos = todosP ? '1' : '';
       caja.innerHTML = '<div class="herr">' +
         `<select id="cAnio" aria-label="Año"><option value="">Todos los años</option>${unicos(todas.map((x) => String(x.f.f).slice(0, 4))).reverse().map((a) => `<option>${esc(a)}</option>`).join('')}</select>` +
-        (soloPend ? '<input type="hidden" id="cEst" value="PEN">' : '<select id="cEst" aria-label="Estado"><option value="">Todos los estados</option><option value="PEN">Con pendiente de NC</option><option value="CON">Conciliadas</option><option value="AUTO">Encontradas solas por monto</option><option value="SINM">Sin monto observado</option></select>') +
+        (soloPend ? '<input type="hidden" id="cEst" value="PEN">' : obsSolo() ? '<select id="cEst" aria-label="Estado"><option value="PP">Pendientes y parciales</option><option value="PEN">Con pendiente de NC</option></select>' : '<select id="cEst" aria-label="Estado"><option value="">Todos los estados</option><option value="PP">Pendientes y parciales</option><option value="PEN">Con pendiente de NC</option><option value="CON">Conciliadas</option><option value="AUTO">Encontradas solas por monto</option><option value="SINM">Sin monto observado</option></select>') +
         '<input id="cTxt" placeholder="Buscar factura, producto, NC…" aria-label="Buscar" style="flex:1;min-width:200px"><button id="cExp">Exportar a Excel</button></div>' +
-        '<p class="resumen" id="cRes"></p><div class="tabla"><table><thead><tr><th>Fecha</th><th>Factura</th><th>Laboratorio</th><th>Productos observados</th><th class="num">Observado</th><th>NC aplicadas</th><th class="num">Aplicado</th><th class="num">Pendiente</th><th>Estado</th><th>Tipo de devolución</th><th>Mes a pagar</th><th>Alerta</th></tr></thead><tbody id="cCuerpo"></tbody></table></div>';
+        '<p class="resumen" id="cRes"></p><div class="tabla"><table><thead><tr><th>Fecha</th><th>Factura</th><th>Laboratorio</th><th>Productos observados</th><th class="num">Observado</th><th>NC aplicadas</th><th class="num">Aplicado</th><th class="num">Pendiente</th><th>Estado</th><th>Tipo de devolución</th><th>Mes a pagar</th><th>Alerta</th><th>Comentario</th></tr></thead><tbody id="cCuerpo"></tbody></table></div>';
+      if (todosP) $('gv_cruce').querySelector('thead tr').insertAdjacentHTML('afterbegin', '<th>Proveedor</th>');
       ['cAnio', 'cEst'].forEach((id) => $(id).addEventListener('change', () => pintarCruce()));
       $('cTxt').addEventListener('input', () => pintarCruce());
       $('cExp').addEventListener('click', () => exportar(soloPend ? `nc-pendientes-${pgDist()}` : `cruce-observaciones-${pgDist()}`, [
@@ -4041,21 +4089,23 @@
       ], cruceVista()));
     }
     const lista = cruceVista();
+    if (todosP && !crTodos) { $('cRes').textContent = 'Revisando las observaciones de todos los proveedores…'; $('cCuerpo').innerHTML = ''; return; }
     $('cRes').textContent = `${lista.length} factura(s) observadas · observado S/ ${mil(lista.reduce((s, x) => s + x.c.obs, 0))} · ` +
       `pendiente de NC S/ ${mil(lista.reduce((s, x) => s + x.pend, 0))} en ${lista.filter((x) => x.pend).length} factura(s)`;
     $('cCuerpo').innerHTML = lista.map((x) =>
-      `<tr data-id="${esc(x.f.i)}" data-per="${esc(x.per)}"><td>${esc(dia(x.f.f))}</td><td><b>${esc(x.f.s)}-${esc(x.f.n)}</b></td><td>${esc(labDe(x.f))}</td>` +
+      `<tr data-id="${esc(x.f.i)}" data-per="${esc(x.per)}" data-dk="${esc(x.dk)}">${todosP ? `<td><b>${esc(distDe(x.dk).nombre)}</b></td>` : ''}<td>${esc(dia(x.f.f))}</td><td><b>${esc(x.f.s)}-${esc(x.f.n)}</b></td><td>${esc(labDe(x.f))}</td>` +
       `<td class="larga">${(x.c.pendI ? x.c.pendI.map((i) => x.c.lineas[i]) : x.c.lineas).map((l) => `${esc(l.p)}${l.m !== null && l.m !== undefined ? ` <span class="quien">(${esc(mil(l.m))})</span>` : ''}`).join('<br>')}${x.c.pendI ? `<br><span class="quien" title="${esc(x.c.lineas.filter((l, i) => !x.c.pendI.includes(i)).map((l) => l.p).join(' · '))}">✓ ${x.c.lineas.length - x.c.pendI.length} producto(s) ya con NC</span>` : ''}</td>` +
       `<td class="num">${esc(mil(x.c.obs))}</td><td>${x.c.det.map((n) => `${esc(n.k)} <span class="quien">${esc(n.tipo)}</span>`).join('<br>') || '<span class="quien">—</span>'}</td>` +
       `<td class="num">${esc(mil(x.c.aplicada))}</td><td class="num${x.pend ? ' baja' : ''}">${esc(mil(x.pend))}</td>` +
-      `<td><span class="est ${claseEst(x.est)}">${esc(x.est)}</span></td><td><span class="est ${x.tipo === DEV_INM ? 'e3' : 'e1'}">${esc(x.tipo)}</span></td><td>${esc(perTxt(x.per))}</td><td class="larga quien">${esc(x.alerta)}</td></tr>`).join('') ||
-      '<tr><td colspan="12" class="vacio">Sin facturas en esta lista</td></tr>';
+      `<td><span class="est ${claseEst(x.est)}">${esc(x.est)}</span></td><td><span class="est ${x.tipo === DEV_INM ? 'e3' : 'e1'}">${esc(x.tipo)}</span></td><td>${esc(perTxt(x.per))}</td><td class="larga quien">${esc(x.alerta)}</td><td>${obsComHtml(x)}</td></tr>`).join('') ||
+      `<tr><td colspan="${todosP ? 14 : 13}" class="vacio">Sin facturas en esta lista</td></tr>`;
   }
   function cruceVista() {
     const a = $('cAnio').value, e = $('cEst').value, t = $('cTxt').value.trim().toLowerCase();
     return cruceFilas().filter((x) => {
       if (a && String(x.f.f).slice(0, 4) !== a) return false;
       if (e === 'PEN' && !x.pend) return false;
+      if ((e === 'PP' || obsSolo()) && !/^(Pendiente|Parcial)/.test(x.est)) return false; // el usuario de Observaciones no ve lo conciliado
       if (e === 'CON' && !x.est.startsWith('Conciliada')) return false;
       if (e === 'AUTO' && !x.c.auto) return false;
       if (e === 'SINM' && x.c.obs !== 0) return false;
@@ -4063,9 +4113,21 @@
       return true;
     });
   }
-  $('gv_cruce').addEventListener('click', (e) => { // ir a la factura en la grilla
+  $('gv_cruce').addEventListener('click', async (e) => { // ir a la factura en la grilla
+    const bc = e.target.closest('.obsComEd');
+    if (bc) { // comentario de esa factura
+      const c = obsCom.get(bc.dataset.id), t = prompt(`Comentario para la factura ${bc.dataset.doc} (${distDe(bc.dataset.dk).nombre}). Déjalo vacío para quitarlo.`, c ? c.t : '');
+      if (t === null) return;
+      const v = t.trim().slice(0, 500);
+      try {
+        if (v) await setDoc(doc(db, 'obsCom', bc.dataset.id), { emp: pgEmp(), dist: bc.dataset.dk, doc: bc.dataset.doc, t: v, por: firma(), f: hoy() });
+        else await deleteDoc(doc(db, 'obsCom', bc.dataset.id));
+      } catch (err) { alert(errorTexto(err)); }
+      return;
+    }
     const tr = e.target.closest('tr[data-id]');
-    if (!tr) return;
+    if (!tr || !puede('verPagos')) return; // el usuario de Observaciones no entra a la grilla
+    if (pgDist() === TODOS_K) { pgIrPend = { per: tr.dataset.per, i: tr.dataset.id }; $('gDist').value = tr.dataset.dk; pgVer('grid'); pgSuscribir(); return; }
     $('gPer').value = tr.dataset.per; $('gFiltro').value = ''; $('gTxt').value = '';
     pgAbiertas.clear(); pgAbiertas.add(tr.dataset.id);
     pgVer('grid');

@@ -41,7 +41,7 @@ service cloud.firestore {
     // Un documento por empresa + distribuidor + mes a pagar, con sus facturas y NC adentro.
     // Quitar filas (eliminar o mover) exige el permiso "pagosBorrar".
     match /pagos/{id} {
-      allow read: if puede('verPagos') || puede('verDash') || puede('verEnt');
+      allow read: if puede('verPagos') || puede('verDash') || puede('verEnt') || puede('verObs');
       allow create: if puede('pagos');
       allow update: if puede('pagos')
         && (puede('pagosBorrar') || request.resource.data.filas.size() >= resource.data.filas.size());
@@ -54,6 +54,11 @@ service cloud.firestore {
       allow update: if puede('pagos')
         && (puede('pagosBorrar') || request.resource.data.filas.size() >= resource.data.filas.size());
       allow delete: if esArea('ADMIN');
+    }
+    // Comentarios en Observaciones (los pone, por ejemplo, el usuario de la droguería que solo ve Observaciones)
+    match /obsCom/{id} {
+      allow read: if puede('verPagos') || puede('verObs');
+      allow write: if puede('pagos') || puede('verObs');
     }
     // Índice de facturas que ya están en pagos: lo lee cualquier usuario activo para cerrar las observaciones
     match /pagosIdx/{id} {
