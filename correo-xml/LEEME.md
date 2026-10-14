@@ -13,6 +13,7 @@ Correo del proveedor ─► Script de Gmail (cada 10 min) ─► Firebase: xmlBu
 - Se descarta la constancia de SUNAT (CDR) que viene en algunos .zip. Solo entran facturas, NC y ND.
 - Los correos ya revisados quedan con la etiqueta **XML-procesado** en Gmail.
 - Abre también un ZIP que viene dentro de otro ZIP (por ejemplo, uno por mes).
+- Si el correo **no trae el XML adjunto** sino un botón o enlace (**"Ver XML"**, **"Descargar XML"**, como los de PERUFARMA por efacturacion.pe), el script abre el enlace y descarga el XML. Si el enlace abre una página que pide iniciar sesión, el correo queda con la etiqueta **XML-sin-leer**.
 - Los **RAR** también entran: Google no puede abrirlos, así que el script los manda tal cual (hasta 650 KB) y la página los abre al leer la bandeja.
 - Si el adjunto es **7z**, un RAR de más de 650 KB, un ZIP dañado o no trae facturas ni notas, el correo queda con la etiqueta **XML-sin-leer** (no como procesado). Descomprímelo o súbelo en el **Lector de XML** (acepta XML, ZIP y RAR).
 - **Si actualizas el script:** pega de nuevo `Codigo.gs` y guarda. No hace falta volver a ejecutar `instalar`.
