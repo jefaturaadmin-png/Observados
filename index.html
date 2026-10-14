@@ -1314,7 +1314,7 @@
       pintarFiltros(); pintarPedidos();
     }; v.cbs.add(f); f(v); }, errorEscucha); }
 
-    if (!oy.obs && ['observar', 'verPend', 'verDev', 'verPagos', 'verCxp', 'verDash', 'verEnt'].some(puede)) { oy.obs = true; sincro('observaciones').then((v) => { const f = (v) => {
+    if (!oy.obs && ['observar', 'verPend', 'verDev', 'verPagos', 'verCxp', 'verDash', 'verEnt', 'verObs'].some(puede)) { oy.obs = true; sincro('observaciones').then((v) => { const f = (v) => {
       filas = recientes(v, MAX_REPORTES).map((d) => {
         const f = { _id: d.id, ...d.data({ serverTimestamps: 'estimate' }) };
         f.estado = ESTADO_ANTIGUO[f.estado] || f.estado;
@@ -4118,11 +4118,18 @@
     });
     return out.length ? `<div class="cComT" style="color:#555">${[...new Set(out)].join('')}</div>` : '';
   }
+  const obsComLista = (c) => { // comentarios de una factura: { clave, t, por, f, mio }; cada usuario tiene el suyo
+    const out = [];
+    if (c.t) out.push({ k: '', t: c.t, por: c.por, f: c.f, mio: c.por === firma() }); // comentario antiguo (uno por factura)
+    Object.entries(c.lst || {}).forEach(([k, v]) => { if (v && v.t) out.push({ k, t: v.t, por: v.por, f: v.f, mio: k === yo.uid }); });
+    return out.sort((a, b) => String(a.f || '').localeCompare(String(b.f || '')));
+  };
   function obsComHtml(x) {
     const id = obsComId(x), c = obsCom.get(id) || {}, ed = obsComEdita(), dat = `data-id="${esc(id)}" data-dk="${esc(x.dk)}" data-doc="${esc(`${x.f.s}-${x.f.n}`)}"`;
     const ver = puede('pagos') ? ` <button class="mini obsComVer" ${dat} title="${c.oculto ? 'Oculta para el usuario de Observaciones: clic para mostrársela' : 'Clic para que el usuario de Observaciones no la vea'}">${c.oculto ? '🚫 oculta' : '👁 visible'}</button>` : '';
-    const txt = c.t ? `<div class="cComT" title="${esc(`${c.por || ''} · ${dia(c.f || '')}`)}">💬 ${esc(c.t)}<div class="quien">${esc(String(c.por || '').split(' (')[0])} · ${esc(dia(c.f || ''))}</div></div>` : '';
-    return txt + (ed ? `<button class="mini obsComEd" ${dat}>${c.t ? '✎ cambiar' : '+ comentario u observación'}</button>` : '') + ver;
+    const lista = obsComLista(c), mio = lista.find((m) => m.mio);
+    const txt = lista.map((m) => `<div class="cComT" title="${esc(`${m.por || ''} · ${dia(m.f || '')}`)}">💬 ${esc(m.t)}<div class="quien">${esc(String(m.por || '').split(' (')[0])} · ${esc(dia(m.f || ''))}${m.mio && ed ? ` <button class="mini obsComEd" ${dat} data-k="${esc(m.k)}" title="Cambiar o quitar mi comentario">✎</button>` : ''}</div></div>`).join('');
+    return txt + (ed && !mio ? `<button class="mini obsComEd" ${dat} data-k="${esc(yo.uid)}">+ comentario u observación</button>` : '') + ver;
   }
   function pintarCruce(yaCalc) {
     const caja = $('gv_cruce'), soloPend = pgVista === 'ncp', todosP = pgDist() === TODOS_K;
@@ -4160,7 +4167,7 @@
         ['Fecha', (x) => dia(x.f.f)], ['Factura', (x) => `${x.f.s}-${x.f.n}`], ['Total factura', (x) => x.f.m], ['Laboratorio', (x) => labDe(x.f)],
         ['Productos observados', (x) => x.c.lineas.map((l) => `${l.p} (${mil(l.m)})`).join('\n')], ['Pendiente de NC (productos)', (x) => (x.c.pendI ? x.c.pendI.map((i) => `${x.c.lineas[i].p} (${mil(x.c.lineas[i].m)})`).join('\n') : '')], ['Monto observado', (x) => x.c.obs],
         ['NC aplicadas', (x) => x.c.det.map((n) => `${n.k} (${mil(n.aplicado)}, ${n.tipo})`).join('\n')], ['NC aplicada total', (x) => x.c.aplicada], ['Pendiente de NC', 'pend'],
-        ['Estado', 'est'], ['Tipo de devolución', 'tipo'], ['Mes a pagar', (x) => perTxt(x.per)], ['Comentario u observación', (x) => (obsCom.get(obsComId(x)) || {}).t || ''], ['Alerta', 'alerta']
+        ['Estado', 'est'], ['Tipo de devolución', 'tipo'], ['Mes a pagar', (x) => perTxt(x.per)], ['Comentario u observación', (x) => obsComLista(obsCom.get(obsComId(x)) || {}).map((m) => `${m.t} (${String(m.por || '').split(' (')[0]})`).join('\n')], ['Alerta', 'alerta']
       ].filter((c) => !(obsSolo() && c[0] === 'Mes a pagar')), cruceVista()));
     }
     const lista = cruceVista();
@@ -4194,13 +4201,15 @@
   $('gv_cruce').addEventListener('click', async (e) => { // ir a la factura en la grilla
     const bc = e.target.closest('.obsComEd');
     if (bc) { // comentario de esa factura
-      const c = obsCom.get(bc.dataset.id), t = prompt(`Comentario para la factura ${bc.dataset.doc} (${distDe(bc.dataset.dk).nombre}). Déjalo vacío para quitarlo.`, c ? c.t : '');
+      const c = obsCom.get(bc.dataset.id) || {}, k = bc.dataset.k, propio = k === '' ? (c.por === firma() ? { t: c.t } : null) : ((c.lst || {})[k] || null);
+      if (k !== '' && k !== yo.uid) return; // solo se cambia el comentario propio
+      if (k === '' && c.por !== firma()) return;
+      const t = prompt(`Tu comentario para la factura ${bc.dataset.doc} (${distDe(bc.dataset.dk).nombre}). Déjalo vacío para quitarlo.`, propio ? propio.t : '');
       if (t === null) return;
-      const v = t.trim().slice(0, 500);
+      const v = t.trim().slice(0, 500), ref = doc(db, 'obsCom', bc.dataset.id);
       try {
-        if (v) await setDoc(doc(db, 'obsCom', bc.dataset.id), { emp: pgEmp(), dist: bc.dataset.dk, doc: bc.dataset.doc, t: v, por: firma(), f: hoy() }, { merge: true });
-        else if (c && c.oculto) await setDoc(doc(db, 'obsCom', bc.dataset.id), { t: deleteField(), por: deleteField(), f: deleteField() }, { merge: true });
-        else await deleteDoc(doc(db, 'obsCom', bc.dataset.id));
+        if (k === '') await setDoc(ref, v ? { t: v, f: hoy() } : { t: deleteField(), por: deleteField(), f: deleteField() }, { merge: true }); // el comentario antiguo de su autor
+        else await setDoc(ref, { emp: pgEmp(), dist: bc.dataset.dk, doc: bc.dataset.doc, lst: { [yo.uid]: v ? { t: v, por: firma(), f: hoy() } : deleteField() } }, { merge: true });
       } catch (err) { alert(errorTexto(err)); }
       return;
     }
@@ -4209,8 +4218,7 @@
       const c = obsCom.get(bv.dataset.id) || {};
       try {
         if (!c.oculto) await setDoc(doc(db, 'obsCom', bv.dataset.id), { emp: pgEmp(), dist: bv.dataset.dk, doc: bv.dataset.doc, oculto: true, ocPor: firma(), ocF: hoy() }, { merge: true });
-        else if (c.t) await setDoc(doc(db, 'obsCom', bv.dataset.id), { oculto: deleteField(), ocPor: deleteField(), ocF: deleteField() }, { merge: true });
-        else await deleteDoc(doc(db, 'obsCom', bv.dataset.id));
+        else await setDoc(doc(db, 'obsCom', bv.dataset.id), { oculto: deleteField(), ocPor: deleteField(), ocF: deleteField() }, { merge: true });
       } catch (err) { alert(errorTexto(err)); }
       return;
     }
