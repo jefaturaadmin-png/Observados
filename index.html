@@ -327,6 +327,7 @@
   .inNodo:hover .c, .inNodo:focus-visible .c { transform:translateY(-3px); box-shadow:0 10px 24px rgba(0,0,0,.12); }
   .inNodo.hi .c { border:2px solid var(--marca); color:var(--marca); box-shadow:0 8px 22px rgba(232,113,10,.25); }
   .inNodo .t { display:block; margin-top:8px; font-size:13.5px; font-weight:600; }
+  .inNodo.solo { width:260px; transform:translate(-50%, -90px); } .inNodo.solo .c { width:170px; height:170px; border-width:3px; } .inNodo.solo .c svg { width:64px; height:64px; } .inNodo.solo .t { font-size:24px; font-weight:800; margin-top:14px; }
   .inNodo .bd { position:absolute; top:-2px; right:-2px; background:#e03131; color:#fff; font-size:11px; font-weight:700; border-radius:99px; min-width:22px; height:22px; padding:0 5px; display:flex; align-items:center; justify-content:center; border:2px solid var(--fondo); }
   .inPills { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; max-width:900px; margin:22px auto 26px; }
   .inPill { display:inline-flex; gap:7px; align-items:center; background:#fff; border:1px solid var(--borde); border-radius:99px; padding:7px 13px; font:inherit; font-size:13px; color:#3a3f45; cursor:pointer; }
@@ -8752,12 +8753,14 @@
     const grupos = [...document.querySelectorAll('#lado .navGrupo')].map((g) => ({ t: (g.querySelector('.navG') || {}).textContent || '', vs: [...g.querySelectorAll('button:not(.oculto)')].map((b) => b.dataset.v).filter((v) => v && v !== 'vInicio') })).filter((g) => g.vs.length);
     // Arco: los módulos más usados (los que tiene este usuario); el resto va debajo como botones pequeños
     const todos = grupos.flatMap((g) => g.vs), pref = ['vPedidos', 'vNuevo', 'vPend', 'vCot', 'vPagos', 'vXml', 'vResPag', 'vDev', 'vSeg', 'vDash'];
-    const arco = pref.filter((v) => todos.includes(v)).slice(0, 7), resto = todos.filter((v) => !arco.includes(v));
+    let arco = pref.filter((v) => todos.includes(v)).slice(0, 7);
+    if (arco.length < 3) arco = arco.concat(todos.filter((v) => !arco.includes(v))).slice(0, Math.max(arco.length, Math.min(3, todos.length))); // con pocos módulos (por ejemplo, solo Observaciones) van grandes en el arco
+    const resto = todos.filter((v) => !arco.includes(v));
     const avisos = { vPedidos: num('nPed'), vPend: num('nPend'), vDev: num('nDev'), vXml: num('nXml'), vCot: visible('vCot') ? ct.lista.map(ctEstado).filter((x) => /^RESPONDIDA|^CORREGIDA/.test(x)).length : 0 };
     const hi = arco.includes('vPagos') ? 'vPagos' : arco[Math.floor(arco.length / 2)];
     const nodos = arco.map((v, i) => {
-      const a = Math.PI * (1 - (i + 0.5) / arco.length), x = 50 + 41 * Math.cos(a), y = 92 - 70 * Math.sin(a); // % del ancho y del alto del arco
-      return `<button type="button" class="inNodo${v === hi ? ' hi' : ''}" data-ir="${v}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%"><span class="c">${ico(v)}${avisos[v] ? `<span class="bd">${avisos[v]}</span>` : ''}</span><span class="t">${esc(nom(v))}</span></button>`;
+      const a = Math.PI * (1 - (i + 0.5) / arco.length), x = arco.length === 1 ? 50 : 50 + 41 * Math.cos(a), y = arco.length === 1 ? 50 : 92 - 70 * Math.sin(a); // % del ancho y del alto del arco (uno solo: grande, al centro)
+      return `<button type="button" class="inNodo${v === hi ? ' hi' : ''}${arco.length === 1 ? ' solo' : ''}" data-ir="${v}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%"><span class="c">${ico(v)}${avisos[v] ? `<span class="bd">${avisos[v]}</span>` : ''}</span><span class="t">${esc(nom(v))}</span></button>`;
     }).join('');
     caja.innerHTML = `<div class="inCab"><span class="inChip">${esc(fecha)} · ${esc(yo.area)}</span><h2>Hola, ${esc(String(yo.nombre || '').split(' ')[0])}</h2><p>${arco.length ? 'Elige un módulo para empezar' : ''}</p></div>` +
       (arco.length ? `<div class="inArco">${nodos}</div>` : '') +
