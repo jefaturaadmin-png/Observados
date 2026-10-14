@@ -5902,15 +5902,17 @@
       let v = t.value;
       if (v === '+') { try { const k = await cnCrearDist(t.dataset.p); if (!k) { t.value = ''; return; } v = 'D:' + k; } catch (err) { t.value = ''; return alert(errorTexto(err)); } }
       if (v) cn.alias[t.dataset.p] = v; else delete cn.alias[t.dataset.p];
+      cn.autoK = ''; // con el proveedor ya identificado se vuelve a anotar ✓ Lolfar (solo lo que falta)
       cnPintar();
       try { await setDoc(doc(db, 'config', 'concilia'), { alias: cn.alias }, { mergeFields: ['alias'] }); } catch (err) { msg('cnMsg', 'No se pudo guardar la equivalencia de proveedores: ' + errorTexto(err)); }
+      if (cnGeneral()) cnAutoMarcar();
     }
   });
   $('cv_con').addEventListener('click', async (e) => {
     const t = e.target;
     if (t.classList.contains('cnIns')) return cnLlevar([t.dataset.k], t.dataset.per);
     if (t.classList.contains('cnNota')) return cnNotaEditar(t.dataset.d);
-    if (t.classList.contains('cnNuevoProv')) { try { if (await cnCrearDist(t.dataset.n)) cnPintar(); } catch (err) { alert(errorTexto(err)); } return; }
+    if (t.classList.contains('cnNuevoProv')) { try { if (await cnCrearDist(t.dataset.n)) { cn.autoK = ''; cnPintar(); cnAutoMarcar(); } } catch (err) { alert(errorTexto(err)); } return; }
     if (t.classList.contains('xlNota')) { // el mismo comentario que se ve en el Lector de XML
       const x = (cn.xdocs || []).find((y) => y.k === t.dataset.k); if (!x) return;
       const v0 = prompt(`Comentario para ${x.tipo} ${x.id} (por qué no se registró, etc.). Déjalo vacío para quitarlo.`, x.nota || '');
@@ -6630,7 +6632,7 @@
   }
   async function cnAutoMarcar() {
     if (!cn.rep || !puede('pagos')) return;
-    const clave = `${cn.repEmp}|${cn.info || ''}`;
+    const clave = `${cn.repEmp}|${cn.info || ''}|${JSON.stringify(cn.alias || {})}|${pgCfg.dists.length}`;
     if (cn.autoK === clave) return;
     cn.autoK = clave;
     const ks = new Set();
