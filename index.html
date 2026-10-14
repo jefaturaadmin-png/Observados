@@ -4036,6 +4036,20 @@
       if (/QUEDA/i.test(f.x || '')) al.push('Marcada SE QUEDA en el Excel.');
       out.push({ f, per: d.per, dk, c, est: estadoCruce(c), pend: pendDe(c), alerta: al.join(' '), tipo: tipoDevFac(`${f.s}-${f.n}`, distDe(dk), f.o) });
     }));
+    // Lo observado en Recepción o Compras de facturas que aún no están en Ingreso de facturas (no llegó, es de otro año, etc.)
+    const reg = new Set();
+    docs.forEach((d) => (d.filas || []).forEach((f) => { if (f.t === 'FA' && f.n) reg.add(refDoc(`${f.s}-${f.n}`)); }));
+    pgObs.forEach((lista, k) => {
+      if (reg.has(k)) return;
+      const os = lista.filter(obsCuenta);
+      if (!os.length) return;
+      const lineas = os.map((o) => ({ p: obsTexto(o), m: montoObs(o), origen: 'recepcion', id: o._id }));
+      const obs = r2(lineas.reduce((a, l) => a + (Number(l.m) || 0), 0)), apl = r2(os.filter((o) => o.estado === 'NC recibida').reduce((a, o) => a + (Number(montoObs(o)) || 0), 0));
+      const c = { obs, aplicada: apl, det: [], faltan: [], lineas, auto: '' }, i = k.lastIndexOf('-');
+      const ts = os.map((o) => (o.creado && o.creado.toDate ? o.creado.toDate().toISOString().slice(0, 10) : '')).filter(Boolean).sort()[0] || '';
+      const f = { i: 'sinreg_' + k, f: ts, t: 'FA', s: k.slice(0, i), n: k.slice(i + 1), m: null, l: os[0].laboratorio || '' };
+      out.push({ f, per: '', dk, c, est: estadoCruce(c), pend: pendDe(c), alerta: 'La factura aún no está registrada en Ingreso de facturas y NC (la fecha es la de la observación).', tipo: tipoDevFac(k, distDe(dk), []), sinReg: true });
+    });
     return out.sort((a, b) => String(b.f.f).localeCompare(String(a.f.f)));
   }
   // TODOS LOS PROVEEDORES: se arma con todos los meses de la empresa (lo ya descargado no se vuelve a leer)
@@ -4065,6 +4079,16 @@
   }
   const obsComId = (x) => `${pgEmp()}_${x.dk}_${serDoc(x.f.s)}-${numDoc(x.f.n)}`;
   const obsComEdita = () => puede('pagos') || puede('verObs');
+  function obsNotasHtml(x) { // lo que escribieron al observar (Recepción) y los comentarios de Compras y Gerencia
+    const ids = new Set(x.c.lineas.filter((l) => l.id).map((l) => l.id)), os = filas.filter((o) => ids.has(o._id)), out = [];
+    os.forEach((o) => {
+      const quien = String(o.usuario || '').split(' (')[0], nota = [o.motivo, o.obs].filter(Boolean).join(': ');
+      if (nota) out.push(`<div><b>${esc(o.codigo || '')}</b> ${esc(nota)} <span class="quien">${esc(quien)}${o.area ? ' · ' + esc(o.area) : ''}</span></div>`);
+      if (o.obsCompras) out.push(`<div>🛒 <b>Compras:</b> ${esc(o.obsCompras)} <span class="quien">${esc(String(o.comprasUsuario || '').split(' (')[0])}</span></div>`);
+      if (o.obsGerencia) out.push(`<div>🏢 <b>Gerencia:</b> ${esc(o.obsGerencia)} <span class="quien">${esc(String(o.gerenciaUsuario || '').split(' (')[0])}</span></div>`);
+    });
+    return out.length ? `<div class="cComT" style="color:#555">${[...new Set(out)].join('')}</div>` : '';
+  }
   function obsComHtml(x) {
     const id = obsComId(x), c = obsCom.get(id) || {}, ed = obsComEdita(), dat = `data-id="${esc(id)}" data-dk="${esc(x.dk)}" data-doc="${esc(`${x.f.s}-${x.f.n}`)}"`;
     const ver = puede('pagos') ? ` <button class="mini obsComVer" ${dat} title="${c.oculto ? 'Oculta para el usuario de Observaciones: clic para mostrársela' : 'Clic para que el usuario de Observaciones no la vea'}">${c.oculto ? '🚫 oculta' : '👁 visible'}</button>` : '';
@@ -4117,11 +4141,11 @@
     $('cRes').textContent = `${lista.length} factura(s) observadas · observado S/ ${mil(lista.reduce((s, x) => s + x.c.obs, 0))} · ` +
       `pendiente de NC S/ ${mil(lista.reduce((s, x) => s + x.pend, 0))} en ${lista.filter((x) => x.pend).length} factura(s)`;
     $('cCuerpo').innerHTML = lista.map((x) =>
-      `<tr data-id="${esc(x.f.i)}" data-per="${esc(x.per)}" data-dk="${esc(x.dk)}">${todosP ? `<td><b>${esc(distDe(x.dk).nombre)}</b></td>` : ''}<td>${esc(dia(x.f.f))}</td><td><b>${esc(x.f.s)}-${esc(x.f.n)}</b></td><td>${esc(labDe(x.f))}</td>` +
+      `<tr data-id="${esc(x.f.i)}" data-per="${esc(x.per)}" data-dk="${esc(x.dk)}">${todosP ? `<td><b>${esc(distDe(x.dk).nombre)}</b></td>` : ''}<td>${esc(dia(x.f.f))}</td><td><b>${esc(x.f.s)}-${esc(x.f.n)}</b>${x.sinReg ? '<div class="quien">sin registrar</div>' : ''}</td><td>${esc(labDe(x.f))}</td>` +
       `<td class="larga">${(x.c.pendI ? x.c.pendI.map((i) => x.c.lineas[i]) : x.c.lineas).map((l) => `${esc(l.p)}${l.m !== null && l.m !== undefined ? ` <span class="quien">(${esc(mil(l.m))})</span>` : ''}`).join('<br>')}${x.c.pendI ? `<br><span class="quien" title="${esc(x.c.lineas.filter((l, i) => !x.c.pendI.includes(i)).map((l) => l.p).join(' · '))}">✓ ${x.c.lineas.length - x.c.pendI.length} producto(s) ya con NC</span>` : ''}</td>` +
       `<td class="num">${esc(mil(x.c.obs))}</td><td>${x.c.det.map((n) => `${esc(n.k)} <span class="quien">${esc(n.tipo)}</span>`).join('<br>') || '<span class="quien">—</span>'}</td>` +
       `<td class="num">${esc(mil(x.c.aplicada))}</td><td class="num${x.pend ? ' baja' : ''}">${esc(mil(x.pend))}</td>` +
-      `<td><span class="est ${claseEst(x.est)}">${esc(x.est)}</span></td><td><span class="est ${x.tipo === DEV_INM ? 'e3' : 'e1'}">${esc(x.tipo)}</span></td>${obsSolo() ? '' : `<td>${esc(perTxt(x.per))}</td>`}<td class="cCom">${obsComHtml(x)}</td><td class="larga quien">${esc(x.alerta)}</td></tr>`).join('') ||
+      `<td><span class="est ${claseEst(x.est)}">${esc(x.est)}</span></td><td><span class="est ${x.tipo === DEV_INM ? 'e3' : 'e1'}">${esc(x.tipo)}</span></td>${obsSolo() ? '' : `<td>${x.sinReg ? '<span class="est e0">Factura sin registrar</span>' : esc(perTxt(x.per))}</td>`}<td class="cCom">${obsNotasHtml(x)}${obsComHtml(x)}</td><td class="larga quien">${esc(x.alerta)}</td></tr>`).join('') ||
       `<tr><td colspan="${(todosP ? 14 : 13) - (obsSolo() ? 1 : 0)}" class="vacio">Sin facturas en esta lista</td></tr>`;
   }
   function cruceVista() {
@@ -4162,7 +4186,7 @@
       return;
     }
     const tr = e.target.closest('tr[data-id]');
-    if (!tr || !puede('verPagos')) return; // el usuario de Observaciones no entra a la grilla
+    if (!tr || !puede('verPagos') || tr.dataset.id.startsWith('sinreg_')) return; // el usuario de Observaciones no entra a la grilla; lo no registrado no tiene fila
     if (pgDist() === TODOS_K) { pgIrPend = { per: tr.dataset.per, i: tr.dataset.id }; $('gDist').value = tr.dataset.dk; pgVer('grid'); pgSuscribir(); return; }
     $('gPer').value = tr.dataset.per; $('gFiltro').value = ''; $('gTxt').value = '';
     pgAbiertas.clear(); pgAbiertas.add(tr.dataset.id);
