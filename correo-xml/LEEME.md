@@ -72,6 +72,7 @@ Para comprobarlo, en el editor ve a **Ejecuciones** y debe aparecer algo como `5
 | En Ejecuciones: `Cloud Firestore API has not been used in project …` | En el script: **Configuración del proyecto → Proyecto de Google Cloud → Cambiar proyecto** y escribe el número de proyecto de Firebase (**20439347200**). Si te lo pide, configura la "pantalla de consentimiento" de ese proyecto como **Interno** o **Externo / en prueba**, agregando tu Gmail. |
 | En la página: "No se pudo leer la bandeja de XML del correo" | Falta el paso 3: la regla de `xmlBuzon`. |
 | No aparece ningún XML | Revisa que el correo tenga el `.xml` o `.zip` **adjunto**. Si solo trae un enlace para descargarlo, el script no lo ve. |
+| Reenviaste correos desde Outlook "como adjunto" (en Gmail se ven con ícono de sobre, `.eml`) y no se leyeron | El script ya abre esos correos adjuntos y saca sus XML. Si llegaron antes de actualizar el script y quedaron con la etiqueta `XML-procesado`, ejecuta **una vez** la función **`revisarDeNuevo`**. |
 
 Para apagarlo, ejecuta la función **`desinstalar`**.
 

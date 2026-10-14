@@ -37,7 +37,7 @@ function revisarCorreo() {
   if (!candado.tryLock(1000)) return; // ya hay otra vuelta corriendo
   try {
     const etiqueta = GmailApp.getUserLabelByName(ETIQUETA) || GmailApp.createLabel(ETIQUETA);
-    const hilos = GmailApp.search(`has:attachment {filename:xml filename:zip filename:rar filename:7z} newer_than:${DIAS_ATRAS}d -label:${ETIQUETA} -label:${ETIQUETA_REVISAR}`, 0, MAX_CORREOS);
+    const hilos = GmailApp.search(`has:attachment {filename:xml filename:zip filename:rar filename:7z filename:eml} newer_than:${DIAS_ATRAS}d -label:${ETIQUETA} -label:${ETIQUETA_REVISAR}`, 0, MAX_CORREOS);
     let enviados = 0, repetidos = 0;
     const inicio = Date.now();
     for (const hilo of hilos) {
@@ -65,11 +65,16 @@ function revisarCorreo() {
 }
 
 /** Los XML de comprobantes que trae un correo: sueltos, dentro de un .zip o de un .zip dentro de otro (hasta 3 niveles).
+ *  También abre los correos reenviados como adjunto (.eml, por ejemplo al reenviar desde Outlook) y saca sus XML.
  *  raros = adjuntos que no se pudieron abrir (RAR y 7z no se pueden abrir desde Google: hay que descomprimirlos en la PC). */
 function xmlsDe(m) {
   const out = [], raros = [], rars = [];
   const abrir = (blob, nombre, nivel) => {
     if (/\.xml$/i.test(nombre)) { out.push({ nombre, blob }); return; }
+    if ((/\.eml$/i.test(nombre) || /message\/rfc822/i.test(blob.getContentType() || '')) && nivel <= 4) { // correo reenviado como adjunto
+      try { adjuntosEml(blob.getBytes()).forEach((b) => abrir(b, `${nombre} → ${b.getName()}`, nivel + 1)); } catch (e) { raros.push(`${nombre} (correo adjunto que no se pudo abrir)`); console.warn(`No se pudo abrir ${nombre}: ${e}`); }
+      return;
+    }
     if (/\.rar$/i.test(nombre)) { rars.push({ nombre, blob, rar: true }); return; }
     if (/\.7z$/i.test(nombre)) { raros.push(`${nombre} (7z)`); return; }
     if (!/\.zip$/i.test(nombre) || nivel > 3) return;
@@ -84,6 +89,58 @@ function xmlsDe(m) {
     .filter((x) => /<(\w+:)?(Invoice|CreditNote|DebitNote)[\s>]/.test(x.texto.slice(0, 3000)));
   if (out.length && !xmls.length && !rars.length) raros.push('XML que no son facturas ni notas (guías, constancias u otros)');
   return { xmls, raros, rars };
+}
+
+/** Archivos adjuntos de un correo guardado como .eml (formato MIME), incluidos los de correos adjuntos dentro de él. */
+function adjuntosEml(bytes) {
+  const latin = (bs) => Utilities.newBlob(bs).getDataAsString('ISO-8859-1'); // 1 carácter = 1 byte, sin perder nada
+  const aBytes = (t) => { const b = new Array(t.length); for (let i = 0; i < t.length; i += 1) { const c = t.charCodeAt(i) & 255; b[i] = c > 127 ? c - 256 : c; } return b; };
+  const palabras = (v) => String(v || '').replace(/=\?([^?]+)\?([BQ])\?([^?]*)\?=/gi, (x, cs, enc, txt) => { // =?UTF-8?B?...?=
+    try {
+      const bs = enc.toUpperCase() === 'B' ? Utilities.base64Decode(txt) : aBytes(txt.replace(/_/g, ' ').replace(/=([0-9A-F]{2})/gi, (y, h) => String.fromCharCode(parseInt(h, 16))));
+      return Utilities.newBlob(bs).getDataAsString(cs);
+    } catch (e) { return txt; }
+  }).replace(/\?=\s+=\?/g, '?==?');
+  const param = (h, n) => {
+    const ext = h.match(new RegExp(`${n}\\*(?:0\\*?)?=(?:([^']*)'[^']*')?"?([^";]+)"?`, 'i')); // filename*=UTF-8''nombre.xml
+    if (ext) { try { return decodeURIComponent(ext[2]); } catch (e) { return ext[2]; } }
+    const m = h.match(new RegExp(`(?:^|;)\\s*${n}\\s*=\\s*("([^"]*)"|[^;\\s]+)`, 'i'));
+    return m ? palabras(m[2] !== undefined ? m[2] : m[1]) : '';
+  };
+  const salida = [];
+  const parte = (t, nivel) => {
+    const corte = t.search(/\r?\n\r?\n/);
+    const cab = (corte < 0 ? t : t.slice(0, corte)).replace(/\r?\n[ \t]+/g, ' '), cuerpo = corte < 0 ? '' : t.slice(corte).replace(/^\r?\n\r?\n/, '');
+    const h = (n) => { const m = cab.match(new RegExp(`^${n}:\\s*(.*)$`, 'im')); return m ? m[1].trim() : ''; };
+    const tipo = h('Content-Type') || 'text/plain', cod = h('Content-Transfer-Encoding').toLowerCase(), disp = h('Content-Disposition');
+    const decodificar = () => {
+      if (cod === 'base64') return Utilities.base64Decode(cuerpo.replace(/[^A-Za-z0-9+/=]/g, ''));
+      if (cod === 'quoted-printable') return aBytes(cuerpo.replace(/=\r?\n/g, '').replace(/=([0-9A-F]{2})/gi, (x, hx) => String.fromCharCode(parseInt(hx, 16))));
+      return aBytes(cuerpo);
+    };
+    if (/^multipart\//i.test(tipo)) {
+      const lim = param(tipo, 'boundary');
+      if (!lim) return;
+      cuerpo.split(new RegExp(`(?:^|\\r?\\n)--${lim.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:--)?[ \\t]*(?=\\r?\\n|$)`)).slice(1).forEach((p) => { const q = p.replace(/^\r?\n/, ''); if (q.trim()) parte(q, nivel + 1); });
+      return;
+    }
+    if (/^message\/rfc822/i.test(tipo) && nivel < 8) { parte(cod === 'base64' || cod === 'quoted-printable' ? latin(decodificar()) : cuerpo, nivel + 1); return; }
+    const nombre = param(disp, 'filename') || param(tipo, 'name');
+    if (!nombre) return; // texto del correo, no es un adjunto
+    salida.push(Utilities.newBlob(decodificar(), tipo.split(';')[0].trim(), nombre));
+  };
+  parte(latin(bytes), 0);
+  return salida;
+}
+
+/** Ejecútalo UNA vez si unos correos reenviados (.eml) quedaron como procesados sin leer sus XML: los vuelve a revisar. */
+function revisarDeNuevo() {
+  const etiqueta = GmailApp.getUserLabelByName(ETIQUETA);
+  if (!etiqueta) return;
+  const hilos = GmailApp.search(`filename:eml newer_than:${DIAS_ATRAS}d label:${ETIQUETA}`, 0, 200);
+  hilos.forEach((h) => h.removeLabel(etiqueta));
+  console.log(`${hilos.length} correo(s) con correos adjuntos se volverán a revisar`);
+  revisarCorreo();
 }
 
 /** Texto del XML respetando la codificación que declara (muchos vienen en ISO-8859-1). */
