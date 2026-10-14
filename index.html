@@ -203,7 +203,7 @@
   .ltHoja { max-width:1000px; } .ltHoja h2 { text-align:center; font-size:22px; letter-spacing:.5px; margin:6px 0 14px; color:var(--casco); }
   .ltHoja table { width:100%; border-collapse:collapse; } .ltHoja th, .ltHoja td { border:1px solid #9aa0a6; padding:8px 12px; font-size:15px; }
   .ltHoja th { background:#eef3e8; text-align:center; font-weight:800; } .ltHoja td.d { text-align:center; width:90px; } .ltHoja td.f { width:220px; text-align:center; }
-  .ltHoja tr.ap td { background:#f3faf0; } .ltHoja .ltDias { width:70px; text-align:center; } .ltHoja .ltOk { width:20px; height:20px; cursor:pointer; vertical-align:middle; }
+  .ltHoja tr.ap td { background:#d9f2d0; } .ltHoja tr.ap td.f { color:#1e7a2e; font-weight:700; } .ltHoja .ltDias { width:70px; text-align:center; } .ltHoja .ltOk { width:20px; height:20px; cursor:pointer; vertical-align:middle; }
   .ltDesb { opacity:.08; border:none; background:none; cursor:pointer; padding:0 4px; font-size:11px; } .ltDesb:hover { opacity:.7; }
   .cnDos { display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); gap:18px; align-items:start; margin-top:14px; } @media (max-width:1250px) { .cnDos { grid-template-columns:minmax(0, 1fr); } }
   .cnDos .tabla { max-height:70vh; overflow:auto; } details.cnProvs { margin-top:14px; } details.cnProvs summary { cursor:pointer; font-weight:700; color:var(--marca); padding:6px 0; }
@@ -6657,6 +6657,8 @@
      Una fila por proveedor que tiene ese mes de pago. Al aprobar se guarda en el mismo mes a pagar (campo aprob)
      y ese mes queda bloqueado en Ingreso de facturas y NC: no se pueden agregar, quitar ni cambiar facturas o NC. */
   let ltDocs = [];
+  const ltCambios = new Map(); // id del mes → campos cambiados en esta PC (null = quitado)
+  const ltPoner = (id, campos) => ltCambios.set(id, { ...(ltCambios.get(id) || {}), ...campos });
   async function ltPintar() {
     if (!$('ltEmp').options.length) { $('ltEmp').innerHTML = pgCfg.empresas.map((e) => `<option value="${esc(e.k)}">${esc(e.nombre)}</option>`).join(''); { const h0 = hoy(); let y = +h0.slice(0, 4), m = +h0.slice(5, 7) + 1; if (m > 12) { m = 1; y += 1; } $('ltPer').value = `${y}-${String(m).padStart(2, '0')}`; } }
     const emp = $('ltEmp').value, per = $('ltPer').value;
@@ -6665,6 +6667,11 @@
     let docs = [];
     try { docs = (await sincroDocs('pagos', (x) => x.emp === emp && x.per === per)).docs.map((d) => d.data()); } catch (e) { $('ltCont').innerHTML = `<div class="msg err">${esc(errorTexto(e))}</div>`; return; }
     pgNuevos.forEach((d, id) => { if (d.emp === emp && d.per === per && !docs.some((x) => x.dist === d.dist)) docs.push(d); });
+    docs.forEach((d) => { // lo que se acaba de cambiar aquí se ve al instante, aunque Firebase avise un momento después
+      const id = `${d.emp}_${d.dist}_${d.per}`, c = ltCambios.get(id);
+      if (!c) return;
+      Object.entries(c).forEach(([k, v]) => { if (v === null) delete d[k]; else d[k] = v; });
+    });
     ltDocs = docs;
     const tipo = $('ltTipo').value, est = $('ltEst').value, edita = puede('pagos');
     const filas = docs.map((d) => {
@@ -6677,14 +6684,14 @@
     const nAp = filas.filter((r) => r.d.aprob).length;
     $('ltCont').innerHTML = `<div class="caja ltHoja"><h2>LETRAS PARA ${esc(perTxt(per))}</h2>` +
       `<p class="quien" style="text-align:center;margin:-8px 0 12px">${esc((pgCfg.empresas.find((e) => e.k === emp) || {}).nombre || emp)} · ${nAp} de ${filas.length} aprobado(s). Al aprobar, ese mes queda bloqueado: ya no se pueden ingresar facturas ni notas de crédito.</p>` +
-      '<table><thead><tr><th>PROVEEDORES</th><th>DÍAS</th><th>FECHA</th><th class="sinImp">Facturas · NC · Neto S/</th></tr></thead><tbody>' +
+      '<table><thead><tr><th>PROVEEDORES</th><th>DÍAS</th><th>FECHA</th></tr></thead><tbody>' +
       (filas.map((r) => {
         const ap = r.d.aprob, id = `${r.d.emp}_${r.d.dist}_${r.d.per}`;
         return `<tr class="${ap ? 'ap' : ''}"><td><b>${esc(r.dist.nombre)}</b></td>` +
           `<td class="d">${edita && !ap ? `<input class="ltDias" data-id="${esc(id)}" type="number" min="0" max="365" value="${esc(r.dias)}">` : esc(r.dias)}</td>` +
           `<td class="f">${ap ? `<span title="${esc(`Aprobado por ${ap.por || ''}`)}">✔ ${esc(dia(ap.f))}</span> <span class="quien sinImp">${esc(String(ap.por || '').split(' (')[0])}</span>${yo.area === 'ADMIN' ? `<button class="ltDesb sinImp" data-id="${esc(id)}" title="Desbloquear">🔓</button>` : ''}` : (edita ? `<input type="checkbox" class="ltOk" data-id="${esc(id)}" aria-label="Aprobar ${esc(r.dist.nombre)}">` : '')}</td>` +
-          `<td class="num sinImp">${r.nFa} · ${r.nNc} · ${mil(r.neto)}</td></tr>`;
-      }).join('') || '<tr><td colspan="4" class="vacio">No hay proveedores con este mes de pago. Agrégalos con "+ Agregar proveedor a este mes".</td></tr>') +
+          '</tr>';
+      }).join('') || '<tr><td colspan="3" class="vacio">No hay proveedores con este mes de pago. Agrégalos con "+ Agregar proveedor a este mes".</td></tr>') +
       '</tbody></table></div>';
   }
   ['ltEmp', 'ltPer', 'ltTipo', 'ltEst'].forEach((id) => $(id).addEventListener('change', ltPintar));
@@ -6695,13 +6702,14 @@
     try {
       if (t.classList.contains('ltDias')) {
         const n = t.value === '' ? null : Math.max(0, Math.min(365, Math.round(Number(t.value))));
+        ltPoner(t.dataset.id, { dias: n });
         await updateDoc(doc(db, 'pagos', t.dataset.id), { dias: n === null ? deleteField() : n, act: serverTimestamp(), actPor: firma() });
-        if (n === null) delete d.dias; else d.dias = n;
       } else if (t.classList.contains('ltOk')) {
         if (!confirm(`¿Aprobar la programación de ${distDe(d.dist).nombre} para ${perTxt(d.per)}?\n\nEse mes quedará bloqueado: ya no se podrán ingresar, quitar ni cambiar facturas o notas de crédito.`)) { t.checked = false; return; }
-        const ap = { f: hoy(), por: firma() };
-        await updateDoc(doc(db, 'pagos', t.dataset.id), { aprob: ap, act: serverTimestamp(), actPor: firma() });
-        d.aprob = ap;
+        const ap = { f: hoy(), por: firma() }, id = t.dataset.id;
+        ltPoner(id, { aprob: ap }); ltPintar(); // se pinta de verde al instante
+        try { await updateDoc(doc(db, 'pagos', id), { aprob: ap, act: serverTimestamp(), actPor: firma() }); } catch (err2) { ltPoner(id, { aprob: null }); ltPintar(); throw err2; }
+        const pl = pgLocal(id); if (pl) pl.aprob = ap; // Ingreso de facturas también lo ve bloqueado de inmediato
         pgLog('Aprobó programación', `${perTxt(d.per)} aprobado: mes bloqueado`, d.per, `${d.emp}|${d.dist}`).catch(console.error);
         ltPintar(); if (vista === 'vPagos') pintarPagos(true);
       }
@@ -6714,7 +6722,8 @@
     if ((t || '').trim().toUpperCase() !== 'DESBLOQUEAR') return;
     try {
       await updateDoc(doc(db, 'pagos', b.dataset.id), { aprob: deleteField(), act: serverTimestamp(), actPor: firma() });
-      delete d.aprob;
+      ltPoner(b.dataset.id, { aprob: null });
+      const pl = pgLocal(b.dataset.id); if (pl) delete pl.aprob;
       pgLog('Desbloqueó programación', `${perTxt(d.per)} desbloqueado (estaba aprobado)`, d.per, `${d.emp}|${d.dist}`).catch(console.error);
       ltPintar(); if (vista === 'vPagos') pintarPagos(true);
     } catch (err) { msg('ltMsg', errorTexto(err)); }
@@ -6724,7 +6733,7 @@
     try { await pgAsegurarMes($('ltEmp').value, k, $('ltPer').value, []); } catch (err) { msg('ltMsg', errorTexto(err)); }
     ltPintar();
   });
-  $('ltExp').addEventListener('click', () => exportar(`letras-${$('ltEmp').value}-${$('ltPer').value}`, [['Proveedor', (d) => distDe(d.dist).nombre], ['Días', (d) => d.dias ?? distDe(d.dist).pl ?? ''], ['Aprobado', (d) => (d.aprob ? dia(d.aprob.f) : '')], ['Aprobado por', (d) => (d.aprob ? d.aprob.por : '')], ['Facturas', (d) => (d.filas || []).filter((f) => f.t === 'FA').length], ['NC', (d) => (d.filas || []).filter((f) => f.t === 'NC').length], ['Neto S/', (d) => r2((d.filas || []).reduce((a, f) => a + (Number(f.m) || 0), 0))]], ltDocs.slice().sort((a, b) => distDe(a.dist).nombre.localeCompare(distDe(b.dist).nombre))));
+  $('ltExp').addEventListener('click', () => exportar(`letras-${$('ltEmp').value}-${$('ltPer').value}`, [['Proveedor', (d) => distDe(d.dist).nombre], ['Días', (d) => d.dias ?? distDe(d.dist).pl ?? ''], ['Aprobado', (d) => (d.aprob ? dia(d.aprob.f) : '')], ['Aprobado por', (d) => (d.aprob ? d.aprob.por : '')]], ltDocs.slice().sort((a, b) => distDe(a.dist).nombre.localeCompare(distDe(b.dist).nombre))));
   $('ltImp').addEventListener('click', () => {
     const h = $('ltCont').querySelector('.ltHoja'); if (!h) return;
     const c = h.cloneNode(true);
