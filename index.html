@@ -200,6 +200,11 @@
   .kpi small { color:var(--gris); font-size:12px; }
   .sube { color:var(--ok); } .baja { color:var(--rojo); }
   #gPegar, #gQr, #gRep, #gImp { display:none !important; } /* ya no se usan: Lolfar se compara solo desde Reporte Lolfar y XML */
+  .ltHoja { max-width:1000px; } .ltHoja h2 { text-align:center; font-size:22px; letter-spacing:.5px; margin:6px 0 14px; color:var(--casco); }
+  .ltHoja table { width:100%; border-collapse:collapse; } .ltHoja th, .ltHoja td { border:1px solid #9aa0a6; padding:8px 12px; font-size:15px; }
+  .ltHoja th { background:#eef3e8; text-align:center; font-weight:800; } .ltHoja td.d { text-align:center; width:90px; } .ltHoja td.f { width:220px; text-align:center; }
+  .ltHoja tr.ap td { background:#f3faf0; } .ltHoja .ltDias { width:70px; text-align:center; } .ltHoja .ltOk { width:20px; height:20px; cursor:pointer; vertical-align:middle; }
+  .ltDesb { opacity:.08; border:none; background:none; cursor:pointer; padding:0 4px; font-size:11px; } .ltDesb:hover { opacity:.7; }
   .cnDos { display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); gap:18px; align-items:start; margin-top:14px; } @media (max-width:1250px) { .cnDos { grid-template-columns:minmax(0, 1fr); } }
   .cnDos .tabla { max-height:70vh; overflow:auto; } details.cnProvs { margin-top:14px; } details.cnProvs summary { cursor:pointer; font-weight:700; color:var(--marca); padding:6px 0; }
   .dos { display:grid; grid-template-columns:repeat(auto-fit, minmax(420px, 1fr)); gap:16px; align-items:start; }
@@ -458,7 +463,7 @@
       <div class="navGrupo"><button data-v="vInicio" title="Inicio"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span class="navT">Inicio</span></button></div>
       <div class="navGrupo"><div class=navG>Recepción</div><button data-v="vPedidos" title="Ingreso de pedidos"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><span class="navT">Ingreso de pedidos</span><span class="cuenta oculto" id="nPed"></span></button><button data-v="vNuevo" id="tabNuevo" title="Observar productos"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span class="navT">Observar productos</span></button><button data-v="vPend" title="Por devolver"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg><span class="navT">Por devolver</span><span class="cuenta oculto" id="nPend"></span></button><button data-v="vDev" title="Devueltos y NC"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="navT">Devueltos y NC</span><span class="cuenta oculto" id="nDev"></span></button><button data-v="vSeg" id="tabSeg" title="Seguimiento de devoluciones"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg><span class="navT">Seguimiento de devoluciones</span></button></div>
       <div class="navGrupo"><div class=navG>Compras</div><button data-v="vCot" id="tabCot" title="Cotizaciones"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span class="navT">Cotizaciones</span></button></div>
-      <div class="navGrupo"><div class=navG>Pagos</div><button data-v="vPagos" id="tabPagos" title="Ingreso de facturas y NC de cada proveedor"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg><span class="navT">Ingreso de facturas y NC</span></button><button data-v="vPagosLf" id="tabPagosLf" class="navHijo" title="Reporte de Lolfar: qué facturas de TODOS los proveedores están en Lolfar pero no registradas aquí"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="navT">Reporte Lolfar y XML</span></button><button data-v="vPagosRes" id="tabPagosRes" title="Resumen de pago de cada proveedor y mes"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg><span class="navT">Resumen de pago</span></button><button data-v="vPagosObs" id="tabPagosObs" title="Facturas observadas y sus notas de crédito"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span class="navT">Observaciones</span></button><button data-v="vResPag" id="tabResPag" title="Resumen de pagos del mes: créditos, distribuidores, proveedores y otros pagos"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg><span class="navT">Resumen general</span></button></div>
+      <div class="navGrupo"><div class=navG>Pagos</div><button data-v="vPagos" id="tabPagos" title="Ingreso de facturas y NC de cada proveedor"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg><span class="navT">Ingreso de facturas y NC</span></button><button data-v="vPagosLf" id="tabPagosLf" class="navHijo" title="Reporte de Lolfar: qué facturas de TODOS los proveedores están en Lolfar pero no registradas aquí"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="navT">Reporte Lolfar y XML</span></button><button data-v="vPagosRes" id="tabPagosRes" title="Resumen de pago de cada proveedor y mes"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg><span class="navT">Resumen de pago</span></button><button data-v="vLetras" id="tabLetras" title="Aprobación de la programación de letras de cada mes"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><polyline points="8 15 11 18 16 12"/></svg><span class="navT">Letras aprobadas</span></button><button data-v="vPagosObs" id="tabPagosObs" title="Facturas observadas y sus notas de crédito"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span class="navT">Observaciones</span></button><button data-v="vResPag" id="tabResPag" title="Resumen de pagos del mes: créditos, distribuidores, proveedores y otros pagos"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg><span class="navT">Resumen general</span></button></div>
       <div class="navGrupo"><div class=navG>Análisis de datos</div><button data-v="vDash" id="tabDash" title="Dashboard"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="navT">Dashboard</span></button></div>
       <div class="navGrupo"><div class=navG>Herramientas</div><button data-v="vXml" id="tabXml" title="Lector de XML"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg><span class="navT">Lector de XML</span><span class="cuenta oculto" id="nXml"></span></button></div>
       <div class="navGrupo"><div class=navG>Configuración</div><button data-v="vUsuarios" id="tabUsuarios" title="Usuarios"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="navT">Usuarios</span></button><button data-v="vCat" id="tabCat" title="Productos"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg><span class="navT">Productos</span></button><button data-v="vListas" id="tabListas" title="Listas"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span class="navT">Listas</span></button></div>
@@ -643,6 +648,21 @@
       </div>
       <div id="gv_gen" class="oculto"></div>
       <div id="gv_lf" class="oculto"><div id="cv_con"></div></div>
+    </div>
+
+    <!-- ===== LETRAS APROBADAS: aprobación de la programación de cada mes (bloquea ese mes en Ingreso de facturas y NC) ===== -->
+    <div id="vLetras" class="oculto">
+      <div class="herr">
+        <select id="ltEmp" aria-label="Empresa" style="width:auto"></select>
+        <label for="ltPer" style="margin:0">Mes de pago</label><input type="month" id="ltPer" style="width:auto">
+        <select id="ltTipo" aria-label="Tipo" style="width:auto"><option value="">Distribuidores y proveedores</option><option value="D">Solo distribuidores (letras)</option><option value="C">Solo proveedores (cuotas)</option></select>
+        <select id="ltEst" aria-label="Estado" style="width:auto"><option value="">Todos</option><option value="P">Pendientes de aprobar</option><option value="A">Aprobados</option></select>
+        <span style="flex:1"></span>
+        <select id="ltAdd" aria-label="Agregar proveedor" style="width:auto"></select>
+        <button id="ltImp">Imprimir</button><button id="ltExp">Exportar a Excel</button>
+      </div>
+      <div id="ltMsg"></div>
+      <div id="ltCont"></div>
     </div>
 
     <!-- ===== RESUMEN DE PAGOS DEL MES (módulo final: créditos, distribuidores, proveedores en cuotas y otros pagos) ===== -->
@@ -1300,7 +1320,7 @@
   }
   function aplicarPermisos() {
     const admin = yo.area === 'ADMIN';
-    const tabs = { vInicio: true, vPedidos: puede('verPedidos'), vNuevo: puede('observar'), vPend: puede('verPend'), vDev: puede('verDev'), vPagos: puede('verPagos'), vPagosRes: puede('verPagos'), vPagosObs: puede('verPagos'), vPagosLf: puede('verPagos'), vCxp: false, vResPag: puede('verPagos') || puede('verCxp'), vCierre: false, vProvDocs: false, vRegFac: false, vDash: puede('verDash'), vSeg: puede('verEnt'), vCot: puede('verCot'), vXml: puede('verXml'),
+    const tabs = { vInicio: true, vPedidos: puede('verPedidos'), vNuevo: puede('observar'), vPend: puede('verPend'), vDev: puede('verDev'), vPagos: puede('verPagos'), vPagosRes: puede('verPagos'), vPagosObs: puede('verPagos'), vPagosLf: puede('verPagos'), vLetras: puede('verPagos'), vCxp: false, vResPag: puede('verPagos') || puede('verCxp'), vCierre: false, vProvDocs: false, vRegFac: false, vDash: puede('verDash'), vSeg: puede('verEnt'), vCot: puede('verCot'), vXml: puede('verXml'),
       vUsuarios: admin, vCat: admin, vListas: admin };
     $('quien').textContent = `${yo.nombre} · ${yo.area}`;
     Object.entries(tabs).forEach(([v, ok]) => { const b = document.querySelector(`nav button[data-v="${v}"]`); if (b) b.classList.toggle('oculto', !ok); });
@@ -1374,7 +1394,7 @@
 
   /* ---------- Navegación ---------- */
   const NAV_DE = { vRegFac: 'vCierre' }; // vistas que comparten un mismo botón del menú
-  const VISTAS = ['vInicio', 'vPedidos', 'vNuevo', 'vPend', 'vDev', 'vPagos', 'vCxp', 'vProvDocs', 'vResPag', 'vCierre', 'vRegFac', 'vDash', 'vSeg', 'vCot', 'vXml', 'vUsuarios', 'vCat', 'vListas', 'vNada'];
+  const VISTAS = ['vInicio', 'vPedidos', 'vNuevo', 'vPend', 'vDev', 'vPagos', 'vCxp', 'vProvDocs', 'vResPag', 'vLetras', 'vCierre', 'vRegFac', 'vDash', 'vSeg', 'vCot', 'vXml', 'vUsuarios', 'vCat', 'vListas', 'vNada'];
   document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => { ver(b.dataset.v); if (b.dataset.v === 'vPagos') pgVer('grid'); }));
   // Pagos a proveedores se abre en tres ventanas del menú (antes eran pestañas dentro del módulo)
   const PG_ALIAS = { vPagosRes: 'res', vPagosObs: 'cruce', vPagosLf: 'lf' };
@@ -1393,6 +1413,7 @@
     if (v === 'vPagos') { pintarPagos(true); setTimeout(cnAutoDesdePagos, 800); }
     if (v === 'vCxp') cpPintar(true);
     if (v === 'vDash') dgPintar();
+    if (v === 'vLetras') ltPintar();
     if (v === 'vSeg') sgPintar();
     if (v === 'vCot') ctPintar(true);
     if (v === 'vXml') xlAbrirVista();
@@ -2886,12 +2907,12 @@
   }
   const avisoRepetida = (f, r) => `Ya existe ${f.t} ${f.s}-${f.n} por S/ ${mil(r.m)} del ${dia(r.f)}, programada en <b>${esc(perTxt(r.per))}</b>. No se agregó. <button class="mini gIr" data-per="${esc(r.per)}" data-id="${esc(r.i)}">Ver esa fila</button>`;
   function pintarGrilla() {
-    const cuerpo = $('gCuerpo'), edita = puede('pagos'), d = pgDoc();
+    const cuerpo = $('gCuerpo'), d = pgDoc(), bloq = !!(d && d.aprob), edita = puede('pagos') && !bloq; // mes aprobado en Letras aprobadas: bloqueado
     $('gHerr').classList.toggle('oculto', !edita && yo.area !== 'ADMIN');
     ['gAdd', 'gPegar'].forEach((id) => $(id).classList.toggle('oculto', !edita));
     ['gDel', 'gMover'].forEach((id) => $(id).classList.toggle('oculto', !puede('pagosBorrar')));
     $('gImp').classList.toggle('oculto', yo.area !== 'ADMIN'); $('gProvs').classList.toggle('oculto', yo.area !== 'ADMIN');
-    $('gNuevoPer').classList.toggle('oculto', !edita); $('gEditPer').classList.toggle('oculto', !edita || !d);
+    $('gNuevoPer').classList.toggle('oculto', !puede('pagos')); $('gEditPer').classList.toggle('oculto', !edita || !d);
     if (!pgCfg.empresas.length) {
       cuerpo.innerHTML = `<tr><td colspan="16" class="vacio">${yo.area === 'ADMIN' ? 'Aún no hay datos de pagos. Usa "Importar datos" y elige el archivo datos-pagos.json.' : 'Aún no hay datos de pagos cargados.'}</td></tr>`;
       $('gRes').textContent = ''; $('gPie').textContent = ''; return;
@@ -2940,6 +2961,7 @@
         '<td><input class="gIn aR" placeholder="NC aplicadas (opcional)" aria-label="Referencia"></td>' +
         `<td colspan="5" style="white-space:normal"><button class="pri mini aOk">Agregar fila</button> ${pgAviso ? `<span class="est alerta" style="white-space:normal;border-radius:8px">${pgAviso}</span>` : '<span class="quien">o Enter</span>'}</td></tr>` + h;
     }
+    if (bloq) h = `<tr><td colspan="16" style="background:#fff3e0;color:#8a4b00;font-weight:700;white-space:normal">🔒 Programación aprobada el ${esc(dia(d.aprob.f))} por ${esc(d.aprob.por || '')}: este mes está bloqueado, no se pueden ingresar facturas ni notas de crédito. Se desbloquea en Letras aprobadas.</td></tr>` + h;
     cuerpo.innerHTML = h || '<tr><td colspan="16" class="vacio">Sin filas en esta vista</td></tr>';
     reponer();
     czBarra('gCzBar', cuerpo, czColG, edita);
@@ -3029,12 +3051,17 @@
     const v = sincros.get('pagos'), x = v && v.m.get(id);
     return x ? x.data() : (pgNuevos.get(id) || null);
   }
+  const pgFirmaDocs = (l) => (l || []).map((f) => `${claveFila(f)}=${r2(Number(f.m) || 0)}`).sort().join(';');
+  const pgBloqueo = (d, antes, despues, dist, per) => { // mes aprobado: solo se permiten marcas (física, XML, Lolfar, notas), no documentos
+    if (d && d.aprob && pgFirmaDocs(antes) !== pgFirmaDocs(despues)) throw new Error(`${distDe(dist).nombre} · ${perTxt(per)} tiene la programación aprobada (bloqueado): no se pueden agregar, quitar ni cambiar facturas o notas de crédito.`);
+  };
   async function pgGuardarYa(emp, dist, per, cambio, accion, detalle) {
     const ref = doc(db, 'pagos', `${emp}_${dist}_${per}`), idx = doc(db, 'pagosIdx', `${emp}_${dist}`), loc = pgLocal(ref.id);
     if (loc) {
-      pgNuevos.delete(ref.id); // el recién creado se usa una sola vez; después ya llega por el oyente
       const lista = (loc.filas || []).map((f) => ({ ...f }));
       const nuevas = cambio(lista) || lista;
+      pgBloqueo(loc, loc.filas, nuevas, dist, per);
+      pgNuevos.delete(ref.id); // el recién creado se usa una sola vez; después ya llega por el oyente
       const lote = writeBatch(db);
       lote.update(ref, { filas: nuevas, act: serverTimestamp(), actPor: firma() });
       lote.set(idx, { p: { [idxCampo(per)]: idxDe(nuevas) } }, { merge: true });
@@ -3044,6 +3071,7 @@
       if (!s.exists()) throw new Error('Ese mes a pagar ya no existe.');
       const lista = (s.data().filas || []).map((f) => ({ ...f }));
       const nuevas = cambio(lista) || lista;
+      pgBloqueo(s.data(), s.data().filas, nuevas, dist, per);
       tx.update(ref, { filas: nuevas, act: serverTimestamp(), actPor: firma() });
       tx.set(idx, { p: { [idxCampo(per)]: idxDe(nuevas) } }, { merge: true });
     });
@@ -6625,6 +6653,89 @@
   }
   // Al subir (o abrir) el reporte en "Reporte Lolfar y XML" se anota ✓ Lolfar solo, en TODAS las empresas y meses.
   // Lo ya anotado con el mismo importe no se vuelve a escribir: solo se guardan las filas nuevas o que cambiaron.
+  /* =====================  LETRAS APROBADAS  =====================
+     Una fila por proveedor que tiene ese mes de pago. Al aprobar se guarda en el mismo mes a pagar (campo aprob)
+     y ese mes queda bloqueado en Ingreso de facturas y NC: no se pueden agregar, quitar ni cambiar facturas o NC. */
+  let ltDocs = [];
+  async function ltPintar() {
+    if (!$('ltEmp').options.length) { $('ltEmp').innerHTML = pgCfg.empresas.map((e) => `<option value="${esc(e.k)}">${esc(e.nombre)}</option>`).join(''); { const h0 = hoy(); let y = +h0.slice(0, 4), m = +h0.slice(5, 7) + 1; if (m > 12) { m = 1; y += 1; } $('ltPer').value = `${y}-${String(m).padStart(2, '0')}`; } }
+    const emp = $('ltEmp').value, per = $('ltPer').value;
+    if (!emp || !/^\d{4}-\d{2}$/.test(per)) { $('ltCont').innerHTML = '<p class="quien">Elige la empresa y el mes de pago.</p>'; return; }
+    $('ltCont').innerHTML = '<p class="quien">Cargando…</p>';
+    let docs = [];
+    try { docs = (await sincroDocs('pagos', (x) => x.emp === emp && x.per === per)).docs.map((d) => d.data()); } catch (e) { $('ltCont').innerHTML = `<div class="msg err">${esc(errorTexto(e))}</div>`; return; }
+    pgNuevos.forEach((d, id) => { if (d.emp === emp && d.per === per && !docs.some((x) => x.dist === d.dist)) docs.push(d); });
+    ltDocs = docs;
+    const tipo = $('ltTipo').value, est = $('ltEst').value, edita = puede('pagos');
+    const filas = docs.map((d) => {
+      const dist = distDe(d.dist), fs = d.filas || [];
+      return { d, dist, tipo: dist.tipo === 'C' ? 'C' : 'D', dias: d.dias ?? dist.pl ?? '', nFa: fs.filter((f) => f.t === 'FA').length, nNc: fs.filter((f) => f.t === 'NC').length, neto: r2(fs.reduce((a, f) => a + (Number(f.m) || 0), 0)) };
+    }).filter((r) => (!tipo || r.tipo === tipo) && (!est || (est === 'A') === !!r.d.aprob)).sort((a, b) => a.dist.nombre.localeCompare(b.dist.nombre));
+    const ya = new Set(docs.map((d) => d.dist));
+    $('ltAdd').innerHTML = '<option value="">+ Agregar proveedor a este mes</option>' + pgCfg.dists.filter((x) => !ya.has(x.k)).sort((a, b) => a.nombre.localeCompare(b.nombre)).map((x) => `<option value="${esc(x.k)}">${esc(x.nombre)}</option>`).join('');
+    $('ltAdd').classList.toggle('oculto', !edita);
+    const nAp = filas.filter((r) => r.d.aprob).length;
+    $('ltCont').innerHTML = `<div class="caja ltHoja"><h2>LETRAS PARA ${esc(perTxt(per))}</h2>` +
+      `<p class="quien" style="text-align:center;margin:-8px 0 12px">${esc((pgCfg.empresas.find((e) => e.k === emp) || {}).nombre || emp)} · ${nAp} de ${filas.length} aprobado(s). Al aprobar, ese mes queda bloqueado: ya no se pueden ingresar facturas ni notas de crédito.</p>` +
+      '<table><thead><tr><th>PROVEEDORES</th><th>DÍAS</th><th>FECHA</th><th class="sinImp">Facturas · NC · Neto S/</th></tr></thead><tbody>' +
+      (filas.map((r) => {
+        const ap = r.d.aprob, id = `${r.d.emp}_${r.d.dist}_${r.d.per}`;
+        return `<tr class="${ap ? 'ap' : ''}"><td><b>${esc(r.dist.nombre)}</b></td>` +
+          `<td class="d">${edita && !ap ? `<input class="ltDias" data-id="${esc(id)}" type="number" min="0" max="365" value="${esc(r.dias)}">` : esc(r.dias)}</td>` +
+          `<td class="f">${ap ? `<span title="${esc(`Aprobado por ${ap.por || ''}`)}">✔ ${esc(dia(ap.f))}</span> <span class="quien sinImp">${esc(String(ap.por || '').split(' (')[0])}</span>${yo.area === 'ADMIN' ? `<button class="ltDesb sinImp" data-id="${esc(id)}" title="Desbloquear">🔓</button>` : ''}` : (edita ? `<input type="checkbox" class="ltOk" data-id="${esc(id)}" aria-label="Aprobar ${esc(r.dist.nombre)}">` : '')}</td>` +
+          `<td class="num sinImp">${r.nFa} · ${r.nNc} · ${mil(r.neto)}</td></tr>`;
+      }).join('') || '<tr><td colspan="4" class="vacio">No hay proveedores con este mes de pago. Agrégalos con "+ Agregar proveedor a este mes".</td></tr>') +
+      '</tbody></table></div>';
+  }
+  ['ltEmp', 'ltPer', 'ltTipo', 'ltEst'].forEach((id) => $(id).addEventListener('change', ltPintar));
+  const ltDoc = (id) => ltDocs.find((d) => `${d.emp}_${d.dist}_${d.per}` === id);
+  $('ltCont').addEventListener('change', async (e) => {
+    const t = e.target, d = ltDoc(t.dataset.id || '');
+    if (!d) return;
+    try {
+      if (t.classList.contains('ltDias')) {
+        const n = t.value === '' ? null : Math.max(0, Math.min(365, Math.round(Number(t.value))));
+        await updateDoc(doc(db, 'pagos', t.dataset.id), { dias: n === null ? deleteField() : n, act: serverTimestamp(), actPor: firma() });
+        if (n === null) delete d.dias; else d.dias = n;
+      } else if (t.classList.contains('ltOk')) {
+        if (!confirm(`¿Aprobar la programación de ${distDe(d.dist).nombre} para ${perTxt(d.per)}?\n\nEse mes quedará bloqueado: ya no se podrán ingresar, quitar ni cambiar facturas o notas de crédito.`)) { t.checked = false; return; }
+        const ap = { f: hoy(), por: firma() };
+        await updateDoc(doc(db, 'pagos', t.dataset.id), { aprob: ap, act: serverTimestamp(), actPor: firma() });
+        d.aprob = ap;
+        pgLog('Aprobó programación', `${perTxt(d.per)} aprobado: mes bloqueado`, d.per, `${d.emp}|${d.dist}`).catch(console.error);
+        ltPintar(); if (vista === 'vPagos') pintarPagos(true);
+      }
+    } catch (err) { msg('ltMsg', errorTexto(err)); }
+  });
+  $('ltCont').addEventListener('click', async (e) => {
+    const b = e.target.closest('.ltDesb'), d = b && ltDoc(b.dataset.id);
+    if (!d || yo.area !== 'ADMIN') return;
+    const t = prompt(`Para desbloquear ${distDe(d.dist).nombre} · ${perTxt(d.per)} escribe DESBLOQUEAR`);
+    if ((t || '').trim().toUpperCase() !== 'DESBLOQUEAR') return;
+    try {
+      await updateDoc(doc(db, 'pagos', b.dataset.id), { aprob: deleteField(), act: serverTimestamp(), actPor: firma() });
+      delete d.aprob;
+      pgLog('Desbloqueó programación', `${perTxt(d.per)} desbloqueado (estaba aprobado)`, d.per, `${d.emp}|${d.dist}`).catch(console.error);
+      ltPintar(); if (vista === 'vPagos') pintarPagos(true);
+    } catch (err) { msg('ltMsg', errorTexto(err)); }
+  });
+  $('ltAdd').addEventListener('change', async () => {
+    const k = $('ltAdd').value; if (!k) return;
+    try { await pgAsegurarMes($('ltEmp').value, k, $('ltPer').value, []); } catch (err) { msg('ltMsg', errorTexto(err)); }
+    ltPintar();
+  });
+  $('ltExp').addEventListener('click', () => exportar(`letras-${$('ltEmp').value}-${$('ltPer').value}`, [['Proveedor', (d) => distDe(d.dist).nombre], ['Días', (d) => d.dias ?? distDe(d.dist).pl ?? ''], ['Aprobado', (d) => (d.aprob ? dia(d.aprob.f) : '')], ['Aprobado por', (d) => (d.aprob ? d.aprob.por : '')], ['Facturas', (d) => (d.filas || []).filter((f) => f.t === 'FA').length], ['NC', (d) => (d.filas || []).filter((f) => f.t === 'NC').length], ['Neto S/', (d) => r2((d.filas || []).reduce((a, f) => a + (Number(f.m) || 0), 0))]], ltDocs.slice().sort((a, b) => distDe(a.dist).nombre.localeCompare(distDe(b.dist).nombre))));
+  $('ltImp').addEventListener('click', () => {
+    const h = $('ltCont').querySelector('.ltHoja'); if (!h) return;
+    const c = h.cloneNode(true);
+    c.querySelectorAll('.sinImp').forEach((x) => x.remove());
+    c.querySelectorAll('input.ltDias').forEach((x) => x.replaceWith(document.createTextNode(x.value)));
+    c.querySelectorAll('input.ltOk').forEach((x) => x.remove());
+    const w = window.open('', '_blank'); if (!w) return;
+    w.document.write(`<!doctype html><meta charset="utf-8"><title>Letras</title><style>body{font-family:Arial,sans-serif;margin:30px}h2{text-align:center;font-size:24px}table{width:100%;border-collapse:collapse}th,td{border:1.5px solid #555;padding:10px 14px;font-size:17px}th{background:#eef3e8}td:nth-child(2),td:nth-child(3){text-align:center}p{display:none}</style>${c.innerHTML}`);
+    w.document.close(); w.focus(); w.print();
+  });
+
   async function cnAutoDesdePagos() { // al abrir Ingreso de facturas y NC también se anota con el último reporte guardado
     const emp = pgEmp();
     if (!emp || !puede('pagos')) return;
