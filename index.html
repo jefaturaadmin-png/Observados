@@ -199,7 +199,7 @@
   .kpi strong { display:block; font-size:20px; }
   .kpi small { color:var(--gris); font-size:12px; }
   .sube { color:var(--ok); } .baja { color:var(--rojo); }
-  .cnDos { display:grid; grid-template-columns:minmax(0, 1.5fr) minmax(0, 1fr); gap:18px; align-items:start; margin-top:14px; } @media (max-width:1250px) { .cnDos { grid-template-columns:minmax(0, 1fr); } }
+  .cnDos { display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); gap:18px; align-items:start; margin-top:14px; } @media (max-width:1250px) { .cnDos { grid-template-columns:minmax(0, 1fr); } }
   .cnDos .tabla { max-height:70vh; overflow:auto; } details.cnProvs { margin-top:14px; } details.cnProvs summary { cursor:pointer; font-weight:700; color:var(--marca); padding:6px 0; }
   .dos { display:grid; grid-template-columns:repeat(auto-fit, minmax(420px, 1fr)); gap:16px; align-items:start; }
   h3.sub { font-size:14px; color:var(--pri); margin:14px 0 8px; }
@@ -5543,7 +5543,7 @@
   /* =====================  D. CONCILIAR CON EL REPORTE "PROVISIONES POR PROVEEDOR" DEL SISTEMA  =====================
      Se sube el Excel del sistema y se compara con lo registrado en Pagos a proveedores y en Cuentas por pagar:
      qué facturas faltan subir, cuáles tienen otro monto y cuáles están anuladas pero siguen registradas. No guarda nada. */
-  let cn = { rep: null, alias: {}, sis: null, emp: '', prov: '', ver: 'faltan', repEmp: '' };
+  let cn = { rep: null, alias: {}, sis: null, emp: '', prov: '', ver: 'faltan', repEmp: '', sel: new Set(), per: {} };
   /* El último reporte de Lolfar de cada empresa queda guardado (Firebase y este navegador): al comparar ya no se sube
      cada vez; con "Actualizar con Excel nuevo" se reemplaza. */
   const repSer = (rep) => { const docs = [...rep.docs.values()], provs = unicos(docs.map((d) => d.prov)); return { desde: rep.desde || '', hasta: rep.hasta || '', nFilas: rep.nFilas || 0, raras: rep.raras || 0, provs, d: JSON.stringify(docs.map((x) => [provs.indexOf(x.prov), x.tipo, x.doc, x.f, x.v, x.m, x.partes, x.anuladas])) }; };
@@ -5655,14 +5655,15 @@
   function cnPintar() {
     const caja = $('cv_con');
     if (!$('cnArch')) {
-      caja.innerHTML = '<div class="caja"><h2 class="sec">Conciliar con el reporte del sistema</h2>' +
+      caja.innerHTML = '<div class="caja" id="cnCaja"><h2 class="sec">Conciliar con el reporte del sistema</h2>' +
         '<p class="resumen">Sube el Excel <b>"Provisiones por Proveedor"</b> que sacas del sistema. Te digo qué facturas todavía no están registradas aquí, de qué proveedor y con qué fecha de registro. No guarda ni cambia nada.</p>' +
         '<div class="herr"><input type="file" id="cnArch" accept=".xls,.xlsx" style="max-width:420px"><button class="pri oculto" id="cnActualizar">Actualizar con Excel nuevo</button><span class="quien" id="cnInfo"></span></div><div id="cnMsg"></div></div><div id="cnCont"></div>';
       $('cnArch').addEventListener('change', cnSubir);
     }
+    if ($('cnCont').contains($('cnCaja'))) caja.insertBefore($('cnCaja'), $('cnCont')); // vuelve a su lugar antes de redibujar
     $('cnInfo').textContent = cn.rep ? cn.info || '' : '';
     $('cnArch').classList.toggle('oculto', !!cn.rep); $('cnActualizar').classList.toggle('oculto', !cn.rep);
-    if (!cn.rep) { $('cnCont').innerHTML = cnGeneral() ? cnXmlHtml([]) : ''; return; }
+    if (!cn.rep) { if (cnGeneral()) { $('cnCont').innerHTML = '<div class="cnDos"><div id="cnIzq"></div>' + cnXmlHtml([]) + '</div>'; $('cnIzq').appendChild($('cnCaja')); } else $('cnCont').innerHTML = ''; return; }
     if (!cn.sis || cn.sis.emp !== cnEmp()) { cnAnalizar(); return; }
     const X = cnCruzar(), fal = X.filas.filter((x) => x.est === 'falta'), dif = X.filas.filter((x) => x.est === 'distinto'), anr = X.filas.filter((x) => x.est === 'anulada-registrada'),
       partes = X.filas.filter((x) => x.partes > 1), vivas = X.filas.filter((x) => ['falta', 'ok', 'distinto'].includes(x.est)), sinId = X.provs.filter((p) => !p.dest.tipo);
@@ -5682,11 +5683,14 @@
         h += `<tr class="grupo"><td colspan="9"><div class="gtit"><b>${esc(x.prov)}</b><span class="quien">${esc(modulo(x))}</span><span>${mios.length} factura(s) · S/ ${mil(suma(mios))}</span>${cn.ver === 'faltan' && (puede('cxp') || puede('pagos')) ? `<button class="mini cnCopiar" data-p="${esc(x.prov)}">Copiar para pegar</button>` : ''}</div></td></tr>`;
         ant = x.prov;
       }
-      h += `<tr><td>${esc(dia(x.f))}</td><td>${esc(x.tipo)}</td><td><b>${esc(x.doc)}</b></td><td>${esc(dia(x.v))}</td><td>${x.v ? esc(perTxt(x.v.slice(0, 7))) : ''}</td><td class="num">${mil(x.m)}</td>` +
+      const ins = cnLfInsertable(x), kL = 'L|' + x.prov + '|' + x.doc;
+      h += `<tr><td>${ins ? `<input type="checkbox" class="cnCk" data-k="${esc(kL)}"${cn.sel.has(kL) ? ' checked' : ''} aria-label="Marcar ${esc(x.doc)}"> ` : ''}${esc(dia(x.f))}</td><td>${esc(x.tipo)}</td><td><b>${esc(x.doc)}</b></td><td>${esc(dia(x.v))}</td><td>${ins ? `<button class="mini cnIns" data-k="${esc(kL)}" data-per="${esc(cnPerSug(x.v))}" title="Insertar en ese mes de pago (si no existe, se crea)">→ ${esc(perTxt(cnPerSug(x.v)))}</button>` : x.v ? esc(perTxt(x.v.slice(0, 7))) : ''}</td><td class="num">${mil(x.m)}</td>` +
         `<td class="num">${x.reg ? mil(x.regM) : ''}</td><td class="num${x.reg && Math.abs(x.regM - x.m) > TOL_NC ? ' baja' : ''}">${x.reg ? mil(r2(x.m - x.regM)) : ''}</td>` +
         `<td><span class="est ${x.est === 'ok' ? 'e2' : x.est === 'falta' ? 'alerta' : 'e0'}">${esc(estTxt[x.est] || '')}</span>${x.reg ? ` <span class="quien">${esc(x.reg.mod)} · ${esc(perTxt(x.reg.per))}${x.reg.prov && cnNom(x.reg.prov) !== cnNom(x.dest.nombre || '') ? ' · ' + esc(x.reg.prov) : ''}</span>` : ''}${x.partes > 1 ? ` <span class="quien">registrada en ${x.partes} partes</span>` : ''}</td></tr>`;
     });
-    $('cnCont').innerHTML = (cn.sis.avisos.length ? `<div class="msg err">${cn.sis.avisos.map(esc).join(' ')}</div>` : '') +
+    cn.falG = fal;
+    const xsPend = cnGeneral() ? cnXmlPend(fal) : null, lfIns = vista.filter((x) => cnLfInsertable(x));
+    $('cnCont').innerHTML = (cnGeneral() ? '<div class="cnDos"><div id="cnIzq">' : '') + (cn.sis.avisos.length ? `<div class="msg err">${cn.sis.avisos.map(esc).join(' ')}</div>` : '') +
       `<h3 class="sub" style="margin-top:0">Reporte del ${esc(dia(cn.rep.desde))} al ${esc(dia(cn.rep.hasta))} · ${esc((CP_EMP.find((e) => e.k === cnEmp()) || {}).nombre || '')}</h3><div class="kpis">` +
       `<div class="kpi"><b>Facturas en el reporte</b><strong>${vivas.length}</strong><small>S/ ${mil(suma(vivas))} · ${X.provs.length} proveedores</small></div>` +
       `<div class="kpi"><b>Ya registradas aquí</b><strong class="sube">${vivas.length - fal.length}</strong><small>S/ ${mil(suma(vivas) - suma(fal))}</small></div>` +
@@ -5698,14 +5702,15 @@
       '<thead><tr><th>Proveedor en el reporte</th><th>Corresponde a</th><th class="num">Facturas</th><th class="num">Total reporte</th><th class="num">Registradas</th><th class="num">Faltan</th><th class="num">S/ faltan</th><th class="num">Monto distinto</th><th class="num">Anuladas</th></tr></thead><tbody>' +
       X.provs.map((p) => `<tr${!p.dest.tipo ? ' style="background:#fff3d6"' : ''}><td><a href="#" class="cnVer" data-p="${esc(p.prov)}">${esc(p.prov)}</a></td><td>${provOps(p)}</td><td class="num">${p.n}</td><td class="num">${mil(p.total)}</td><td class="num">${p.ok}</td><td class="num${p.faltan ? ' baja' : ''}"><b>${p.faltan}</b></td><td class="num${p.faltan ? ' baja' : ''}">${mil(p.mFaltan)}</td><td class="num">${p.dif || ''}</td><td class="num">${p.anul || ''}</td></tr>`).join('') +
       '</tbody></table></div></details>') +
-      `<div class="${cnGeneral() ? 'cnDos' : ''}"><div><h3 class="sub">Lolfar: facturas que faltan subir</h3>` +
+      (cnGeneral() ? '' : '<div><div>') + '<h3 class="sub">Lolfar: facturas que faltan subir</h3>' + (lfIns.length ? cnBarra('L', lfIns.length) : '') +
       '<div class="herr"><select id="cnVerSel">' + [['faltan', `Faltan subir (${fal.length})`], ['dif', `Monto distinto (${dif.length})`], ['anul', `Anuladas que siguen registradas (${anr.length})`], ['partes', `Registradas en varias partes en el sistema (${partes.length})`], ['todo', `Todas las del reporte (${vivas.length})`]].map(([v, t]) => `<option value="${v}"${cn.ver === v ? ' selected' : ''}>${t}</option>`).join('') + '</select>' +
       `<select id="cnProvSel"><option value="">Todos los proveedores</option>${unicos(lista.map((x) => x.prov)).map((p) => `<option${p === cn.prov ? ' selected' : ''}>${esc(p)}</option>`).join('')}</select><span style="flex:1"></span><button id="cnExp">Exportar a Excel</button></div>` +
       `<p class="resumen">${vista.length} factura(s) · S/ ${mil(suma(vista))}. La fecha es la de registro en el sistema, no la de emisión.</p>` +
       '<div class="tabla"><table><thead><tr><th>Registro en el sistema</th><th>Tipo</th><th>Documento</th><th>Vence</th><th>Mes de pago sugerido</th><th class="num">Importe reporte</th><th class="num">Registrado aquí</th><th class="num">Diferencia</th><th>Situación</th></tr></thead><tbody>' +
       (h || '<tr><td colspan="9" class="vacio">Nada en esta lista</td></tr>') + '</tbody></table></div></div>' +
-      (cnGeneral() ? cnXmlHtml(fal) : '') + '</div>';
+      (cnGeneral() ? cnXmlHtml(fal, xsPend) : '') + '</div>';
     cn.vista = vista;
+    if ($('cnIzq')) $('cnIzq').prepend($('cnCaja'));
   }
   // XML recibidos (Lector de XML) de esta empresa que todavía no están registrados en Pagos
   function cnXmlCargar() {
@@ -5715,28 +5720,94 @@
       .catch((e) => { cn.xErr = errorTexto(e); })
       .then(() => { cn.xCarg = false; cn.xT = Date.now(); if (cnGeneral()) cnPintar(); });
   }
-  function cnXmlHtml(fal) {
+  const cnDocK = (d) => { const m = String(d || '').toUpperCase().match(/^([A-Z0-9]+)-0*(\d+)$/); return m ? `${serDoc(m[1])}-${numDoc(m[2])}` : String(d || ''); };
+  const cnPerSug = (v) => (/^\d{4}-\d{2}/.test(v || '') ? v.slice(0, 7) : hoy().slice(0, 7)); // mes de pago sugerido: el del vencimiento
+  const cnLfInsertable = (x) => cnGeneral() && puede('pagos') && x.est === 'falta' && x.dest.tipo === 'pagos' && !!x.dest.k;
+  function cnXmlPend(fal) { // XML de la empresa, en las fechas del reporte, que no están registrados
+    cn.xs = [];
+    if (!puede('verXml') || !cn.xT || cn.xErr) return null;
+    const emp = cnEmp(), h0 = hoy();
+    cn.xDesde = cn.rep ? cn.rep.desde : ciMesAnt(h0.slice(0, 7), 2) + '-01'; cn.xHasta = cn.rep ? cn.rep.hasta : h0;
+    cn.xs = (cn.xdocs || []).filter((x) => ['FACTURA', 'NOTA DE CRÉDITO'].includes(x.tipo) && rgEmpDeRuc((x.cliente || {}).ruc) === emp && x.fecha >= cn.xDesde && x.fecha <= cn.xHasta && !rgDonde(x))
+      .sort((a, b) => String((a.emisor || {}).nom).localeCompare(String((b.emisor || {}).nom)) || String(a.fecha).localeCompare(String(b.fecha)));
+    return cn.xs;
+  }
+  function cnBarra(lado, n) { // marcar e insertar en un mes de pago
+    const marc = [...cn.sel].filter((k) => k.startsWith(lado + '|')).length;
+    return `<div class="herr cnBar"><button class="mini cnTodas" data-lado="${lado}">${marc && marc >= n ? 'Desmarcar todas' : 'Marcar todas'}</button><span>${marc} marcada(s)</span><span style="flex:1"></span>` +
+      `<label style="margin:0">Insertar en el mes de pago</label><input type="month" class="cnPer" data-lado="${lado}" value="${esc(cn.per[lado] || hoy().slice(0, 7))}" style="max-width:165px"><button class="pri mini cnLlevar" data-lado="${lado}"${marc ? '' : ' disabled'}>Insertar marcadas</button></div>`;
+  }
+  function cnXmlHtml(fal, xsCalc) {
     if (!puede('verXml')) return '';
     const tit = '<h3 class="sub">XML: facturas y NC que faltan registrar</h3>';
     if (!cn.xT) { cnXmlCargar(); return `<div>${tit}<p class="resumen">Revisando los XML recibidos…</p></div>`; }
     if (cn.xErr) return `<div>${tit}<div class="msg err">${esc(cn.xErr)}</div></div>`;
-    const emp = cnEmp(), hoy = new Date().toISOString().slice(0, 10);
-    const desde = cn.rep ? cn.rep.desde : ciMesAnt(hoy.slice(0, 7), 2) + '-01', hasta = cn.rep ? cn.rep.hasta : hoy;
-    const enLf = new Set(fal.map((x) => { const m = String(x.doc).match(/^([A-Z0-9]+)-0*(\d+)$/i); return m ? `${serDoc(m[1])}-${numDoc(m[2])}` : x.doc; }));
-    const xs = (cn.xdocs || []).filter((x) => ['FACTURA', 'NOTA DE CRÉDITO'].includes(x.tipo) && rgEmpDeRuc((x.cliente || {}).ruc) === emp && x.fecha >= desde && x.fecha <= hasta && !rgDonde(x))
-      .sort((a, b) => String((a.emisor || {}).nom).localeCompare(String((b.emisor || {}).nom)) || String(a.fecha).localeCompare(String(b.fecha)));
+    const xs = xsCalc || cnXmlPend(fal) || [], desde = cn.xDesde, hasta = cn.xHasta;
+    const enLf = new Set(fal.map((x) => cnDocK(x.doc)));
+    const insX = xs.filter((x) => { const d = rgDestino(x); return puede('pagos') && d.tipo === 'D' && d.k; });
     const tot = r2(xs.reduce((t, x) => t + (x.tipo === 'FACTURA' ? 1 : -1) * Math.abs(Number(x.total) || 0), 0));
     let h = '', ant = null;
     xs.forEach((x) => {
       const prov = (x.emisor || {}).nom || (x.emisor || {}).ruc || '';
-      if (prov !== ant) { const mios = xs.filter((y) => ((y.emisor || {}).nom || (y.emisor || {}).ruc || '') === prov); h += `<tr class="grupo"><td colspan="5"><div class="gtit"><b>${esc(prov)}</b><span>${mios.length} documento(s)</span></div></td></tr>`; ant = prov; }
-      const tam = enLf.has(`${serDoc(x.serie)}-${numDoc(x.num)}`);
-      h += `<tr><td>${esc(dia(x.fecha))}</td><td>${x.tipo === 'FACTURA' ? 'FA' : 'NC'}</td><td><b>${esc(x.id)}</b>${tam ? ' <span class="est alerta" title="También falta según Lolfar">también en Lolfar</span>' : ''}</td><td>${esc(dia(x.vence || ''))}</td><td class="num">${x.tipo === 'FACTURA' ? '' : '-'}${mil(Math.abs(Number(x.total) || 0))}</td></tr>`;
+      const dest = rgDestino(x), ok = insX.includes(x), kX = 'X|' + rgId(x);
+      if (prov !== ant) { const mios = xs.filter((y) => ((y.emisor || {}).nom || (y.emisor || {}).ruc || '') === prov); h += `<tr class="grupo"><td colspan="6"><div class="gtit"><b>${esc(prov)}</b><span>${mios.length} documento(s)</span><span class="quien">${dest.tipo === 'D' && dest.k ? '→ Pagos · ' + esc(dest.nombre) : 'proveedor que no está en Pagos: agrégalo en Proveedores'}</span></div></td></tr>`; ant = prov; }
+      const tam = enLf.has(`${serDoc(x.serie)}-${numDoc(x.num)}`), per = cnPerSug(x.vence);
+      h += `<tr><td>${ok ? `<input type="checkbox" class="cnCk" data-k="${esc(kX)}"${cn.sel.has(kX) ? ' checked' : ''} aria-label="Marcar ${esc(x.id)}"> ` : ''}${esc(dia(x.fecha))}</td><td>${x.tipo === 'FACTURA' ? 'FA' : 'NC'}</td><td><b>${esc(x.id)}</b>${tam ? ' <span class="est alerta" title="También falta según Lolfar">también en Lolfar</span>' : ''}</td><td>${esc(dia(x.vence || ''))}</td><td class="num">${x.tipo === 'FACTURA' ? '' : '-'}${mil(Math.abs(Number(x.total) || 0))}</td>` +
+        `<td>${ok ? `<button class="mini cnIns" data-k="${esc(kX)}" data-per="${esc(per)}" title="Insertar en ese mes de pago (si no existe, se crea)">→ ${esc(perTxt(per))}</button>` : ''}</td></tr>`;
     });
     return `<div>${tit}<p class="resumen">${xs.length} documento(s) · S/ ${mil(tot)} · emitidos del ${esc(dia(desde))} al ${esc(dia(hasta))}${cn.rep ? ' (mismas fechas del reporte)' : ''}. Se registran en Ingreso de facturas y NC o desde el Lector de XML.</p>` +
-      '<div class="tabla"><table><thead><tr><th>Emisión</th><th>Tipo</th><th>Documento</th><th>Vence</th><th class="num">Total S/</th></tr></thead><tbody>' +
-      (h || '<tr><td colspan="5" class="vacio">Todos los XML de estas fechas ya están registrados</td></tr>') + '</tbody></table></div></div>';
+      (insX.length ? cnBarra('X', insX.length) : '') +
+      '<div class="tabla"><table><thead><tr><th>Emisión</th><th>Tipo</th><th>Documento</th><th>Vence</th><th class="num">Total S/</th><th>Mes de pago</th></tr></thead><tbody>' +
+      (h || '<tr><td colspan="6" class="vacio">Todos los XML de estas fechas ya están registrados</td></tr>') + '</tbody></table></div></div>';
   }
+  // Lleva a Pagos lo que falta (de Lolfar o de los XML). Si el mes de pago no existe, se crea.
+  function cnItem(k) {
+    const emp = cnEmp(), xmlDe = new Map((cn.xs || []).map((x) => [`${serDoc(x.serie)}-${numDoc(x.num)}`, x])), lfDe = new Map((cn.falG || []).map((x) => [cnDocK(x.doc), x]));
+    if (k.startsWith('L|')) {
+      const x = (cn.falG || []).find((y) => 'L|' + y.prov + '|' + y.doc === k);
+      if (!x || !cnLfInsertable(x)) return null;
+      const d = cnDocK(x.doc), m = d.match(/^(.+)-(\d+)$/), xml = xmlDe.get(d);
+      if (!m) return null;
+      const f = { i: idNuevo(), f: xml ? xml.fecha : (x.f || ''), t: 'FA', s: m[1], n: m[2], m: Math.abs(x.m), lfM: Math.abs(x.m), lfF: hoy() };
+      if (x.v || (xml && xml.vence)) f.v = x.v || xml.vence;
+      if (distDe(x.dest.k).ret) f.ar = true;
+      if (xml && Math.abs(Math.abs(Number(xml.total) || 0) - Math.abs(x.m)) <= TOL_NC) czPoner(f, 'XML');
+      return { emp, k: x.dest.k, nombre: x.dest.nombre, f };
+    }
+    const x = (cn.xs || []).find((y) => 'X|' + rgId(y) === k), dest = x && rgDestino(x);
+    if (!x || dest.tipo !== 'D' || !dest.k) return null;
+    const t = x.tipo === 'FACTURA' ? 'FA' : 'NC', tot = Math.abs(Number(x.total) || 0);
+    const f = { i: idNuevo(), f: x.fecha, t, s: serDoc(x.serie), n: numDoc(x.num), m: t === 'NC' ? -tot : tot };
+    if (t === 'NC' && x.ref) f.r = refDoc(x.ref) || x.ref;
+    if (x.vence) f.v = x.vence;
+    if (t === 'FA' && distDe(dest.k).ret) f.ar = true;
+    czPoner(f, 'XML');
+    const lf = lfDe.get(`${f.s}-${f.n}`);
+    if (lf && t === 'FA') { f.lfM = Math.abs(lf.m); f.lfF = hoy(); }
+    return { emp, k: dest.k, nombre: dest.nombre, f };
+  }
+  async function cnLlevar(claves, per) {
+    if (!puede('pagos')) return alert('No tienes permiso en Pagos a proveedores.');
+    if (!/^\d{4}-\d{2}$/.test(per || '')) return alert('Elige el mes de pago.');
+    const items = claves.map(cnItem).filter(Boolean);
+    if (!items.length) return;
+    const grupos = new Map();
+    items.forEach((it) => { const g = `${it.emp}|${it.k}`; if (!grupos.has(g)) grupos.set(g, { ...it, fs: [] }); grupos.get(g).fs.push(it.f); });
+    if (!confirm(`¿Insertar ${items.length} documento(s) en ${perTxt(per)}? Si ese mes de pago no existe, se crea.\n\n${[...grupos.values()].map((g) => `• ${g.nombre}: ${g.fs.map((f) => `${f.s}-${f.n}`).join(', ')}`).join('\n')}`)) return;
+    const errores = [];
+    for (const g of grupos.values()) {
+      try {
+        await pgAsegurarMes(g.emp, g.k, per, g.fs.map((f) => f.f));
+        await pgGuardarYa(g.emp, g.k, per, (l) => { g.fs.forEach((f) => { if (!l.some((x) => claveFila(x) === claveFila(f))) l.push(f); }); }, 'Agregó', `${g.fs.length} documento(s) desde Reporte Lolfar y XML: ${g.fs.map((f) => `${f.s}-${f.n}`).join(', ')}`);
+      } catch (e) { errores.push(`${g.nombre}: ${errorTexto(e)}`); }
+    }
+    claves.forEach((k) => cn.sel.delete(k));
+    cn.sis = null; // se vuelve a comparar con lo registrado (sin leer de nuevo lo que ya está en memoria)
+    await rgCargarBase(true).catch(console.error);
+    if (cnGeneral()) cnPintar();
+    if (errores.length) alert('No se insertaron:\n' + errores.join('\n'));
+  }
+  const cv_conClaves = (lado) => [...$('cv_con').querySelectorAll('.cnCk')].map((c) => c.dataset.k).filter((k) => k.startsWith(lado + '|'));
   async function cnAnalizar() {
     if (cn.cargando) return;
     cn.cargando = true;
@@ -5765,6 +5836,8 @@
   }
   $('cv_con').addEventListener('change', async (e) => {
     const t = e.target;
+    if (t.classList.contains('cnCk')) { if (t.checked) cn.sel.add(t.dataset.k); else cn.sel.delete(t.dataset.k); return cnPintar(); }
+    if (t.classList.contains('cnPer')) { cn.per[t.dataset.lado] = t.value; return; }
     if (t.id === 'cnVerSel') { cn.ver = t.value; cn.prov = ''; return cnPintar(); }
     if (t.id === 'cnProvSel') { cn.prov = t.value; return cnPintar(); }
     if (t.classList.contains('cnAli')) { // recordar a qué proveedor corresponde ese nombre del reporte
@@ -5775,6 +5848,14 @@
   });
   $('cv_con').addEventListener('click', async (e) => {
     const t = e.target;
+    if (t.classList.contains('cnIns')) return cnLlevar([t.dataset.k], t.dataset.per);
+    if (t.classList.contains('cnTodas') || t.classList.contains('cnLlevar')) {
+      const lado = t.dataset.lado, todas = [...cv_conClaves(lado)];
+      if (t.classList.contains('cnLlevar')) return cnLlevar([...cn.sel].filter((k) => k.startsWith(lado + '|')), cn.per[lado] || hoy().slice(0, 7));
+      const marcadas = todas.filter((k) => cn.sel.has(k));
+      todas.forEach((k) => (marcadas.length === todas.length ? cn.sel.delete(k) : cn.sel.add(k)));
+      return cnPintar();
+    }
     if (t.id === 'cnActualizar') { $('cnArch').value = ''; $('cnArch').click(); return; }
     if (t.classList.contains('cnVer')) { e.preventDefault(); cn.prov = t.dataset.p; cn.ver = 'todo'; cnPintar(); const s = $('cnVerSel'); if (s) s.scrollIntoView({ block: 'start' }); return; }
     if (t.classList.contains('cnCopiar')) { // Fecha · Tipo · Serie · Número · Total, listo para "Pegar desde Excel"
