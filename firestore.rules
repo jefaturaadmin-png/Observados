@@ -129,7 +129,7 @@ service cloud.firestore {
     // Lector de XML: solo la información leída de cada factura o nota (no el archivo)
     match /xmlf/{id} {
       // quien observa productos también puede leer el XML de esa factura (para elegir el producto y su precio)
-      allow read: if puede('verXml') || puede('observar');
+      allow read: if puede('verXml') || puede('observar') || puede('verObs');
       allow write: if puede('xml');
     }
     // XML que llegan por correo (los deja el script de Gmail). La página los lee y marca el resultado.
