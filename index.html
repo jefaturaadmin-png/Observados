@@ -326,7 +326,7 @@
   .inNodo .c svg { width:30px; height:30px; }
   .inNodo:hover .c, .inNodo:focus-visible .c { transform:translateY(-3px); box-shadow:0 10px 24px rgba(0,0,0,.12); }
   .inNodo.hi .c { border:2px solid var(--marca); color:var(--marca); box-shadow:0 8px 22px rgba(232,113,10,.25); }
-  #lado nav button.sinAcceso { opacity:.42; } #lado nav button.sinAcceso:after { content:'🔒'; margin-left:auto; font-size:10px; }
+  #lado nav button.sinAcceso, #lado .navGrupo.sinNada { display:none !important; } /* el menú solo muestra lo habilitado; el Inicio muestra todo con candado */
   .inNodo.sinAcceso, .inPill.sinAcceso { opacity:.42; }
   .inNodo .t { display:block; margin-top:8px; font-size:13.5px; font-weight:600; }
   .inNodo .bd { position:absolute; top:-2px; right:-2px; background:#e03131; color:#fff; font-size:11px; font-weight:700; border-radius:99px; min-width:22px; height:22px; padding:0 5px; display:flex; align-items:center; justify-content:center; border:2px solid var(--fondo); }
@@ -1340,6 +1340,7 @@
     $('quien').textContent = `${yo.nombre} · ${yo.area}`;
     // Se ve toda la interfaz; lo que el usuario no tiene habilitado queda con candado y al entrar dice "No tienes acceso"
     permTabs = tabs;
+    setTimeout(() => document.querySelectorAll('#lado .navGrupo').forEach((g) => g.classList.toggle('sinNada', ![...g.querySelectorAll('nav button[data-v], button[data-v]')].some((b) => !b.classList.contains('oculto') && !b.classList.contains('sinAcceso')))), 0);
     Object.entries(tabs).forEach(([v, ok]) => { const b = document.querySelector(`nav button[data-v="${v}"]`); if (!b) return; const ret = RETIRADAS.includes(v); b.classList.toggle('oculto', ret && !ok); b.classList.toggle('sinAcceso', !ok && !ret); b.title = !ok && !ret ? 'No tienes acceso a este módulo' : (b.dataset.t0 ?? (b.dataset.t0 = b.title)); });
     document.querySelectorAll('.ciVistas [data-ir="vRegFac"]').forEach((b) => b.classList.toggle('oculto', !tabs.vRegFac));
     $('cajaPedido').classList.toggle('oculto', !puede('pedidos'));
