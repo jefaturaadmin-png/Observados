@@ -65,6 +65,29 @@ Para comprobarlo, en el editor ve a **Ejecuciones** y debe aparecer algo como `5
 - Si un XML no se puede leer, queda marcado como **"No se pudo leer"**, con el motivo y un botón **Reintentar**.
 - Si el XML es de otra empresa (otro RUC de cliente), se marca en rojo.
 
+## Leer también un Outlook (opcional, una sola vez, unos 15 minutos)
+El mismo script puede revisar además un correo **Outlook**: personal (@outlook.com, @hotmail.com) o de empresa (Microsoft 365). En cada vuelta revisa primero el Gmail y luego el Outlook. Los XML de los dos van al mismo buzón: si el mismo XML llega a los dos correos, entra una sola vez. En Outlook, los correos revisados quedan con la **categoría** `XML-procesado` (o `XML-sin-leer`).
+
+### A. Registrar el permiso en Microsoft
+1. Entra a <https://entra.microsoft.com> con la cuenta de Outlook. Si es una cuenta personal y te lo pide, usa <https://portal.azure.com>.
+2. **Aplicaciones → Registros de aplicaciones → + Nuevo registro**:
+   - Nombre: `XML de facturas`.
+   - Tipos de cuenta: **"Cuentas en cualquier directorio organizativo y cuentas personales de Microsoft"**.
+   - URI de redirección: déjalo vacío. Pulsa **Registrar**.
+3. Copia el **Id. de aplicación (cliente)**: es un código como `1a2b3c4d-....`.
+4. En el menú de la izquierda, **Autenticación** → abajo, **"Permitir flujos de clientes públicos"** → **Sí** → **Guardar**.
+5. **Permisos de API → + Agregar un permiso → Microsoft Graph → Permisos delegados**. Marca **Mail.ReadWrite**, **offline_access** y **User.Read** → **Agregar permisos**.
+   - En una cuenta de empresa, si dice "Se requiere el consentimiento del administrador", pídeselo a quien administra Microsoft 365.
+
+### B. Conectar el script
+1. En el editor del script: **+ (Agregar archivo) → Secuencia de comandos**, nómbralo `Outlook` y pega el contenido de `Outlook.gs`.
+2. Arriba, en `const OUTLOOK_CLIENT_ID = '';`, pega el Id. de aplicación entre las comillas. Guarda con Ctrl + S.
+3. Elige la función **`outlookConectar`** y pulsa **Ejecutar**. En el registro de ejecución sale un enlace (<https://microsoft.com/devicelogin>) y un **código**.
+4. Abre ese enlace, escribe el código, entra con la cuenta de Outlook y acepta los permisos.
+5. Vuelve al script, elige **`outlookTerminar`** y pulsa **Ejecutar**. Debe decir **"Outlook conectado: tu-correo@…"**.
+
+Listo: no hace falta ejecutar `instalar` de nuevo. Para dejar de revisarlo, ejecuta **`outlookDesconectar`**.
+
 ## Si algo falla
 | Mensaje | Qué hacer |
 |---|---|
@@ -72,6 +95,8 @@ Para comprobarlo, en el editor ve a **Ejecuciones** y debe aparecer algo como `5
 | En Ejecuciones: `Cloud Firestore API has not been used in project …` | En el script: **Configuración del proyecto → Proyecto de Google Cloud → Cambiar proyecto** y escribe el número de proyecto de Firebase (**20439347200**). Si te lo pide, configura la "pantalla de consentimiento" de ese proyecto como **Interno** o **Externo / en prueba**, agregando tu Gmail. |
 | En la página: "No se pudo leer la bandeja de XML del correo" | Falta el paso 3: la regla de `xmlBuzon`. |
 | No aparece ningún XML | Revisa que el correo tenga el `.xml` o `.zip` **adjunto**. Si solo trae un enlace para descargarlo, el script no lo ve. |
+| En Ejecuciones: `Se perdió la conexión con Outlook` | Microsoft venció el permiso (por ejemplo, cambiaste la contraseña). Ejecuta `outlookConectar` y `outlookTerminar` otra vez. |
+| `outlookConectar` dice `AADSTS7000218` o `invalid_client` | Falta el paso A.4: activar "Permitir flujos de clientes públicos". |
 | Reenviaste correos desde Outlook "como adjunto" (en Gmail se ven con ícono de sobre, `.eml`) y no se leyeron | El script ya abre esos correos adjuntos y saca sus XML. Si llegaron antes de actualizar el script y quedaron con la etiqueta `XML-procesado`, ejecuta **una vez** la función **`revisarDeNuevo`**. |
 
 Para apagarlo, ejecuta la función **`desinstalar`**.
