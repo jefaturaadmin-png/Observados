@@ -255,6 +255,8 @@
   #bMenu { width:40px; height:40px; padding:0; display:flex; align-items:center; justify-content:center; border:none !important; flex:none; }
   main { padding:18px 22px 40px; max-width:none; margin:0; }
   /* Las ventanas de cada módulo se eligen en el menú de la izquierda; la barra de pestañas solo queda si el menú está encogido */
+  #lado nav button.navHijo { margin-left:19px; width:calc(100% - 19px); font-size:13px; font-weight:500; padding:6px 10px; border-radius:0 8px 8px 0; box-shadow:inset 1px 0 0 rgba(255,255,255,.18); color:rgba(255,255,255,.72); }
+  body.menuMin #lado nav button.navHijo { margin-left:0; width:100%; }
   .navSub { display:none; margin:2px 0 6px 19px; padding-left:10px; border-left:1px solid rgba(255,255,255,.18); }
   #lado nav button.act + .navSub { display:block; }
   #lado nav .navSub button { font-size:13px; font-weight:500; padding:6px 10px; color:rgba(255,255,255,.72); }
@@ -453,7 +455,7 @@
       <div class="navGrupo"><button data-v="vInicio" title="Inicio"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span class="navT">Inicio</span></button></div>
       <div class="navGrupo"><div class=navG>Recepción</div><button data-v="vPedidos" title="Ingreso de pedidos"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><span class="navT">Ingreso de pedidos</span><span class="cuenta oculto" id="nPed"></span></button><button data-v="vNuevo" id="tabNuevo" title="Observar productos"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span class="navT">Observar productos</span></button><button data-v="vPend" title="Por devolver"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg><span class="navT">Por devolver</span><span class="cuenta oculto" id="nPend"></span></button><button data-v="vDev" title="Devueltos y NC"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="navT">Devueltos y NC</span><span class="cuenta oculto" id="nDev"></span></button><button data-v="vSeg" id="tabSeg" title="Seguimiento de devoluciones"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg><span class="navT">Seguimiento de devoluciones</span></button></div>
       <div class="navGrupo"><div class=navG>Compras</div><button data-v="vCot" id="tabCot" title="Cotizaciones"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span class="navT">Cotizaciones</span></button></div>
-      <div class="navGrupo"><div class=navG>Pagos</div><button data-v="vPagos" id="tabPagos" title="Ingreso de facturas y NC de cada proveedor"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg><span class="navT">Ingreso de facturas y NC</span></button><button data-v="vPagosRes" id="tabPagosRes" title="Resumen de pago de cada proveedor y mes"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg><span class="navT">Resumen de pago</span></button><button data-v="vPagosObs" id="tabPagosObs" title="Facturas observadas y sus notas de crédito"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span class="navT">Observaciones</span></button><button data-v="vResPag" id="tabResPag" title="Resumen de pagos del mes: créditos, distribuidores, proveedores y otros pagos"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg><span class="navT">Resumen general</span></button></div>
+      <div class="navGrupo"><div class=navG>Pagos</div><button data-v="vPagos" id="tabPagos" title="Ingreso de facturas y NC de cada proveedor"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg><span class="navT">Ingreso de facturas y NC</span></button><button data-v="vPagosLf" id="tabPagosLf" class="navHijo" title="Reporte de Lolfar: qué facturas de TODOS los proveedores están en Lolfar pero no registradas aquí"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="navT">Reporte Lolfar</span></button><button data-v="vPagosRes" id="tabPagosRes" title="Resumen de pago de cada proveedor y mes"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg><span class="navT">Resumen de pago</span></button><button data-v="vPagosObs" id="tabPagosObs" title="Facturas observadas y sus notas de crédito"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span class="navT">Observaciones</span></button><button data-v="vResPag" id="tabResPag" title="Resumen de pagos del mes: créditos, distribuidores, proveedores y otros pagos"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg><span class="navT">Resumen general</span></button></div>
       <div class="navGrupo"><div class=navG>Análisis de datos</div><button data-v="vDash" id="tabDash" title="Dashboard"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="navT">Dashboard</span></button></div>
       <div class="navGrupo"><div class=navG>Herramientas</div><button data-v="vXml" id="tabXml" title="Lector de XML"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg><span class="navT">Lector de XML</span><span class="cuenta oculto" id="nXml"></span></button></div>
       <div class="navGrupo"><div class=navG>Configuración</div><button data-v="vUsuarios" id="tabUsuarios" title="Usuarios"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="navT">Usuarios</span></button><button data-v="vCat" id="tabCat" title="Productos"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg><span class="navT">Productos</span></button><button data-v="vListas" id="tabListas" title="Listas"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span class="navT">Listas</span></button></div>
@@ -591,7 +593,6 @@
           <button id="gQr">Traer del registro de escaneo</button>
           <button id="gXml" class="oculto">Subir XML de facturas</button><input type="file" id="gXmlArch" accept=".xml,text/xml,application/xml" multiple class="oculto">
           <button id="gRep">Comparar con reporte Lolfar</button><input type="file" id="gRepArch" accept=".xls,.xlsx" class="oculto">
-          <button id="gRepGen" title="Sube el reporte de Lolfar y ve, de TODOS los proveedores, qué facturas están en Lolfar pero no registradas aquí">Lolfar · todos los proveedores</button>
           <button class="pel" id="gDel">Eliminar seleccionadas (0)</button>
           <select id="gMover" aria-label="Mover seleccionadas a otro mes"></select>
           <button id="gProvs" title="Distribuidores y proveedores: tipo, forma de pago, plazo, retención y cuenta">Proveedores</button>
@@ -638,6 +639,7 @@
         <datalist id="dlProv"></datalist>
       </div>
       <div id="gv_gen" class="oculto"></div>
+      <div id="gv_lf" class="oculto"><div id="cv_con"></div></div>
     </div>
 
     <!-- ===== RESUMEN DE PAGOS DEL MES (módulo final: créditos, distribuidores, proveedores en cuotas y otros pagos) ===== -->
@@ -805,7 +807,6 @@
         </table></div>
       </div><aside class="caja oculto" id="cpLado"></aside></div></div>
       <div id="cv_det" class="oculto"></div>
-      <div id="cv_con" class="oculto"></div>
       <div id="cv_res" class="oculto"></div>
       <datalist id="dlCp"></datalist>
     </div>
@@ -873,10 +874,6 @@
   </div>
 </section>
 
-<dialog id="dlgCn" style="width:min(1400px,96vw)">
-  <div class="dcab"><h2>Reporte Lolfar · todos los proveedores</h2><button id="cnCerrar">Cerrar</button></div>
-  <div class="dcuerpo" id="cnDlgCuerpo"></div>
-</dialog>
 <dialog id="dlg">
   <div class="dcab"><h2 id="dTit"></h2><button id="dCerrar">Cerrar</button></div>
   <div class="dcuerpo" id="dCuerpo"></div>
@@ -1300,7 +1297,7 @@
   }
   function aplicarPermisos() {
     const admin = yo.area === 'ADMIN';
-    const tabs = { vInicio: true, vPedidos: puede('verPedidos'), vNuevo: puede('observar'), vPend: puede('verPend'), vDev: puede('verDev'), vPagos: puede('verPagos'), vPagosRes: puede('verPagos'), vPagosObs: puede('verPagos'), vCxp: false, vResPag: puede('verPagos') || puede('verCxp'), vCierre: false, vProvDocs: false, vRegFac: false, vDash: puede('verDash'), vSeg: puede('verEnt'), vCot: puede('verCot'), vXml: puede('verXml'),
+    const tabs = { vInicio: true, vPedidos: puede('verPedidos'), vNuevo: puede('observar'), vPend: puede('verPend'), vDev: puede('verDev'), vPagos: puede('verPagos'), vPagosRes: puede('verPagos'), vPagosObs: puede('verPagos'), vPagosLf: puede('verPagos'), vCxp: false, vResPag: puede('verPagos') || puede('verCxp'), vCierre: false, vProvDocs: false, vRegFac: false, vDash: puede('verDash'), vSeg: puede('verEnt'), vCot: puede('verCot'), vXml: puede('verXml'),
       vUsuarios: admin, vCat: admin, vListas: admin };
     $('quien').textContent = `${yo.nombre} · ${yo.area}`;
     Object.entries(tabs).forEach(([v, ok]) => { const b = document.querySelector(`nav button[data-v="${v}"]`); if (b) b.classList.toggle('oculto', !ok); });
@@ -1377,9 +1374,9 @@
   const VISTAS = ['vInicio', 'vPedidos', 'vNuevo', 'vPend', 'vDev', 'vPagos', 'vCxp', 'vProvDocs', 'vResPag', 'vCierre', 'vRegFac', 'vDash', 'vSeg', 'vCot', 'vXml', 'vUsuarios', 'vCat', 'vListas', 'vNada'];
   document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => { ver(b.dataset.v); if (b.dataset.v === 'vPagos') pgVer('grid'); }));
   // Pagos a proveedores se abre en tres ventanas del menú (antes eran pestañas dentro del módulo)
-  const PG_ALIAS = { vPagosRes: 'res', vPagosObs: 'cruce' };
+  const PG_ALIAS = { vPagosRes: 'res', vPagosObs: 'cruce', vPagosLf: 'lf' };
   function navMarcar() {
-    const k = vista === 'vPagos' ? ({ res: 'vPagosRes', cruce: 'vPagosObs', ncp: 'vPagosObs' }[pgVista] || 'vPagos') : (NAV_DE[vista] || vista);
+    const k = vista === 'vPagos' ? ({ res: 'vPagosRes', cruce: 'vPagosObs', ncp: 'vPagosObs', lf: 'vPagosLf' }[pgVista] || 'vPagos') : (NAV_DE[vista] || vista);
     document.querySelectorAll('nav button[data-v]').forEach((b) => b.classList.toggle('act', b.dataset.v === k));
     const bt = document.querySelector(`nav button[data-v="${k}"] .navT`); $('tituloVista').dataset.mod = bt ? bt.textContent : 'Farmacia Socorro'; menuSubPintar();
   }
@@ -2760,11 +2757,11 @@
   function pgVer(v) {
     if (v === 'gen' || v === 'ncp') v = 'grid'; // el Resumen general se quitó (está en el módulo Resumen de pagos)
     pgVista = v;
-    ['grid', 'dash', 'res', 'cruce', 'cxp', 'gen'].forEach((x) => $('gv_' + x).classList.toggle('oculto', x !== (v === 'ncp' ? 'cruce' : v)));
+    ['grid', 'dash', 'res', 'cruce', 'cxp', 'gen', 'lf'].forEach((x) => $('gv_' + x).classList.toggle('oculto', x !== (v === 'ncp' ? 'cruce' : v)));
     document.querySelectorAll('#gSub button').forEach((b) => b.classList.toggle('act', b.dataset.gv === v));
     if (vista === 'vPagos') navMarcar();
     const porDist = !['cxp', 'gen'].includes(v);
-    $('gDistCbx').classList.toggle('oculto', !porDist || v === 'dash'); // el dashboard tiene su propio filtro de distribuidor
+    $('gDistCbx').classList.toggle('oculto', !porDist || v === 'dash' || v === 'lf'); // el reporte Lolfar es de todos los proveedores // el dashboard tiene su propio filtro de distribuidor
     $('gPer').classList.toggle('oculto', !['grid', 'res'].includes(v));
     $('gNuevoPer').classList.toggle('oculto', v !== 'grid' || !puede('pagos'));
     $('gEditPer').classList.toggle('oculto', v !== 'grid' || !puede('pagos'));
@@ -2802,6 +2799,7 @@
     else if (pgVista === 'cruce' || pgVista === 'ncp') pintarCruce();
     else if (pgVista === 'cxp') pintarCxp();
     else if (pgVista === 'gen') pintarGeneral();
+    else if (pgVista === 'lf') lfGenAbrir();
   }
 
   /* =====================  A. FACTURAS Y NC (grilla)  ===================== */
@@ -4451,7 +4449,8 @@
   let cpCfg = { provs: [], tasa: 0.03, min: 700, retDesde: '2026-10', alerta: 7 }, cpDoc = null, cpBaja = null, cpClave = '', cpVista = 'reg',
     cpSel = new Set(), cpAviso = '', cpIdx = { emp: '', mapa: new Map(), anios: new Set() }, cpC = null, cpPend = false;
   const cpEmp = () => $('cpEmp').value, cpPer = () => $('cpMes').value;
-  const cnEmp = () => ($('dlgCn').open ? pgEmp() : cpEmp()); // la comparación general se abre desde Pagos a proveedores
+  const cnGeneral = () => vista === 'vPagos' && pgVista === 'lf';
+  const cnEmp = () => (cnGeneral() ? pgEmp() : cpEmp()); // la comparación general se abre desde Pagos a proveedores
   const cpYm = (iso) => (/^\d{4}-\d{2}/.test(iso || '') ? iso.slice(0, 4) + iso.slice(5, 7) : '');
   const cpSigno = (t) => (t === 'FACTURA' || t === 'BONIFICACIÓN' ? 1 : -1);
   const cpProv = (n) => { // los proveedores en cuotas ahora viven en Pagos a proveedores (config/pagos); si no, el de Cuentas por pagar
@@ -5650,7 +5649,7 @@
     });
     return { filas: filas2.sort((a, b) => a.prov.localeCompare(b.prov) || String(a.f).localeCompare(String(b.f))), provs: [...provs.values()].sort((a, b) => b.mFaltan - a.mFaltan || a.prov.localeCompare(b.prov)) };
   }
-  const cnRefrescar = () => ($('dlgCn').open ? cnPintar() : cpPintar(true));
+  const cnRefrescar = () => (cnGeneral() ? cnPintar() : cpPintar(true));
   function cnPintar() {
     const caja = $('cv_con');
     if (!$('cnArch')) {
@@ -6494,19 +6493,13 @@
     $('gRepArch').click();
   });
   $('gRepArch').addEventListener('change', lfSubir);
-  { // comparación general con Lolfar (antes en Cuentas por pagar): se abre en una ventana desde Pagos a proveedores
-    let lugar = null;
-    $('gRepGen').addEventListener('click', () => {
-      const c = $('cv_con');
-      lugar = [c.parentNode, c.nextSibling];
-      $('cnDlgCuerpo').appendChild(c); c.classList.remove('oculto');
-      $('dlgCn').showModal(); cnPintar();
-      const emp = pgEmp(); // el último reporte guardado de esta empresa: se muestra sin volver a subirlo
-      if (!(cn.rep && cn.repEmp === emp)) { cn.rep = null; cnPintar(); cnTraerRep(emp).then(() => { if ($('dlgCn').open) cnPintar(); }); }
-    });
-    const volver = () => { const c = $('cv_con'); if (lugar) { lugar[0].insertBefore(c, lugar[1]); c.classList.toggle('oculto', cpVista !== 'con'); lugar = null; } };
-    $('cnCerrar').addEventListener('click', () => $('dlgCn').close());
-    $('dlgCn').addEventListener('close', volver);
+  // Reporte Lolfar de todos los proveedores: submódulo de Ingreso de facturas y NC (muestra el último reporte guardado de la empresa)
+  function lfGenAbrir() {
+    $('cv_con').classList.remove('oculto');
+    const emp = pgEmp();
+    if (cn.rep && cn.repEmp === emp) return cnPintar();
+    cn.rep = null; cnPintar();
+    cnTraerRep(emp).then(() => { if (cnGeneral()) cnPintar(); });
   }
   $('dCuerpo').addEventListener('change', async (e) => {
     if (e.target.id !== 'lfProv' || modo !== 'lolfar') return;
