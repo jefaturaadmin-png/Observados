@@ -5543,7 +5543,7 @@
   /* =====================  D. CONCILIAR CON EL REPORTE "PROVISIONES POR PROVEEDOR" DEL SISTEMA  =====================
      Se sube el Excel del sistema y se compara con lo registrado en Pagos a proveedores y en Cuentas por pagar:
      qué facturas faltan subir, cuáles tienen otro monto y cuáles están anuladas pero siguen registradas. No guarda nada. */
-  let cn = { rep: null, alias: {}, sis: null, emp: '', prov: '', ver: 'faltan', repEmp: '', sel: new Set(), per: {}, notas: {} };
+  let cn = { rep: null, alias: {}, sis: null, emp: '', prov: '', ver: 'faltan', repEmp: '', sel: new Set(), per: {}, notas: {}, empIns: {}, recien: new Map() };
   /* El último reporte de Lolfar de cada empresa queda guardado (Firebase y este navegador): al comparar ya no se sube
      cada vez; con "Actualizar con Excel nuevo" se reemplaza. */
   const repSer = (rep) => { const docs = [...rep.docs.values()], provs = unicos(docs.map((d) => d.prov)); return { desde: rep.desde || '', hasta: rep.hasta || '', nFilas: rep.nFilas || 0, raras: rep.raras || 0, provs, d: JSON.stringify(docs.map((x) => [provs.indexOf(x.prov), x.tipo, x.doc, x.f, x.v, x.m, x.partes, x.anuladas])) }; };
@@ -5596,11 +5596,15 @@
     return out;
   }
   async function cnCargarSistema(emp) { // todo lo registrado en la empresa: distribuidores (Pagos) y demás proveedores (Cuentas por pagar)
-    const sis = { emp, pagos: new Map(), cxp: new Map(), porDoc: new Map(), nP: 0, nC: 0, avisos: [] };
+    const sis = { emp, pagos: new Map(), cxp: new Map(), porDoc: new Map(), pagos2: new Map(), porDoc2: new Map(), nP: 0, nC: 0, avisos: [] };
     const guarda = (mapa, k, x) => { if (!mapa.has(k)) mapa.set(k, []); mapa.get(k).push(x); };
     try {
-      const s = await sincroDocs('pagos', (x) => x.emp === emp);
-      s.docs.forEach((d) => { const x = d.data(); (x.filas || []).forEach((f) => { if (f.t !== 'FA' || !f.n) return; const o = { mod: 'Pagos', prov: distDe(x.dist).nombre, dist: x.dist, per: x.per, doc: `${f.s}-${f.n}`, m: Number(f.m) || 0 }; guarda(sis.pagos, `${x.dist}|${o.doc}`, o); guarda(sis.porDoc, o.doc, o); sis.nP += 1; }); });
+      const s = await sincroDocs('pagos'); // todas las empresas (lo que ya está en memoria no se vuelve a leer)
+      s.docs.forEach((d) => { const x = d.data(), mia = x.emp === emp; (x.filas || []).forEach((f) => {
+        if (f.t !== 'FA' || !f.n) return;
+        const o = { mod: mia ? 'Pagos' : 'Pagos · ' + ((CP_EMP.find((e) => e.k === x.emp) || {}).nombre || x.emp), emp: x.emp, prov: distDe(x.dist).nombre, dist: x.dist, per: x.per, doc: `${f.s}-${f.n}`, m: Number(f.m) || 0 };
+        if (mia) { guarda(sis.pagos, `${x.dist}|${o.doc}`, o); guarda(sis.porDoc, o.doc, o); sis.nP += 1; } else { guarda(sis.pagos2, `${x.dist}|${o.doc}`, o); guarda(sis.porDoc2, o.doc, o); }
+      }); });
     } catch (e) { sis.avisos.push('No se pudo leer Pagos a proveedores (falta el permiso para verlo): solo se compara con Cuentas por pagar.'); }
     if (!pgCfg.cxpMig) try {
       const s = await getDocs(query(collection(db, 'cpm'), where('emp', '==', emp)));
@@ -5637,6 +5641,11 @@
         const c = (cn.sis.porDoc.get(d.doc) || cn.sis.porDoc.get(cpDocNorm(d.doc)) || []).filter((o) => Math.abs(o.m - d.m) <= Math.max(1, d.m * 0.02));
         if (c.length === 1 && !dest.tipo) hall = c;
       }
+      if (!hall && dest.tipo !== 'ignorar') { // registrada en otra empresa (por ejemplo, la factura es de Innova)
+        hall = (dest.tipo === 'pagos' && cn.sis.pagos2.get(`${dest.k}|${d.doc}`)) || null;
+        if (!hall) { const c = (cn.sis.porDoc2.get(d.doc) || []).filter((o) => Math.abs(o.m - d.m) <= Math.max(1, d.m * 0.02)); if (c.length === 1) hall = c; }
+      }
+      if (!hall && dest.tipo === 'pagos' && cn.recien.has(`${dest.k}|${cnDocK(d.doc)}`)) hall = [cn.recien.get(`${dest.k}|${cnDocK(d.doc)}`)]; // recién insertada desde aquí
       if (hall && hall.length) { x.reg = hall[0]; x.regM = r2(hall.reduce((s, o) => s + o.m, 0)); }
       if (dest.tipo === 'ignorar') x.est = 'ignorar';
       else if (!vivas) { x.est = x.reg ? 'anulada-registrada' : 'anulada'; p.anul += 1; }
@@ -5747,19 +5756,20 @@
       cnPintar();
     } catch (e) { alert(errorTexto(e)); }
   }
+  const cnEnOtraEmp = (x) => (rg.idx.get(rgKey(x)) || []).some((r) => czNomOk(r.prov, (x.emisor || {}).nom) || Math.abs(r.m - Math.abs(Number(x.total) || 0)) <= TOL_NC); // registrado en cualquier empresa
   function cnXmlPend(fal) { // XML de la empresa, en las fechas del reporte, que no están registrados
     cn.xs = [];
     if (!puede('verXml') || !cn.xT || cn.xErr) return null;
     const emp = cnEmp(), h0 = hoy();
     cn.xDesde = cn.rep ? cn.rep.desde : ciMesAnt(h0.slice(0, 7), 2) + '-01'; cn.xHasta = cn.rep ? cn.rep.hasta : h0;
-    cn.xs = (cn.xdocs || []).filter((x) => ['FACTURA', 'NOTA DE CRÉDITO'].includes(x.tipo) && rgEmpDeRuc((x.cliente || {}).ruc) === emp && x.fecha >= cn.xDesde && x.fecha <= cn.xHasta && !rgDonde(x))
+    cn.xs = (cn.xdocs || []).filter((x) => ['FACTURA', 'NOTA DE CRÉDITO'].includes(x.tipo) && rgEmpDeRuc((x.cliente || {}).ruc) === emp && x.fecha >= cn.xDesde && x.fecha <= cn.xHasta && !rgDonde(x) && !cnEnOtraEmp(x))
       .sort((a, b) => String((a.emisor || {}).nom).localeCompare(String((b.emisor || {}).nom)) || String(a.fecha).localeCompare(String(b.fecha)));
     return cn.xs;
   }
   function cnBarra(lado, n) { // marcar e insertar en un mes de pago
     const marc = [...cn.sel].filter((k) => k.startsWith(lado + '|')).length;
     return `<div class="herr cnBar"><button class="mini cnTodas" data-lado="${lado}">${marc && marc >= n ? 'Desmarcar todas' : 'Marcar todas'}</button><span>${marc} marcada(s)</span><span style="flex:1"></span>` +
-      `<label style="margin:0">Insertar en el mes de pago</label><input type="month" class="cnPer" data-lado="${lado}" value="${esc(cn.per[lado] || hoy().slice(0, 7))}" style="max-width:165px"><button class="pri mini cnLlevar" data-lado="${lado}"${marc ? '' : ' disabled'}>Insertar marcadas</button></div>`;
+      `<label style="margin:0">Insertar en</label><select class="cnEmpIns" data-lado="${lado}" style="width:auto;max-width:210px" title="Empresa: si la factura es de otra empresa (por ejemplo Innova), elígela aquí">${CP_EMP.map((e) => `<option value="${e.k}"${(cn.empIns[lado] || cnEmp()) === e.k ? ' selected' : ''}>${esc(e.nombre)}</option>`).join('')}</select><label style="margin:0">mes de pago</label><input type="month" class="cnPer" data-lado="${lado}" value="${esc(cn.per[lado] || hoy().slice(0, 7))}" style="max-width:165px"><button class="pri mini cnLlevar" data-lado="${lado}"${marc ? '' : ' disabled'}>Insertar marcadas</button></div>`;
   }
   function cnXmlHtml(fal, xsCalc) {
     if (!puede('verXml')) return '';
@@ -5785,8 +5795,8 @@
       (h || '<tr><td colspan="6" class="vacio">Todos los XML de estas fechas ya están registrados</td></tr>') + '</tbody></table></div></div>';
   }
   // Lleva a Pagos lo que falta (de Lolfar o de los XML). Si el mes de pago no existe, se crea.
-  function cnItem(k) {
-    const emp = cnEmp(), xmlDe = new Map((cn.xs || []).map((x) => [`${serDoc(x.serie)}-${numDoc(x.num)}`, x])), lfDe = new Map((cn.falG || []).map((x) => [cnDocK(x.doc), x]));
+  function cnItem(k, empDest) {
+    const emp = empDest || cnEmp(), xmlDe = new Map((cn.xs || []).map((x) => [`${serDoc(x.serie)}-${numDoc(x.num)}`, x])), lfDe = new Map((cn.falG || []).map((x) => [cnDocK(x.doc), x]));
     if (k.startsWith('L|')) {
       const x = (cn.falG || []).find((y) => 'L|' + y.prov + '|' + y.doc === k);
       if (!x || !cnLfInsertable(x)) return null;
@@ -5810,19 +5820,22 @@
     if (lf && t === 'FA') { f.lfM = Math.abs(lf.m); f.lfF = hoy(); }
     return { emp, k: dest.k, nombre: dest.nombre, f };
   }
-  async function cnLlevar(claves, per) {
+  async function cnLlevar(claves, per, empDest) {
     if (!puede('pagos')) return alert('No tienes permiso en Pagos a proveedores.');
     if (!/^\d{4}-\d{2}$/.test(per || '')) return alert('Elige el mes de pago.');
-    const items = claves.map(cnItem).filter(Boolean);
+    const items = claves.map((k) => cnItem(k, empDest)).filter(Boolean);
     if (!items.length) return;
     const grupos = new Map();
     items.forEach((it) => { const g = `${it.emp}|${it.k}`; if (!grupos.has(g)) grupos.set(g, { ...it, fs: [] }); grupos.get(g).fs.push(it.f); });
-    if (!confirm(`¿Insertar ${items.length} documento(s) en ${perTxt(per)}? Si ese mes de pago no existe, se crea.\n\n${[...grupos.values()].map((g) => `• ${g.nombre}: ${g.fs.map((f) => `${f.s}-${f.n}`).join(', ')}`).join('\n')}`)) return;
+    const empN = (CP_EMP.find((e) => e.k === items[0].emp) || {}).nombre || items[0].emp;
+    if (!confirm(`¿Insertar ${items.length} documento(s) en ${empN} · ${perTxt(per)}? Si ese mes de pago no existe, se crea.\n\n${[...grupos.values()].map((g) => `• ${g.nombre}: ${g.fs.map((f) => `${f.s}-${f.n}`).join(', ')}`).join('\n')}`)) return;
     const errores = [];
     for (const g of grupos.values()) {
       try {
         await pgAsegurarMes(g.emp, g.k, per, g.fs.map((f) => f.f));
         await pgGuardarYa(g.emp, g.k, per, (l) => { g.fs.forEach((f) => { if (!l.some((x) => claveFila(x) === claveFila(f))) l.push(f); }); }, 'Agregó', `${g.fs.length} documento(s) desde Reporte Lolfar y XML: ${g.fs.map((f) => `${f.s}-${f.n}`).join(', ')}`);
+        const empN = (CP_EMP.find((e) => e.k === g.emp) || {}).nombre || g.emp;
+        g.fs.forEach((f) => { if (f.t === 'FA') cn.recien.set(`${g.k}|${f.s}-${f.n}`, { mod: g.emp === cnEmp() ? 'Pagos' : 'Pagos · ' + empN, emp: g.emp, prov: g.nombre, dist: g.k, per, doc: `${f.s}-${f.n}`, m: Math.abs(f.m) }); });
       } catch (e) { errores.push(`${g.nombre}: ${errorTexto(e)}`); }
     }
     claves.forEach((k) => cn.sel.delete(k));
@@ -5862,6 +5875,7 @@
     const t = e.target;
     if (t.classList.contains('cnCk')) { if (t.checked) cn.sel.add(t.dataset.k); else cn.sel.delete(t.dataset.k); return cnPintar(); }
     if (t.classList.contains('cnPer')) { cn.per[t.dataset.lado] = t.value; return; }
+    if (t.classList.contains('cnEmpIns')) { cn.empIns[t.dataset.lado] = t.value; return; }
     if (t.id === 'cnVerSel') { cn.ver = t.value; cn.prov = ''; return cnPintar(); }
     if (t.id === 'cnProvSel') { cn.prov = t.value; return cnPintar(); }
     if (t.classList.contains('cnAli')) { // recordar a qué proveedor corresponde ese nombre del reporte
@@ -5888,7 +5902,7 @@
     }
     if (t.classList.contains('cnTodas') || t.classList.contains('cnLlevar')) {
       const lado = t.dataset.lado, todas = [...cv_conClaves(lado)];
-      if (t.classList.contains('cnLlevar')) return cnLlevar([...cn.sel].filter((k) => k.startsWith(lado + '|')), cn.per[lado] || hoy().slice(0, 7));
+      if (t.classList.contains('cnLlevar')) return cnLlevar([...cn.sel].filter((k) => k.startsWith(lado + '|')), cn.per[lado] || hoy().slice(0, 7), cn.empIns[lado] || cnEmp());
       const marcadas = todas.filter((k) => cn.sel.has(k));
       todas.forEach((k) => (marcadas.length === todas.length ? cn.sel.delete(k) : cn.sel.add(k)));
       return cnPintar();
@@ -7067,7 +7081,7 @@
     if (!rgOyente && sp) { // cuando cambia algo en Pagos (aquí o en otra PC), el Lector y el Registro se actualizan solos, sin leer de nuevo
       rgOyente = true;
       const v = sincros.get('pagos');
-      if (v) v.cbs.add((v2) => { rg.pg = v2.docs().map((d) => d.data()); rgIndexar(); clearTimeout(rgRepintar); rgRepintar = setTimeout(() => { if (vista === 'vXml') xlPintar(); else if (vista === 'vRegFac') rgPintar(); else if (cnGeneral()) cnPintar(); }, 300); });
+      if (v) v.cbs.add((v2) => { rg.pg = v2.docs().map((d) => d.data()); rgIndexar(); clearTimeout(rgRepintar); rgRepintar = setTimeout(() => { if (vista === 'vXml') xlPintar(); else if (vista === 'vRegFac') rgPintar(); else if (cnGeneral()) { cn.sis = null; cnPintar(); } }, 300); });
     }
   }
   function rgDonde(x) { // dónde está registrado este comprobante (o null)
