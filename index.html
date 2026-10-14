@@ -205,6 +205,10 @@
   .ltHoja th { background:#eef3e8; text-align:center; font-weight:800; } .ltHoja td.d { text-align:center; width:90px; } .ltHoja td.f { width:220px; text-align:center; }
   .ltHoja tr.ap td { background:#d9f2d0; } .ltHoja tr.ap td.f { color:#1e7a2e; font-weight:700; } .ltHoja .ltDias { width:70px; text-align:center; } .ltHoja .ltOk { width:20px; height:20px; cursor:pointer; vertical-align:middle; }
   .ltDesb { opacity:.08; border:none; background:none; cursor:pointer; padding:0 4px; font-size:11px; } .ltDesb:hover { opacity:.7; }
+  .cTit { font-size:26px; font-weight:800; color:var(--casco); margin:4px 0 12px; letter-spacing:.3px; }
+  .cGrandeBox { display:flex; align-items:center; gap:12px; margin-bottom:10px; flex-wrap:wrap; } .cGrandeBox label { font-size:18px; font-weight:800; margin:0; }
+  select.cGrande { font-size:20px; font-weight:700; padding:12px 16px; min-width:min(520px, 100%); width:auto; border:2px solid var(--marca); border-radius:12px; }
+  td.cCom { min-width:300px; } .cComT { white-space:normal; font-size:14px; line-height:1.35; margin-bottom:5px; }
   .cnDos { display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); gap:18px; align-items:start; margin-top:14px; } @media (max-width:1250px) { .cnDos { grid-template-columns:minmax(0, 1fr); } }
   .cnDos .tabla { max-height:70vh; overflow:auto; } details.cnProvs { margin-top:14px; } details.cnProvs summary { cursor:pointer; font-weight:700; color:var(--marca); padding:6px 0; }
   .dos { display:grid; grid-template-columns:repeat(auto-fit, minmax(420px, 1fr)); gap:16px; align-items:start; }
@@ -2796,7 +2800,7 @@
     document.querySelectorAll('#gSub button').forEach((b) => b.classList.toggle('act', b.dataset.gv === v));
     if (vista === 'vPagos') navMarcar();
     const porDist = !['cxp', 'gen'].includes(v);
-    $('gDistCbx').classList.toggle('oculto', !porDist || v === 'dash' || v === 'lf'); // el reporte Lolfar es de todos los proveedores // el dashboard tiene su propio filtro de distribuidor
+    $('gDistCbx').classList.toggle('oculto', !porDist || v === 'dash' || v === 'lf' || obsSolo()); // el reporte Lolfar es de todos los proveedores // el dashboard tiene su propio filtro de distribuidor
     $('gPer').classList.toggle('oculto', !['grid', 'res'].includes(v));
     $('gNuevoPer').classList.toggle('oculto', v !== 'grid' || !puede('pagos'));
     $('gEditPer').classList.toggle('oculto', v !== 'grid' || !puede('pagos'));
@@ -4061,9 +4065,10 @@
   const obsComId = (x) => `${pgEmp()}_${x.dk}_${serDoc(x.f.s)}-${numDoc(x.f.n)}`;
   const obsComEdita = () => puede('pagos') || puede('verObs');
   function obsComHtml(x) {
-    const c = obsCom.get(obsComId(x)), ed = obsComEdita();
-    if (c) return `<div style="white-space:normal;min-width:160px" title="${esc(`${c.por || ''} · ${dia(c.f || '')}`)}">💬 ${esc(c.t)} <span class="quien">${esc(String(c.por || '').split(' (')[0])} · ${esc(dia(c.f || ''))}</span>${ed ? ` <button class="mini obsComEd" data-id="${esc(obsComId(x))}" data-dk="${esc(x.dk)}" data-doc="${esc(`${x.f.s}-${x.f.n}`)}" title="Cambiar o quitar">✎</button>` : ''}</div>`;
-    return ed ? `<button class="mini obsComEd" data-id="${esc(obsComId(x))}" data-dk="${esc(x.dk)}" data-doc="${esc(`${x.f.s}-${x.f.n}`)}">+ comentario</button>` : '';
+    const id = obsComId(x), c = obsCom.get(id) || {}, ed = obsComEdita(), dat = `data-id="${esc(id)}" data-dk="${esc(x.dk)}" data-doc="${esc(`${x.f.s}-${x.f.n}`)}"`;
+    const ver = puede('pagos') ? ` <button class="mini obsComVer" ${dat} title="${c.oculto ? 'Oculta para el usuario de Observaciones: clic para mostrársela' : 'Clic para que el usuario de Observaciones no la vea'}">${c.oculto ? '🚫 oculta' : '👁 visible'}</button>` : '';
+    const txt = c.t ? `<div class="cComT" title="${esc(`${c.por || ''} · ${dia(c.f || '')}`)}">💬 ${esc(c.t)}<div class="quien">${esc(String(c.por || '').split(' (')[0])} · ${esc(dia(c.f || ''))}</div></div>` : '';
+    return txt + (ed ? `<button class="mini obsComEd" ${dat}>${c.t ? '✎ cambiar' : '+ comentario u observación'}</button>` : '') + ver;
   }
   function pintarCruce(yaCalc) {
     const caja = $('gv_cruce'), soloPend = pgVista === 'ncp', todosP = pgDist() === TODOS_K;
@@ -4073,22 +4078,26 @@
     if (!$('cAnio') || caja.dataset.clave !== pgClave + pgVista) {
       caja.dataset.clave = pgClave + pgVista;
       caja.dataset.todos = todosP ? '1' : '';
-      caja.innerHTML = '<div class="herr">' +
+      caja.innerHTML = (obsSolo() ? `<div class="cGrandeBox"><label for="cDistSel">Distribuidor</label><select id="cDistSel" class="cGrande"><option value="${TODOS_K}">TODOS LOS DISTRIBUIDORES</option>${pgCfg.dists.slice().sort((a, b) => a.nombre.localeCompare(b.nombre)).map((d) => `<option value="${esc(d.k)}">${esc(d.nombre)}</option>`).join('')}</select></div>` : '') +
+        '<h2 id="cTit" class="cTit"></h2><div class="herr">' +
         `<select id="cAnio" aria-label="Año"><option value="">Todos los años</option>${unicos(todas.map((x) => String(x.f.f).slice(0, 4))).reverse().map((a) => `<option>${esc(a)}</option>`).join('')}</select>` +
         (soloPend ? '<input type="hidden" id="cEst" value="PEN">' : obsSolo() ? '<select id="cEst" aria-label="Estado"><option value="PP">Pendientes y parciales</option><option value="PEN">Con pendiente de NC</option></select>' : '<select id="cEst" aria-label="Estado"><option value="">Todos los estados</option><option value="PP">Pendientes y parciales</option><option value="PEN">Con pendiente de NC</option><option value="CON">Conciliadas</option><option value="AUTO">Encontradas solas por monto</option><option value="SINM">Sin monto observado</option></select>') +
         '<input id="cTxt" placeholder="Buscar factura, producto, NC…" aria-label="Buscar" style="flex:1;min-width:200px"><button id="cExp">Exportar a Excel</button></div>' +
-        '<p class="resumen" id="cRes"></p><div class="tabla"><table><thead><tr><th>Fecha</th><th>Factura</th><th>Laboratorio</th><th>Productos observados</th><th class="num">Observado</th><th>NC aplicadas</th><th class="num">Aplicado</th><th class="num">Pendiente</th><th>Estado</th><th>Tipo de devolución</th><th>Mes a pagar</th><th>Alerta</th><th>Comentario</th></tr></thead><tbody id="cCuerpo"></tbody></table></div>';
+        '<p class="resumen" id="cRes"></p><div class="tabla"><table><thead><tr><th>Fecha</th><th>Factura</th><th>Laboratorio</th><th>Productos observados</th><th class="num">Observado</th><th>NC aplicadas</th><th class="num">Aplicado</th><th class="num">Pendiente</th><th>Estado</th><th>Tipo de devolución</th>' + (obsSolo() ? '' : '<th>Mes a pagar</th>') + '<th style="min-width:300px">Comentario u observación</th><th>Alerta</th></tr></thead><tbody id="cCuerpo"></tbody></table></div>';
       if (todosP) $('gv_cruce').querySelector('thead tr').insertAdjacentHTML('afterbegin', '<th>Proveedor</th>');
       ['cAnio', 'cEst'].forEach((id) => $(id).addEventListener('change', () => pintarCruce()));
+      if ($('cDistSel')) { $('cDistSel').value = pgDist(); $('cDistSel').addEventListener('change', (e) => { $('gDist').value = e.target.value; pgSuscribir(); }); }
       $('cTxt').addEventListener('input', () => pintarCruce());
       $('cExp').addEventListener('click', () => exportar(soloPend ? `nc-pendientes-${pgDist()}` : `cruce-observaciones-${pgDist()}`, [
         ['Fecha', (x) => dia(x.f.f)], ['Factura', (x) => `${x.f.s}-${x.f.n}`], ['Total factura', (x) => x.f.m], ['Laboratorio', (x) => labDe(x.f)],
         ['Productos observados', (x) => x.c.lineas.map((l) => `${l.p} (${mil(l.m)})`).join('\n')], ['Pendiente de NC (productos)', (x) => (x.c.pendI ? x.c.pendI.map((i) => `${x.c.lineas[i].p} (${mil(x.c.lineas[i].m)})`).join('\n') : '')], ['Monto observado', (x) => x.c.obs],
         ['NC aplicadas', (x) => x.c.det.map((n) => `${n.k} (${mil(n.aplicado)}, ${n.tipo})`).join('\n')], ['NC aplicada total', (x) => x.c.aplicada], ['Pendiente de NC', 'pend'],
-        ['Estado', 'est'], ['Tipo de devolución', 'tipo'], ['Mes a pagar', (x) => perTxt(x.per)], ['Alerta', 'alerta']
-      ], cruceVista()));
+        ['Estado', 'est'], ['Tipo de devolución', 'tipo'], ['Mes a pagar', (x) => perTxt(x.per)], ['Comentario u observación', (x) => (obsCom.get(obsComId(x)) || {}).t || ''], ['Alerta', 'alerta']
+      ].filter((c) => !(obsSolo() && c[0] === 'Mes a pagar')), cruceVista()));
     }
     const lista = cruceVista();
+    if ($('cTit')) $('cTit').textContent = todosP ? 'TODOS LOS DISTRIBUIDORES' : distDe(pgDist()).nombre;
+    if ($('cDistSel') && $('cDistSel').value !== pgDist()) $('cDistSel').value = pgDist();
     if (todosP && !crTodos) { $('cRes').textContent = 'Revisando las observaciones de todos los proveedores…'; $('cCuerpo').innerHTML = ''; return; }
     $('cRes').textContent = `${lista.length} factura(s) observadas · observado S/ ${mil(lista.reduce((s, x) => s + x.c.obs, 0))} · ` +
       `pendiente de NC S/ ${mil(lista.reduce((s, x) => s + x.pend, 0))} en ${lista.filter((x) => x.pend).length} factura(s)`;
@@ -4097,8 +4106,8 @@
       `<td class="larga">${(x.c.pendI ? x.c.pendI.map((i) => x.c.lineas[i]) : x.c.lineas).map((l) => `${esc(l.p)}${l.m !== null && l.m !== undefined ? ` <span class="quien">(${esc(mil(l.m))})</span>` : ''}`).join('<br>')}${x.c.pendI ? `<br><span class="quien" title="${esc(x.c.lineas.filter((l, i) => !x.c.pendI.includes(i)).map((l) => l.p).join(' · '))}">✓ ${x.c.lineas.length - x.c.pendI.length} producto(s) ya con NC</span>` : ''}</td>` +
       `<td class="num">${esc(mil(x.c.obs))}</td><td>${x.c.det.map((n) => `${esc(n.k)} <span class="quien">${esc(n.tipo)}</span>`).join('<br>') || '<span class="quien">—</span>'}</td>` +
       `<td class="num">${esc(mil(x.c.aplicada))}</td><td class="num${x.pend ? ' baja' : ''}">${esc(mil(x.pend))}</td>` +
-      `<td><span class="est ${claseEst(x.est)}">${esc(x.est)}</span></td><td><span class="est ${x.tipo === DEV_INM ? 'e3' : 'e1'}">${esc(x.tipo)}</span></td><td>${esc(perTxt(x.per))}</td><td class="larga quien">${esc(x.alerta)}</td><td>${obsComHtml(x)}</td></tr>`).join('') ||
-      `<tr><td colspan="${todosP ? 14 : 13}" class="vacio">Sin facturas en esta lista</td></tr>`;
+      `<td><span class="est ${claseEst(x.est)}">${esc(x.est)}</span></td><td><span class="est ${x.tipo === DEV_INM ? 'e3' : 'e1'}">${esc(x.tipo)}</span></td>${obsSolo() ? '' : `<td>${esc(perTxt(x.per))}</td>`}<td class="cCom">${obsComHtml(x)}</td><td class="larga quien">${esc(x.alerta)}</td></tr>`).join('') ||
+      `<tr><td colspan="${(todosP ? 14 : 13) - (obsSolo() ? 1 : 0)}" class="vacio">Sin facturas en esta lista</td></tr>`;
   }
   function cruceVista() {
     const a = $('cAnio').value, e = $('cEst').value, t = $('cTxt').value.trim().toLowerCase();
@@ -4106,6 +4115,7 @@
       if (a && String(x.f.f).slice(0, 4) !== a) return false;
       if (e === 'PEN' && !x.pend) return false;
       if ((e === 'PP' || obsSolo()) && !/^(Pendiente|Parcial)/.test(x.est)) return false; // el usuario de Observaciones no ve lo conciliado
+      if (obsSolo() && (obsCom.get(obsComId(x)) || {}).oculto) return false; // el administrador decidió no mostrársela
       if (e === 'CON' && !x.est.startsWith('Conciliada')) return false;
       if (e === 'AUTO' && !x.c.auto) return false;
       if (e === 'SINM' && x.c.obs !== 0) return false;
@@ -4120,8 +4130,19 @@
       if (t === null) return;
       const v = t.trim().slice(0, 500);
       try {
-        if (v) await setDoc(doc(db, 'obsCom', bc.dataset.id), { emp: pgEmp(), dist: bc.dataset.dk, doc: bc.dataset.doc, t: v, por: firma(), f: hoy() });
+        if (v) await setDoc(doc(db, 'obsCom', bc.dataset.id), { emp: pgEmp(), dist: bc.dataset.dk, doc: bc.dataset.doc, t: v, por: firma(), f: hoy() }, { merge: true });
+        else if (c && c.oculto) await setDoc(doc(db, 'obsCom', bc.dataset.id), { t: deleteField(), por: deleteField(), f: deleteField() }, { merge: true });
         else await deleteDoc(doc(db, 'obsCom', bc.dataset.id));
+      } catch (err) { alert(errorTexto(err)); }
+      return;
+    }
+    const bv = e.target.closest('.obsComVer');
+    if (bv) { // el administrador decide si el usuario de Observaciones ve esta factura
+      const c = obsCom.get(bv.dataset.id) || {};
+      try {
+        if (!c.oculto) await setDoc(doc(db, 'obsCom', bv.dataset.id), { emp: pgEmp(), dist: bv.dataset.dk, doc: bv.dataset.doc, oculto: true, ocPor: firma(), ocF: hoy() }, { merge: true });
+        else if (c.t) await setDoc(doc(db, 'obsCom', bv.dataset.id), { oculto: deleteField(), ocPor: deleteField(), ocF: deleteField() }, { merge: true });
+        else await deleteDoc(doc(db, 'obsCom', bv.dataset.id));
       } catch (err) { alert(errorTexto(err)); }
       return;
     }
