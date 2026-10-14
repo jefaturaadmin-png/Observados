@@ -207,7 +207,7 @@
   .ltDesb { opacity:.08; border:none; background:none; cursor:pointer; padding:0 4px; font-size:11px; } .ltDesb:hover { opacity:.7; }
   .cTit { font-size:26px; font-weight:800; color:var(--casco); margin:4px 0 12px; letter-spacing:.3px; }
   .cGrandeBox { display:flex; align-items:center; gap:12px; margin-bottom:10px; flex-wrap:wrap; } .cGrandeBox label { font-size:18px; font-weight:800; margin:0; }
-  select.cGrande { font-size:20px; font-weight:700; padding:12px 16px; min-width:min(520px, 100%); width:auto; border:2px solid var(--marca); border-radius:12px; }
+  select.cGrande, input.cGrande { font-size:20px; font-weight:700; padding:12px 16px; min-width:min(520px, 100%); width:auto; border:2px solid var(--marca); border-radius:12px; }
   td.cCom { min-width:300px; } .cComT { white-space:normal; font-size:14px; line-height:1.35; margin-bottom:5px; }
   .cnDos { display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); gap:18px; align-items:start; margin-top:14px; } @media (max-width:1250px) { .cnDos { grid-template-columns:minmax(0, 1fr); } }
   .cnDos .tabla { max-height:70vh; overflow:auto; } details.cnProvs { margin-top:14px; } details.cnProvs summary { cursor:pointer; font-weight:700; color:var(--marca); padding:6px 0; }
@@ -4079,7 +4079,7 @@
     if (!$('cAnio') || caja.dataset.clave !== pgClave + pgVista) {
       caja.dataset.clave = pgClave + pgVista;
       caja.dataset.todos = todosP ? '1' : '';
-      caja.innerHTML = (obsSolo() ? `<div class="cGrandeBox"><label for="cDistSel">Distribuidor</label><select id="cDistSel" class="cGrande"><option value="${TODOS_K}">TODOS LOS DISTRIBUIDORES</option>${pgCfg.dists.slice().sort((a, b) => a.nombre.localeCompare(b.nombre)).map((d) => `<option value="${esc(d.k)}">${esc(d.nombre)}</option>`).join('')}</select></div>` : '') +
+      caja.innerHTML = (obsSolo() ? `<div class="cGrandeBox"><label for="cDistSel">Distribuidor</label><input id="cDistSel" class="cGrande" list="cDistList" autocomplete="off" placeholder="Escribe para buscar…" title="Escribe parte del nombre y elígelo de la lista"><datalist id="cDistList"><option value="TODOS LOS DISTRIBUIDORES"></option>${pgCfg.dists.slice().sort((a, b) => a.nombre.localeCompare(b.nombre)).map((d) => `<option value="${esc(d.nombre)}"></option>`).join('')}</datalist></div>` : '') +
         '<h2 id="cTit" class="cTit"></h2><div class="herr">' +
         `<select id="cAnio" aria-label="Año"><option value="">Todos los años</option>${unicos(todas.map((x) => String(x.f.f).slice(0, 4))).reverse().map((a) => `<option>${esc(a)}</option>`).join('')}</select>` +
         (soloPend ? '<input type="hidden" id="cEst" value="PEN">' : obsSolo() ? '<select id="cEst" aria-label="Estado"><option value="PP">Pendientes y parciales</option><option value="PEN">Con pendiente de NC</option></select>' : '<select id="cEst" aria-label="Estado"><option value="">Todos los estados</option><option value="PP">Pendientes y parciales</option><option value="PEN">Con pendiente de NC</option><option value="CON">Conciliadas</option><option value="AUTO">Encontradas solas por monto</option><option value="SINM">Sin monto observado</option></select>') +
@@ -4087,7 +4087,21 @@
         '<p class="resumen" id="cRes"></p><div class="tabla"><table><thead><tr><th>Fecha</th><th>Factura</th><th>Laboratorio</th><th>Productos observados</th><th class="num">Observado</th><th>NC aplicadas</th><th class="num">Aplicado</th><th class="num">Pendiente</th><th>Estado</th><th>Tipo de devolución</th>' + (obsSolo() ? '' : '<th>Mes a pagar</th>') + '<th style="min-width:300px">Comentario u observación</th><th>Alerta</th></tr></thead><tbody id="cCuerpo"></tbody></table></div>';
       if (todosP) $('gv_cruce').querySelector('thead tr').insertAdjacentHTML('afterbegin', '<th>Proveedor</th>');
       ['cAnio', 'cEst'].forEach((id) => $(id).addEventListener('change', () => pintarCruce()));
-      if ($('cDistSel')) { $('cDistSel').value = pgDist(); $('cDistSel').addEventListener('change', (e) => { $('gDist').value = e.target.value; pgSuscribir(); }); }
+      if ($('cDistSel')) { // buscador grande: se escribe parte del nombre y se elige de la lista
+        const inp = $('cDistSel'), nom = () => (pgDist() === TODOS_K ? 'TODOS LOS DISTRIBUIDORES' : distDe(pgDist()).nombre);
+        inp.value = nom();
+        const elegir = () => {
+          const v = inp.value.trim().toUpperCase(), d = v === 'TODOS LOS DISTRIBUIDORES' ? { k: TODOS_K } : pgCfg.dists.find((x) => x.nombre.toUpperCase() === v);
+          if (!d) return false;
+          inp.blur();
+          if (d.k !== pgDist()) { $('gDist').value = d.k; pgSuscribir(); }
+          return true;
+        };
+        inp.addEventListener('focus', () => { inp.dataset.antes = inp.value; inp.value = ''; }); // vacío: se ven todas las opciones
+        inp.addEventListener('input', elegir);
+        inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (!elegir()) { const q = cnNom(inp.value), d = pgCfg.dists.find((x) => cnNom(x.nombre).includes(q)); if (q && d) { inp.value = d.nombre; elegir(); } } } });
+        inp.addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== inp) inp.value = nom(); }, 150));
+      }
       $('cTxt').addEventListener('input', () => pintarCruce());
       $('cExp').addEventListener('click', () => exportar(soloPend ? `nc-pendientes-${pgDist()}` : `cruce-observaciones-${pgDist()}`, [
         ['Fecha', (x) => dia(x.f.f)], ['Factura', (x) => `${x.f.s}-${x.f.n}`], ['Total factura', (x) => x.f.m], ['Laboratorio', (x) => labDe(x.f)],
@@ -4098,7 +4112,7 @@
     }
     const lista = cruceVista();
     if ($('cTit')) $('cTit').textContent = todosP ? 'TODOS LOS DISTRIBUIDORES' : distDe(pgDist()).nombre;
-    if ($('cDistSel') && $('cDistSel').value !== pgDist()) $('cDistSel').value = pgDist();
+    if ($('cDistSel') && document.activeElement !== $('cDistSel')) $('cDistSel').value = todosP ? 'TODOS LOS DISTRIBUIDORES' : distDe(pgDist()).nombre;
     if (todosP && !crTodos) { $('cRes').textContent = 'Revisando las observaciones de todos los proveedores…'; $('cCuerpo').innerHTML = ''; return; }
     $('cRes').textContent = `${lista.length} factura(s) observadas · observado S/ ${mil(lista.reduce((s, x) => s + x.c.obs, 0))} · ` +
       `pendiente de NC S/ ${mil(lista.reduce((s, x) => s + x.pend, 0))} en ${lista.filter((x) => x.pend).length} factura(s)`;
