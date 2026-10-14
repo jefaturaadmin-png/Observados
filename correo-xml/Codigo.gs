@@ -37,7 +37,11 @@ function revisarCorreo() {
   if (!candado.tryLock(1000)) return; // ya hay otra vuelta corriendo
   try {
     const etiqueta = GmailApp.getUserLabelByName(ETIQUETA) || GmailApp.createLabel(ETIQUETA);
-    const hilos = GmailApp.search(`has:attachment {filename:xml filename:zip filename:rar filename:7z filename:eml} newer_than:${DIAS_ATRAS}d -label:${ETIQUETA} -label:${ETIQUETA_REVISAR}`, 0, MAX_CORREOS);
+    const resto = `newer_than:${DIAS_ATRAS}d -label:${ETIQUETA} -label:${ETIQUETA_REVISAR}`;
+    const conAdjunto = GmailApp.search(`has:attachment {filename:xml filename:zip filename:rar filename:7z filename:eml} ${resto}`, 0, MAX_CORREOS);
+    // Correos que no traen el XML adjunto sino un botón o enlace para descargarlo ("Ver XML", "Descargar XML")
+    const conEnlace = GmailApp.search(`{"Ver XML" "Descargar XML" "Descarga XML" "Descargar el XML" "Ver el XML"} ${resto}`, 0, MAX_CORREOS);
+    const vistos = new Set(), hilos = conAdjunto.concat(conEnlace).filter((h) => !vistos.has(h.getId()) && vistos.add(h.getId())).slice(0, MAX_CORREOS);
     let enviados = 0, repetidos = 0;
     const inicio = Date.now();
     for (const hilo of hilos) {
@@ -70,7 +74,39 @@ function revisarCorreo() {
  *  También abre los correos reenviados como adjunto (.eml, por ejemplo al reenviar desde Outlook) y saca sus XML.
  *  raros = adjuntos que no se pudieron abrir (RAR y 7z no se pueden abrir desde Google: hay que descomprimirlos en la PC). */
 function xmlsDe(m) {
-  return xmlsDeAdjuntos(m.getAttachments({ includeInlineImages: false }).map((a) => ({ blob: a.copyBlob(), nombre: a.getName() || '' })));
+  const r = xmlsDeAdjuntos(m.getAttachments({ includeInlineImages: false }).map((a) => ({ blob: a.copyBlob(), nombre: a.getName() || '' })));
+  if (r.xmls.length || r.rars.length) return r;
+  // Sin XML adjunto: se buscan en el texto del correo los enlaces para descargarlo y se descargan
+  const bajados = xmlsDeEnlaces(m.getBody() || '');
+  if (!bajados.adjuntos.length) { r.raros.push(...bajados.raros); return r; }
+  const r2 = xmlsDeAdjuntos(bajados.adjuntos);
+  r2.raros.push(...bajados.raros);
+  return r2;
+}
+
+/** Enlaces del correo que dicen XML ("Ver XML", "Descargar XML", o que terminan en .xml): se descargan (máximo 5). */
+function xmlsDeEnlaces(html) {
+  const adjuntos = [], raros = [], vistos = new Set();
+  const limpiar = (t) => t.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+  const re = /<a\b[^>]*?href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  let m;
+  while ((m = re.exec(html)) && vistos.size < 5) {
+    const url = m[1].replace(/&amp;/g, '&').trim(), texto = limpiar(m[2]);
+    if (!/^https?:\/\//i.test(url) || vistos.has(url)) continue;
+    if (!/\bxml\b/i.test(texto) && !/\.xml(\?|#|$)/i.test(url)) continue;
+    vistos.add(url);
+    try {
+      const r = UrlFetchApp.fetch(url, { followRedirects: true, muteHttpExceptions: true, headers: { 'User-Agent': 'Mozilla/5.0' } });
+      if (r.getResponseCode() !== 200) { raros.push(`enlace "${texto}" (respondió ${r.getResponseCode()})`); continue; }
+      const blob = r.getBlob(), bytes = blob.getBytes(), cab = Utilities.newBlob(bytes.slice(0, 400)).getDataAsString('ISO-8859-1');
+      const disp = String((r.getHeaders() || {})['Content-Disposition'] || (r.getHeaders() || {})['content-disposition'] || '');
+      const nom = ((disp.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i) || [])[1] || url.split('?')[0].split('/').pop() || 'enlace').trim();
+      if ((bytes[0] & 255) === 0x50 && (bytes[1] & 255) === 0x4B) adjuntos.push({ blob: Utilities.newBlob(bytes, 'application/zip', /\.zip$/i.test(nom) ? nom : nom + '.zip'), nombre: /\.zip$/i.test(nom) ? nom : nom + '.zip' });
+      else if (/<\?xml|<(\w+:)?(Invoice|CreditNote|DebitNote)[\s>]/.test(cab) || (bytes[0] & 255) === 0xFF || (bytes[0] & 255) === 0xFE) adjuntos.push({ blob: Utilities.newBlob(bytes, 'application/xml', /\.xml$/i.test(nom) ? nom : nom + '.xml'), nombre: `enlace → ${/\.xml$/i.test(nom) ? nom : nom + '.xml'}` });
+      else raros.push(`enlace "${texto}" (abre una página, no descarga el XML)`);
+    } catch (e) { raros.push(`enlace "${texto}" (no se pudo descargar)`); }
+  }
+  return { adjuntos, raros };
 }
 
 /** Lo mismo, a partir de una lista de adjuntos { blob, nombre } (sirve para Gmail y para Outlook). */
