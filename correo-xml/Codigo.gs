@@ -59,6 +59,8 @@ function revisarCorreo() {
       hilo.addLabel(etiqueta); // solo si todo salió bien; si algo falla, se reintenta en la próxima vuelta
     }
     if (hilos.length) console.log(`${hilos.length} correo(s) revisado(s) · ${enviados} XML nuevo(s) · ${repetidos} ya estaban`);
+    // El Outlook conectado (si lo hay) se revisa en la misma vuelta: ver Outlook.gs
+    if (typeof revisarOutlook === 'function') { try { revisarOutlook(inicio); } catch (e) { console.error(`Outlook: ${e.message || e}`); } }
   } finally {
     candado.releaseLock();
   }
@@ -68,6 +70,11 @@ function revisarCorreo() {
  *  También abre los correos reenviados como adjunto (.eml, por ejemplo al reenviar desde Outlook) y saca sus XML.
  *  raros = adjuntos que no se pudieron abrir (RAR y 7z no se pueden abrir desde Google: hay que descomprimirlos en la PC). */
 function xmlsDe(m) {
+  return xmlsDeAdjuntos(m.getAttachments({ includeInlineImages: false }).map((a) => ({ blob: a.copyBlob(), nombre: a.getName() || '' })));
+}
+
+/** Lo mismo, a partir de una lista de adjuntos { blob, nombre } (sirve para Gmail y para Outlook). */
+function xmlsDeAdjuntos(adjuntos) {
   const out = [], raros = [], rars = [];
   const abrir = (blob, nombre, nivel) => {
     if (/\.xml$/i.test(nombre)) { out.push({ nombre, blob }); return; }
@@ -82,7 +89,7 @@ function xmlsDe(m) {
       Utilities.unzip(blob.setContentType('application/zip')).forEach((b) => abrir(b, `${nombre} → ${b.getName()}`, nivel + 1));
     } catch (e) { raros.push(`${nombre} (ZIP que no se pudo abrir)`); console.warn(`No se pudo abrir ${nombre}: ${e}`); }
   };
-  m.getAttachments({ includeInlineImages: false }).forEach((a) => abrir(a.copyBlob(), a.getName() || '', 1));
+  adjuntos.forEach((a) => abrir(a.blob, a.nombre, 1));
   const xmls = out
     .map((x) => ({ nombre: x.nombre, texto: textoDe(x.blob) }))
     // solo facturas, NC y ND; se descarta la constancia de SUNAT (CDR, ApplicationResponse) y otros XML
