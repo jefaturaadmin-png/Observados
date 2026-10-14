@@ -326,8 +326,9 @@
   .inNodo .c svg { width:30px; height:30px; }
   .inNodo:hover .c, .inNodo:focus-visible .c { transform:translateY(-3px); box-shadow:0 10px 24px rgba(0,0,0,.12); }
   .inNodo.hi .c { border:2px solid var(--marca); color:var(--marca); box-shadow:0 8px 22px rgba(232,113,10,.25); }
+  #lado nav button.sinAcceso { opacity:.42; } #lado nav button.sinAcceso:after { content:'🔒'; margin-left:auto; font-size:10px; }
+  .inNodo.sinAcceso, .inPill.sinAcceso { opacity:.42; }
   .inNodo .t { display:block; margin-top:8px; font-size:13.5px; font-weight:600; }
-  .inNodo.solo { width:260px; transform:translate(-50%, -90px); } .inNodo.solo .c { width:170px; height:170px; border-width:3px; } .inNodo.solo .c svg { width:64px; height:64px; } .inNodo.solo .t { font-size:24px; font-weight:800; margin-top:14px; }
   .inNodo .bd { position:absolute; top:-2px; right:-2px; background:#e03131; color:#fff; font-size:11px; font-weight:700; border-radius:99px; min-width:22px; height:22px; padding:0 5px; display:flex; align-items:center; justify-content:center; border:2px solid var(--fondo); }
   .inPills { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; max-width:900px; margin:22px auto 26px; }
   .inPill { display:inline-flex; gap:7px; align-items:center; background:#fff; border:1px solid var(--borde); border-radius:99px; padding:7px 13px; font:inherit; font-size:13px; color:#3a3f45; cursor:pointer; }
@@ -1323,19 +1324,30 @@
       if (vista === 'vPagos') pintarPagos();
     }; v.cbs.add(f); f(v); }, errorEscucha); }
   }
+  const RETIRADAS = ['vCxp', 'vCierre', 'vProvDocs', 'vRegFac']; // módulos que ya no existen: siempre ocultos
+  let permTabs = null;
+  function sinAcceso(v) { // el módulo existe pero este usuario no lo tiene habilitado
+    const bt = document.querySelector(`nav button[data-v="${v}"] .navT`), nom = bt ? bt.textContent : 'este módulo';
+    $('vNada').innerHTML = `<div class="caja" style="text-align:center;padding:40px 20px"><div style="font-size:44px">🔒</div><h2 style="margin:10px 0 6px">No tienes acceso a este módulo</h2><p class="resumen" style="margin:0">${esc(nom)}: pídele al administrador que te lo habilite.</p></div>`;
+    ver('vNada', true);
+    $('tituloVista').dataset.mod = nom; $('tituloVista').textContent = nom;
+    document.querySelectorAll('nav button').forEach((b) => b.classList.toggle('act', b.dataset.v === v));
+  }
   function aplicarPermisos() {
     const admin = yo.area === 'ADMIN';
     const tabs = { vInicio: true, vPedidos: puede('verPedidos'), vNuevo: puede('observar'), vPend: puede('verPend'), vDev: puede('verDev'), vPagos: puede('verPagos'), vPagosRes: puede('verPagos'), vPagosObs: puede('verPagos') || puede('verObs'), vPagosLf: puede('verPagos'), vLetras: puede('verPagos'), vCxp: false, vResPag: puede('verPagos') || puede('verCxp'), vCierre: false, vProvDocs: false, vRegFac: false, vDash: puede('verDash'), vSeg: puede('verEnt'), vCot: puede('verCot'), vXml: puede('verXml'),
       vUsuarios: admin, vCat: admin, vListas: admin };
     $('quien').textContent = `${yo.nombre} · ${yo.area}`;
-    Object.entries(tabs).forEach(([v, ok]) => { const b = document.querySelector(`nav button[data-v="${v}"]`); if (b) b.classList.toggle('oculto', !ok); });
+    // Se ve toda la interfaz; lo que el usuario no tiene habilitado queda con candado y al entrar dice "No tienes acceso"
+    permTabs = tabs;
+    Object.entries(tabs).forEach(([v, ok]) => { const b = document.querySelector(`nav button[data-v="${v}"]`); if (!b) return; const ret = RETIRADAS.includes(v); b.classList.toggle('oculto', ret && !ok); b.classList.toggle('sinAcceso', !ok && !ret); b.title = !ok && !ret ? 'No tienes acceso a este módulo' : (b.dataset.t0 ?? (b.dataset.t0 = b.title)); });
     document.querySelectorAll('.ciVistas [data-ir="vRegFac"]').forEach((b) => b.classList.toggle('oculto', !tabs.vRegFac));
     $('cajaPedido').classList.toggle('oculto', !puede('pedidos'));
     $('vDev').classList.toggle('sinPrecios', !puede('verPrecios'));
     $('vNuevo').classList.toggle('sinPO', !puede('precioObs'));
     $('peQuien').textContent = 'Recepciona: ' + firma();
     // Si no puedo ver la interfaz en la que estoy, paso a la primera que sí tengo habilitada
-    if (!tabs[vista] && !(vista === 'vPagos' && tabs.vPagosObs && pgVista === 'cruce')) ver(VISTAS.find((v) => tabs[v]) || 'vNada'); // Observaciones vive dentro de vPagos
+    if (!tabs[vista] && vista !== 'vNada' && !(vista === 'vPagos' && tabs.vPagosObs && pgVista === 'cruce')) ver(VISTAS.find((v) => tabs[v]) || 'vNada'); // Observaciones vive dentro de vPagos
     inPintar();
     pgSuscribir();
     cpSuscribir();
@@ -1400,7 +1412,7 @@
   /* ---------- Navegación ---------- */
   const NAV_DE = { vRegFac: 'vCierre' }; // vistas que comparten un mismo botón del menú
   const VISTAS = ['vInicio', 'vPedidos', 'vNuevo', 'vPend', 'vDev', 'vPagos', 'vCxp', 'vProvDocs', 'vResPag', 'vLetras', 'vCierre', 'vRegFac', 'vDash', 'vSeg', 'vCot', 'vXml', 'vUsuarios', 'vCat', 'vListas', 'vNada'];
-  document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => { ver(b.dataset.v); if (b.dataset.v === 'vPagos') pgVer('grid'); }));
+  document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => { ver(b.dataset.v); if (b.dataset.v === 'vPagos' && vista === 'vPagos') pgVer('grid'); }));
   // Pagos a proveedores se abre en tres ventanas del menú (antes eran pestañas dentro del módulo)
   const PG_ALIAS = { vPagosRes: 'res', vPagosObs: 'cruce', vPagosLf: 'lf' };
   function navMarcar() {
@@ -1408,8 +1420,9 @@
     document.querySelectorAll('nav button[data-v]').forEach((b) => b.classList.toggle('act', b.dataset.v === k));
     const bt = document.querySelector(`nav button[data-v="${k}"] .navT`); $('tituloVista').dataset.mod = bt ? bt.textContent : 'Farmacia Socorro'; menuSubPintar();
   }
-  function ver(v) {
-    if (PG_ALIAS[v]) { ver('vPagos'); pgVer(PG_ALIAS[v]); return; }
+  function ver(v, interno) {
+    if (!interno && permTabs && permTabs[v] === false && !RETIRADAS.includes(v)) return sinAcceso(v);
+    if (PG_ALIAS[v]) { ver('vPagos', true); pgVer(PG_ALIAS[v]); return; }
     vista = v;
     { const bt = document.querySelector(`nav button[data-v="${NAV_DE[v] || v}"] .navT`); $('tituloVista').dataset.mod = bt ? bt.textContent : 'Farmacia Socorro'; document.body.classList.remove('menuAbierto'); window.scrollTo(0, 0); menuSubPintar(); }
     if (v === 'vInicio') inPintar();
@@ -8774,7 +8787,8 @@
   function inPintar() {
     const caja = $('vInicio');
     if (!caja || !yo || vista !== 'vInicio') return;
-    const visible = (v) => { const b = document.querySelector(`#lado nav button[data-v="${v}"]`); return b && !b.classList.contains('oculto'); };
+    const visible = (v) => { const b = document.querySelector(`#lado nav button[data-v="${v}"]`); return b && !b.classList.contains('oculto') && !b.classList.contains('sinAcceso'); }; // permitido
+    const sinAcc = (v) => { const b = document.querySelector(`#lado nav button[data-v="${v}"]`); return !!(b && b.classList.contains('sinAcceso')); };
     const ico = (v) => document.querySelector(`#lado nav button[data-v="${v}"] svg`).outerHTML, nom = (v) => document.querySelector(`#lado nav button[data-v="${v}"] .navT`).textContent;
     const num = (id) => Number($(id).textContent) || 0, K = [];
     if (visible('vPedidos')) K.push(['vPedidos', num('nPed'), 'Pedidos por dar conformidad', true]);
@@ -8791,18 +8805,21 @@
     const grupos = [...document.querySelectorAll('#lado .navGrupo')].map((g) => ({ t: (g.querySelector('.navG') || {}).textContent || '', vs: [...g.querySelectorAll('button:not(.oculto)')].map((b) => b.dataset.v).filter((v) => v && v !== 'vInicio') })).filter((g) => g.vs.length);
     // Arco: los módulos más usados (los que tiene este usuario); el resto va debajo como botones pequeños
     const todos = grupos.flatMap((g) => g.vs), pref = ['vPedidos', 'vNuevo', 'vPend', 'vCot', 'vPagos', 'vXml', 'vResPag', 'vDev', 'vSeg', 'vDash'];
-    let arco = pref.filter((v) => todos.includes(v)).slice(0, 7);
-    if (arco.length < 3) arco = arco.concat(todos.filter((v) => !arco.includes(v))).slice(0, Math.max(arco.length, Math.min(3, todos.length))); // con pocos módulos (por ejemplo, solo Observaciones) van grandes en el arco
+    // Arco: primero lo que el usuario tiene habilitado (al centro); alrededor, con candado, el resto de los principales
+    let okA = pref.filter((v) => todos.includes(v) && !sinAcc(v));
+    if (okA.length < 7) okA = okA.concat(todos.filter((v) => !sinAcc(v) && !okA.includes(v))).slice(0, 7);
+    const lock = pref.filter((v) => todos.includes(v) && sinAcc(v)).slice(0, Math.max(0, 7 - okA.length)), mitad = Math.ceil(lock.length / 2);
+    const arco = okA.length >= 7 ? okA.slice(0, 7) : lock.slice(0, mitad).concat(okA, lock.slice(mitad));
     const resto = todos.filter((v) => !arco.includes(v));
     const avisos = { vPedidos: num('nPed'), vPend: num('nPend'), vDev: num('nDev'), vXml: num('nXml'), vCot: visible('vCot') ? ct.lista.map(ctEstado).filter((x) => /^RESPONDIDA|^CORREGIDA/.test(x)).length : 0 };
-    const hi = arco.includes('vPagos') ? 'vPagos' : arco[Math.floor(arco.length / 2)];
+    const hi = arco.includes('vPagos') && !sinAcc('vPagos') ? 'vPagos' : (arco.find((v) => !sinAcc(v)) || arco[Math.floor(arco.length / 2)]);
     const nodos = arco.map((v, i) => {
-      const a = Math.PI * (1 - (i + 0.5) / arco.length), x = arco.length === 1 ? 50 : 50 + 41 * Math.cos(a), y = arco.length === 1 ? 50 : 92 - 70 * Math.sin(a); // % del ancho y del alto del arco (uno solo: grande, al centro)
-      return `<button type="button" class="inNodo${v === hi ? ' hi' : ''}${arco.length === 1 ? ' solo' : ''}" data-ir="${v}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%"><span class="c">${ico(v)}${avisos[v] ? `<span class="bd">${avisos[v]}</span>` : ''}</span><span class="t">${esc(nom(v))}</span></button>`;
+      const a = Math.PI * (1 - (i + 0.5) / arco.length), x = 50 + 41 * Math.cos(a), y = 92 - 70 * Math.sin(a); // % del ancho y del alto del arco
+      return `<button type="button" class="inNodo${v === hi ? ' hi' : ''}${sinAcc(v) ? ' sinAcceso' : ''}" data-ir="${v}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%"><span class="c">${ico(v)}${avisos[v] ? `<span class="bd">${avisos[v]}</span>` : ''}</span><span class="t">${esc(nom(v))}</span></button>`;
     }).join('');
     caja.innerHTML = `<div class="inCab"><span class="inChip">${esc(fecha)} · ${esc(yo.area)}</span><h2>Hola, ${esc(String(yo.nombre || '').split(' ')[0])}</h2><p>${arco.length ? 'Elige un módulo para empezar' : ''}</p></div>` +
       (arco.length ? `<div class="inArco">${nodos}</div>` : '') +
-      (resto.length ? `<div class="inPills">${resto.map((v) => `<button type="button" class="inPill" data-ir="${v}" title="${esc(IN_DESC[v] || '')}">${ico(v)}${esc(nom(v))}</button>`).join('')}</div>` : '') +
+      (resto.length ? `<div class="inPills">${resto.map((v) => `<button type="button" class="inPill${sinAcc(v) ? ' sinAcceso' : ''}" data-ir="${v}" title="${esc(sinAcc(v) ? 'No tienes acceso a este módulo' : (IN_DESC[v] || ''))}">${ico(v)}${esc(nom(v))}</button>`).join('')}</div>` : '') +
       (K.length ? '<p class="inSec">Por atender</p><div class="inKpis">' + K.map(([v, n, t, av]) => `<button type="button" class="inKpi${av && n ? ' aviso' : ''}" data-ir="${v}"><div class="inKpiA">${ico(v)}<strong>${n}</strong></div><div class="inKpiB">${esc(t)}</div><div class="inKpiC"><span>Abrir ${esc(nom(v))}</span><span aria-hidden="true">→</span></div></button>`).join('') + '</div>' : '') +
       (grupos.length ? '' : '<div class="caja"><p class="resumen" style="margin:0">Tu usuario aún no tiene módulos habilitados. Consulta con el administrador.</p></div>') +
       (yo.area === 'ADMIN' ? `<p class="inSec">Uso de Firebase en esta PC hoy</p><div class="caja"><p class="resumen" style="margin:0">Lecturas aproximadas: <b>${mil(lect.total).replace('.00', '')}</b> de 50,000 al día (se suman las de todas las PC)${Object.keys(lect.por).length ? ' · ' + Object.entries(lect.por).filter((x) => x[1] > 0).sort((x, y) => y[1] - x[1]).map(([k, n]) => `${esc(k)} ${n}`).join(' · ') : ''}</p>` +
