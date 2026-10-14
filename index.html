@@ -199,6 +199,7 @@
   .kpi strong { display:block; font-size:20px; }
   .kpi small { color:var(--gris); font-size:12px; }
   .sube { color:var(--ok); } .baja { color:var(--rojo); }
+  #gPegar, #gQr, #gRep, #gImp { display:none !important; } /* ya no se usan: Lolfar se compara solo desde Reporte Lolfar y XML */
   .cnDos { display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); gap:18px; align-items:start; margin-top:14px; } @media (max-width:1250px) { .cnDos { grid-template-columns:minmax(0, 1fr); } }
   .cnDos .tabla { max-height:70vh; overflow:auto; } details.cnProvs { margin-top:14px; } details.cnProvs summary { cursor:pointer; font-weight:700; color:var(--marca); padding:6px 0; }
   .dos { display:grid; grid-template-columns:repeat(auto-fit, minmax(420px, 1fr)); gap:16px; align-items:start; }
@@ -5711,7 +5712,7 @@
       '<thead><tr><th>Proveedor en el reporte</th><th>Corresponde a</th><th class="num">Facturas</th><th class="num">Total reporte</th><th class="num">Registradas</th><th class="num">Faltan</th><th class="num">S/ faltan</th><th class="num">Monto distinto</th><th class="num">Anuladas</th></tr></thead><tbody>' +
       X.provs.map((p) => `<tr${!p.dest.tipo ? ' style="background:#fff3d6"' : ''}><td><a href="#" class="cnVer" data-p="${esc(p.prov)}">${esc(p.prov)}</a></td><td>${provOps(p)}</td><td class="num">${p.n}</td><td class="num">${mil(p.total)}</td><td class="num">${p.ok}</td><td class="num${p.faltan ? ' baja' : ''}"><b>${p.faltan}</b></td><td class="num${p.faltan ? ' baja' : ''}">${mil(p.mFaltan)}</td><td class="num">${p.dif || ''}</td><td class="num">${p.anul || ''}</td></tr>`).join('') +
       '</tbody></table></div></details>') +
-      (cnGeneral() ? '' : '<div><div>') + '<h3 class="sub">Lolfar: facturas que faltan subir</h3>' + (lfIns.length ? cnBarra('L', lfIns.length) : '') +
+      (cnGeneral() ? '' : '<div><div>') + (cnGeneral() && cn.autoN ? `<div class="msg ok">✓ Lolfar anotado en ${cn.autoN} documento(s) registrados (todas las empresas). Lo ya comparado no se vuelve a guardar.</div>` : '') + '<h3 class="sub">Lolfar: facturas que faltan subir</h3>' + (lfIns.length ? cnBarra('L', lfIns.length) : '') +
       '<div class="herr"><select id="cnVerSel">' + [['faltan', `Faltan subir (${fal.length})`], ['dif', `Monto distinto (${dif.length})`], ['anul', `Anuladas que siguen registradas (${anr.length})`], ['partes', `Registradas en varias partes en el sistema (${partes.length})`], ['todo', `Todas las del reporte (${vivas.length})`]].map(([v, t]) => `<option value="${v}"${cn.ver === v ? ' selected' : ''}>${t}</option>`).join('') + '</select>' +
       `<select id="cnProvSel"><option value="">Todos los proveedores</option>${unicos(lista.map((x) => x.prov)).map((p) => `<option${p === cn.prov ? ' selected' : ''}>${esc(p)}</option>`).join('')}</select><span style="flex:1"></span><button id="cnExp">Exportar a Excel</button></div>` +
       `<p class="resumen">${vista.length} factura(s) · S/ ${mil(suma(vista))}${cnGeneral() ? ` · reporte del ${esc(dia(cn.rep.desde))} al ${esc(dia(cn.rep.hasta))}` : ''}. La fecha es la de registro en el sistema, no la de emisión.</p>` +
@@ -5853,6 +5854,7 @@
       const emp = cnEmp(), [sis, al] = await Promise.all([cnCargarSistema(emp), getDoc(doc(db, 'config', 'concilia')).catch(() => null)]);
       cn.sis = sis; cn.alias = (al && al.exists() && al.data().alias) || cn.alias || {};
       cn.cargando = false; cnRefrescar();
+      if (cnGeneral()) cnAutoMarcar();
     } catch (e) { cn.cargando = false; if ($('cnCont')) $('cnCont').innerHTML = `<div class="msg err">${esc(errorTexto(e))}</div>`; }
   }
   async function cnSubir(e) {
@@ -6592,9 +6594,30 @@
     const porMes = new Map(), pon = (per, i, v) => { if (!porMes.has(per)) porMes.set(per, new Map()); porMes.get(per).set(i, v); };
     X.ok.concat(X.dist).forEach((x) => { const v = r2(Math.abs(Number(x.m) || 0)); if (x.reg.f.lfM !== v) pon(x.reg.per, x.reg.f.i, v); });
     X.anul.forEach((x) => { if (x.reg.f.lfM !== undefined) pon(x.reg.per, x.reg.f.i, null); }); // anulada en Lolfar: se quita
-    if (!puede('pagos')) return;
-    porMes.forEach((m, per) => lfGuardar(emp, dk, per, (l) => l.forEach((y) => { if (!m.has(y.i)) return; const v = m.get(y.i); if (v === null) { delete y.lfM; delete y.lfF; } else { y.lfM = v; y.lfF = hoy(); } }),
-      'Lolfar', `${m.size} documento(s) comparados con el reporte de Lolfar`).catch(pgError));
+    if (!puede('pagos')) return 0;
+    let n = 0;
+    porMes.forEach((m, per) => { n += m.size; lfGuardar(emp, dk, per, (l) => l.forEach((y) => { if (!m.has(y.i)) return; const v = m.get(y.i); if (v === null) { delete y.lfM; delete y.lfF; } else { y.lfM = v; y.lfF = hoy(); } }),
+      'Lolfar', `${m.size} documento(s) comparados con el reporte de Lolfar`).catch(pgError); });
+    return n;
+  }
+  // Al subir (o abrir) el reporte en "Reporte Lolfar y XML" se anota ✓ Lolfar solo, en TODAS las empresas y meses.
+  // Lo ya anotado con el mismo importe no se vuelve a escribir: solo se guardan las filas nuevas o que cambiaron.
+  async function cnAutoMarcar() {
+    if (!cn.rep || !puede('pagos')) return;
+    const clave = `${cnEmp()}|${cn.info || ''}`;
+    if (cn.autoK === clave) return;
+    cn.autoK = clave;
+    const ks = new Set();
+    cn.rep.docs.forEach((d) => { const dest = cnDestino(d.prov); if (dest.tipo === 'pagos' && dest.k) ks.add(dest.k); });
+    if (!ks.size) return;
+    try {
+      const grupos = new Map();
+      (await sincroDocs('pagos', (x) => ks.has(x.dist))).docs.forEach((s0) => { const d = s0.data(), g = `${d.emp}|${d.dist}`; if (!grupos.has(g)) grupos.set(g, []); grupos.get(g).push(d); });
+      let n = 0;
+      grupos.forEach((docs, g) => { const [emp, k] = g.split('|'); n += lfMarcar(lfCruzar(k, docs), emp, k); });
+      cn.autoN = n;
+      if (cnGeneral()) cnPintar();
+    } catch (e) { console.warn('No se pudo anotar Lolfar:', e); cn.autoK = ''; }
   }
   function lfGuardar(emp, dist, per, cambio, accion, detalle) { // como pgGuardar, pero de cualquier proveedor
     const turno = pgCola.then(() => pgGuardarYa(emp, dist, per, cambio, accion, detalle));
