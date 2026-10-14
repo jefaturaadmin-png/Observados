@@ -5690,7 +5690,7 @@
     vista.forEach((x, n) => {
       if (x.prov !== ant) {
         const mios = vista.filter((y) => y.prov === x.prov);
-        h += `<tr class="grupo"><td colspan="9"><div class="gtit"><b>${esc(x.prov)}</b><span class="quien">${esc(modulo(x))}</span><span>${mios.length} factura(s) · S/ ${mil(suma(mios))}</span>${cn.ver === 'faltan' && (puede('cxp') || puede('pagos')) ? `<button class="mini cnCopiar" data-p="${esc(x.prov)}">Copiar para pegar</button>` : ''}</div></td></tr>`;
+        h += `<tr class="grupo"><td colspan="9"><div class="gtit"><b>${esc(x.prov)}</b><span class="quien">${esc(modulo(x))}</span><span>${mios.length} factura(s) · S/ ${mil(suma(mios))}</span>${cn.ver === 'faltan' && (puede('cxp') || puede('pagos')) ? `<button class="mini cnCopiar" data-p="${esc(x.prov)}">Copiar para pegar</button>` : ''}${cnGeneral() && !x.dest.tipo && puede('pagos') ? cnAsignarHtml(x.prov) : ''}</div></td></tr>`;
         ant = x.prov;
       }
       const ins = cnLfInsertable(x), kL = 'L|' + x.prov + '|' + x.doc;
@@ -5758,6 +5758,24 @@
     } catch (e) { alert(errorTexto(e)); }
   }
   const cnEnOtraEmp = (x) => (rg.idx.get(rgKey(x)) || []).some((r) => czNomOk(r.prov, (x.emisor || {}).nom) || Math.abs(r.m - Math.abs(Number(x.total) || 0)) <= TOL_NC); // registrado en cualquier empresa
+  // Proveedor del reporte que no se reconoce: se asigna a uno de Pagos o se crea como proveedor nuevo
+  function cnAsignarHtml(prov) {
+    return `<select class="cnAli" data-p="${esc(prov)}" style="width:auto;max-width:260px;padding:3px 6px" title="A qué proveedor de Pagos corresponde"><option value="">— asignar a un proveedor de Pagos —</option>` +
+      (yo.area === 'ADMIN' ? `<option value="+">＋ Crear "${esc(prov)}" como proveedor nuevo</option>` : '') +
+      `<optgroup label="Proveedores de Pagos">${pgCfg.dists.slice().sort((a, b) => a.nombre.localeCompare(b.nombre)).map((d) => `<option value="D:${esc(d.k)}">${esc(d.nombre)}</option>`).join('')}</optgroup><option value="-">No se registra aquí (ignorar)</option></select>`;
+  }
+  const cnNuevoBtn = (nombre) => (nombre && yo.area === 'ADMIN' ? ` <button class="mini cnNuevoProv" data-n="${esc(nombre)}" title="Agregarlo a la lista de proveedores de Pagos (tipo proveedor, pago en cuotas)">＋ Crear proveedor</button>` : '');
+  async function cnCrearDist(nombre) { // lo agrega a Pagos a proveedores como proveedor (tipo C, pago en cuotas); se ajusta luego en Proveedores
+    const n = may(nombre, 80), ya = pgCfg.dists.find((d) => d.nombre === n || czNomOk(d.nombre, n));
+    if (ya) return ya.k;
+    if (!confirm(`¿Agregar "${n}" a los proveedores de Pagos?\n\nQueda como proveedor con pago en cuotas; el plazo, la retención y la cuenta se ajustan después en Ingreso de facturas y NC → Proveedores.`)) return '';
+    const usadas = new Set(pgCfg.dists.map((d) => d.k));
+    let k = pgSlug(n), i = 2; while (usadas.has(k)) k = pgSlug(n).slice(0, 21) + i++;
+    const dists = pgCfg.dists.concat([{ k, nombre: n, tipo: 'C', pago: 'cuotas' }]);
+    await setDoc(doc(db, 'config', 'pagos'), { dists }, { merge: true });
+    pgCfg.dists = dists; // se usa ya, sin esperar el aviso de Firebase
+    return k;
+  }
   function cnXmlPend(fal) { // XML de la empresa, en las fechas del reporte, que no están registrados
     cn.xs = [];
     if (!puede('verXml') || !cn.xT || cn.xErr) return null;
@@ -5785,7 +5803,7 @@
     xs.forEach((x) => {
       const prov = (x.emisor || {}).nom || (x.emisor || {}).ruc || '';
       const dest = rgDestino(x), ok = insX.includes(x), kX = 'X|' + rgId(x);
-      if (prov !== ant) { const mios = xs.filter((y) => ((y.emisor || {}).nom || (y.emisor || {}).ruc || '') === prov); h += `<tr class="grupo"><td colspan="6"><div class="gtit"><b>${esc(prov)}</b><span>${mios.length} documento(s)</span><span class="quien">${dest.tipo === 'D' && dest.k ? '→ Pagos · ' + esc(dest.nombre) : 'proveedor que no está en Pagos: agrégalo en Proveedores'}</span></div></td></tr>`; ant = prov; }
+      if (prov !== ant) { const mios = xs.filter((y) => ((y.emisor || {}).nom || (y.emisor || {}).ruc || '') === prov); h += `<tr class="grupo"><td colspan="6"><div class="gtit"><b>${esc(prov)}</b><span>${mios.length} documento(s)</span><span class="quien">${dest.tipo === 'D' && dest.k ? '→ Pagos · ' + esc(dest.nombre) : 'proveedor que no está en Pagos'}</span>${dest.tipo === 'D' && dest.k ? '' : cnNuevoBtn((x.emisor || {}).nom || '')}</div></td></tr>`; ant = prov; }
       const tam = enLf.has(`${serDoc(x.serie)}-${numDoc(x.num)}`), per = cnPerSug(x.vence);
       h += `<tr><td>${ok ? `<input type="checkbox" class="cnCk" data-k="${esc(kX)}"${cn.sel.has(kX) ? ' checked' : ''} aria-label="Marcar ${esc(x.id)}"> ` : ''}${esc(dia(x.fecha))}</td><td>${x.tipo === 'FACTURA' ? 'FA' : 'NC'}</td><td><b>${esc(x.id)}</b>${tam ? ' <span class="est alerta" title="También falta según Lolfar">también en Lolfar</span>' : ''}${xlNotaHtml(x)}</td><td>${esc(dia(x.vence || ''))}</td><td class="num">${x.tipo === 'FACTURA' ? '' : '-'}${mil(Math.abs(Number(x.total) || 0))}</td>` +
         `<td>${ok ? `<button class="mini cnIns" data-k="${esc(kX)}" data-per="${esc(per)}" title="Insertar en ese mes de pago (si no existe, se crea)">→ ${esc(perTxt(per))}</button>` : ''}</td></tr>`;
@@ -5881,7 +5899,9 @@
     if (t.id === 'cnVerSel') { cn.ver = t.value; cn.prov = ''; return cnPintar(); }
     if (t.id === 'cnProvSel') { cn.prov = t.value; return cnPintar(); }
     if (t.classList.contains('cnAli')) { // recordar a qué proveedor corresponde ese nombre del reporte
-      if (t.value) cn.alias[t.dataset.p] = t.value; else delete cn.alias[t.dataset.p];
+      let v = t.value;
+      if (v === '+') { try { const k = await cnCrearDist(t.dataset.p); if (!k) { t.value = ''; return; } v = 'D:' + k; } catch (err) { t.value = ''; return alert(errorTexto(err)); } }
+      if (v) cn.alias[t.dataset.p] = v; else delete cn.alias[t.dataset.p];
       cnPintar();
       try { await setDoc(doc(db, 'config', 'concilia'), { alias: cn.alias }, { mergeFields: ['alias'] }); } catch (err) { msg('cnMsg', 'No se pudo guardar la equivalencia de proveedores: ' + errorTexto(err)); }
     }
@@ -5890,6 +5910,7 @@
     const t = e.target;
     if (t.classList.contains('cnIns')) return cnLlevar([t.dataset.k], t.dataset.per);
     if (t.classList.contains('cnNota')) return cnNotaEditar(t.dataset.d);
+    if (t.classList.contains('cnNuevoProv')) { try { if (await cnCrearDist(t.dataset.n)) cnPintar(); } catch (err) { alert(errorTexto(err)); } return; }
     if (t.classList.contains('xlNota')) { // el mismo comentario que se ve en el Lector de XML
       const x = (cn.xdocs || []).find((y) => y.k === t.dataset.k); if (!x) return;
       const v0 = prompt(`Comentario para ${x.tipo} ${x.id} (por qué no se registró, etc.). Déjalo vacío para quitarlo.`, x.nota || '');
