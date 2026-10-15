@@ -3743,7 +3743,7 @@
     }
     return { dias, saltados };
   }
-  const MODOS = [['letras', 'En letras'], ['fecha', 'Fecha por factura'], ['venc', 'Según vencimiento'], ['cuotas', 'Cuotas por grupos']];
+  const MODOS = [['letras', 'En letras'], ['cuotas', 'Por grupos (cuotas o fecha de pago)'], ['fecha', 'Fecha por factura'], ['venc', 'Según vencimiento']]; // las dos últimas solo para meses antiguos
   /* ---------- Proveedores en cuotas por grupos: se calcula igual que en Cuentas por pagar (cpCalc) ---------- */
   const PG_CP_T = { FA: 'FACTURA', NC: 'NOTA DE CRÉDITO', ND: 'FACTURA', BON: 'BONIFICACIÓN', RET: 'RETENCIÓN 3%', PAG: 'PAGO / TRANSFERENCIA' };
   function cpDeDoc(d) { // un mes de Pagos a proveedores con el formato de Cuentas por pagar
@@ -3860,8 +3860,19 @@
   }
   function resumenFilas(R) {
     const out = [], fila = (cls, c, x) => out.push({ cls, c: c || [], ...(x || {}) });
-    const conFp = R.normales.some((f) => f.fpg); // facturas con su fecha de pago (ventana Programar)
-    const cab = (ref) => { fila('emp', [R.emp.nombre]); fila('ruc', [`RUC ${R.emp.ruc}`]); fila(''); fila('prov', [R.dist.nombre]); fila(''); fila('cab', ['PROVEEDOR', 'FECHA', 'TIPO', 'SERIE', 'NUMERO', 'TOTAL', !ref && conFp ? 'FECHA PAGO' : '', ref ? 'REFERENCIA' : '']); };
+    const cab = (ref) => { fila('emp', [R.emp.nombre]); fila('ruc', [`RUC ${R.emp.ruc}`]); fila(''); fila('prov', [R.dist.nombre]); fila(''); fila('cab', ['PROVEEDOR', 'FECHA', 'TIPO', 'SERIE', 'NUMERO', 'TOTAL', '', ref ? 'REFERENCIA' : '']); };
+    // Pagos por fecha (la FECHA PAGO de cada factura en la ventana Programar): cada día con su importe, retención 3% y neto a pagar
+    const porFecha = (fs) => { // fs: [{ fp, doc, m, q, neto, pg }]
+      const g = new Map();
+      fs.filter((x) => x.fp).forEach((x) => { if (!g.has(x.fp)) g.set(x.fp, []); g.get(x.fp).push(x); });
+      [...g.keys()].sort().forEach((k) => {
+        const xs = g.get(k), m = r2(xs.reduce((a, x) => a + x.m, 0)), q = r2(xs.reduce((a, x) => a + x.q, 0)), neto = r2(xs.reduce((a, x) => a + x.neto, 0));
+        fila('txt2', [`${fechaLarga(k)} DEL ${k.slice(0, 4)}: ${xs.map((x) => x.doc).join(', ')} · IMPORTE S/${mil(m)}${q ? ` · RET. 3% S/${mil(q)}` : ''} · A PAGAR S/${mil(neto)}${xs.every((x) => x.pg) ? ' · PAGADO' : ''}`]);
+      });
+      const sinF = fs.filter((x) => !x.fp && x.m);
+      if (sinF.length) fila('txt2', [`SIN FECHA DE PAGO: ${sinF.map((x) => x.doc).join(', ')}`]);
+    };
+    const docPago = (f) => { const r = R.CP.R.get(f.i) || {}; return { fp: f.fpg || '', doc: `${f.s}-${f.n}`, m: Number(f.m) || 0, q: r.q || 0, neto: r.neto ?? (Number(f.m) || 0), pg: f.pgd === true }; };
     const doc1 = (f, g, h) => fila(f.t === 'NC' ? 'nc' : 'fa', [R.dist.nombre, fechaGuion(f.f), f.t, f.s, f.n, Number(f.m) || 0, g || '', h || '']);
     const lin = (l) => { const p = String(l.p || '').trim(); return l.q && !/^\d/.test(p) ? `${l.q} ${p}` : p; };
     const pintaObs = (o) => { const es = obsEstados(o.c); o.lineas.forEach((l, i) => fila('obs', [o.fac, lin(l), '', '', '', l.m === null || l.m === undefined || l.m === '' ? '' : Number(l.m), es[i].t + (o.extra || '')], { ok: es[i].ok })); };
@@ -3869,15 +3880,17 @@
     const ncNota = (f) => rebTxt(f) || (R.usoNc.get(`${f.s}-${f.n}`) || []).join(', ') || f.e || '';
     const mesCompra = (R.d.compra || []).map((c) => MESES[+c.slice(5)]).join(' Y ');
     cab(false);
-    R.normales.forEach((f) => doc1(f, conFp && f.fpg ? fechaGuion(f.fpg) + (f.pgd ? ' PAGADO' : '') : ''));
+    R.normales.forEach((f) => doc1(f));
     R.ncs.forEach((f) => doc1(f));
     fila('tot', ['', '', '', '', 'TOTAL', r2(R.tCompras + R.nCredito), R.cuota === null ? '' : R.cuota]);
     fila('');
     if (R.dist.pago === 'cuotas' && R.CP) { // cada grupo con sus cuotas
-      fila('txt1', [`Programación de facturas${mesCompra ? ' del mes de ' + mesCompra : ''} por S/${mil(R.tPagar)} en cuotas por grupos${R.ret ? ` (con retención 3% de S/${mil(Math.abs(R.ret))})` : ''}`]);
+      fila('txt1', [`Programación de facturas${mesCompra ? ' del mes de ' + mesCompra : ''} por S/${mil(R.tPagar)} por grupos${R.ret ? ` (con retención 3% de S/${mil(Math.abs(R.ret))})` : ''}`]);
       R.CP.cuadros.forEach((c) => {
-        fila('txt2', [`${c.g ? cpEtq(c.g) : 'GRUPO ÚNICO'}: S/${mil(c.neto)}${c.n ? ` EN ${c.n} ${c.n === 1 ? 'CUOTA' : 'CUOTAS'}${c.mod ? ' · ' + c.mod : ''}` : (c.est === 'PAGADO' ? ' · PAGADO' : ' · FALTA PROGRAMAR')}${c.retTxt ? ' · ' + c.retTxt : ''}`]);
+        const facs = c.docs.filter((f) => f.t === 'FACTURA'), conFp = !c.n && facs.some((f) => f.fp);
+        fila('txt2', [`${c.g ? cpEtq(c.g) : 'GRUPO ÚNICO'}: S/${mil(c.neto)}${c.n ? ` EN ${c.n} ${c.n === 1 ? 'CUOTA' : 'CUOTAS'}${c.mod ? ' · ' + c.mod : ''}` : (c.est === 'PAGADO' ? ' · PAGADO' : (conFp ? ' · POR FECHA DE PAGO' : ' · FALTA PROGRAMAR'))}${c.retTxt ? ' · ' + c.retTxt : ''}`]);
         c.cuotas.forEach((q) => fila('txt2', [`      CUOTA ${q.n}${q.l ? ' (' + q.l + ')' : ''}: ${q.v ? `${fechaLarga(q.v)} DEL ${q.v.slice(0, 4)}` : 'SIN FECHA'} · S/${mil(q.m)}${q.pg ? ' · PAGADA' : ''}`]));
+        if (conFp) porFecha(facs.map((f) => { const r = R.CP.R.get(f.i) || {}; return { fp: f.fp || '', doc: f.d, m: Number(f.m) || 0, q: r.q || 0, neto: r.neto ?? (Number(f.m) || 0), pg: f.pg === true }; }));
       });
     } else if (R.dist.pago === 'letras') {
       fila('txt1', [`Programación de facturas${mesCompra ? ' del mes de ' + mesCompra : ''} por S/${mil(R.tPagar)}${R.letras ? ` en ${R.letras} letras C/U de S/${mil(R.cuota)}` : ''}${R.ret ? ` (con retención 3% de S/${mil(Math.abs(R.ret))})` : ''}`]);
@@ -3891,14 +3904,7 @@
       fila('txt2', [R.dist.pago === 'fecha' ? 'SE PAGAN EN LA FECHA INDICADA PARA CADA FACTURA' : 'SE PROGRAMAN SEGÚN SU FECHA DE VENCIMIENTO']);
       fila('txt2', [`DEPÓSITOS EN EL BCP PARA ${perTxt(R.d.per)}`]);
     }
-    if (conFp && R.dist.pago !== 'cuotas') { // cada fecha de pago con sus facturas y el neto (con retención)
-      const porDia = new Map();
-      R.normales.filter((f) => f.fpg).forEach((f) => { if (!porDia.has(f.fpg)) porDia.set(f.fpg, []); porDia.get(f.fpg).push(f); });
-      fila('txt1', ['FECHAS DE PAGO:']);
-      [...porDia.keys()].sort().forEach((k) => { const fs2 = porDia.get(k), m = r2(fs2.reduce((s2, f) => s2 + ((R.CP.R.get(f.i) || {}).neto ?? (Number(f.m) || 0)), 0)); fila('txt2', [`${fechaLarga(k)} DEL ${k.slice(0, 4)}: S/${mil(m)} · ${fs2.map((f) => `${f.s}-${f.n}`).join(', ')}${fs2.every((f) => f.pgd) ? ' · PAGADO' : ''}`]); });
-      const sinF = R.normales.filter((f) => !f.fpg && Number(f.m));
-      if (sinF.length) fila('txt2', [`SIN FECHA DE PAGO: ${sinF.map((f) => `${f.s}-${f.n}`).join(', ')}`]);
-    }
+    if (R.dist.pago === 'fecha' && R.normales.some((f) => f.fpg)) porFecha(R.normales.map(docPago));
     fila('');
     if (R.obs.length) { fila('obsT', ['OBSERVACIONES:']); R.obs.forEach(pintaObs); fila(''); }
     if (R.obsAnt.length && resAnt) {
@@ -3991,7 +3997,7 @@
     const R = resumenDatos(d), edita = puede('pagos');
     const conLetras = R.dist.pago === 'letras', conCuotas = R.dist.pago === 'cuotas';
     caja.innerHTML = '<div class="herr">' +
-      `<label style="margin:0" for="rModo">Forma de pago</label><select id="rModo" style="width:auto"${edita ? '' : ' disabled'}>${MODOS.map(([v, n]) => `<option value="${v}"${R.dist.pago === v ? ' selected' : ''}>${n}</option>`).join('')}</select>` +
+      `<label style="margin:0" for="rModo">Forma de pago</label><select id="rModo" style="width:auto"${edita ? '' : ' disabled'}>${MODOS.filter(([v]) => v === 'letras' || v === 'cuotas' || v === R.dist.pago).map(([v, n]) => `<option value="${v}"${R.dist.pago === v ? ' selected' : ''}>${n}</option>`).join('')}</select>` +
       (conLetras ? `<label style="margin:0" for="rLetras">N° de letras</label><input id="rLetras" type="number" min="0" max="60" style="width:80px" value="${esc(d.letras ?? '')}"${edita ? '' : ' disabled'}>` +
         `<label style="margin:0" for="rDesde">Desde</label><input id="rDesde" type="date" value="${esc(d.desde || R.desde || '')}"${edita ? '' : ' disabled'}>` +
         (edita ? '<button id="rGuardar">Guardar programación</button>' : '') : (conCuotas ? '<span class="quien">Cada grupo (mes de emisión, o pago 2, 3… si separas facturas) se programa aparte con el botón Programar.</span>' : `<span class="quien">Este mes no va en letras: ${R.dist.pago === 'fecha' ? 'cada factura tiene su fecha de pago' : 'se paga según vencimiento'}.</span>`)) +
@@ -4507,7 +4513,7 @@
       '<div class="tabla" style="max-height:60vh;overflow:auto"><table style="font-size:13px"><tr><th>Nombre</th><th>Tipo</th><th>Forma de pago</th><th>Plazo (días)</th><th>Retención 3%</th><th>Cuenta</th></tr>' +
       prvLista.map((d, i) => `<tr><td><input class="gIn prvIn" data-i="${i}" data-c="nombre" value="${esc(d.nombre)}" style="min-width:220px"></td>` +
         `<td><select class="gIn prvIn" data-i="${i}" data-c="tipo">${ops([['D', 'Distribuidor'], ['C', 'Cuotas por grupos']], d.tipo === 'C' ? 'C' : 'D')}</select></td>` +
-        `<td><select class="gIn prvIn" data-i="${i}" data-c="pago">${ops(MODOS, d.pago || (d.tipo === 'C' ? 'cuotas' : 'letras'))}</select></td>` +
+        `<td><select class="gIn prvIn" data-i="${i}" data-c="pago">${ops(MODOS.filter(([v]) => v === 'letras' || v === 'cuotas' || v === d.pago), d.pago || (d.tipo === 'C' ? 'cuotas' : 'letras'))}</select></td>` +
         `<td><input class="gIn prvIn n" data-i="${i}" data-c="pl" value="${esc(d.pl ?? '')}" style="width:70px"></td>` +
         `<td style="text-align:center"><input type="checkbox" class="prvIn" data-i="${i}" data-c="ret"${d.ret ? ' checked' : ''}></td>` +
         `<td><input class="gIn prvIn" data-i="${i}" data-c="cta" value="${esc(d.cta || '')}" style="min-width:160px"></td></tr>`).join('') +
