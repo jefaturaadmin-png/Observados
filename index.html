@@ -4030,9 +4030,9 @@
   function pgCuadros(CP, edita) { // grupos del mes con su programación (como el Detalle del mes de Cuentas por pagar)
     const cls = (e) => (e.startsWith('⚠') ? 'alerta' : (e === 'PAGADO' ? 'e2' : 'e1'));
     return '<h3 class="sub" style="margin:4px 0 6px">Programación por grupos</h3><div class="tabla" style="margin-bottom:14px"><table><tr><th>Grupo</th><th class="num">Docs</th><th class="num">Neto a pagar</th><th>Retención</th><th>Modalidad</th><th class="num">Cuotas</th><th>Vencen</th><th class="num">Pagado</th><th class="num">Saldo</th><th>Estado</th><th></th></tr>' +
-      (CP.cuadros.map((c) => `<tr><td><b>${esc(c.g ? cpEtq(c.g) : 'Todo el mes')}</b></td><td class="num">${c.docs.length}</td><td class="num"><b>${mil(c.neto)}</b></td><td>${esc(c.retTxt)}</td><td>${esc(c.mod)}</td><td class="num">${c.n || ''}</td>` +
-        `<td style="white-space:nowrap">${c.cuotas.map((q) => `${q.pg ? '✓ ' : ''}${esc(dia(q.v) || 'sin fecha')} · ${mil(q.m)}`).join('<br>')}</td><td class="num">${mil(c.pagado)}</td><td class="num">${mil(c.saldo)}</td>` +
-        `<td><span class="est ${cls(c.est)}">${esc(c.est)}</span></td><td>${edita ? `<button class="mini${c.n ? '' : ' pri'} rProg" data-k="${esc(c.k)}">Programar</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="11" class="vacio">Sin documentos</td></tr>') + '</table></div>';
+      (CP.cuadros.map((c) => `<tr><td><b>${esc(c.g ? cpEtq(c.g) : 'Todo el mes')}</b></td><td class="num">${c.docs.length}</td><td class="num"><b>${mil(c.neto)}</b></td><td>${esc(c.retTxt)}</td><td>${esc(!c.n && c.fechas.length ? 'POR FECHA DE PAGO' : c.mod)}</td><td class="num">${c.n || ''}</td>` +
+        `<td style="white-space:nowrap">${(c.cuotas.length ? c.cuotas : c.fechas).map((q) => `${q.pg ? '✓ ' : ''}${esc(dia(q.v) || 'sin fecha')} · ${mil(q.m)}`).join('<br>')}</td><td class="num">${mil(c.pagado)}</td><td class="num">${mil(c.saldo)}</td>` +
+        `<td><span class="est ${cls(c.est)}">${esc(c.est)}</span></td><td>${edita ? `<button class="mini${c.est.startsWith('⚠') ? ' pri' : ''} rProg" data-k="${esc(c.k)}">Programar</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="11" class="vacio">Sin documentos</td></tr>') + '</table></div>';
   }
   $('gv_res').addEventListener('change', async (e) => {
     if (e.target.id === 'rAnt') { resAnt = e.target.checked; return pintarPagos(true); }
@@ -4837,11 +4837,14 @@
         const todasPg = facs.length > 0 && facs.every((f) => f.pg === true);
         const pagado = r2(n ? cuotas.filter((c) => c.pg).reduce((s, c) => s + c.m, 0) : (todasPg ? neto : facs.filter((f) => f.pg === true).reduce((s, f) => s + R.get(f.i).neto, 0)));
         const saldo = r2(neto - pagado);
-        const est = !n ? ((Math.abs(saldo) < 0.05 && pagado) ? 'PAGADO' : '⚠ FALTA PROGRAMAR')
+        // sin cuotas pero con FECHA PAGO en sus facturas: ya está programado por fechas
+        const aPagar = facs.filter((f) => Number(f.m)), conFecha = aPagar.filter((f) => f.fp), fechas = new Map();
+        if (!n) conFecha.forEach((f) => { const x = fechas.get(f.fp) || { v: f.fp, m: 0, pg: true }; x.m = r2(x.m + R.get(f.i).neto); x.pg = x.pg && f.pg === true; fechas.set(f.fp, x); });
+        const est = !n ? ((Math.abs(saldo) < 0.05 && pagado) ? 'PAGADO' : (!conFecha.length ? '⚠ FALTA PROGRAMAR' : (conFecha.length < aPagar.length ? '⚠ FALTAN FECHAS' : 'PROGRAMADO')))
           : (cuotas.every((c) => c.pg) ? 'PAGADO' : (cuotas.some((c) => !c.v) ? '⚠ FALTAN FECHAS' : 'PROGRAMADO'));
         const conRet = facs.some((f) => f.ar), base = totBase.get(k) || 0;
         const ret = r2(facs.reduce((s2, f) => s2 + (R.get(f.i).q || 0), 0)), bruto = r2(facs.reduce((s2, f) => s2 + (Number(f.m) || 0), 0)), ncT = r2(docs.filter((f) => f.t !== 'FACTURA').reduce((s2, f) => s2 + R.get(f.i).sg * (Number(f.m) || 0), 0));
-        const c = { k, prov, g, multi, docs, neto, pagado, saldo, n, mod: pr ? (pr.mod || '') : '', cuotas, est, plazo: cpModa(docs, R), ret, bruto, ncT,
+        const c = { k, prov, g, multi, docs, neto, pagado, saldo, n, mod: pr ? (pr.mod || '') : '', cuotas, fechas: [...fechas.values()].sort((a, b) => a.v.localeCompare(b.v)), est, plazo: cpModa(docs, R), ret, bruto, ncT,
           retTxt: ret > 0 ? `RET. 3%: S/ ${mil(ret)}` : (!conRet ? '' : (base > cpCfg.min ? '' : `SIN RET. (pago ≤ ${cpCfg.min})`)), base, pagadoTodo: Math.abs(saldo) < 0.05 && pagado !== 0 };
         cuadros.push(c); mios.push(c);
       });
@@ -5514,7 +5517,7 @@
       '<h3 class="sub cpSec">FACTURAS POR PROVEEDOR</h3><div class="tabla"><table><tr><th>Proveedor</th><th class="num">Plazo</th><th>Modalidad / letras</th><th>1er venc.</th><th class="num">Neto a pagar</th><th class="num">Saldo S/</th><th>Programación</th></tr>' +
       cpC.provs.map((p) => {
         const mods = p.cuadros.filter((c) => c.n).map((c) => `${c.multi ? cpEtq(c.g).slice(0, 3) + (cpPagoN(c.g) > 1 ? ' p' + cpPagoN(c.g) : '') + ': ' : ''}${c.mod || 'LETRAS'} ${c.n}`).join('  ·  ') || '—';
-        const vs = p.cuadros.flatMap((c) => c.cuotas.map((q) => q.v)).filter(Boolean).sort(), est = (Math.abs(p.saldo) < 0.05 && p.pagado) ? 'PAGADO' : (p.cuadros.some((c) => c.est === '⚠ FALTA PROGRAMAR') ? '⚠ FALTA PROGRAMAR' : 'PROGRAMADO');
+        const vs = p.cuadros.flatMap((c) => (c.cuotas.length ? c.cuotas : c.fechas).map((q) => q.v)).filter(Boolean).sort(), est = (Math.abs(p.saldo) < 0.05 && p.pagado) ? 'PAGADO' : (p.cuadros.some((c) => c.est === '⚠ FALTA PROGRAMAR') ? '⚠ FALTA PROGRAMAR' : 'PROGRAMADO');
         return `<tr><td>${esc(p.prov)}</td><td class="num">${esc(p.plazo)}</td><td>${esc(mods)}</td><td>${esc(dia(vs[0] || ''))}</td><td class="num">${mil(p.neto)}</td><td class="num">${mil(p.saldo)}</td><td><span class="est ${est === 'PAGADO' ? 'e2' : est === 'PROGRAMADO' ? 'e1' : 'alerta'}">${esc(est)}</span></td></tr>`;
       }).join('') + `<tr class="tot"><td>TOTAL FACTURAS DEL MES</td><td colspan="3"></td><td class="num">${mil(t.neto)}</td><td class="num">${mil(t.saldo)}</td><td></td></tr></table></div>`;
     window.scrollTo(0, y);
