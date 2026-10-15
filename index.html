@@ -9037,6 +9037,7 @@
     try {
       await rbCatalogo();
       await rbKdxCargar();
+      await rbPagos();
       if (!rb.docs) { const s = await sincroDocs('xmlf'); rb.docs = s.docs.map((d) => ({ k: d.id, ...d.data() })); }
     } catch (e) { rb.err = errorTexto(e); }
     const provs = new Map();
@@ -9061,15 +9062,17 @@
   function rbCalc() {
     const ruc = rb.prov, P = new Map(), S = new Map(), lab = rb.lab.trim().toUpperCase(), t = rb.txt.trim().toUpperCase();
     let docs = 0, nFa = 0, nNc = 0;
-    const ncSin = [];
+    const ncSin = [], porDoc = [];
     (rb.docs || []).filter((d) => d.emisor && d.emisor.ruc === ruc).map((d) => ({ d, fe: rbFechaEf(d) }))
       .filter(({ d, fe }) => { if (fe.ok) return true; if ((!rb.desde || String(d.fecha).slice(0, 7) >= rb.desde) && (!rb.hasta || String(d.fecha).slice(0, 7) <= rb.hasta)) ncSin.push({ d, fe }); return false; }) // NC sin su factura: no se cuentan
       .filter(({ fe }) => (!rb.desde || fe.f.slice(0, 7) >= rb.desde) && (!rb.hasta || fe.f.slice(0, 7) <= rb.hasta))
       .sort((a, b) => esNC(a.d) - esNC(b.d)).forEach(({ d }) => { // primero las facturas: lo que aprenden sirve para sus NC
       const sg = /CR[EÉ]DITO/.test(d.tipo) ? -1 : 1, kds = rbKdxDoc(d); docs += 1; if (sg < 0) nNc += 1; else nFa += 1;
+      const od = { d, cont: 0, sinE: 0, ign: 0 }; porDoc.push(od);
       (d.lineas || []).forEach((l, i) => {
         const q = Number(l.cant) || 0, v = Number(l.valor) || 0, tt = l.total === null || l.total === undefined ? v : Number(l.total) || 0, x = rbCodigo(ruc, l, kds[i]);
-        if (x.ign) return;
+        if (x.ign) { od.ign = r2(od.ign + tt); return; }
+        if (!x.c) { od.sinE = r2(od.sinE + tt); } else od.cont = r2(od.cont + tt);
         if (!x.c) { const u = S.get(x.k) || { k: x.k, cod: l.cod, desc: l.desc, n: 0, q: 0, v: 0, sug: x.sug }; u.n += 1; u.q += sg * q; u.v = r2(u.v + sg * v); S.set(x.k, u); return; }
         const p = rb.porC.get(x.c), a = P.get(x.c) || { c: x.c, n: p.n, l: p.l, qc: 0, qn: 0, qb: 0, v: 0, t: 0, auto: false, kdx: false, items: new Map() };
         if (x.kdx) a.kdx = true;
@@ -9083,7 +9086,41 @@
     const prods = todos.filter((a) => (!lab || String(a.l).toUpperCase().includes(lab)) && (!t || `${a.c} ${a.n}`.toUpperCase().includes(t))).sort((a, b) => b.v - a.v);
     const labs = new Map();
     todos.forEach((a) => { const x = labs.get(a.l || '(sin laboratorio)') || { l: a.l || '(sin laboratorio)', n: 0, q: 0, v: 0, t: 0 }; x.n += 1; x.q += a.qc - a.qn; x.v = r2(x.v + a.v); x.t = r2(x.t + a.t); labs.set(x.l, x); });
-    return { prods, todos, labs: [...labs.values()].sort((a, b) => b.v - a.v), sin: [...S.values()].sort((a, b) => Math.abs(b.v) - Math.abs(a.v)), docs, nFa, nNc, ncSin };
+    return { prods, todos, labs: [...labs.values()].sort((a, b) => b.v - a.v), sin: [...S.values()].sort((a, b) => Math.abs(b.v) - Math.abs(a.v)), docs, nFa, nNc, ncSin, porDoc };
+  }
+  // Cuadre con Ingreso de facturas (Pagos): factura por factura, lo de Pagos contra el XML y lo contado en el rebate
+  async function rbPagos() {
+    if (rb.pg || !puede('verPagos')) return;
+    try { const s = await sincroDocs('pagos'); rb.pg = []; s.docs.forEach((x) => { const d = x.data(); (d.filas || []).forEach((f) => { if (f.t === 'FA' || f.t === 'NC') rb.pg.push({ k: rbFacK(f.s, f.n), doc: `${f.s}-${f.n}`, f: String(f.f || ''), m: Number(f.m) || 0, t: f.t, dist: d.dist, per: d.per }); }); }); }
+    catch (e) { rb.pg = []; console.warn('Pagos para el cuadre:', e); }
+  }
+  function rbCuadre(C) {
+    if (!rb.pg) return '';
+    const ruc = rb.prov, xs = (rb.docs || []).filter((d) => d.emisor && d.emisor.ruc === ruc), keys = new Set(xs.map((d) => rbFacK(d.serie, d.num)));
+    const dists = new Set(rb.pg.filter((p) => keys.has(p.k)).map((p) => p.dist)); // el distribuidor de Pagos que tiene facturas de este proveedor
+    if (!dists.size) return '<p class="quien">Cuadre con Ingreso de facturas: ninguna factura de este proveedor está registrada en Pagos.</p>';
+    const enRango = (f) => (!rb.desde || f.slice(0, 7) >= rb.desde) && (!rb.hasta || f.slice(0, 7) <= rb.hasta);
+    const pgs = rb.pg.filter((p) => p.t === 'FA' && dists.has(p.dist) && enRango(p.f)), cont = new Map(C.porDoc.filter((o) => !esNC(o.d)).map((o) => [rbFacK(o.d.serie, o.d.num), o]));
+    const xmlDe = new Map(xs.filter((d) => !esNC(d)).map((d) => [rbFacK(d.serie, d.num), d]));
+    const filas = new Map();
+    pgs.forEach((p) => filas.set(p.k, { k: p.k, doc: p.doc, f: p.f, pg: r2((filas.get(p.k) || {}).pg || 0) + p.m }));
+    cont.forEach((o, k) => { const x = filas.get(k) || { k, doc: o.d.id, f: o.d.fecha, pg: null }; x.o = o; filas.set(k, x); });
+    const lista = [...filas.values()].map((x) => {
+      const d = xmlDe.get(x.k), o = x.o, xt = d ? Number(d.total) || 0 : null, ct = o ? o.cont : 0, obs = [];
+      if (!d) obs.push('<b class="sube">falta el XML</b> (súbelo al Lector de XML)');
+      else if (!o) obs.push('fuera de las fechas elegidas');
+      if (x.pg === null) obs.push('<b class="sube">no está en Ingreso de facturas</b>');
+      else if (d && Math.abs(x.pg - xt) > 0.5) obs.push(`monto en Pagos distinto al XML (${mil(r2(x.pg - xt))})`);
+      if (o && o.sinE) obs.push(`S/ ${mil(o.sinE)} sin emparejar`);
+      if (o && o.ign) obs.push(`S/ ${mil(o.ign)} marcado "no es producto"`);
+      if (d && o && Math.abs(xt - o.cont - o.sinE - o.ign) > 0.5) obs.push(`S/ ${mil(r2(xt - o.cont - o.sinE - o.ign))} del total del XML no está en sus productos (percepción, flete u otro cargo)`);
+      return { ...x, xt, ct, dif: r2((x.pg || 0) - ct), obs };
+    }).sort((a, b) => String(a.f).localeCompare(String(b.f)) || a.doc.localeCompare(b.doc));
+    const T = (k) => r2(lista.reduce((a, x) => a + (Number(x[k]) || 0), 0)), conDif = lista.filter((x) => Math.abs(x.dif) > 0.5);
+    return `<details${conDif.length ? ' open' : ''}><summary><b>Cuadre con Ingreso de facturas (Pagos)</b> · Pagos S/ ${mil(T('pg'))} · XML S/ ${mil(T('xt'))} · contado en rebate S/ ${mil(T('ct'))} · <b class="${Math.abs(T('dif')) > 0.5 ? 'sube' : ''}">diferencia S/ ${mil(T('dif'))}</b>${conDif.length ? ` en ${conDif.length} factura(s)` : ' · cuadra'}</summary>` +
+      '<div class="tabla" style="max-height:50vh;overflow:auto"><table><thead><tr><th>Factura</th><th>Fecha</th><th class="num">En Pagos</th><th class="num">Total XML</th><th class="num">Contado en rebate</th><th class="num">Diferencia</th><th>Motivo</th></tr></thead><tbody>' +
+      lista.map((x) => `<tr${Math.abs(x.dif) > 0.5 ? ' style="background:#fff7e6"' : ''}><td>${esc(x.doc)}</td><td>${esc(dia(x.f))}</td><td class="num">${x.pg === null ? '—' : mil(x.pg)}</td><td class="num">${x.xt === null ? '—' : mil(x.xt)}</td><td class="num">${mil(x.ct)}</td><td class="num"><b>${Math.abs(x.dif) > 0.5 ? mil(x.dif) : ''}</b></td><td>${x.obs.join(' · ')}</td></tr>`).join('') +
+      `</tbody><tfoot><tr class="tot"><td colspan="2">TOTAL (${lista.length})</td><td class="num">${mil(T('pg'))}</td><td class="num">${mil(T('xt'))}</td><td class="num">${mil(T('ct'))}</td><td class="num">${mil(T('dif'))}</td><td></td></tr></tfoot></table></div></details>`;
   }
   function rbPintar() {
     const caja = $('rbCont'); if (!caja) return;
@@ -9102,6 +9139,7 @@
       `<div class="kpi" style="border-color:var(--marca);background:var(--suave)"><b>${rb.lab ? esc(rb.lab) : 'Neto comprado'}</b><strong>S/ ${mil(tot.t)}</strong><small>con IGV · sin IGV S/ ${mil(tot.v)}</small></div>` +
       `<div class="kpi"${C.sin.length ? ' style="border-color:#e0a800"' : ''}><b>Sin emparejar</b><strong>${C.sin.length}</strong><small>S/ ${mil(sinV)} sin IGV (no suman)</small></div>` +
       '</div>' +
+      rbCuadre(C) +
       `<h3 class="sub">Por laboratorio <span class="quien">clic para ver sus productos</span></h3><div class="tabla" style="max-height:280px;overflow:auto"><table><thead><tr><th>Laboratorio</th><th class="num">Productos</th><th class="num">Unidades netas</th><th class="num">Neto sin IGV</th><th class="num">Neto con IGV</th></tr></thead><tbody>` +
       C.labs.map((x) => `<tr class="click${x.l === rb.lab ? ' sel' : ''}" data-lab="${esc(x.l)}"${x.l === rb.lab ? ' style="background:var(--suave)"' : ''}><td><b>${esc(x.l)}</b></td><td class="num">${x.n}</td><td class="num">${q3(x.q)}</td><td class="num">${mil(x.v)}</td><td class="num">${mil(x.t)}</td></tr>`).join('') + '</tbody></table></div>' +
       `<h3 class="sub">Productos${rb.lab ? ' · ' + esc(rb.lab) : ''}</h3><div class="tabla" style="max-height:60vh;overflow:auto"><table><thead><tr><th>Código</th><th>Producto</th><th>Laboratorio</th><th class="num">Comprado</th><th class="num">NC (devuelto)</th><th class="num">Cantidad neta</th><th class="num">Bonif.</th><th class="num">Neto sin IGV</th><th class="num">Neto con IGV</th></tr></thead><tbody>` +
