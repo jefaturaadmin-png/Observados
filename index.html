@@ -8941,13 +8941,14 @@
     }).filter(Boolean).sort((a, b) => b.s - a.s).slice(0, 3);
   }
   /* Kardex de LolFar: las compras (CARGO COMPRA) de cada factura, guardadas por mes en rebKdx/{AAAA-MM}:
-     f: { 'SERIE-NUM': { p: proveedor, l: [[numkar, código, producto, cantidad, costo, unid. por caja]] } }.
+     f: { 'SERIE-NUM': { p: proveedor, l: ['numkar⇥código⇥producto⇥cantidad⇥costo⇥unid. por caja', …] } } (Firestore no admite listas dentro de listas).
      Un producto del XML se busca primero entre los de su MISMA factura en el kardex (nombre, cantidad e importe). */
   const rbFacK = (serie, num) => `${String(serie || '').trim().toUpperCase()}-${Number(String(num || '').replace(/\D/g, '')) || String(num || '').trim()}`;
   async function rbKdxCargar() {
     if (rb.kdx) return;
     rb.kdx = new Map(); rb.kcache = new Map(); rb.kLearn = new Map();
-    try { const s = await getDocs(collection(db, 'rebKdx')); s.docs.forEach((d) => Object.entries(d.data().f || {}).forEach(([k, v]) => rb.kdx.set(k, v))); }
+    const fila = (r) => { const x = Array.isArray(r) ? r : String(r).split('\t'); return [String(x[0]), String(x[1]), String(x[2] || ''), Number(x[3]) || 0, Number(x[4]) || 0, Number(x[5]) || 1]; };
+    try { const s = await getDocs(collection(db, 'rebKdx')); s.docs.forEach((d) => Object.entries(d.data().f || {}).forEach(([k, v]) => rb.kdx.set(k, { p: v.p, l: (v.l || []).map(fila) }))); }
     catch (e) { rb.kdxErr = 'No se pudo leer el kardex guardado (' + errorTexto(e) + '). Revisa que las reglas de Firestore incluyan "rebKdx".'; }
   }
   async function rbKdxSubir(files) {
@@ -8965,7 +8966,7 @@
       compras += 1;
       if (!porMes.has(ym)) porMes.set(ym, {});
       const M = porMes.get(ym), fac = M[k] || (M[k] = { p: x[15].trim(), l: [] });
-      fac.l.push([x[24].trim(), cod, x[0].trim(), Number(x[16]) || 0, Number(x[18]) || 0, Number(x[20]) || 1]);
+      fac.l.push([x[24].trim(), cod, x[0].trim().replace(/\t/g, ' '), Number(x[16]) || 0, Number(x[18]) || 0, Number(x[20]) || 1].join('\t'));
     };
     try {
       for (const fl of files) {
@@ -8982,7 +8983,8 @@
       for (const [ym, M] of porMes) { // se junta con lo ya guardado de ese mes (sin repetir movimientos)
         msg('rbMsg', `Guardando las compras de ${ym}…`, 'ok');
         const ref = doc(db, 'rebKdx', ym), s0 = await getDoc(ref), f0 = s0.exists() ? (s0.data().f || {}) : {};
-        Object.entries(M).forEach(([k, v]) => { const ya = f0[k] || { p: v.p, l: [] }, vistos = new Set(ya.l.map((r) => r[0])); v.l.forEach((r) => { if (!vistos.has(r[0])) { ya.l.push(r); vistos.add(r[0]); } }); ya.p = ya.p || v.p; f0[k] = ya; facs += 1; });
+        const nk = (r) => String(r).split('\t')[0];
+        Object.entries(M).forEach(([k, v]) => { const ya = f0[k] || { p: v.p, l: [] }; ya.l = (ya.l || []).map((r) => (Array.isArray(r) ? r.join('\t') : String(r))); const vistos = new Set(ya.l.map(nk)); v.l.forEach((r) => { if (!vistos.has(nk(r))) { ya.l.push(r); vistos.add(nk(r)); } }); ya.p = ya.p || v.p; f0[k] = ya; facs += 1; });
         await setDoc(ref, { f: f0, act: serverTimestamp(), por: firma() });
       }
       rb.kdx = null; rb.cache.clear(); await rbKdxCargar();
