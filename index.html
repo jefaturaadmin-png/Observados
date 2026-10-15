@@ -228,6 +228,14 @@
 
   dialog { border:none; border-radius:14px; padding:0; width:min(780px, 94vw); max-height:90vh; color:inherit; }
   dialog::backdrop { background:rgba(0,0,0,.45); }
+  #dlgCom { width:min(560px, 94vw); }
+  #dlgCom .comSub { color:var(--gris); font-size:13px; margin:-4px 0 12px; }
+  #dlgCom .comOps { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+  #dlgCom .comOp { border-radius:999px; padding:7px 14px; font-size:14px; background:#fff; }
+  #dlgCom .comOp.sel { background:#e8f5e9; border-color:#2e7d32; color:#1b5e20; font-weight:600; }
+  #dlgCom textarea { width:100%; min-height:110px; font-size:15px; padding:10px; border-radius:10px; resize:vertical; box-sizing:border-box; }
+  #dlgCom .comPie { display:flex; gap:8px; justify-content:flex-end; margin-top:14px; flex-wrap:wrap; }
+  #dlgCom .comPie .comQuitar { margin-right:auto; color:#b3261e; }
   .dcab { display:flex; align-items:center; padding:14px 18px; border-bottom:1px solid var(--borde); gap:10px; }
   .dcab h2 { margin:0; font-size:17px; flex:1; }
   .dcuerpo { padding:16px 18px; overflow-y:auto; }
@@ -906,6 +914,16 @@
 <dialog id="dlg">
   <div class="dcab"><h2 id="dTit"></h2><button id="dCerrar">Cerrar</button></div>
   <div class="dcuerpo" id="dCuerpo"></div>
+</dialog>
+
+<dialog id="dlgCom">
+  <div class="dcab"><h2 id="comTit">Comentario u observación</h2><button id="comCerrar">Cerrar</button></div>
+  <div class="dcuerpo">
+    <div class="comSub" id="comSub"></div>
+    <div class="campo"><label>Marca lo que corresponda</label><div class="comOps" id="comOps"></div></div>
+    <div class="campo"><label for="comTxt">Comentario (opcional)</label><textarea id="comTxt" maxlength="400" placeholder="Escribe aquí algún detalle: guía, fecha, persona que recogió…"></textarea></div>
+    <div class="comPie"><button id="comQuitar" class="comQuitar">Quitar mi comentario</button><button id="comCancelar">Cancelar</button><button id="comOk" class="pri">Guardar</button></div>
+  </div>
 </dialog>
 
 <dialog id="dlgClave">
@@ -4200,13 +4218,35 @@
       return true;
     });
   }
+  // Ventana para comentar una factura en Observaciones: opciones rápidas para marcar + texto libre.
+  // Se guarda como un solo texto ("Ya se devolvió · Ya se distribuyó · detalle"), igual que antes.
+  const COM_OPS = ['Ya se devolvió', 'Ya se distribuyó', 'Se queda en farmacia', 'Proveedor recogerá', 'Esperando nota de crédito', 'Ya llegó la NC', 'Se refacturó'];
+  function comentarDlg(sub, previo) {
+    return new Promise((fin) => {
+      const d = $('dlgCom'), partes = String(previo || '').split(' · ').map((x) => x.trim()).filter(Boolean);
+      const marcadas = new Set(partes.filter((x) => COM_OPS.includes(x)));
+      $('comSub').textContent = sub;
+      $('comTxt').value = partes.filter((x) => !COM_OPS.includes(x)).join(' · ');
+      $('comOps').innerHTML = COM_OPS.map((o) => `<button type="button" class="comOp${marcadas.has(o) ? ' sel' : ''}" data-o="${esc(o)}">${marcadas.has(o) ? '✓ ' : ''}${esc(o)}</button>`).join('');
+      $('comQuitar').classList.toggle('oculto', !previo);
+      let r = null;
+      const cerrar = (v) => { r = v; d.close(); };
+      $('comOps').onclick = (e) => { const b = e.target.closest('.comOp'); if (!b) return; const o = b.dataset.o; if (marcadas.has(o)) marcadas.delete(o); else marcadas.add(o); b.classList.toggle('sel', marcadas.has(o)); b.textContent = (marcadas.has(o) ? '✓ ' : '') + o; };
+      $('comOk').onclick = () => cerrar([...COM_OPS.filter((o) => marcadas.has(o)), $('comTxt').value.trim()].filter(Boolean).join(' · '));
+      $('comQuitar').onclick = () => cerrar('');
+      $('comCancelar').onclick = $('comCerrar').onclick = () => cerrar(null);
+      d.addEventListener('close', () => fin(r), { once: true });
+      d.showModal();
+      $('comTxt').focus();
+    });
+  }
   $('gv_cruce').addEventListener('click', async (e) => { // ir a la factura en la grilla
     const bc = e.target.closest('.obsComEd');
     if (bc) { // comentario de esa factura
       const c = obsCom.get(bc.dataset.id) || {}, k = bc.dataset.k, propio = k === '' ? (c.por === firma() ? { t: c.t } : null) : ((c.lst || {})[k] || null);
       if (k !== '' && k !== yo.uid) return; // solo se cambia el comentario propio
       if (k === '' && c.por !== firma()) return;
-      const t = prompt(`Tu comentario para la factura ${bc.dataset.doc} (${distDe(bc.dataset.dk).nombre}). Déjalo vacío para quitarlo.`, propio ? propio.t : '');
+      const t = await comentarDlg(`Factura ${bc.dataset.doc} · ${distDe(bc.dataset.dk).nombre}`, propio ? propio.t : '');
       if (t === null) return;
       const v = t.trim().slice(0, 500), ref = doc(db, 'obsCom', bc.dataset.id);
       try {
