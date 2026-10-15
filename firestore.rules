@@ -137,6 +137,11 @@ service cloud.firestore {
       allow read: if puede('verReb');
       allow write: if puede('reb');
     }
+    // Rebate: compras del kardex de LolFar por factura (un documento por mes)
+    match /rebKdx/{mes} {
+      allow read: if puede('verReb');
+      allow write: if puede('reb');
+    }
     // XML que llegan por correo (los deja el script de Gmail). La página los lee y marca el resultado.
     match /xmlBuzon/{id} {
       allow read: if puede('verXml');

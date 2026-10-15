@@ -803,9 +803,10 @@
         <label style="margin:0" for="rbHasta">Hasta</label><input type="month" id="rbHasta" style="width:auto">
         <label style="margin:0" for="rbLab">Laboratorio</label><input id="rbLab" list="rbLabs" placeholder="Todos" style="width:220px">
         <input id="rbTxt" placeholder="Buscar producto o código" style="flex:1;min-width:180px">
-        <button id="rbQuitar">Quitar filtros</button><button class="pri" id="rbExcel">Excel</button>
+        <button id="rbQuitar">Quitar filtros</button><button id="rbKdxBtn" title="El mismo TXT de movimientos (kardex) de LolFar: se toman solo las compras (CARGO COMPRA) con su número de factura, para emparejar cada producto del XML con el de esa misma factura">Subir kardex LolFar (.TXT)</button><input type="file" id="rbKdxArch" accept=".txt,.TXT" multiple class="oculto"><button class="pri" id="rbExcel">Excel</button>
       </div>
       <datalist id="rbLabs"></datalist><datalist id="rbCatL"></datalist>
+      <div id="rbMsg"></div>
       <div id="rbCont"></div>
     </div>
     <!-- ===== 9. COTIZACIONES ===== -->
@@ -8939,10 +8940,80 @@
       return { p, s: inter / uni + (labOk ? 0.15 : 0) + (marca && p.t.has(marca) ? 0.25 : 0) - (numOk ? 0 : 0.15) };
     }).filter(Boolean).sort((a, b) => b.s - a.s).slice(0, 3);
   }
-  function rbCodigo(ruc, l) { // { c, auto } · { ign } · null (sin emparejar)
+  /* Kardex de LolFar: las compras (CARGO COMPRA) de cada factura, guardadas por mes en rebKdx/{AAAA-MM}:
+     f: { 'SERIE-NUM': { p: proveedor, l: [[numkar, código, producto, cantidad, costo, unid. por caja]] } }.
+     Un producto del XML se busca primero entre los de su MISMA factura en el kardex (nombre, cantidad e importe). */
+  const rbFacK = (serie, num) => `${String(serie || '').trim().toUpperCase()}-${Number(String(num || '').replace(/\D/g, '')) || String(num || '').trim()}`;
+  async function rbKdxCargar() {
+    if (rb.kdx) return;
+    rb.kdx = new Map(); rb.kcache = new Map(); rb.kLearn = new Map();
+    try { const s = await getDocs(collection(db, 'rebKdx')); s.docs.forEach((d) => Object.entries(d.data().f || {}).forEach(([k, v]) => rb.kdx.set(k, v))); }
+    catch (e) { rb.kdxErr = 'No se pudo leer el kardex guardado (' + errorTexto(e) + '). Revisa que las reglas de Firestore incluyan "rebKdx".'; }
+  }
+  async function rbKdxSubir(files) {
+    const porMes = new Map(); let filas = 0, compras = 0;
+    const linea = (t) => {
+      if (!t || t.startsWith('despro')) return;
+      let x = t.split('\t');
+      if (x.length > 34) x = [...x.slice(0, 15), x.slice(15, x.length - 18).join(' '), ...x.slice(x.length - 18)]; // nombre del cliente partido por tabulaciones
+      if (x.length !== 34) return;
+      filas += 1;
+      if (x[3].trim() !== 'CC') return; // solo CARGO COMPRA
+      const f = /^\s*(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(x[26] || x[8]) || /^\s*(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(x[8]); if (!f) return;
+      const ym = `${f[3]}-${f[2].padStart(2, '0')}`, k = rbFacK(x[23], x[12]), cod = x[25].trim();
+      if (!cod || !x[12].trim()) return;
+      compras += 1;
+      if (!porMes.has(ym)) porMes.set(ym, {});
+      const M = porMes.get(ym), fac = M[k] || (M[k] = { p: x[15].trim(), l: [] });
+      fac.l.push([x[24].trim(), cod, x[0].trim(), Number(x[16]) || 0, Number(x[18]) || 0, Number(x[20]) || 1]);
+    };
+    try {
+      for (const fl of files) {
+        const lector = fl.stream().pipeThrough(new TextDecoderStream('windows-1252')).getReader(); let resto = '', leidos = 0;
+        for (;;) {
+          const { value, done } = await lector.read(); if (done) break;
+          leidos += value.length; msg('rbMsg', `Leyendo ${fl.name}… ${Math.min(99, Math.round(leidos / fl.size * 100))} %`, 'ok');
+          const partes = (resto + value).split(/\r?\n/); resto = partes.pop(); partes.forEach(linea);
+        }
+        if (resto) linea(resto);
+      }
+      if (!compras) { msg('rbMsg', `El archivo no trae compras (CARGO COMPRA)${filas ? '' : ': no parece el kardex de LolFar'}.`); return; }
+      let facs = 0;
+      for (const [ym, M] of porMes) { // se junta con lo ya guardado de ese mes (sin repetir movimientos)
+        msg('rbMsg', `Guardando las compras de ${ym}…`, 'ok');
+        const ref = doc(db, 'rebKdx', ym), s0 = await getDoc(ref), f0 = s0.exists() ? (s0.data().f || {}) : {};
+        Object.entries(M).forEach(([k, v]) => { const ya = f0[k] || { p: v.p, l: [] }, vistos = new Set(ya.l.map((r) => r[0])); v.l.forEach((r) => { if (!vistos.has(r[0])) { ya.l.push(r); vistos.add(r[0]); } }); ya.p = ya.p || v.p; f0[k] = ya; facs += 1; });
+        await setDoc(ref, { f: f0, act: serverTimestamp(), por: firma() });
+      }
+      rb.kdx = null; rb.cache.clear(); await rbKdxCargar();
+      msg('rbMsg', `Kardex leído: ${compras.toLocaleString('es-PE')} compras de ${facs.toLocaleString('es-PE')} facturas (${[...porMes.keys()].sort().join(', ')}). Los productos se emparejan con los de su misma factura.`, 'ok');
+      rbPintar();
+    } catch (e) { msg('rbMsg', 'No se pudo leer el kardex: ' + (e.code === 'permission-denied' ? 'faltan las reglas de Firestore para "rebKdx".' : errorTexto(e))); }
+  }
+  const rbSim = (a, b) => { const A = new Set(rbToks(a).filter((t) => t.length > 2 || /^\d/.test(t))), B = new Set(rbToks(b).filter((t) => t.length > 2 || /^\d/.test(t))); let n = 0; A.forEach((t) => { if (B.has(t)) n += 1; }); return A.size && B.size ? n / Math.min(A.size, B.size) : 0; };
+  function rbKdxDoc(d) { // código de cada línea del XML según el kardex de su misma factura: [código | '']
+    if (rb.kcache.has(d.k)) return rb.kcache.get(d.k);
+    const kd = /CR[EÉ]DITO/.test(d.tipo) ? null : rb.kdx.get(rbFacK(d.serie, d.num)), out = (d.lineas || []).map(() => '');
+    if (kd) {
+      const pares = [];
+      (d.lineas || []).forEach((l, i) => kd.l.forEach((c, j) => {
+        const xq = Number(l.cant) || 0, val = Number(l.valor) || 0, kv = c[3] * c[4];
+        const qOk = xq > 0 && (Math.abs(xq - c[3]) < 0.01 || Math.abs(xq - c[3] * c[5]) < 0.01), vOk = val > 0 && kv > 0 && Math.abs(val - kv) / val < 0.03;
+        const sc = rbSim(l.desc, c[2]) + (qOk ? 0.5 : 0) + (vOk ? 0.5 : 0);
+        if (sc >= 0.6) pares.push({ i, j, sc });
+      }));
+      const usI = new Set(), usJ = new Set();
+      pares.sort((a, b) => b.sc - a.sc).forEach((x) => { if (usI.has(x.i) || usJ.has(x.j)) return; usI.add(x.i); usJ.add(x.j); const c = kd.l[x.j]; out[x.i] = c[1]; if (!rb.porC.has(c[1])) rb.porC.set(c[1], { c: c[1], n: c[2], l: '' }); });
+    }
+    rb.kcache.set(d.k, out);
+    return out;
+  }
+  function rbCodigo(ruc, l, kc) { // { c, auto | kdx } · { ign } · null (sin emparejar)
     const k = rbClave(l), m = (rb.maps.get(ruc) || {})[k];
     if (m === '-') return { ign: true, k };
     if (m && rb.porC.has(m)) return { c: m, k };
+    if (kc) { rb.kLearn.set(ruc + '|' + k, kc); return { c: kc, kdx: true, k }; } // el mismo producto en el kardex de esa factura
+    if (rb.kLearn.has(ruc + '|' + k)) return { c: rb.kLearn.get(ruc + '|' + k), kdx: true, k }; // aprendido de otra factura
     const ck = ruc + '|' + k;
     if (!rb.cache.has(ck)) { const r = rbBuscar(l.desc); const ok = r[0] && r[0].s >= 0.7 && (!r[1] || r[0].s - r[1].s >= 0.2); rb.cache.set(ck, { sug: r, c: ok ? r[0].p.c : '' }); }
     const x = rb.cache.get(ck);
@@ -8953,6 +9024,7 @@
     if (!rb.docs || !rb.cat) caja.innerHTML = '<p class="resumen">Cargando los XML y el catálogo de productos…</p>';
     try {
       await rbCatalogo();
+      await rbKdxCargar();
       if (!rb.docs) { const s = await sincroDocs('xmlf'); rb.docs = s.docs.map((d) => ({ k: d.id, ...d.data() })); }
     } catch (e) { rb.err = errorTexto(e); }
     const provs = new Map();
@@ -8978,12 +9050,13 @@
     const ruc = rb.prov, P = new Map(), S = new Map(), lab = rb.lab.trim().toUpperCase(), t = rb.txt.trim().toUpperCase();
     let docs = 0, nFa = 0, nNc = 0;
     (rb.docs || []).filter((d) => d.emisor && d.emisor.ruc === ruc && (!rb.desde || String(d.fecha).slice(0, 7) >= rb.desde) && (!rb.hasta || String(d.fecha).slice(0, 7) <= rb.hasta)).forEach((d) => {
-      const sg = /CR[EÉ]DITO/.test(d.tipo) ? -1 : 1; docs += 1; if (sg < 0) nNc += 1; else nFa += 1;
-      (d.lineas || []).forEach((l) => {
-        const q = Number(l.cant) || 0, v = Number(l.valor) || 0, tt = l.total === null || l.total === undefined ? v : Number(l.total) || 0, x = rbCodigo(ruc, l);
+      const sg = /CR[EÉ]DITO/.test(d.tipo) ? -1 : 1, kds = rbKdxDoc(d); docs += 1; if (sg < 0) nNc += 1; else nFa += 1;
+      (d.lineas || []).forEach((l, i) => {
+        const q = Number(l.cant) || 0, v = Number(l.valor) || 0, tt = l.total === null || l.total === undefined ? v : Number(l.total) || 0, x = rbCodigo(ruc, l, kds[i]);
         if (x.ign) return;
         if (!x.c) { const u = S.get(x.k) || { k: x.k, cod: l.cod, desc: l.desc, n: 0, q: 0, v: 0, sug: x.sug }; u.n += 1; u.q += sg * q; u.v = r2(u.v + sg * v); S.set(x.k, u); return; }
-        const p = rb.porC.get(x.c), a = P.get(x.c) || { c: x.c, n: p.n, l: p.l, qc: 0, qn: 0, qb: 0, v: 0, t: 0, auto: false, items: new Map() };
+        const p = rb.porC.get(x.c), a = P.get(x.c) || { c: x.c, n: p.n, l: p.l, qc: 0, qn: 0, qb: 0, v: 0, t: 0, auto: false, kdx: false, items: new Map() };
+        if (x.kdx) a.kdx = true;
         if (sg > 0 && v === 0) a.qb += q; else if (sg > 0) a.qc += q; else a.qn += q;
         if (!(sg > 0 && v === 0)) { a.v = r2(a.v + sg * v); a.t = r2(a.t + sg * tt); }
         if (x.auto) { a.auto = true; if (!a.items.has(x.k)) a.items.set(x.k, { k: x.k, cod: l.cod, desc: l.desc, sug: x.sug, c: x.c }); }
@@ -9006,8 +9079,8 @@
     const sel = (u) => `<div class="rbElegir">${(u.sug || []).length ? `<select class="rbSug">${u.sug.map((s) => `<option value="${esc(s.p.c)}"${s.p.c === u.c ? ' selected' : ''}>${esc(`${s.p.c} · ${s.p.n} · ${s.p.l}`)}</option>`).join('')}<option value="">— ninguno de estos: buscar abajo —</option></select>` : '<span class="quien">Sin sugerencias: búscalo abajo</span>'}<input class="rbPick" list="rbCatL" placeholder="O busca en el catálogo: código o nombre"></div>`;
     const filaSin = (u, auto) => `<tr data-k="${esc(u.k)}"><td><b>${esc(u.desc)}</b>${u.cod ? `<div class="quien">Cód. proveedor ${esc(u.cod)}</div>` : ''}</td>${auto ? '' : `<td class="num">${u.n}</td><td class="num">${q3(u.q)}</td><td class="num">${mil(u.v)}</td>`}<td style="min-width:320px">${ed ? sel(u) : esc((u.sug || []).map((s) => s.p.n).join(' / '))}</td>` +
       `<td style="white-space:nowrap">${ed ? `<button class="mini pri rbUsar">${auto ? 'Confirmar' : 'Usar'}</button> <button class="mini rbIgn" title="No es un producto (descuento, flete, etc.): no se cuenta">No es producto</button>` : ''}</td></tr>`;
-    caja.innerHTML = (rb.err ? `<div class="msg err">${esc(rb.err)}</div>` : '') + '<div id="rbMsg"></div>' +
-      (!rb.cat.length ? '<div class="msg err">No se pudo cargar el catálogo de productos. Súbelo en Productos (administrador).</div>' : `<p class="quien" style="margin:0 0 8px">Catálogo: ${rb.cat.length.toLocaleString('es-PE')} productos (${esc(rb.fuente || '')})</p>`) +
+    caja.innerHTML = (rb.err ? `<div class="msg err">${esc(rb.err)}</div>` : '') +
+      (!rb.cat.length ? '<div class="msg err">No se pudo cargar el catálogo de productos. Súbelo en Productos (administrador).</div>' : `<p class="quien" style="margin:0 0 8px">Catálogo: ${rb.cat.length.toLocaleString('es-PE')} productos (${esc(rb.fuente || '')}) · Kardex LolFar: ${rb.kdx && rb.kdx.size ? `${rb.kdx.size.toLocaleString('es-PE')} facturas de compra` : 'sin cargar (súbelo para emparejar por factura)'}</p>`) + (rb.kdxErr ? `<div class="msg err">${esc(rb.kdxErr)}</div>` : '') +
       '<div class="kpis">' +
       `<div class="kpi"><b>Documentos</b><strong>${C.docs}</strong><small>${C.nFa} facturas · ${C.nNc} notas de crédito</small></div>` +
       `<div class="kpi" style="border-color:var(--marca);background:var(--suave)"><b>${rb.lab ? esc(rb.lab) : 'Neto comprado'}</b><strong>S/ ${mil(tot.v)}</strong><small>sin IGV · con IGV S/ ${mil(tot.t)}</small></div>` +
@@ -9018,7 +9091,7 @@
       `<h3 class="sub">Por laboratorio <span class="quien">clic para ver sus productos</span></h3><div class="tabla" style="max-height:280px;overflow:auto"><table><thead><tr><th>Laboratorio</th><th class="num">Productos</th><th class="num">Unidades netas</th><th class="num">Neto sin IGV</th><th class="num">Neto con IGV</th></tr></thead><tbody>` +
       C.labs.map((x) => `<tr class="click${x.l === rb.lab ? ' sel' : ''}" data-lab="${esc(x.l)}"${x.l === rb.lab ? ' style="background:var(--suave)"' : ''}><td><b>${esc(x.l)}</b></td><td class="num">${x.n}</td><td class="num">${q3(x.q)}</td><td class="num">${mil(x.v)}</td><td class="num">${mil(x.t)}</td></tr>`).join('') + '</tbody></table></div>' +
       `<h3 class="sub">Productos${rb.lab ? ' · ' + esc(rb.lab) : ''}</h3><div class="tabla" style="max-height:60vh;overflow:auto"><table><thead><tr><th>Código</th><th>Producto</th><th>Laboratorio</th><th class="num">Comprado</th><th class="num">NC (devuelto)</th><th class="num">Cantidad neta</th><th class="num">Bonif.</th><th class="num">Neto sin IGV</th><th class="num">Neto con IGV</th></tr></thead><tbody>` +
-      (C.prods.map((a) => `<tr><td>${esc(a.c)}</td><td>${esc(a.n)}${a.auto ? ' <span class="est e0" title="Emparejado automáticamente: revísalo abajo">auto</span>' : ''}</td><td>${esc(a.l)}</td><td class="num">${q3(a.qc)}</td><td class="num">${a.qn ? q3(-a.qn) : ''}</td><td class="num"><b>${q3(a.qc - a.qn)}</b></td><td class="num">${a.qb ? q3(a.qb) : ''}</td><td class="num"><b>${mil(a.v)}</b></td><td class="num">${mil(a.t)}</td></tr>`).join('') || '<tr><td colspan="9" class="vacio">Sin productos con estos filtros</td></tr>') +
+      (C.prods.map((a) => `<tr><td>${esc(a.c)}</td><td>${esc(a.n)}${a.auto ? ' <span class="est e0" title="Emparejado automáticamente: revísalo abajo">auto</span>' : (a.kdx ? ' <span class="est e2" title="Emparejado con el kardex de LolFar: el mismo producto en la misma factura">factura</span>' : '')}</td><td>${esc(a.l)}</td><td class="num">${q3(a.qc)}</td><td class="num">${a.qn ? q3(-a.qn) : ''}</td><td class="num"><b>${q3(a.qc - a.qn)}</b></td><td class="num">${a.qb ? q3(a.qb) : ''}</td><td class="num"><b>${mil(a.v)}</b></td><td class="num">${mil(a.t)}</td></tr>`).join('') || '<tr><td colspan="9" class="vacio">Sin productos con estos filtros</td></tr>') +
       `</tbody><tfoot><tr class="tot"><td colspan="3">TOTAL${rb.lab ? ' ' + esc(rb.lab) : ''}</td><td class="num">${q3(tot.qc)}</td><td class="num">${tot.qn ? q3(-tot.qn) : ''}</td><td class="num">${q3(tot.qc - tot.qn)}</td><td class="num">${tot.qb ? q3(tot.qb) : ''}</td><td class="num">${mil(tot.v)}</td><td class="num">${mil(tot.t)}</td></tr></tfoot></table></div>` +
       (C.sin.length ? `<h3 class="sub">Productos del XML sin emparejar (${C.sin.length}) <span class="quien">elige el producto del catálogo; queda guardado para los siguientes XML de este proveedor</span></h3><div class="tabla" style="max-height:60vh;overflow:auto"><table><thead><tr><th>Descripción en el XML</th><th class="num">Líneas</th><th class="num">Cantidad</th><th class="num">Sin IGV</th><th>Producto del catálogo</th><th></th></tr></thead><tbody>${C.sin.map((u) => filaSin(u)).join('')}</tbody></table></div>` : '') +
       (autos.length ? `<details${rb.verAuto ? ' open' : ''} id="rbAutoD"><summary><b>Emparejados automáticamente (${autos.length})</b> · revisa y confirma${ed ? ' <button class="mini" id="rbConfTodo">Confirmar todos</button>' : ''}</summary><div class="tabla" style="max-height:60vh;overflow:auto"><table><thead><tr><th>Descripción en el XML</th><th>Producto del catálogo</th><th></th></tr></thead><tbody>${autos.map((u) => filaSin(u, true)).join('')}</tbody></table></div></details>` : '');
@@ -9028,6 +9101,8 @@
   $('rbLab').addEventListener('change', (e) => { rb.lab = e.target.value; rbPintar(); });
   $('rbTxt').addEventListener('input', (e) => { rb.txt = e.target.value; clearTimeout(rb.tm); rb.tm = setTimeout(rbPintar, 250); });
   $('rbQuitar').addEventListener('click', () => { rb.lab = ''; rb.txt = ''; rb.desde = ''; rb.hasta = ''; ['rbLab', 'rbTxt', 'rbDesde', 'rbHasta'].forEach((id) => { $(id).value = ''; }); rbPintar(); });
+  $('rbKdxBtn').addEventListener('click', () => { if (!puede('reb')) { msg('rbMsg', 'No tienes permiso para emparejar productos.'); return; } $('rbKdxArch').click(); });
+  $('rbKdxArch').addEventListener('change', (e) => { const fs = [...e.target.files]; e.target.value = ''; if (fs.length) rbKdxSubir(fs); });
   $('rbExcel').addEventListener('click', () => {
     const C = rbCalc();
     exportar(`rebate-${(rb.provs.find((p) => p.ruc === rb.prov) || {}).nom || rb.prov}${rb.lab ? '-' + rb.lab : ''}`, [['Código', 'c'], ['Producto', 'n'], ['Laboratorio', 'l'], ['Comprado', 'qc'], ['NC (devuelto)', (a) => -a.qn], ['Cantidad neta', (a) => a.qc - a.qn], ['Bonificación', 'qb'], ['Neto sin IGV', 'v'], ['Neto con IGV', 't'], ['Emparejado', (a) => (a.auto ? 'automático' : 'confirmado')]], C.prods);
