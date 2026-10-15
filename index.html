@@ -3867,7 +3867,7 @@
       fs.filter((x) => x.fp).forEach((x) => { if (!g.has(x.fp)) g.set(x.fp, []); g.get(x.fp).push(x); });
       [...g.keys()].sort().forEach((k) => {
         const xs = g.get(k), m = r2(xs.reduce((a, x) => a + x.m, 0)), q = r2(xs.reduce((a, x) => a + x.q, 0)), neto = r2(xs.reduce((a, x) => a + x.neto, 0));
-        fila('txt2', [`${fechaLarga(k)} DEL ${k.slice(0, 4)}: ${xs.map((x) => x.doc).join(', ')} · IMPORTE S/${mil(m)}${q ? ` · RET. 3% S/${mil(q)}` : ''} · A PAGAR S/${mil(neto)}${xs.every((x) => x.pg) ? ' · PAGADO' : ''}`]);
+        fila('fpL', [`${fechaLarga(k)} DEL ${k.slice(0, 4)}:`, `IMPORTE S/${mil(m)}${q ? ` · RET. 3% S/${mil(q)}` : ''} · A PAGAR S/${mil(neto)}${xs.every((x) => x.pg) ? ' · PAGADO' : ''}`]);
       });
       const sinF = fs.filter((x) => !x.fp && x.m);
       if (sinF.length) fila('txt2', [`SIN FECHA DE PAGO: ${sinF.map((x) => x.doc).join(', ')}`]);
@@ -3884,13 +3884,21 @@
     R.ncs.forEach((f) => doc1(f));
     fila('tot', ['', '', '', '', 'TOTAL', r2(R.tCompras + R.nCredito), R.cuota === null ? '' : R.cuota]);
     fila('');
-    if (R.dist.pago === 'cuotas' && R.CP) { // cada grupo con sus cuotas
+    const cpFacs = (c) => c.docs.filter((f) => f.t === 'FACTURA');
+    const cpPagos = (c) => cpFacs(c).map((f) => { const r = R.CP.R.get(f.i) || {}; return { fp: f.fp || '', doc: f.d, m: Number(f.m) || 0, q: r.q || 0, neto: r.neto ?? (Number(f.m) || 0), pg: f.pg === true }; });
+    const c1 = R.dist.pago === 'cuotas' && R.CP && R.CP.cuadros.length === 1 ? R.CP.cuadros[0] : null;
+    if (c1 && !c1.n && cpFacs(c1).some((f) => f.fp)) { // un solo grupo pagado por fechas: "en su totalidad" y la fecha programada de cada pago
+      fila('txt1', [`Programación de facturas${mesCompra ? ' del mes de ' + mesCompra : ''} por S/${mil(R.tPagar)} en su totalidad${/^\d{4}-\d{2}$/.test(R.d.per) ? ' para pago en ' + MESES[+R.d.per.slice(5)] : ''}${R.ret ? ` (con retención 3% de S/${mil(Math.abs(R.ret))})` : ''}`]);
+      fila('fpT', ['FECHA PROGRAMADA DE PAGO']);
+      fila('');
+      porFecha(cpPagos(c1));
+    } else if (R.dist.pago === 'cuotas' && R.CP) { // cada grupo con sus cuotas
       fila('txt1', [`Programación de facturas${mesCompra ? ' del mes de ' + mesCompra : ''} por S/${mil(R.tPagar)} por grupos${R.ret ? ` (con retención 3% de S/${mil(Math.abs(R.ret))})` : ''}`]);
       R.CP.cuadros.forEach((c) => {
-        const facs = c.docs.filter((f) => f.t === 'FACTURA'), conFp = !c.n && facs.some((f) => f.fp);
+        const conFp = !c.n && cpFacs(c).some((f) => f.fp);
         fila('txt2', [`${c.g ? cpEtq(c.g) : 'GRUPO ÚNICO'}: S/${mil(c.neto)}${c.n ? ` EN ${c.n} ${c.n === 1 ? 'CUOTA' : 'CUOTAS'}${c.mod ? ' · ' + c.mod : ''}` : (c.est === 'PAGADO' ? ' · PAGADO' : (conFp ? ' · POR FECHA DE PAGO' : ' · FALTA PROGRAMAR'))}${c.retTxt ? ' · ' + c.retTxt : ''}`]);
         c.cuotas.forEach((q) => fila('txt2', [`      CUOTA ${q.n}${q.l ? ' (' + q.l + ')' : ''}: ${q.v ? `${fechaLarga(q.v)} DEL ${q.v.slice(0, 4)}` : 'SIN FECHA'} · S/${mil(q.m)}${q.pg ? ' · PAGADA' : ''}`]));
-        if (conFp) porFecha(facs.map((f) => { const r = R.CP.R.get(f.i) || {}; return { fp: f.fp || '', doc: f.d, m: Number(f.m) || 0, q: r.q || 0, neto: r.neto ?? (Number(f.m) || 0), pg: f.pg === true }; }));
+        if (conFp) porFecha(cpPagos(c));
       });
     } else if (R.dist.pago === 'letras') {
       fila('txt1', [`Programación de facturas${mesCompra ? ' del mes de ' + mesCompra : ''} por S/${mil(R.tPagar)}${R.letras ? ` en ${R.letras} letras C/U de S/${mil(R.cuota)}` : ''}${R.ret ? ` (con retención 3% de S/${mil(Math.abs(R.ret))})` : ''}`]);
@@ -3979,6 +3987,8 @@
         (c[6] === '' || c[6] === undefined ? td('') : td(`S/ ${mil(c[6])}`, AZ + 'font-size:9pt;text-align:center;')) + td('');
       else if (k === 'txt1') h = td(c[0], AZ + 'font-size:11pt;white-space:nowrap;', 8);
       else if (k === 'txt2') h = td(c[0], MO + 'font-size:9pt;white-space:nowrap;', 8);
+      else if (k === 'fpT') h = td(c[0], RO + 'font-size:11pt;white-space:nowrap;', 8);
+      else if (k === 'fpL') h = `<td colspan="8" style="${F}font-size:9pt;white-space:nowrap;"><span style="color:#548235">${esc(c[0])}</span> <span style="${MO}">${esc(c[1])}</span></td>`;
       else if (k === 'obsT') h = td(c[0], RO + 'font-weight:bold;white-space:nowrap;', 8);
       else if (k === 'obs') h = td(c[0], AZ + 'font-size:9pt;') + td(c[1], AZ + 'font-size:9pt;white-space:nowrap;', 4) + td(c[5], AZ + 'font-size:8pt;' + N) +
         td(c[6], (f.ok ? RO : RO + 'font-weight:bold;') + 'font-size:8pt;text-align:center;white-space:nowrap;', 2);
