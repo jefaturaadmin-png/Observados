@@ -193,6 +193,8 @@
   .subnav { display:flex; gap:4px; flex-wrap:wrap; border-bottom:2px solid var(--borde); margin:6px 0 14px; }
   .subnav button { border:none; border-radius:8px 8px 0 0; background:none; color:var(--gris); font-weight:600; padding:8px 14px; }
   .subnav button.act { background:var(--marca); color:#fff; }
+  .rbElegir { display:flex; flex-direction:column; gap:4px; min-width:340px; max-width:520px; }
+  .rbElegir select, .rbElegir input { width:100%; box-sizing:border-box; margin:0; }
   .kpis { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:10px; margin-bottom:12px; }
   .kpi { background:#fff; border:1px solid var(--borde); border-radius:12px; padding:12px 14px; }
   .kpi b { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:var(--gris); margin-bottom:4px; }
@@ -8908,10 +8910,14 @@
   async function rbCatalogo() { // el catálogo de productos de la empresa (el mismo de Abastecimiento); si no se puede, el de Productos
     if (rb.cat) return;
     let lista = [];
-    try { const r = await fetch('https://abastecimiento.fssocorro.com/catalogo.json', { cache: 'no-cache' }); if (r.ok) lista = (await r.json()).map((p) => ({ c: String(p.c), n: String(p.n || ''), l: String(p.ln || p.l || '') })); } catch (e) { console.warn('Catálogo de Abastecimiento:', e); }
+    for (const url of ['https://abastecimiento.fssocorro.com/catalogo.json', 'https://raw.githubusercontent.com/jefaturaadmin-png/socorro-abastecimiento/main/catalogo.json']) { // el de Abastecimiento (su página o GitHub)
+      try { const r = await fetch(url, { cache: 'no-cache' }); if (r.ok) { lista = (await r.json()).map((p) => ({ c: String(p.c), n: String(p.n || ''), l: String(p.ln || p.l || '') })); rb.fuente = 'Abastecimiento'; break; } } catch (e) { console.warn('Catálogo de Abastecimiento:', url, e); }
+    }
     const ya = new Set(lista.map((p) => p.c));
     catalogo.forEach((p) => { if (p.c && !ya.has(p.c)) lista.push({ c: p.c, n: p.n, l: p.l || '' }); });
+    if (!rb.fuente && lista.length) rb.fuente = 'Productos';
     if (!lista.length) {
+      rb.fuente = 'Productos';
       try { const s = await getDocs(collection(db, 'catalogo')); [...s.docs].sort((a, b) => a.id.localeCompare(b.id)).forEach((d) => (d.data().items || []).forEach((x) => { const [c, n, l] = String(x).split('\t'); if (c) lista.push({ c, n, l: l || '' }); })); } catch (e) { console.warn('Catálogo:', e); }
     }
     rb.cat = lista.map((p) => ({ ...p, t: new Set(rbToks(p.n)), tl: new Set(rbToks(p.l)) }));
@@ -8923,21 +8929,22 @@
     const [nom, lab] = String(desc || '').split(/\s+-\s+(?=[^-]*$)/), A = new Set(rbToks(lab ? nom : desc)), L = new Set(rbToks(lab || ''));
     const N = rb.cat.length, w = (t) => (/^\d/.test(t) ? 2 : 1) * Math.log(1 + N / (1 + (rb.porTok.get(t) || []).length));
     const cand = new Set(); A.forEach((t) => (rb.porTok.get(t) || []).forEach((i) => cand.add(i)));
-    const numsA = [...A].filter((t) => /^\d/.test(t));
+    const numsA = [...A].filter((t) => /^\d/.test(t)), marca = [...A].find((t) => /^[A-Z]{3,}$/.test(t) && !RB_UNI[t] && !Object.values(RB_UNI).includes(t)); // la primera palabra suele ser la marca
     return [...cand].map((i) => {
-      const p = rb.cat[i]; let inter = 0, uni = 0;
-      new Set([...A, ...p.t]).forEach((t) => { const x = w(t); uni += x; if (A.has(t) && p.t.has(t)) inter += x; });
+      const p = rb.cat[i]; let inter = 0, uni = 0, letras = 0;
+      new Set([...A, ...p.t]).forEach((t) => { const x = w(t); uni += x; if (A.has(t) && p.t.has(t)) { inter += x; if (!/^\d/.test(t) && t.length > 2) letras += 1; } });
+      if (!letras) return null; // solo coinciden números o unidades: no es el mismo producto
       const numOk = [...p.t].filter((t) => /^\d/.test(t)).every((t) => A.has(t)) && numsA.every((t) => p.t.has(t));
       const labOk = L.size ? [...p.tl].some((t) => L.has(t)) : false;
-      return { p, s: inter / uni + (labOk ? 0.15 : 0) - (numOk ? 0 : 0.25) };
-    }).sort((a, b) => b.s - a.s).slice(0, 3);
+      return { p, s: inter / uni + (labOk ? 0.15 : 0) + (marca && p.t.has(marca) ? 0.25 : 0) - (numOk ? 0 : 0.15) };
+    }).filter(Boolean).sort((a, b) => b.s - a.s).slice(0, 3);
   }
   function rbCodigo(ruc, l) { // { c, auto } · { ign } · null (sin emparejar)
     const k = rbClave(l), m = (rb.maps.get(ruc) || {})[k];
     if (m === '-') return { ign: true, k };
     if (m && rb.porC.has(m)) return { c: m, k };
     const ck = ruc + '|' + k;
-    if (!rb.cache.has(ck)) { const r = rbBuscar(l.desc); const ok = r[0] && r[0].s >= 0.6 && (!r[1] || r[0].s - r[1].s >= 0.12); rb.cache.set(ck, { sug: r, c: ok ? r[0].p.c : '' }); }
+    if (!rb.cache.has(ck)) { const r = rbBuscar(l.desc); const ok = r[0] && r[0].s >= 0.7 && (!r[1] || r[0].s - r[1].s >= 0.2); rb.cache.set(ck, { sug: r, c: ok ? r[0].p.c : '' }); }
     const x = rb.cache.get(ck);
     return x.c ? { c: x.c, auto: true, k, sug: x.sug } : { k, sug: x.sug };
   }
@@ -8996,11 +9003,11 @@
     const tot = { qc: 0, qn: 0, qb: 0, v: 0, t: 0 }; C.prods.forEach((a) => { tot.qc += a.qc; tot.qn += a.qn; tot.qb += a.qb; tot.v = r2(tot.v + a.v); tot.t = r2(tot.t + a.t); });
     const sinV = r2(C.sin.reduce((s, u) => s + u.v, 0)), autos = C.todos.filter((a) => a.auto).flatMap((a) => [...a.items.values()]);
     $('rbLabs').innerHTML = C.labs.map((x) => `<option value="${esc(x.l)}">`).join('');
-    const sel = (u) => `<select class="rbSug">${(u.sug || []).map((s) => `<option value="${esc(s.p.c)}"${s.p.c === u.c ? ' selected' : ''}>${esc(`${s.p.c} · ${s.p.n} · ${s.p.l}`)}</option>`).join('')}<option value="">— otro (escribe abajo) —</option></select><input class="rbPick" list="rbCatL" placeholder="Buscar en el catálogo: código o nombre" style="width:100%;margin-top:4px">`;
+    const sel = (u) => `<div class="rbElegir">${(u.sug || []).length ? `<select class="rbSug">${u.sug.map((s) => `<option value="${esc(s.p.c)}"${s.p.c === u.c ? ' selected' : ''}>${esc(`${s.p.c} · ${s.p.n} · ${s.p.l}`)}</option>`).join('')}<option value="">— ninguno de estos: buscar abajo —</option></select>` : '<span class="quien">Sin sugerencias: búscalo abajo</span>'}<input class="rbPick" list="rbCatL" placeholder="O busca en el catálogo: código o nombre"></div>`;
     const filaSin = (u, auto) => `<tr data-k="${esc(u.k)}"><td><b>${esc(u.desc)}</b>${u.cod ? `<div class="quien">Cód. proveedor ${esc(u.cod)}</div>` : ''}</td>${auto ? '' : `<td class="num">${u.n}</td><td class="num">${q3(u.q)}</td><td class="num">${mil(u.v)}</td>`}<td style="min-width:320px">${ed ? sel(u) : esc((u.sug || []).map((s) => s.p.n).join(' / '))}</td>` +
       `<td style="white-space:nowrap">${ed ? `<button class="mini pri rbUsar">${auto ? 'Confirmar' : 'Usar'}</button> <button class="mini rbIgn" title="No es un producto (descuento, flete, etc.): no se cuenta">No es producto</button>` : ''}</td></tr>`;
     caja.innerHTML = (rb.err ? `<div class="msg err">${esc(rb.err)}</div>` : '') + '<div id="rbMsg"></div>' +
-      (!rb.cat.length ? '<div class="msg err">No se pudo cargar el catálogo de productos. Súbelo en Productos (administrador).</div>' : '') +
+      (!rb.cat.length ? '<div class="msg err">No se pudo cargar el catálogo de productos. Súbelo en Productos (administrador).</div>' : `<p class="quien" style="margin:0 0 8px">Catálogo: ${rb.cat.length.toLocaleString('es-PE')} productos (${esc(rb.fuente || '')})</p>`) +
       '<div class="kpis">' +
       `<div class="kpi"><b>Documentos</b><strong>${C.docs}</strong><small>${C.nFa} facturas · ${C.nNc} notas de crédito</small></div>` +
       `<div class="kpi" style="border-color:var(--marca);background:var(--suave)"><b>${rb.lab ? esc(rb.lab) : 'Neto comprado'}</b><strong>S/ ${mil(tot.v)}</strong><small>sin IGV · con IGV S/ ${mil(tot.t)}</small></div>` +
