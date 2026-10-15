@@ -479,7 +479,7 @@
       <div class="navGrupo"><div class=navG>Compras</div><button data-v="vCot" id="tabCot" title="Cotizaciones"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span class="navT">Cotizaciones</span></button></div>
       <div class="navGrupo"><div class=navG>Pagos</div><button data-v="vPagos" id="tabPagos" title="Ingreso de facturas y NC de cada proveedor"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg><span class="navT">Ingreso de facturas y NC</span></button><button data-v="vPagosLf" id="tabPagosLf" class="navHijo" title="Reporte de Lolfar: qué facturas de TODOS los proveedores están en Lolfar pero no registradas aquí"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="navT">Reporte Lolfar y XML</span></button><button data-v="vPagosRes" id="tabPagosRes" title="Resumen de pago de cada proveedor y mes"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg><span class="navT">Resumen de pago</span></button><button data-v="vLetras" id="tabLetras" title="Aprobación de la programación de letras de cada mes"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><polyline points="8 15 11 18 16 12"/></svg><span class="navT">Letras aprobadas</span></button><button data-v="vPagosObs" id="tabPagosObs" title="Facturas observadas y sus notas de crédito"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span class="navT">Observaciones</span></button><button data-v="vResPag" id="tabResPag" title="Resumen de pagos del mes: créditos, distribuidores, proveedores y otros pagos"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg><span class="navT">Resumen general</span></button></div>
       <div class="navGrupo"><div class=navG>Análisis de datos</div><button data-v="vDash" id="tabDash" title="Dashboard"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="navT">Dashboard</span></button></div>
-      <div class="navGrupo"><div class=navG>Herramientas</div><button data-v="vXml" id="tabXml" title="Lector de XML"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg><span class="navT">Lector de XML</span><span class="cuenta oculto" id="nXml"></span></button></div>
+      <div class="navGrupo"><div class=navG>Herramientas</div><button data-v="vXml" id="tabXml" title="Lector de XML"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg><span class="navT">Lector de XML</span><span class="cuenta oculto" id="nXml"></span></button><button data-v="vReb" id="tabReb" title="Rebate: compras por producto y laboratorio según los XML (facturas menos notas de crédito)"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg><span class="navT">Rebate</span></button></div>
       <div class="navGrupo"><div class=navG>Configuración</div><button data-v="vUsuarios" id="tabUsuarios" title="Usuarios"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="navT">Usuarios</span></button><button data-v="vCat" id="tabCat" title="Productos"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg><span class="navT">Productos</span></button><button data-v="vListas" id="tabListas" title="Listas"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span class="navT">Listas</span></button></div>
     </nav>
   </aside>
@@ -793,6 +793,19 @@
       <div class="herr" id="xlAcc"><input id="xlTxt" placeholder="Buscar por número, proveedor, RUC o producto" style="flex:1;min-width:220px"><button id="xlQuitar">Quitar filtros</button><button id="xlAbrir">Abrir o cerrar todos</button><button id="xlExpDoc">Excel de documentos</button><button id="xlExpDet">Excel del detalle de productos</button></div>
       <div id="xlCont"></div>
     </div>
+    <!-- ===== Rebate ===== -->
+    <div id="vReb" class="oculto">
+      <div class="herr">
+        <label style="margin:0" for="rbProv">Proveedor</label><select id="rbProv" style="width:auto;max-width:340px"></select>
+        <label style="margin:0" for="rbDesde">Desde</label><input type="month" id="rbDesde" style="width:auto">
+        <label style="margin:0" for="rbHasta">Hasta</label><input type="month" id="rbHasta" style="width:auto">
+        <label style="margin:0" for="rbLab">Laboratorio</label><input id="rbLab" list="rbLabs" placeholder="Todos" style="width:220px">
+        <input id="rbTxt" placeholder="Buscar producto o código" style="flex:1;min-width:180px">
+        <button id="rbQuitar">Quitar filtros</button><button class="pri" id="rbExcel">Excel</button>
+      </div>
+      <datalist id="rbLabs"></datalist><datalist id="rbCatL"></datalist>
+      <div id="rbCont"></div>
+    </div>
     <!-- ===== 9. COTIZACIONES ===== -->
     <div id="vCot" class="oculto">
       <div class="subnav" id="ctSub"><button data-tv="lista">Cotizaciones</button><button data-tv="ped">Pedidos aprobados</button><button data-tv="prov">Proveedores y códigos</button></div>
@@ -975,12 +988,13 @@
     ['Dashboard', [['verDash', 'Ver el dashboard general de compras (todas las empresas)']]],
     ['Seguimiento de devoluciones', [['verEnt', 'Ver las facturas observadas y si ya se entregaron'], ['ent', 'Marcar entregado / falta entregar']]],
     ['Cotizaciones', [['verCot', 'Ver las cotizaciones y los pedidos aprobados'], ['cot', 'Crear cotizaciones, registrar respuestas y decisiones'], ['cotAprobar', 'Aprobar, observar o rechazar (Gerencia)'], ['cotRec', 'Marcar la llegada de los pedidos (Recepción)']]],
-    ['Lector de XML', [['verXml', 'Ver la información guardada de los XML de facturas'], ['xml', 'Subir XML y eliminar documentos guardados']]]
+    ['Lector de XML', [['verXml', 'Ver la información guardada de los XML de facturas'], ['xml', 'Subir XML y eliminar documentos guardados']]],
+    ['Rebate', [['verReb', 'Ver el reporte de rebate (compras por producto y laboratorio según los XML)'], ['reb', 'Emparejar los productos del XML con el catálogo']]]
   ];
   const PERMISOS = GRUPOS.flatMap((g) => g[1]);
   // Para poder hacer algo en una interfaz hay que poder verla
   const REQUIERE = { pedidos: ['verPedidos'], conformidad: ['verPedidos'], devolver: ['verPend'], decidir: ['verPend'],
-    verPrecios: ['verDev'], parcial: ['verDev'], precios: ['verDev', 'verPrecios'], pagos: ['verPagos'], pagosBorrar: ['verPagos', 'pagos'], precioObs: ['observar'], observarCerrada: ['observar'], cxp: ['verCxp'], cxpBorrar: ['verCxp', 'cxp'], ent: ['verEnt'], cot: ['verCot'], cotAprobar: ['verCot'], cotRec: ['verCot'], xml: ['verXml'] };
+    verPrecios: ['verDev'], parcial: ['verDev'], precios: ['verDev', 'verPrecios'], pagos: ['verPagos'], pagosBorrar: ['verPagos', 'pagos'], precioObs: ['observar'], observarCerrada: ['observar'], cxp: ['verCxp'], cxpBorrar: ['verCxp', 'cxp'], ent: ['verEnt'], cot: ['verCot'], cotAprobar: ['verCot'], cotRec: ['verCot'], xml: ['verXml'], reb: ['verReb'] };
   const POR_AREA = { // lo que viene marcado al elegir el área; el administrador puede cambiarlo
     RECEPCION: ['verPedidos', 'pedidos', 'observar', 'verPend', 'devolver', 'verDev'],
     COMPRAS: ['verPedidos', 'conformidad', 'observar', 'precioObs', 'verPend', 'decidir', 'verDev', 'verPrecios', 'parcial', 'precios'],
@@ -1353,7 +1367,7 @@
   }
   function aplicarPermisos() {
     const admin = yo.area === 'ADMIN';
-    const tabs = { vInicio: true, vPedidos: puede('verPedidos'), vNuevo: puede('observar'), vPend: puede('verPend'), vDev: puede('verDev'), vPagos: puede('verPagos'), vPagosRes: puede('verPagos'), vPagosObs: puede('verPagos') || puede('verObs'), vPagosLf: puede('verPagos'), vLetras: puede('verPagos'), vCxp: false, vResPag: puede('verPagos') || puede('verCxp'), vCierre: false, vProvDocs: false, vRegFac: false, vDash: puede('verDash'), vSeg: puede('verEnt'), vCot: puede('verCot'), vXml: puede('verXml'),
+    const tabs = { vInicio: true, vPedidos: puede('verPedidos'), vNuevo: puede('observar'), vPend: puede('verPend'), vDev: puede('verDev'), vPagos: puede('verPagos'), vPagosRes: puede('verPagos'), vPagosObs: puede('verPagos') || puede('verObs'), vPagosLf: puede('verPagos'), vLetras: puede('verPagos'), vCxp: false, vResPag: puede('verPagos') || puede('verCxp'), vCierre: false, vProvDocs: false, vRegFac: false, vDash: puede('verDash'), vSeg: puede('verEnt'), vCot: puede('verCot'), vXml: puede('verXml'), vReb: puede('verReb'),
       vUsuarios: admin, vCat: admin, vListas: admin };
     $('quien').textContent = `${yo.nombre} · ${yo.area}`;
     // Se ve toda la interfaz; lo que el usuario no tiene habilitado queda con candado y al entrar dice "No tienes acceso"
@@ -1430,7 +1444,7 @@
 
   /* ---------- Navegación ---------- */
   const NAV_DE = { vRegFac: 'vCierre' }; // vistas que comparten un mismo botón del menú
-  const VISTAS = ['vInicio', 'vPedidos', 'vNuevo', 'vPend', 'vDev', 'vPagos', 'vCxp', 'vProvDocs', 'vResPag', 'vLetras', 'vCierre', 'vRegFac', 'vDash', 'vSeg', 'vCot', 'vXml', 'vUsuarios', 'vCat', 'vListas', 'vNada'];
+  const VISTAS = ['vInicio', 'vPedidos', 'vNuevo', 'vPend', 'vDev', 'vPagos', 'vCxp', 'vProvDocs', 'vResPag', 'vLetras', 'vCierre', 'vRegFac', 'vDash', 'vSeg', 'vCot', 'vXml', 'vReb', 'vUsuarios', 'vCat', 'vListas', 'vNada'];
   document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => { ver(b.dataset.v); if (b.dataset.v === 'vPagos' && vista === 'vPagos') pgVer('grid'); }));
   // Pagos a proveedores se abre en tres ventanas del menú (antes eran pestañas dentro del módulo)
   const PG_ALIAS = { vPagosRes: 'res', vPagosObs: 'cruce', vPagosLf: 'lf' };
@@ -1454,6 +1468,7 @@
     if (v === 'vSeg') sgPintar();
     if (v === 'vCot') ctPintar(true);
     if (v === 'vXml') xlAbrirVista();
+    if (v === 'vReb') rbAbrir();
     if (v === 'vCierre') ciAbrir();
     if (v === 'vRegFac') rgAbrir();
     if (v === 'vProvDocs') pdAbrir();
@@ -8881,6 +8896,147 @@
   const IN_DESC = { vProvDocs: 'Todas las facturas y NC de un proveedor, de todos los meses (Pagos y Cuentas por pagar)', vCierre: 'Por mes de pago: cruce con XML, QR y Lolfar. Por fecha de emisión: todo lo facturado y qué falta registrar', vPedidos: 'Registrar facturas recibidas y su conformidad', vNuevo: 'Anotar productos con problema al recibir', vPend: 'Lo observado que falta devolver', vDev: 'Devoluciones hechas y sus notas de crédito',
     vSeg: 'Qué se entregó al proveedor y qué falta', vCot: 'Solicitudes a proveedores y pedidos aprobados', vPagos: 'Facturas, NC y letras de distribuidores', vCxp: 'Demás proveedores, programación y resumen',
     vDash: 'Compras totales y netas, por proveedor y trimestre', vXml: 'Subir XML o ZIP de facturas y ver lo que dicen', vUsuarios: 'Accesos y permisos', vCat: 'Catálogo de productos', vListas: 'Proveedores, laboratorios y motivos' };
+  /* ---------- Rebate: compras por producto y laboratorio desde los XML (facturas − notas de crédito) ----------
+     Cada producto del XML se empareja con el catálogo de la empresa (código y laboratorio). Lo emparejado a mano
+     se guarda por proveedor en rebMap/{ruc} (m: { clave: código o "-" si no es producto }) y sirve para los siguientes XML. */
+  const rb = { cat: null, porC: new Map(), porTok: new Map(), maps: new Map(), cache: new Map(), docs: null, prov: '', desde: '', hasta: '', lab: '', txt: '', verAuto: false, err: '' };
+  const RB_STOP = new Set(['X', 'DE', 'CON', 'Y', 'EN', 'LA', 'EL', 'POR', 'PARA', 'SA', 'SAC', 'S', 'A', 'C', 'CAJA', 'CJ', 'CJA']);
+  const RB_UNI = { MLS: 'ML', MILIGRAMOS: 'MG', GR: 'G', GRS: 'G', GRAMOS: 'G', TABLETAS: 'TAB', TABLETA: 'TAB', TABS: 'TAB', COMP: 'TAB', COMPRIMIDOS: 'TAB', CAPSULAS: 'CAP', CAPS: 'CAP', AMPOLLAS: 'AMP', AMPOLLA: 'AMP', AMPS: 'AMP', UNIDADES: 'UND', UNID: 'UND', UDS: 'UND', UN: 'UND', FRASCO: 'FCO', FRASCOS: 'FCO', SOBRES: 'SOB', SOBRE: 'SOB', JARABE: 'JBE', SUSP: 'SUS', SUSPENSION: 'SUS', CREMA: 'CRE', CR: 'CRE', BLISTER: 'BLI', BL: 'BLI' };
+  const rbToks = (s) => String(s || '').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/(\d)[.,](\d)/g, '$1p$2')
+    .replace(/([A-Z])(?=\d)|(\d)(?=[A-Z])/g, '$1$2 ').split(/[^A-Z0-9p]+/).filter(Boolean).map((t) => RB_UNI[t] || t).filter((t) => !RB_STOP.has(t));
+  const rbClave = (l) => (l.cod ? 'c ' + l.cod : 'd ' + l.desc).toUpperCase().replace(/[^A-Z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120);
+  async function rbCatalogo() { // el catálogo de productos de la empresa (el mismo de Abastecimiento); si no se puede, el de Productos
+    if (rb.cat) return;
+    let lista = [];
+    try { const r = await fetch('https://abastecimiento.fssocorro.com/catalogo.json', { cache: 'no-cache' }); if (r.ok) lista = (await r.json()).map((p) => ({ c: String(p.c), n: String(p.n || ''), l: String(p.ln || p.l || '') })); } catch (e) { console.warn('Catálogo de Abastecimiento:', e); }
+    const ya = new Set(lista.map((p) => p.c));
+    catalogo.forEach((p) => { if (p.c && !ya.has(p.c)) lista.push({ c: p.c, n: p.n, l: p.l || '' }); });
+    if (!lista.length) {
+      try { const s = await getDocs(collection(db, 'catalogo')); [...s.docs].sort((a, b) => a.id.localeCompare(b.id)).forEach((d) => (d.data().items || []).forEach((x) => { const [c, n, l] = String(x).split('\t'); if (c) lista.push({ c, n, l: l || '' }); })); } catch (e) { console.warn('Catálogo:', e); }
+    }
+    rb.cat = lista.map((p) => ({ ...p, t: new Set(rbToks(p.n)), tl: new Set(rbToks(p.l)) }));
+    rb.porC = new Map(rb.cat.map((p) => [p.c, p]));
+    rb.porTok = new Map(); rb.cat.forEach((p, i) => p.t.forEach((t) => { if (!rb.porTok.has(t)) rb.porTok.set(t, []); rb.porTok.get(t).push(i); }));
+    $('rbCatL').innerHTML = rb.cat.map((p) => `<option value="${esc(`${p.c} · ${p.n} · ${p.l}`)}">`).join('');
+  }
+  function rbBuscar(desc) { // los 3 productos del catálogo que más se parecen a la descripción del XML
+    const [nom, lab] = String(desc || '').split(/\s+-\s+(?=[^-]*$)/), A = new Set(rbToks(lab ? nom : desc)), L = new Set(rbToks(lab || ''));
+    const N = rb.cat.length, w = (t) => (/^\d/.test(t) ? 2 : 1) * Math.log(1 + N / (1 + (rb.porTok.get(t) || []).length));
+    const cand = new Set(); A.forEach((t) => (rb.porTok.get(t) || []).forEach((i) => cand.add(i)));
+    const numsA = [...A].filter((t) => /^\d/.test(t));
+    return [...cand].map((i) => {
+      const p = rb.cat[i]; let inter = 0, uni = 0;
+      new Set([...A, ...p.t]).forEach((t) => { const x = w(t); uni += x; if (A.has(t) && p.t.has(t)) inter += x; });
+      const numOk = [...p.t].filter((t) => /^\d/.test(t)).every((t) => A.has(t)) && numsA.every((t) => p.t.has(t));
+      const labOk = L.size ? [...p.tl].some((t) => L.has(t)) : false;
+      return { p, s: inter / uni + (labOk ? 0.15 : 0) - (numOk ? 0 : 0.25) };
+    }).sort((a, b) => b.s - a.s).slice(0, 3);
+  }
+  function rbCodigo(ruc, l) { // { c, auto } · { ign } · null (sin emparejar)
+    const k = rbClave(l), m = (rb.maps.get(ruc) || {})[k];
+    if (m === '-') return { ign: true, k };
+    if (m && rb.porC.has(m)) return { c: m, k };
+    const ck = ruc + '|' + k;
+    if (!rb.cache.has(ck)) { const r = rbBuscar(l.desc); const ok = r[0] && r[0].s >= 0.6 && (!r[1] || r[0].s - r[1].s >= 0.12); rb.cache.set(ck, { sug: r, c: ok ? r[0].p.c : '' }); }
+    const x = rb.cache.get(ck);
+    return x.c ? { c: x.c, auto: true, k, sug: x.sug } : { k, sug: x.sug };
+  }
+  async function rbAbrir() {
+    const caja = $('rbCont');
+    if (!rb.docs || !rb.cat) caja.innerHTML = '<p class="resumen">Cargando los XML y el catálogo de productos…</p>';
+    try {
+      await rbCatalogo();
+      if (!rb.docs) { const s = await sincroDocs('xmlf'); rb.docs = s.docs.map((d) => ({ k: d.id, ...d.data() })); }
+    } catch (e) { rb.err = errorTexto(e); }
+    const provs = new Map();
+    (rb.docs || []).forEach((d) => { const r = d.emisor && d.emisor.ruc; if (!r) return; const x = provs.get(r) || { ruc: r, nom: d.emisor.nom, n: 0 }; x.n += 1; provs.set(r, x); });
+    rb.provs = [...provs.values()].sort((a, b) => a.nom.localeCompare(b.nom));
+    if (!rb.prov || !provs.has(rb.prov)) rb.prov = (rb.provs.find((p) => /ALFARO/i.test(p.nom)) || rb.provs[0] || {}).ruc || '';
+    $('rbProv').innerHTML = rb.provs.map((p) => `<option value="${esc(p.ruc)}"${p.ruc === rb.prov ? ' selected' : ''}>${esc(p.nom)} (${p.n})</option>`).join('');
+    await rbMapa(rb.prov);
+    rbPintar();
+  }
+  async function rbMapa(ruc) {
+    if (!ruc || rb.maps.has(ruc)) return;
+    try { const s = await getDoc(doc(db, 'rebMap', ruc)); rb.maps.set(ruc, s.exists() ? (s.data().m || {}) : {}); } catch (e) { rb.maps.set(ruc, {}); rb.err = 'No se pudo leer lo emparejado (' + errorTexto(e) + '). Revisa que las reglas de Firestore incluyan "rebMap".'; }
+  }
+  async function rbGuardar(ruc, cambios) { // { clave: código | '-' }
+    const m = rb.maps.get(ruc) || {};
+    Object.assign(m, cambios); rb.maps.set(ruc, m);
+    rbPintar();
+    try { await setDoc(doc(db, 'rebMap', ruc), { m: cambios, por: firma(), act: serverTimestamp() }, { merge: true }); }
+    catch (e) { msg('rbMsg', 'No se guardó: ' + errorTexto(e)); }
+  }
+  function rbCalc() {
+    const ruc = rb.prov, P = new Map(), S = new Map(), lab = rb.lab.trim().toUpperCase(), t = rb.txt.trim().toUpperCase();
+    let docs = 0, nFa = 0, nNc = 0;
+    (rb.docs || []).filter((d) => d.emisor && d.emisor.ruc === ruc && (!rb.desde || String(d.fecha).slice(0, 7) >= rb.desde) && (!rb.hasta || String(d.fecha).slice(0, 7) <= rb.hasta)).forEach((d) => {
+      const sg = /CR[EÉ]DITO/.test(d.tipo) ? -1 : 1; docs += 1; if (sg < 0) nNc += 1; else nFa += 1;
+      (d.lineas || []).forEach((l) => {
+        const q = Number(l.cant) || 0, v = Number(l.valor) || 0, tt = l.total === null || l.total === undefined ? v : Number(l.total) || 0, x = rbCodigo(ruc, l);
+        if (x.ign) return;
+        if (!x.c) { const u = S.get(x.k) || { k: x.k, cod: l.cod, desc: l.desc, n: 0, q: 0, v: 0, sug: x.sug }; u.n += 1; u.q += sg * q; u.v = r2(u.v + sg * v); S.set(x.k, u); return; }
+        const p = rb.porC.get(x.c), a = P.get(x.c) || { c: x.c, n: p.n, l: p.l, qc: 0, qn: 0, qb: 0, v: 0, t: 0, auto: false, items: new Map() };
+        if (sg > 0 && v === 0) a.qb += q; else if (sg > 0) a.qc += q; else a.qn += q;
+        if (!(sg > 0 && v === 0)) { a.v = r2(a.v + sg * v); a.t = r2(a.t + sg * tt); }
+        if (x.auto) { a.auto = true; if (!a.items.has(x.k)) a.items.set(x.k, { k: x.k, cod: l.cod, desc: l.desc, sug: x.sug, c: x.c }); }
+        P.set(x.c, a);
+      });
+    });
+    const todos = [...P.values()];
+    const prods = todos.filter((a) => (!lab || String(a.l).toUpperCase().includes(lab)) && (!t || `${a.c} ${a.n}`.toUpperCase().includes(t))).sort((a, b) => b.v - a.v);
+    const labs = new Map();
+    todos.forEach((a) => { const x = labs.get(a.l || '(sin laboratorio)') || { l: a.l || '(sin laboratorio)', n: 0, q: 0, v: 0, t: 0 }; x.n += 1; x.q += a.qc - a.qn; x.v = r2(x.v + a.v); x.t = r2(x.t + a.t); labs.set(x.l, x); });
+    return { prods, todos, labs: [...labs.values()].sort((a, b) => b.v - a.v), sin: [...S.values()].sort((a, b) => Math.abs(b.v) - Math.abs(a.v)), docs, nFa, nNc };
+  }
+  function rbPintar() {
+    const caja = $('rbCont'); if (!caja) return;
+    if (!rb.cat || !rb.docs) return;
+    const C = rbCalc(), ed = puede('reb'), q3 = (v) => (Math.round(v * 1000) / 1000).toLocaleString('es-PE');
+    const tot = { qc: 0, qn: 0, qb: 0, v: 0, t: 0 }; C.prods.forEach((a) => { tot.qc += a.qc; tot.qn += a.qn; tot.qb += a.qb; tot.v = r2(tot.v + a.v); tot.t = r2(tot.t + a.t); });
+    const sinV = r2(C.sin.reduce((s, u) => s + u.v, 0)), autos = C.todos.filter((a) => a.auto).flatMap((a) => [...a.items.values()]);
+    $('rbLabs').innerHTML = C.labs.map((x) => `<option value="${esc(x.l)}">`).join('');
+    const sel = (u) => `<select class="rbSug">${(u.sug || []).map((s) => `<option value="${esc(s.p.c)}"${s.p.c === u.c ? ' selected' : ''}>${esc(`${s.p.c} · ${s.p.n} · ${s.p.l}`)}</option>`).join('')}<option value="">— otro (escribe abajo) —</option></select><input class="rbPick" list="rbCatL" placeholder="Buscar en el catálogo: código o nombre" style="width:100%;margin-top:4px">`;
+    const filaSin = (u, auto) => `<tr data-k="${esc(u.k)}"><td><b>${esc(u.desc)}</b>${u.cod ? `<div class="quien">Cód. proveedor ${esc(u.cod)}</div>` : ''}</td>${auto ? '' : `<td class="num">${u.n}</td><td class="num">${q3(u.q)}</td><td class="num">${mil(u.v)}</td>`}<td style="min-width:320px">${ed ? sel(u) : esc((u.sug || []).map((s) => s.p.n).join(' / '))}</td>` +
+      `<td style="white-space:nowrap">${ed ? `<button class="mini pri rbUsar">${auto ? 'Confirmar' : 'Usar'}</button> <button class="mini rbIgn" title="No es un producto (descuento, flete, etc.): no se cuenta">No es producto</button>` : ''}</td></tr>`;
+    caja.innerHTML = (rb.err ? `<div class="msg err">${esc(rb.err)}</div>` : '') + '<div id="rbMsg"></div>' +
+      (!rb.cat.length ? '<div class="msg err">No se pudo cargar el catálogo de productos. Súbelo en Productos (administrador).</div>' : '') +
+      '<div class="kpis">' +
+      `<div class="kpi"><b>Documentos</b><strong>${C.docs}</strong><small>${C.nFa} facturas · ${C.nNc} notas de crédito</small></div>` +
+      `<div class="kpi" style="border-color:var(--marca);background:var(--suave)"><b>${rb.lab ? esc(rb.lab) : 'Neto comprado'}</b><strong>S/ ${mil(tot.v)}</strong><small>sin IGV · con IGV S/ ${mil(tot.t)}</small></div>` +
+      `<div class="kpi"><b>Unidades netas</b><strong>${q3(tot.qc - tot.qn)}</strong><small>compradas ${q3(tot.qc)} − devueltas ${q3(tot.qn)}${tot.qb ? ` · bonif. ${q3(tot.qb)}` : ''}</small></div>` +
+      `<div class="kpi"><b>Productos</b><strong>${C.prods.length}</strong><small>${C.labs.length} laboratorios</small></div>` +
+      `<div class="kpi"${C.sin.length ? ' style="border-color:#e0a800"' : ''}><b>Sin emparejar</b><strong>${C.sin.length}</strong><small>S/ ${mil(sinV)} sin IGV (no suman)</small></div>` +
+      '</div>' +
+      `<h3 class="sub">Por laboratorio <span class="quien">clic para ver sus productos</span></h3><div class="tabla" style="max-height:280px;overflow:auto"><table><thead><tr><th>Laboratorio</th><th class="num">Productos</th><th class="num">Unidades netas</th><th class="num">Neto sin IGV</th><th class="num">Neto con IGV</th></tr></thead><tbody>` +
+      C.labs.map((x) => `<tr class="click${x.l === rb.lab ? ' sel' : ''}" data-lab="${esc(x.l)}"${x.l === rb.lab ? ' style="background:var(--suave)"' : ''}><td><b>${esc(x.l)}</b></td><td class="num">${x.n}</td><td class="num">${q3(x.q)}</td><td class="num">${mil(x.v)}</td><td class="num">${mil(x.t)}</td></tr>`).join('') + '</tbody></table></div>' +
+      `<h3 class="sub">Productos${rb.lab ? ' · ' + esc(rb.lab) : ''}</h3><div class="tabla" style="max-height:60vh;overflow:auto"><table><thead><tr><th>Código</th><th>Producto</th><th>Laboratorio</th><th class="num">Comprado</th><th class="num">NC (devuelto)</th><th class="num">Cantidad neta</th><th class="num">Bonif.</th><th class="num">Neto sin IGV</th><th class="num">Neto con IGV</th></tr></thead><tbody>` +
+      (C.prods.map((a) => `<tr><td>${esc(a.c)}</td><td>${esc(a.n)}${a.auto ? ' <span class="est e0" title="Emparejado automáticamente: revísalo abajo">auto</span>' : ''}</td><td>${esc(a.l)}</td><td class="num">${q3(a.qc)}</td><td class="num">${a.qn ? q3(-a.qn) : ''}</td><td class="num"><b>${q3(a.qc - a.qn)}</b></td><td class="num">${a.qb ? q3(a.qb) : ''}</td><td class="num"><b>${mil(a.v)}</b></td><td class="num">${mil(a.t)}</td></tr>`).join('') || '<tr><td colspan="9" class="vacio">Sin productos con estos filtros</td></tr>') +
+      `</tbody><tfoot><tr class="tot"><td colspan="3">TOTAL${rb.lab ? ' ' + esc(rb.lab) : ''}</td><td class="num">${q3(tot.qc)}</td><td class="num">${tot.qn ? q3(-tot.qn) : ''}</td><td class="num">${q3(tot.qc - tot.qn)}</td><td class="num">${tot.qb ? q3(tot.qb) : ''}</td><td class="num">${mil(tot.v)}</td><td class="num">${mil(tot.t)}</td></tr></tfoot></table></div>` +
+      (C.sin.length ? `<h3 class="sub">Productos del XML sin emparejar (${C.sin.length}) <span class="quien">elige el producto del catálogo; queda guardado para los siguientes XML de este proveedor</span></h3><div class="tabla" style="max-height:60vh;overflow:auto"><table><thead><tr><th>Descripción en el XML</th><th class="num">Líneas</th><th class="num">Cantidad</th><th class="num">Sin IGV</th><th>Producto del catálogo</th><th></th></tr></thead><tbody>${C.sin.map((u) => filaSin(u)).join('')}</tbody></table></div>` : '') +
+      (autos.length ? `<details${rb.verAuto ? ' open' : ''} id="rbAutoD"><summary><b>Emparejados automáticamente (${autos.length})</b> · revisa y confirma${ed ? ' <button class="mini" id="rbConfTodo">Confirmar todos</button>' : ''}</summary><div class="tabla" style="max-height:60vh;overflow:auto"><table><thead><tr><th>Descripción en el XML</th><th>Producto del catálogo</th><th></th></tr></thead><tbody>${autos.map((u) => filaSin(u, true)).join('')}</tbody></table></div></details>` : '');
+  }
+  $('rbProv').addEventListener('change', async (e) => { rb.prov = e.target.value; rb.lab = ''; $('rbLab').value = ''; await rbMapa(rb.prov); rbPintar(); });
+  ['rbDesde', 'rbHasta'].forEach((id) => $(id).addEventListener('change', (e) => { rb[id === 'rbDesde' ? 'desde' : 'hasta'] = e.target.value; rbPintar(); }));
+  $('rbLab').addEventListener('change', (e) => { rb.lab = e.target.value; rbPintar(); });
+  $('rbTxt').addEventListener('input', (e) => { rb.txt = e.target.value; clearTimeout(rb.tm); rb.tm = setTimeout(rbPintar, 250); });
+  $('rbQuitar').addEventListener('click', () => { rb.lab = ''; rb.txt = ''; rb.desde = ''; rb.hasta = ''; ['rbLab', 'rbTxt', 'rbDesde', 'rbHasta'].forEach((id) => { $(id).value = ''; }); rbPintar(); });
+  $('rbExcel').addEventListener('click', () => {
+    const C = rbCalc();
+    exportar(`rebate-${(rb.provs.find((p) => p.ruc === rb.prov) || {}).nom || rb.prov}${rb.lab ? '-' + rb.lab : ''}`, [['Código', 'c'], ['Producto', 'n'], ['Laboratorio', 'l'], ['Comprado', 'qc'], ['NC (devuelto)', (a) => -a.qn], ['Cantidad neta', (a) => a.qc - a.qn], ['Bonificación', 'qb'], ['Neto sin IGV', 'v'], ['Neto con IGV', 't'], ['Emparejado', (a) => (a.auto ? 'automático' : 'confirmado')]], C.prods);
+  });
+  $('rbCont').addEventListener('click', (e) => {
+    const fl = e.target.closest('tr[data-lab]');
+    if (fl) { rb.lab = rb.lab === fl.dataset.lab ? '' : fl.dataset.lab; $('rbLab').value = rb.lab; rbPintar(); return; }
+    if (e.target.id === 'rbConfTodo') { e.preventDefault(); const C = rbCalc(), c = {}; C.todos.forEach((a) => a.items.forEach((u) => { c[u.k] = u.c; })); rb.verAuto = true; rbGuardar(rb.prov, c); return; }
+    const tr = e.target.closest('tr[data-k]'); if (!tr) return;
+    if (e.target.classList.contains('rbIgn')) { rbGuardar(rb.prov, { [tr.dataset.k]: '-' }); return; }
+    if (e.target.classList.contains('rbUsar')) {
+      const pick = tr.querySelector('.rbPick').value.trim(), c = pick ? pick.split(' · ')[0].trim() : tr.querySelector('.rbSug').value;
+      if (!c || !rb.porC.has(c)) { msg('rbMsg', 'Elige un producto del catálogo (de la lista o búscalo por código o nombre).'); return; }
+      rb.verAuto = !!tr.closest('#rbAutoD'); rbGuardar(rb.prov, { [tr.dataset.k]: c });
+    }
+  });
   function inPintar() {
     const caja = $('vInicio');
     if (!caja || !yo || vista !== 'vInicio') return;
