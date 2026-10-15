@@ -3749,7 +3749,7 @@
   function cpDeDoc(d) { // un mes de Pagos a proveedores con el formato de Cuentas por pagar
     const nom = distDe(d.dist).nombre;
     return { per: d.per, emp: d.emp,
-      filas: (d.filas || []).map((f) => ({ ...f, p: nom, t: PG_CP_T[f.t] || 'FACTURA', d: f.s ? `${f.s}-${f.n}` : String(f.n || ''), af: f.t === 'NC' ? (f.r || '') : '', ref: '', m: Math.abs(Number(f.m) || 0), pg: f.pgd === true, fp: f.fpg || '', op: f.opg || '', e: f.est || '', ar: f.t === 'FA' && (f.ar !== undefined ? f.ar === true : distDe(d.dist).ret === true) })),
+      filas: (d.filas || []).map((f) => ({ ...f, p: nom, t: PG_CP_T[f.t] || 'FACTURA', d: f.s ? `${f.s}-${f.n}` : String(f.n || ''), af: f.t === 'NC' ? (f.r || '') : '', ref: '', m: Math.abs(Number(f.m) || 0), pg: f.pgd === true, fp: f.fpg || '', op: f.opg || '', e: f.est || '', ar: f.t === 'FA' && (distDe(d.dist).ret === true ? f.arX !== true : f.ar === true) })),
       prog: (d.prog || []).map((p) => ({ ...p, k: `${nom}|${p.g || ''}` })) };
   }
   const pgEsC = (d) => distDe(d.dist).tipo === 'C';
@@ -3778,7 +3778,10 @@
         if (x.fp) n.fpg = x.fp; else delete n.fpg;
         if (x.op) n.opg = x.op; else delete n.opg;
         if (x.g) n.g = x.g; else delete n.g;
-        if (f.t === 'FA') n.ar = x.ar === true; // retención 3% marcada o desmarcada en la ventana Programar
+        if (f.t === 'FA') { // retención 3% marcada o desmarcada en la ventana Programar
+          n.ar = x.ar === true;
+          if (distDe(d0.dist).ret === true && !n.ar) n.arX = true; else delete n.arX; // proveedor con retención: solo queda sin ella la que se desmarcó a mano
+        }
         return n;
       });
       const prog = est.prog.map((p) => ({ g: String(p.k).split('|').slice(1).join('|'), mod: p.mod || '', n: Number(p.n) || 0, cu: p.cu || [] }));
@@ -3809,7 +3812,7 @@
     const usoNc = new Map();
     pgDocs.forEach((p) => (p.filas || []).forEach((f) => { if (f.t === 'FA') cruceDe(p.per, f).det.forEach((x) => { if (!usoNc.has(x.k)) usoNc.set(x.k, []); usoNc.get(x.k).push(`${f.s}-${f.n}`); }); }));
     const suma = (a) => r2(a.reduce((s, f) => s + (Number(f.m) || 0), 0));
-    const CP = dist.pago === 'cuotas' ? cpCalc(cpDeDoc(d)) : null, ret = CP ? CP.tot.ret : 0; // en cuotas por grupos: retención 3% como en Cuentas por pagar
+    const CP = cpCalc(cpDeDoc(d)), ret = CP.tot.ret; // retención 3% como en Cuentas por pagar, en letras, cuotas o por fecha
     const tCompras = suma(normales), nCredito = suma(ncs), tPagar = r2(tCompras + nCredito + ret);
     const letras = dist.pago === 'letras' ? (Number(d.letras) || 0) : 0;
     const desde = d.desde || (/^\d{4}-\d{2}$/.test(d.per) ? diasHabiles(`${d.per}-01`, 1).dias[0] : '');
@@ -3857,7 +3860,8 @@
   }
   function resumenFilas(R) {
     const out = [], fila = (cls, c, x) => out.push({ cls, c: c || [], ...(x || {}) });
-    const cab = (ref) => { fila('emp', [R.emp.nombre]); fila('ruc', [`RUC ${R.emp.ruc}`]); fila(''); fila('prov', [R.dist.nombre]); fila(''); fila('cab', ['PROVEEDOR', 'FECHA', 'TIPO', 'SERIE', 'NUMERO', 'TOTAL', '', ref ? 'REFERENCIA' : '']); };
+    const conFp = R.normales.some((f) => f.fpg); // facturas con su fecha de pago (ventana Programar)
+    const cab = (ref) => { fila('emp', [R.emp.nombre]); fila('ruc', [`RUC ${R.emp.ruc}`]); fila(''); fila('prov', [R.dist.nombre]); fila(''); fila('cab', ['PROVEEDOR', 'FECHA', 'TIPO', 'SERIE', 'NUMERO', 'TOTAL', !ref && conFp ? 'FECHA PAGO' : '', ref ? 'REFERENCIA' : '']); };
     const doc1 = (f, g, h) => fila(f.t === 'NC' ? 'nc' : 'fa', [R.dist.nombre, fechaGuion(f.f), f.t, f.s, f.n, Number(f.m) || 0, g || '', h || '']);
     const lin = (l) => { const p = String(l.p || '').trim(); return l.q && !/^\d/.test(p) ? `${l.q} ${p}` : p; };
     const pintaObs = (o) => { const es = obsEstados(o.c); o.lineas.forEach((l, i) => fila('obs', [o.fac, lin(l), '', '', '', l.m === null || l.m === undefined || l.m === '' ? '' : Number(l.m), es[i].t + (o.extra || '')], { ok: es[i].ok })); };
@@ -3865,7 +3869,7 @@
     const ncNota = (f) => rebTxt(f) || (R.usoNc.get(`${f.s}-${f.n}`) || []).join(', ') || f.e || '';
     const mesCompra = (R.d.compra || []).map((c) => MESES[+c.slice(5)]).join(' Y ');
     cab(false);
-    R.normales.forEach((f) => doc1(f));
+    R.normales.forEach((f) => doc1(f, conFp && f.fpg ? fechaGuion(f.fpg) + (f.pgd ? ' PAGADO' : '') : ''));
     R.ncs.forEach((f) => doc1(f));
     fila('tot', ['', '', '', '', 'TOTAL', r2(R.tCompras + R.nCredito), R.cuota === null ? '' : R.cuota]);
     fila('');
@@ -3876,16 +3880,24 @@
         c.cuotas.forEach((q) => fila('txt2', [`      CUOTA ${q.n}${q.l ? ' (' + q.l + ')' : ''}: ${q.v ? `${fechaLarga(q.v)} DEL ${q.v.slice(0, 4)}` : 'SIN FECHA'} · S/${mil(q.m)}${q.pg ? ' · PAGADA' : ''}`]));
       });
     } else if (R.dist.pago === 'letras') {
-      fila('txt1', [`Programación de facturas${mesCompra ? ' del mes de ' + mesCompra : ''} por S/${mil(R.tPagar)}${R.letras ? ` en ${R.letras} letras C/U de S/${mil(R.cuota)}` : ''}`]);
+      fila('txt1', [`Programación de facturas${mesCompra ? ' del mes de ' + mesCompra : ''} por S/${mil(R.tPagar)}${R.letras ? ` en ${R.letras} letras C/U de S/${mil(R.cuota)}` : ''}${R.ret ? ` (con retención 3% de S/${mil(Math.abs(R.ret))})` : ''}`]);
       if (R.cal.dias.length) {
         fila('txt2', [`DESDE EL ${fechaLarga(R.cal.dias[0])}`]);
         fila('txt2', [`HASTA EL ${fechaLarga(R.cal.dias[R.cal.dias.length - 1])} DEL ${R.cal.dias[R.cal.dias.length - 1].slice(0, 4)}`]);
         fila('txt2', [`NO INCLUYE SÁBADOS Y DOMINGOS${R.cal.saltados.length ? ` NI FERIADO${R.cal.saltados.length > 1 ? 'S' : ''} ${feriadoTxt(R.cal.saltados)}` : ''}`]);
       } else fila('txt2', ['FALTA INDICAR EL NÚMERO DE LETRAS Y LA FECHA DE INICIO']);
     } else {
-      fila('txt1', [`Facturas${mesCompra ? ' del mes de ' + mesCompra : ''} por S/${mil(R.tPagar)}`]);
+      fila('txt1', [`Facturas${mesCompra ? ' del mes de ' + mesCompra : ''} por S/${mil(R.tPagar)}${R.ret ? ` (con retención 3% de S/${mil(Math.abs(R.ret))})` : ''}`]);
       fila('txt2', [R.dist.pago === 'fecha' ? 'SE PAGAN EN LA FECHA INDICADA PARA CADA FACTURA' : 'SE PROGRAMAN SEGÚN SU FECHA DE VENCIMIENTO']);
       fila('txt2', [`DEPÓSITOS EN EL BCP PARA ${perTxt(R.d.per)}`]);
+    }
+    if (conFp && R.dist.pago !== 'cuotas') { // cada fecha de pago con sus facturas y el neto (con retención)
+      const porDia = new Map();
+      R.normales.filter((f) => f.fpg).forEach((f) => { if (!porDia.has(f.fpg)) porDia.set(f.fpg, []); porDia.get(f.fpg).push(f); });
+      fila('txt1', ['FECHAS DE PAGO:']);
+      [...porDia.keys()].sort().forEach((k) => { const fs2 = porDia.get(k), m = r2(fs2.reduce((s2, f) => s2 + ((R.CP.R.get(f.i) || {}).neto ?? (Number(f.m) || 0)), 0)); fila('txt2', [`${fechaLarga(k)} DEL ${k.slice(0, 4)}: S/${mil(m)} · ${fs2.map((f) => `${f.s}-${f.n}`).join(', ')}${fs2.every((f) => f.pgd) ? ' · PAGADO' : ''}`]); });
+      const sinF = R.normales.filter((f) => !f.fpg && Number(f.m));
+      if (sinF.length) fila('txt2', [`SIN FECHA DE PAGO: ${sinF.map((f) => `${f.s}-${f.n}`).join(', ')}`]);
     }
     fila('');
     if (R.obs.length) { fila('obsT', ['OBSERVACIONES:']); R.obs.forEach(pintaObs); fila(''); }
@@ -3952,7 +3964,7 @@
       let h;
       if (k === 'emp' || k === 'ruc') h = td(c[0], 'font-weight:bold;text-align:center;', 6) + vac(2);
       else if (k === 'prov') h = td(c[0], 'font-weight:bold;font-size:12pt;text-align:center;text-decoration:underline;', 6) + vac(2);
-      else if (k === 'cab') h = c.slice(0, 6).map((v) => td(v, B + 'font-weight:bold;text-align:center;')).join('') + td('') + (c[7] ? td(c[7], B + 'font-weight:bold;text-align:center;font-size:8pt;') : td(''));
+      else if (k === 'cab') h = c.slice(0, 6).map((v) => td(v, B + 'font-weight:bold;text-align:center;')).join('') + (c[6] ? td(c[6], B + 'font-weight:bold;text-align:center;font-size:8pt;') : td('')) + (c[7] ? td(c[7], B + 'font-weight:bold;text-align:center;font-size:8pt;') : td(''));
       else if (k === 'fa' || k === 'nc') {
         const co = k === 'nc' ? RO : '';
         h = c.slice(0, 5).map((v) => td(v, B + co + 'text-align:center;' + T)).join('') + td(c[5], B + co + N) +
@@ -3977,7 +3989,7 @@
     const caja = $('gv_res'), d = pgDoc();
     if (!d) { caja.innerHTML = '<div class="caja"><p class="resumen" style="margin:0">Elige un distribuidor y un mes a pagar.</p></div>'; return; }
     const R = resumenDatos(d), edita = puede('pagos');
-    const conLetras = R.dist.pago === 'letras', conCuotas = !!R.CP;
+    const conLetras = R.dist.pago === 'letras', conCuotas = R.dist.pago === 'cuotas';
     caja.innerHTML = '<div class="herr">' +
       `<label style="margin:0" for="rModo">Forma de pago</label><select id="rModo" style="width:auto"${edita ? '' : ' disabled'}>${MODOS.map(([v, n]) => `<option value="${v}"${R.dist.pago === v ? ' selected' : ''}>${n}</option>`).join('')}</select>` +
       (conLetras ? `<label style="margin:0" for="rLetras">N° de letras</label><input id="rLetras" type="number" min="0" max="60" style="width:80px" value="${esc(d.letras ?? '')}"${edita ? '' : ' disabled'}>` +
@@ -3991,7 +4003,7 @@
       `<div class="kpi"><b>N. crédito</b><strong class="baja">S/ ${mil(R.nCredito)}</strong><small>${R.ncs.length} notas de crédito</small></div>` +
       `<div class="kpi" style="border-color:var(--marca);background:var(--suave)"><b>T. a pagar</b><strong>S/ ${mil(R.tPagar)}</strong><small>${esc(perTxt(d.per))}</small></div>` +
       (conLetras ? `<div class="kpi"><b>${R.letras || '—'} letras de</b><strong>${R.cuota === null ? '—' : 'S/ ' + mil(R.cuota)}</strong><small>${R.cal.dias.length ? `${esc(dia(R.cal.dias[0]))} al ${esc(dia(R.cal.dias[R.cal.dias.length - 1]))}` : 'falta definir'}</small></div>` : '') +
-      (conCuotas && R.ret ? `<div class="kpi"><b>Retención 3%</b><strong class="baja">S/ ${mil(R.ret)}</strong><small>${R.CP.cuadros.filter((c) => c.retTxt.startsWith('RET')).length} grupo(s)</small></div>` : '') +
+      (R.ret ? `<div class="kpi"><b>Retención 3%</b><strong class="baja">S/ ${mil(Math.abs(R.ret))}</strong><small>${conCuotas ? `${R.CP.cuadros.filter((c) => c.retTxt.startsWith('RET')).length} grupo(s)` : `${R.normales.filter((f) => (R.CP.R.get(f.i) || {}).q).length} factura(s)`}</small></div>` : '') +
       `<div class="kpi"><b>Devoluciones totales</b><strong>${R.dev.length}</strong><small>S/ ${mil(R.dev.reduce((s, f) => s + Number(f.m), 0))}</small></div>` +
       '</div>' + (conCuotas ? pgCuadros(R.CP, edita) : '') + '<div class="tabla xlHoja"><table>' +
       `<colgroup><col style="width:34px">${RES_ANCHOS.map((w) => `<col style="width:${w}px">`).join('')}</colgroup>` +
