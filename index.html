@@ -8948,7 +8948,7 @@
     if (rb.kdx) return;
     rb.kdx = new Map(); rb.kcache = new Map(); rb.kLearn = new Map();
     const fila = (r) => { const x = Array.isArray(r) ? r : String(r).split('\t'); return [String(x[0]), String(x[1]), String(x[2] || ''), Number(x[3]) || 0, Number(x[4]) || 0, Number(x[5]) || 1]; };
-    try { const s = await getDocs(collection(db, 'rebKdx')); s.docs.forEach((d) => Object.entries(d.data().f || {}).forEach(([k, v]) => rb.kdx.set(k, { p: v.p, l: (v.l || []).map(fila) }))); }
+    try { const s = await getDocs(collection(db, 'rebKdx')); s.docs.forEach((d) => Object.entries(d.data().f || {}).forEach(([k, v]) => rb.kdx.set(k, { p: v.p, ym: d.id, l: (v.l || []).map(fila) }))); }
     catch (e) { rb.kdxErr = 'No se pudo leer el kardex guardado (' + errorTexto(e) + '). Revisa que las reglas de Firestore incluyan "rebKdx".'; }
   }
   async function rbKdxSubir(files) {
@@ -8993,15 +8993,25 @@
     } catch (e) { msg('rbMsg', 'No se pudo leer el kardex: ' + (e.code === 'permission-denied' ? 'faltan las reglas de Firestore para "rebKdx".' : errorTexto(e))); }
   }
   const rbSim = (a, b) => { const A = new Set(rbToks(a).filter((t) => t.length > 2 || /^\d/.test(t))), B = new Set(rbToks(b).filter((t) => t.length > 2 || /^\d/.test(t))); let n = 0; A.forEach((t) => { if (B.has(t)) n += 1; }); return A.size && B.size ? n / Math.min(A.size, B.size) : 0; };
-  function rbKdxDoc(d) { // código de cada línea del XML según el kardex de su misma factura: [código | '']
+  const esNC = (d) => /CR[EÉ]DITO/.test(d.tipo);
+  const rbRefK = (d) => { const m = String(d.ref || '').toUpperCase().match(/([A-Z0-9]{2,5})\s*-\s*0*(\d+)/); return m ? rbFacK(m[1], m[2]) : ''; };
+  function rbFechaEf(d) { // la NC cuenta en el mes de la factura que afecta (XML de esa factura o su mes en el kardex); si no se encuentra, en su propia fecha
+    if (!esNC(d)) return { f: String(d.fecha || ''), ok: true };
+    const rk = rbRefK(d); if (!rk) return { f: String(d.fecha || ''), ok: false };
+    if (!rb.facIdx) { rb.facIdx = new Map(); (rb.docs || []).forEach((x) => { if (!esNC(x) && x.emisor) rb.facIdx.set(`${x.emisor.ruc}|${rbFacK(x.serie, x.num)}`, String(x.fecha || '')); }); }
+    const f = rb.facIdx.get(`${d.emisor.ruc}|${rk}`) || (rb.kdx && rb.kdx.get(rk) ? rb.kdx.get(rk).ym + '-01' : '');
+    return f ? { f, ok: true, ref: rk } : { f: String(d.fecha || ''), ok: false, ref: rk };
+  }
+  function rbKdxDoc(d) { // código de cada línea del XML según el kardex de su misma factura (la NC, según la factura que afecta): [código | '']
     if (rb.kcache.has(d.k)) return rb.kcache.get(d.k);
-    const kd = /CR[EÉ]DITO/.test(d.tipo) ? null : rb.kdx.get(rbFacK(d.serie, d.num)), out = (d.lineas || []).map(() => '');
+    const nc = esNC(d), kd = rb.kdx.get(nc ? rbRefK(d) : rbFacK(d.serie, d.num)), out = (d.lineas || []).map(() => '');
     if (kd) {
       const pares = [];
       (d.lineas || []).forEach((l, i) => kd.l.forEach((c, j) => {
         const xq = Number(l.cant) || 0, val = Number(l.valor) || 0, kv = c[3] * c[4];
-        const qOk = xq > 0 && (Math.abs(xq - c[3]) < 0.01 || Math.abs(xq - c[3] * c[5]) < 0.01), vOk = val > 0 && kv > 0 && Math.abs(val - kv) / val < 0.03;
-        const sc = rbSim(l.desc, c[2]) + (qOk ? 0.5 : 0) + (vOk ? 0.5 : 0);
+        const qOk = xq > 0 && (nc ? xq <= c[3] + 0.01 || xq <= c[3] * c[5] + 0.01 : Math.abs(xq - c[3]) < 0.01 || Math.abs(xq - c[3] * c[5]) < 0.01);
+        const vOk = nc ? xq > 0 && val > 0 && c[4] > 0 && (Math.abs(val / xq - c[4]) / c[4] < 0.03 || Math.abs(val / xq - c[4] / c[5]) / c[4] * c[5] < 0.03) : val > 0 && kv > 0 && Math.abs(val - kv) / val < 0.03; // en la NC: mismo precio unitario
+        const sc = rbSim(l.desc, c[2]) + (qOk ? (nc ? 0.2 : 0.5) : 0) + (vOk ? 0.5 : 0);
         if (sc >= 0.6) pares.push({ i, j, sc });
       }));
       const usI = new Set(), usJ = new Set();
@@ -9051,7 +9061,11 @@
   function rbCalc() {
     const ruc = rb.prov, P = new Map(), S = new Map(), lab = rb.lab.trim().toUpperCase(), t = rb.txt.trim().toUpperCase();
     let docs = 0, nFa = 0, nNc = 0;
-    (rb.docs || []).filter((d) => d.emisor && d.emisor.ruc === ruc && (!rb.desde || String(d.fecha).slice(0, 7) >= rb.desde) && (!rb.hasta || String(d.fecha).slice(0, 7) <= rb.hasta)).forEach((d) => {
+    let ncFuera = 0;
+    (rb.docs || []).filter((d) => d.emisor && d.emisor.ruc === ruc).map((d) => ({ d, fe: rbFechaEf(d) }))
+      .filter(({ fe }) => (!rb.desde || fe.f.slice(0, 7) >= rb.desde) && (!rb.hasta || fe.f.slice(0, 7) <= rb.hasta))
+      .sort((a, b) => esNC(a.d) - esNC(b.d)).forEach(({ d, fe }) => { // primero las facturas: lo que aprenden sirve para sus NC
+      if (!fe.ok) ncFuera += 1;
       const sg = /CR[EÉ]DITO/.test(d.tipo) ? -1 : 1, kds = rbKdxDoc(d); docs += 1; if (sg < 0) nNc += 1; else nFa += 1;
       (d.lineas || []).forEach((l, i) => {
         const q = Number(l.cant) || 0, v = Number(l.valor) || 0, tt = l.total === null || l.total === undefined ? v : Number(l.total) || 0, x = rbCodigo(ruc, l, kds[i]);
@@ -9069,7 +9083,7 @@
     const prods = todos.filter((a) => (!lab || String(a.l).toUpperCase().includes(lab)) && (!t || `${a.c} ${a.n}`.toUpperCase().includes(t))).sort((a, b) => b.v - a.v);
     const labs = new Map();
     todos.forEach((a) => { const x = labs.get(a.l || '(sin laboratorio)') || { l: a.l || '(sin laboratorio)', n: 0, q: 0, v: 0, t: 0 }; x.n += 1; x.q += a.qc - a.qn; x.v = r2(x.v + a.v); x.t = r2(x.t + a.t); labs.set(x.l, x); });
-    return { prods, todos, labs: [...labs.values()].sort((a, b) => b.v - a.v), sin: [...S.values()].sort((a, b) => Math.abs(b.v) - Math.abs(a.v)), docs, nFa, nNc };
+    return { prods, todos, labs: [...labs.values()].sort((a, b) => b.v - a.v), sin: [...S.values()].sort((a, b) => Math.abs(b.v) - Math.abs(a.v)), docs, nFa, nNc, ncFuera };
   }
   function rbPintar() {
     const caja = $('rbCont'); if (!caja) return;
@@ -9084,7 +9098,7 @@
     caja.innerHTML = (rb.err ? `<div class="msg err">${esc(rb.err)}</div>` : '') +
       (!rb.cat.length ? '<div class="msg err">No se pudo cargar el catálogo de productos. Súbelo en Productos (administrador).</div>' : `<p class="quien" style="margin:0 0 8px">Catálogo: ${rb.cat.length.toLocaleString('es-PE')} productos (${esc(rb.fuente || '')}) · Kardex LolFar: ${rb.kdx && rb.kdx.size ? `${rb.kdx.size.toLocaleString('es-PE')} facturas de compra` : 'sin cargar (súbelo para emparejar por factura)'}</p>`) + (rb.kdxErr ? `<div class="msg err">${esc(rb.kdxErr)}</div>` : '') +
       '<div class="kpis">' +
-      `<div class="kpi"><b>Documentos</b><strong>${C.docs}</strong><small>${C.nFa} facturas · ${C.nNc} notas de crédito</small></div>` +
+      `<div class="kpi"><b>Documentos</b><strong>${C.docs}</strong><small>${C.nFa} facturas · ${C.nNc} notas de crédito (en el mes de su factura${C.ncFuera ? `; ${C.ncFuera} sin su factura: en su propia fecha` : ''})</small></div>` +
       `<div class="kpi" style="border-color:var(--marca);background:var(--suave)"><b>${rb.lab ? esc(rb.lab) : 'Neto comprado'}</b><strong>S/ ${mil(tot.v)}</strong><small>sin IGV · con IGV S/ ${mil(tot.t)}</small></div>` +
       `<div class="kpi"><b>Unidades netas</b><strong>${q3(tot.qc - tot.qn)}</strong><small>compradas ${q3(tot.qc)} − devueltas ${q3(tot.qn)}${tot.qb ? ` · bonif. ${q3(tot.qb)}` : ''}</small></div>` +
       `<div class="kpi"><b>Productos</b><strong>${C.prods.length}</strong><small>${C.labs.length} laboratorios</small></div>` +
