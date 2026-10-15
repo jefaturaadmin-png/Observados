@@ -9059,6 +9059,7 @@
     try { await setDoc(doc(db, 'rebMap', ruc), { m: cambios, por: firma(), act: serverTimestamp() }, { merge: true }); }
     catch (e) { msg('rbMsg', 'No se guardó: ' + errorTexto(e)); }
   }
+  const rbGratis = (l) => (Number(l.valor) || 0) === 0 || (l.pu !== null && l.pu !== undefined && l.pu !== '' && Number(l.pu) === 0); // bonificación (operación gratuita)
   function rbCalc() {
     const ruc = rb.prov, P = new Map(), S = new Map(), lab = rb.lab.trim().toUpperCase(), t = rb.txt.trim().toUpperCase();
     let docs = 0, nFa = 0, nNc = 0;
@@ -9068,9 +9069,15 @@
       .filter(({ fe }) => (!rb.desde || fe.f.slice(0, 7) >= rb.desde) && (!rb.hasta || fe.f.slice(0, 7) <= rb.hasta))
       .sort((a, b) => esNC(a.d) - esNC(b.d)).forEach(({ d }) => { // primero las facturas: lo que aprenden sirve para sus NC
       const sg = /CR[EÉ]DITO/.test(d.tipo) ? -1 : 1, kds = rbKdxDoc(d); docs += 1; if (sg < 0) nNc += 1; else nFa += 1;
-      const od = { d, cont: 0, sinE: 0, ign: 0 }; porDoc.push(od);
+      const od = { d, cont: 0, sinE: 0, ign: 0, bon: 0, desc: 0 }; porDoc.push(od);
+      // Bonificaciones: en el XML vienen con "valor referencial" pero precio 0 (operación gratuita): no se cobran.
+      // Si la suma de lo cobrado pasa el total del documento, hay un descuento global: se reparte en proporción.
+      const tL = (l) => (l.total === null || l.total === undefined ? Number(l.valor) || 0 : Number(l.total) || 0);
+      const sumT = (d.lineas || []).filter((l) => !rbGratis(l)).reduce((a, l) => a + tL(l), 0), totD = Number(d.total) || 0;
+      const fac = totD > 0 && sumT - totD > 0.5 ? totD / sumT : 1; if (fac < 1) od.desc = r2(sumT - totD);
       (d.lineas || []).forEach((l, i) => {
-        const q = Number(l.cant) || 0, v = Number(l.valor) || 0, tt = l.total === null || l.total === undefined ? v : Number(l.total) || 0, x = rbCodigo(ruc, l, kds[i]);
+        const grat = rbGratis(l), q = Number(l.cant) || 0, v = grat ? 0 : r2((Number(l.valor) || 0) * fac), tt = grat ? 0 : r2(tL(l) * fac), x = rbCodigo(ruc, l, kds[i]);
+        if (grat) { od.bon = r2(od.bon + tL(l)); if (sg < 0) return; }
         if (x.ign) { od.ign = r2(od.ign + tt); return; }
         if (!x.c) { od.sinE = r2(od.sinE + tt); } else od.cont = r2(od.cont + tt);
         if (!x.c) { const u = S.get(x.k) || { k: x.k, cod: l.cod, desc: l.desc, n: 0, q: 0, v: 0, sug: x.sug }; u.n += 1; u.q += sg * q; u.v = r2(u.v + sg * v); S.set(x.k, u); return; }
@@ -9113,6 +9120,8 @@
       else if (d && Math.abs(x.pg - xt) > 0.5) obs.push(`monto en Pagos distinto al XML (${mil(r2(x.pg - xt))})`);
       if (o && o.sinE) obs.push(`S/ ${mil(o.sinE)} sin emparejar`);
       if (o && o.ign) obs.push(`S/ ${mil(o.ign)} marcado "no es producto"`);
+      if (o && o.bon) obs.push(`<span class="quien">bonificaciones gratuitas por S/ ${mil(o.bon)} (valor referencial, no se cobran ni se suman)</span>`);
+      if (o && o.desc) obs.push(`<span class="quien">descuento global de S/ ${mil(o.desc)} repartido entre sus productos</span>`);
       if (d && o && Math.abs(xt - o.cont - o.sinE - o.ign) > 0.5) obs.push(`S/ ${mil(r2(xt - o.cont - o.sinE - o.ign))} del total del XML no está en sus productos (percepción, flete u otro cargo)`);
       return { ...x, xt, ct, dif: r2((x.pg || 0) - ct), obs };
     }).sort((a, b) => String(a.f).localeCompare(String(b.f)) || a.doc.localeCompare(b.doc));
