@@ -9099,9 +9099,7 @@
       (!rb.cat.length ? '<div class="msg err">No se pudo cargar el catálogo de productos. Súbelo en Productos (administrador).</div>' : `<p class="quien" style="margin:0 0 8px">Catálogo: ${rb.cat.length.toLocaleString('es-PE')} productos (${esc(rb.fuente || '')}) · Kardex LolFar: ${rb.kdx && rb.kdx.size ? `${rb.kdx.size.toLocaleString('es-PE')} facturas de compra` : 'sin cargar (súbelo para emparejar por factura)'}</p>`) + (rb.kdxErr ? `<div class="msg err">${esc(rb.kdxErr)}</div>` : '') +
       '<div class="kpis">' +
       `<div class="kpi"><b>Documentos</b><strong>${C.docs}</strong><small>${C.nFa} facturas · ${C.nNc} notas de crédito (en el mes de su factura)${C.ncSin.length ? ` · <b class="sube">${C.ncSin.length} NC sin su factura: no se cuentan</b>` : ''}</small></div>` +
-      `<div class="kpi" style="border-color:var(--marca);background:var(--suave)"><b>${rb.lab ? esc(rb.lab) : 'Neto comprado'}</b><strong>S/ ${mil(tot.v)}</strong><small>sin IGV · con IGV S/ ${mil(tot.t)}</small></div>` +
-      `<div class="kpi"><b>Unidades netas</b><strong>${q3(tot.qc - tot.qn)}</strong><small>compradas ${q3(tot.qc)} − devueltas ${q3(tot.qn)}${tot.qb ? ` · bonif. ${q3(tot.qb)}` : ''}</small></div>` +
-      `<div class="kpi"><b>Productos</b><strong>${C.prods.length}</strong><small>${C.labs.length} laboratorios</small></div>` +
+      `<div class="kpi" style="border-color:var(--marca);background:var(--suave)"><b>${rb.lab ? esc(rb.lab) : 'Neto comprado'}</b><strong>S/ ${mil(tot.t)}</strong><small>con IGV · sin IGV S/ ${mil(tot.v)}</small></div>` +
       `<div class="kpi"${C.sin.length ? ' style="border-color:#e0a800"' : ''}><b>Sin emparejar</b><strong>${C.sin.length}</strong><small>S/ ${mil(sinV)} sin IGV (no suman)</small></div>` +
       '</div>' +
       `<h3 class="sub">Por laboratorio <span class="quien">clic para ver sus productos</span></h3><div class="tabla" style="max-height:280px;overflow:auto"><table><thead><tr><th>Laboratorio</th><th class="num">Productos</th><th class="num">Unidades netas</th><th class="num">Neto sin IGV</th><th class="num">Neto con IGV</th></tr></thead><tbody>` +
