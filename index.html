@@ -8995,12 +8995,12 @@
   const rbSim = (a, b) => { const A = new Set(rbToks(a).filter((t) => t.length > 2 || /^\d/.test(t))), B = new Set(rbToks(b).filter((t) => t.length > 2 || /^\d/.test(t))); let n = 0; A.forEach((t) => { if (B.has(t)) n += 1; }); return A.size && B.size ? n / Math.min(A.size, B.size) : 0; };
   const esNC = (d) => /CR[EÉ]DITO/.test(d.tipo);
   const rbRefK = (d) => { const m = String(d.ref || '').toUpperCase().match(/([A-Z0-9]{2,5})\s*-\s*0*(\d+)/); return m ? rbFacK(m[1], m[2]) : ''; };
-  function rbFechaEf(d) { // la NC cuenta en el mes de la factura que afecta (XML de esa factura o su mes en el kardex); si no se encuentra, en su propia fecha
+  function rbFechaEf(d) { // la NC cuenta en el mes de la factura que afecta, y solo si esa factura está en los XML (si no, su compra no está en el reporte y quedaría en negativo)
     if (!esNC(d)) return { f: String(d.fecha || ''), ok: true };
-    const rk = rbRefK(d); if (!rk) return { f: String(d.fecha || ''), ok: false };
+    const rk = rbRefK(d);
     if (!rb.facIdx) { rb.facIdx = new Map(); (rb.docs || []).forEach((x) => { if (!esNC(x) && x.emisor) rb.facIdx.set(`${x.emisor.ruc}|${rbFacK(x.serie, x.num)}`, String(x.fecha || '')); }); }
-    const f = rb.facIdx.get(`${d.emisor.ruc}|${rk}`) || (rb.kdx && rb.kdx.get(rk) ? rb.kdx.get(rk).ym + '-01' : '');
-    return f ? { f, ok: true, ref: rk } : { f: String(d.fecha || ''), ok: false, ref: rk };
+    const f = rk ? rb.facIdx.get(`${d.emisor.ruc}|${rk}`) : '';
+    return f ? { f, ok: true, ref: rk } : { f: String(d.fecha || ''), ok: false, ref: rk, mesK: rk && rb.kdx && rb.kdx.get(rk) ? rb.kdx.get(rk).ym : '' };
   }
   function rbKdxDoc(d) { // código de cada línea del XML según el kardex de su misma factura (la NC, según la factura que afecta): [código | '']
     if (rb.kcache.has(d.k)) return rb.kcache.get(d.k);
@@ -9061,11 +9061,11 @@
   function rbCalc() {
     const ruc = rb.prov, P = new Map(), S = new Map(), lab = rb.lab.trim().toUpperCase(), t = rb.txt.trim().toUpperCase();
     let docs = 0, nFa = 0, nNc = 0;
-    let ncFuera = 0;
+    const ncSin = [];
     (rb.docs || []).filter((d) => d.emisor && d.emisor.ruc === ruc).map((d) => ({ d, fe: rbFechaEf(d) }))
+      .filter(({ d, fe }) => { if (fe.ok) return true; if ((!rb.desde || String(d.fecha).slice(0, 7) >= rb.desde) && (!rb.hasta || String(d.fecha).slice(0, 7) <= rb.hasta)) ncSin.push({ d, fe }); return false; }) // NC sin su factura: no se cuentan
       .filter(({ fe }) => (!rb.desde || fe.f.slice(0, 7) >= rb.desde) && (!rb.hasta || fe.f.slice(0, 7) <= rb.hasta))
-      .sort((a, b) => esNC(a.d) - esNC(b.d)).forEach(({ d, fe }) => { // primero las facturas: lo que aprenden sirve para sus NC
-      if (!fe.ok) ncFuera += 1;
+      .sort((a, b) => esNC(a.d) - esNC(b.d)).forEach(({ d }) => { // primero las facturas: lo que aprenden sirve para sus NC
       const sg = /CR[EÉ]DITO/.test(d.tipo) ? -1 : 1, kds = rbKdxDoc(d); docs += 1; if (sg < 0) nNc += 1; else nFa += 1;
       (d.lineas || []).forEach((l, i) => {
         const q = Number(l.cant) || 0, v = Number(l.valor) || 0, tt = l.total === null || l.total === undefined ? v : Number(l.total) || 0, x = rbCodigo(ruc, l, kds[i]);
@@ -9083,7 +9083,7 @@
     const prods = todos.filter((a) => (!lab || String(a.l).toUpperCase().includes(lab)) && (!t || `${a.c} ${a.n}`.toUpperCase().includes(t))).sort((a, b) => b.v - a.v);
     const labs = new Map();
     todos.forEach((a) => { const x = labs.get(a.l || '(sin laboratorio)') || { l: a.l || '(sin laboratorio)', n: 0, q: 0, v: 0, t: 0 }; x.n += 1; x.q += a.qc - a.qn; x.v = r2(x.v + a.v); x.t = r2(x.t + a.t); labs.set(x.l, x); });
-    return { prods, todos, labs: [...labs.values()].sort((a, b) => b.v - a.v), sin: [...S.values()].sort((a, b) => Math.abs(b.v) - Math.abs(a.v)), docs, nFa, nNc, ncFuera };
+    return { prods, todos, labs: [...labs.values()].sort((a, b) => b.v - a.v), sin: [...S.values()].sort((a, b) => Math.abs(b.v) - Math.abs(a.v)), docs, nFa, nNc, ncSin };
   }
   function rbPintar() {
     const caja = $('rbCont'); if (!caja) return;
@@ -9098,7 +9098,7 @@
     caja.innerHTML = (rb.err ? `<div class="msg err">${esc(rb.err)}</div>` : '') +
       (!rb.cat.length ? '<div class="msg err">No se pudo cargar el catálogo de productos. Súbelo en Productos (administrador).</div>' : `<p class="quien" style="margin:0 0 8px">Catálogo: ${rb.cat.length.toLocaleString('es-PE')} productos (${esc(rb.fuente || '')}) · Kardex LolFar: ${rb.kdx && rb.kdx.size ? `${rb.kdx.size.toLocaleString('es-PE')} facturas de compra` : 'sin cargar (súbelo para emparejar por factura)'}</p>`) + (rb.kdxErr ? `<div class="msg err">${esc(rb.kdxErr)}</div>` : '') +
       '<div class="kpis">' +
-      `<div class="kpi"><b>Documentos</b><strong>${C.docs}</strong><small>${C.nFa} facturas · ${C.nNc} notas de crédito (en el mes de su factura${C.ncFuera ? `; ${C.ncFuera} sin su factura: en su propia fecha` : ''})</small></div>` +
+      `<div class="kpi"><b>Documentos</b><strong>${C.docs}</strong><small>${C.nFa} facturas · ${C.nNc} notas de crédito (en el mes de su factura)${C.ncSin.length ? ` · <b class="sube">${C.ncSin.length} NC sin su factura: no se cuentan</b>` : ''}</small></div>` +
       `<div class="kpi" style="border-color:var(--marca);background:var(--suave)"><b>${rb.lab ? esc(rb.lab) : 'Neto comprado'}</b><strong>S/ ${mil(tot.v)}</strong><small>sin IGV · con IGV S/ ${mil(tot.t)}</small></div>` +
       `<div class="kpi"><b>Unidades netas</b><strong>${q3(tot.qc - tot.qn)}</strong><small>compradas ${q3(tot.qc)} − devueltas ${q3(tot.qn)}${tot.qb ? ` · bonif. ${q3(tot.qb)}` : ''}</small></div>` +
       `<div class="kpi"><b>Productos</b><strong>${C.prods.length}</strong><small>${C.labs.length} laboratorios</small></div>` +
@@ -9109,6 +9109,8 @@
       `<h3 class="sub">Productos${rb.lab ? ' · ' + esc(rb.lab) : ''}</h3><div class="tabla" style="max-height:60vh;overflow:auto"><table><thead><tr><th>Código</th><th>Producto</th><th>Laboratorio</th><th class="num">Comprado</th><th class="num">NC (devuelto)</th><th class="num">Cantidad neta</th><th class="num">Bonif.</th><th class="num">Neto sin IGV</th><th class="num">Neto con IGV</th></tr></thead><tbody>` +
       (C.prods.map((a) => `<tr><td>${esc(a.c)}</td><td>${esc(a.n)}${a.auto ? ' <span class="est e0" title="Emparejado automáticamente: revísalo abajo">auto</span>' : (a.kdx ? ' <span class="est e2" title="Emparejado con el kardex de LolFar: el mismo producto en la misma factura">factura</span>' : '')}</td><td>${esc(a.l)}</td><td class="num">${q3(a.qc)}</td><td class="num">${a.qn ? q3(-a.qn) : ''}</td><td class="num"><b>${q3(a.qc - a.qn)}</b></td><td class="num">${a.qb ? q3(a.qb) : ''}</td><td class="num"><b>${mil(a.v)}</b></td><td class="num">${mil(a.t)}</td></tr>`).join('') || '<tr><td colspan="9" class="vacio">Sin productos con estos filtros</td></tr>') +
       `</tbody><tfoot><tr class="tot"><td colspan="3">TOTAL${rb.lab ? ' ' + esc(rb.lab) : ''}</td><td class="num">${q3(tot.qc)}</td><td class="num">${tot.qn ? q3(-tot.qn) : ''}</td><td class="num">${q3(tot.qc - tot.qn)}</td><td class="num">${tot.qb ? q3(tot.qb) : ''}</td><td class="num">${mil(tot.v)}</td><td class="num">${mil(tot.t)}</td></tr></tfoot></table></div>` +
+      (C.ncSin.length ? `<h3 class="sub">Notas de crédito sin su factura en los XML (${C.ncSin.length}) <span class="quien">no suman ni restan: sube el XML de la factura que afectan y se descontarán en el mes de esa factura</span></h3><div class="tabla" style="max-height:40vh;overflow:auto"><table><thead><tr><th>Nota de crédito</th><th>Emitida</th><th>Afecta a</th><th>Productos</th><th class="num">Sin IGV</th></tr></thead><tbody>` +
+        C.ncSin.sort((a, b) => String(b.d.fecha).localeCompare(String(a.d.fecha))).map(({ d, fe }) => `<tr><td>${esc(d.id)}</td><td>${esc(dia(d.fecha))}</td><td>${fe.ref ? `<b>${esc(d.ref)}</b>${fe.mesK ? `<div class="quien">en el kardex: ${esc(perTxt(fe.mesK))}</div>` : ''}` : '<span class="quien">la NC no indica la factura</span>'}</td><td>${esc((d.lineas || []).map((l) => `${l.desc} (${l.cant})`).join(' · ').slice(0, 160))}</td><td class="num">${mil(-(Number(d.base) || (d.lineas || []).reduce((a, l) => a + (Number(l.valor) || 0), 0)))}</td></tr>`).join('') + '</tbody></table></div>' : '') +
       (C.sin.length ? `<h3 class="sub">Productos del XML sin emparejar (${C.sin.length}) <span class="quien">elige el producto del catálogo; queda guardado para los siguientes XML de este proveedor</span></h3><div class="tabla" style="max-height:60vh;overflow:auto"><table><thead><tr><th>Descripción en el XML</th><th class="num">Líneas</th><th class="num">Cantidad</th><th class="num">Sin IGV</th><th>Producto del catálogo</th><th></th></tr></thead><tbody>${C.sin.map((u) => filaSin(u)).join('')}</tbody></table></div>` : '') +
       (autos.length ? `<details${rb.verAuto ? ' open' : ''} id="rbAutoD"><summary><b>Emparejados automáticamente (${autos.length})</b> · revisa y confirma${ed ? ' <button class="mini" id="rbConfTodo">Confirmar todos</button>' : ''}</summary><div class="tabla" style="max-height:60vh;overflow:auto"><table><thead><tr><th>Descripción en el XML</th><th>Producto del catálogo</th><th></th></tr></thead><tbody>${autos.map((u) => filaSin(u, true)).join('')}</tbody></table></div></details>` : '');
   }
