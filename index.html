@@ -9146,10 +9146,10 @@
       else if (!o) obs.push('fuera de las fechas elegidas');
       if (x.pg === null) obs.push('<b class="sube">no está en Ingreso de facturas</b>');
       else if (d && Math.abs(x.pg - xt) > 0.5) obs.push(`monto en Pagos distinto al XML (${mil(r2(x.pg - xt))})`);
-      if (o && o.sinE) obs.push(`S/ ${mil(o.sinE)} sin emparejar`);
+      if (o && o.sinE) obs.push(`<b>S/ ${mil(o.sinE)} sin emparejar</b> (empareja ese producto abajo y la diferencia pasa a 0)`);
       if (o && o.ign) obs.push(`S/ ${mil(o.ign)} marcado "no es producto"`);
       const ob = oi.get(x.k);
-      if (ob && ob.pend > TOL_NC) obs.unshift(`<b class="baja">NC pendiente S/ ${mil(ob.pend)}</b> <span class="quien">(observado S/ ${mil(ob.obs)}: ${esc(ob.prods.slice(0, 120))})</span>`);
+      if (ob && ob.pend > TOL_NC) obs.unshift(`<span class="quien">NC pendiente de: ${esc(ob.prods.slice(0, 120))}</span>`);
       else if (ob && ob.obs) obs.unshift(`<span class="quien">observado S/ ${mil(ob.obs)} · ${esc(ob.est)}</span>`);
       if (o && o.bon) obs.push(`<span class="quien">bonificaciones gratuitas por S/ ${mil(o.bon)} (valor referencial, no se cobran ni se suman)</span>`);
       if (o && o.desc) obs.push(`<span class="quien">descuento global de S/ ${mil(o.desc)} repartido entre sus productos</span>`);
@@ -9158,9 +9158,9 @@
     }).sort((a, b) => String(a.f).localeCompare(String(b.f)) || a.doc.localeCompare(b.doc));
     const T = (k) => r2(lista.reduce((a, x) => a + (Number(x[k]) || 0), 0)), conDif = lista.filter((x) => Math.abs(x.dif) > 0.5), conPend = lista.filter((x) => x.pendNc);
     return `<details${conDif.length || conPend.length ? ' open' : ''}><summary><b>Cuadre con Ingreso de facturas (Pagos)</b> · Pagos S/ ${mil(T('pg'))} · XML S/ ${mil(T('xt'))} · contado en rebate S/ ${mil(T('ct'))} · <b class="${Math.abs(T('dif')) > 0.5 ? 'sube' : ''}">diferencia S/ ${mil(T('dif'))}</b>${conDif.length ? ` en ${conDif.length} factura(s)` : ' · cuadra'}${conPend.length ? ` · <b class="baja">NC pendiente S/ ${mil(T('pendNc'))} en ${conPend.length} factura(s)</b> (se cuenta como comprado hasta que llegue la NC)` : ''}</summary>` +
-      '<div class="tabla" style="max-height:50vh;overflow:auto"><table><thead><tr><th>Factura</th><th>Fecha</th><th class="num">En Pagos</th><th class="num">Total XML</th><th class="num">Contado en rebate</th><th class="num">Diferencia</th><th>Motivo</th></tr></thead><tbody>' +
-      lista.map((x) => `<tr${x.pendNc ? ' style="background:#fdecea"' : (Math.abs(x.dif) > 0.5 ? ' style="background:#fff7e6"' : '')}><td>${esc(x.doc)}</td><td>${esc(dia(x.f))}</td><td class="num">${x.pg === null ? '—' : mil(x.pg)}</td><td class="num">${x.xt === null ? '—' : mil(x.xt)}</td><td class="num">${mil(x.ct)}</td><td class="num"><b>${Math.abs(x.dif) > 0.5 ? mil(x.dif) : ''}</b></td><td>${x.obs.join(' · ')}</td></tr>`).join('') +
-      `</tbody><tfoot><tr class="tot"><td colspan="2">TOTAL (${lista.length})</td><td class="num">${mil(T('pg'))}</td><td class="num">${mil(T('xt'))}</td><td class="num">${mil(T('ct'))}</td><td class="num">${mil(T('dif'))}</td><td></td></tr></tfoot></table></div></details>`;
+      '<div class="tabla" style="max-height:50vh;overflow:auto"><table><thead><tr><th>Factura</th><th>Fecha</th><th class="num">En Pagos</th><th class="num">Total XML</th><th class="num">Contado en rebate</th><th class="num" title="Lo que está en Pagos y el rebate no contó (sin XML, sin emparejar, etc.)">Diferencia</th><th class="num" title="Productos observados que aún esperan su nota de crédito (igual que en Observaciones)">NC pendiente</th><th>Motivo</th></tr></thead><tbody>' +
+      lista.map((x) => `<tr${x.pendNc ? ' style="background:#fdecea"' : (Math.abs(x.dif) > 0.5 ? ' style="background:#fff7e6"' : '')}><td>${esc(x.doc)}</td><td>${esc(dia(x.f))}</td><td class="num">${x.pg === null ? '—' : mil(x.pg)}</td><td class="num">${x.xt === null ? '—' : mil(x.xt)}</td><td class="num">${mil(x.ct)}</td><td class="num"><b>${Math.abs(x.dif) > 0.5 ? mil(x.dif) : ''}</b></td><td class="num baja"><b>${x.pendNc ? mil(x.pendNc) : ''}</b></td><td>${x.obs.join(' · ')}</td></tr>`).join('') +
+      `</tbody><tfoot><tr class="tot"><td colspan="2">TOTAL (${lista.length})</td><td class="num">${mil(T('pg'))}</td><td class="num">${mil(T('xt'))}</td><td class="num">${mil(T('ct'))}</td><td class="num">${mil(T('dif'))}</td><td class="num baja">${mil(T('pendNc'))}</td><td></td></tr></tfoot></table></div></details>`;
   }
   function rbPintar() {
     const caja = $('rbCont'); if (!caja) return;
