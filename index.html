@@ -3953,9 +3953,17 @@
       fila('');
       porFecha(cpPagos(c1));
     } else if (R.dist.pago === 'cuotas' && R.CP) { // cada grupo con sus cuotas
-      fila('txt1', [`Programación de facturas${mesCompra ? ' del mes de ' + mesCompra : ''} por S/${mil(R.tPagar)} por grupos${R.ret ? ` (con retención 3% de S/${mil(Math.abs(R.ret))})` : ''}`]);
+      const multi = R.CP.cuadros.length > 1;
+      fila('txt1', [`Programación de facturas${mesCompra ? ' del mes de ' + mesCompra : ''} por S/${mil(R.tPagar)} por grupos${R.ret ? ` (con retención 3% de S/${mil(Math.abs(R.ret))})` : ''}${/^\d{4}-\d{2}$/.test(R.d.per) ? ' para PAGO EN ' + MESES[+R.d.per.slice(5)] : ''}`]);
       R.CP.cuadros.forEach((c) => {
         const conFp = !c.n && cpFacs(c).some((f) => f.fp);
+        if (multi) { // cada grupo con sus documentos, lo que se paga y justo debajo su programación
+          fila('');
+          const p1 = c.g && cpPagoN(c.g) === 1 && R.CP.cuadros.some((o) => o !== c && o.g && cpBase(o.g) === cpBase(c.g)) ? ' · pago 1' : '';
+          fila('txt1', [c.g ? cpEtq(c.g) + p1 : 'GRUPO ÚNICO']);
+          c.docs.forEach((f) => { const o = (R.d.filas || []).find((x) => x.i === f.i); if (o) doc1(o); });
+          fila('res', ['', '', '', '', 'COMPRAS', c.bruto]); if (c.ncT) fila('resNc', ['', '', '', '', 'N.CRÉDITO', c.ncT]); if (c.ret) fila('resNc', ['', '', '', '', 'RET. 3%', -c.ret]); fila('resPg', ['', '', '', '', 'A PAGAR', c.neto]);
+        }
         fila('txt2', [`${c.g ? cpEtq(c.g) : 'GRUPO ÚNICO'}: S/${mil(c.neto)}${c.n ? ` EN ${c.n} ${c.n === 1 ? 'CUOTA' : 'CUOTAS'}${c.mod ? ' · ' + c.mod : ''}` : (c.est === 'PAGADO' ? ' · PAGADO' : (conFp ? ' · POR FECHA DE PAGO' : ' · FALTA PROGRAMAR'))}${c.retTxt ? ' · ' + c.retTxt : ''}`]);
         c.cuotas.forEach((q) => fila('txt2', [`      CUOTA ${q.n}${q.l ? ' (' + q.l + ')' : ''}: ${q.v ? `${fechaLarga(q.v)} DEL ${q.v.slice(0, 4)}` : 'SIN FECHA'} · S/${mil(q.m)}${q.pg ? ' · PAGADA' : ''}`]));
         if (conFp) porFecha(cpPagos(c));
@@ -3981,12 +3989,6 @@
       fila('txt2', [`FALTA NOTA DE CRÉDITO POR S/${mil(R.obsAnt.reduce((s, o) => s + (Number(o.falta) || 0), 0))} EN ${R.obsAnt.length} FACTURA(S) DE MESES ANTERIORES. NO MODIFICA EL TOTAL A PAGAR DE ESTE MES.`]);
       fila('');
     }
-    if (R.dist.pago === 'cuotas' && R.CP && R.CP.cuadros.length > 1) R.CP.cuadros.forEach((c) => { // cada grupo por separado, con sus documentos y su retención
-      fila('txt1', [c.g ? cpEtq(c.g) : 'GRUPO ÚNICO']);
-      c.docs.forEach((f) => { const o = (R.d.filas || []).find((x) => x.i === f.i); if (o) doc1(o); });
-      fila('res', ['', '', '', '', 'COMPRAS', c.bruto]); if (c.ncT) fila('resNc', ['', '', '', '', 'N.CRÉDITO', c.ncT]); if (c.ret) fila('resNc', ['', '', '', '', 'RET. 3%', -c.ret]); fila('resPg', ['', '', '', '', 'A PAGAR', c.neto]);
-      fila('');
-    });
     fila('res', ['', '', '', '', 'T.COMPRAS', R.tCompras]); fila('resNc', ['', '', '', '', 'N.CRÉDITO', R.nCredito]); if (R.ret) fila('resNc', ['', '', '', '', 'RET. 3%', R.ret]); fila('resPg', ['', '', '', '', 'T.PAGAR', R.tPagar]);
     if (R.contado.length) { // pagadas al contado: se muestran aparte y no suman al T.PAGAR
       fila(''); fila('obsT', ['FACTURAS PAGADAS AL CONTADO (YA PAGADAS, NO SE PROGRAMAN):']);
