@@ -9110,8 +9110,24 @@
   // Cuadre con Ingreso de facturas (Pagos): factura por factura, lo de Pagos contra el XML y lo contado en el rebate
   async function rbPagos() {
     if (rb.pg || !puede('verPagos')) return;
-    try { const s = await sincroDocs('pagos'); rb.pg = []; s.docs.forEach((x) => { const d = x.data(); (d.filas || []).forEach((f) => { if (f.t === 'FA' || f.t === 'NC') rb.pg.push({ k: rbFacK(f.s, f.n), doc: `${f.s}-${f.n}`, f: String(f.f || ''), m: Number(f.m) || 0, t: f.t, dist: d.dist, per: d.per }); }); }); }
+    try { const s = await sincroDocs('pagos'); rb.pg = []; rb.pgDocs = s.docs.map((x) => ({ id: x.id, ...x.data() })); s.docs.forEach((x) => { const d = x.data(); (d.filas || []).forEach((f) => { if (f.t === 'FA' || f.t === 'NC') rb.pg.push({ k: rbFacK(f.s, f.n), doc: `${f.s}-${f.n}`, f: String(f.f || ''), m: Number(f.m) || 0, t: f.t, dist: d.dist, per: d.per }); }); }); }
     catch (e) { rb.pg = []; console.warn('Pagos para el cuadre:', e); }
+  }
+  function rbObsInfo(dists) { // observado y NC pendiente de cada factura (lo mismo que Observaciones), por 'SERIE-NUM'
+    const clave = [...dists].sort().join(',');
+    if (rb.obsInfo && rb.obsInfoK === clave) return rb.obsInfo;
+    const info = new Map(), grupos = new Map(), antes = pgObs;
+    (rb.pgDocs || []).filter((d) => dists.has(d.dist)).forEach((d) => { const k = `${d.emp}|${d.dist}`; if (!grupos.has(k)) grupos.set(k, []); grupos.get(k).push(d); });
+    try {
+      grupos.forEach((docs) => {
+        const dk = docs[0].dist; pgObs = obsMapDe(dk);
+        cruceFilas(docs, cruzar(docs, lineasDe), dk).forEach((x) => { if (!x.f || x.sinReg) return; info.set(rbFacK(x.f.s, x.f.n), { obs: x.c.obs, pend: x.pend, est: x.est, prods: x.c.lineas.map((l) => l.p).join(' · ') }); });
+      });
+    } catch (e) { console.warn('Observaciones para el cuadre:', e); }
+    pgObs = antes;
+    if (!rb.czPedido) { rb.czPedido = true; czAsegurar((rb.pgDocs || []).filter((d) => dists.has(d.dist)).flatMap((d) => (d.filas || []).map((f) => String(f.f || '').slice(0, 7))), () => { rb.obsInfo = null; rbPintar(); }); } // productos de las NC (XML) para saber qué sigue pendiente
+    rb.obsInfo = info; rb.obsInfoK = clave;
+    return info;
   }
   function rbCuadre(C) {
     if (!rb.pg) return '';
@@ -9120,7 +9136,7 @@
     if (!dists.size) return '<p class="quien">Cuadre con Ingreso de facturas: ninguna factura de este proveedor está registrada en Pagos.</p>';
     const enRango = (f) => (!rb.desde || f.slice(0, 7) >= rb.desde) && (!rb.hasta || f.slice(0, 7) <= rb.hasta);
     const pgs = rb.pg.filter((p) => p.t === 'FA' && dists.has(p.dist) && enRango(p.f)), cont = new Map(C.porDoc.filter((o) => !esNC(o.d)).map((o) => [rbFacK(o.d.serie, o.d.num), o]));
-    const xmlDe = new Map(xs.filter((d) => !esNC(d)).map((d) => [rbFacK(d.serie, d.num), d]));
+    const xmlDe = new Map(xs.filter((d) => !esNC(d)).map((d) => [rbFacK(d.serie, d.num), d])), oi = rbObsInfo(dists);
     const filas = new Map();
     pgs.forEach((p) => filas.set(p.k, { k: p.k, doc: p.doc, f: p.f, pg: r2((filas.get(p.k) || {}).pg || 0) + p.m }));
     cont.forEach((o, k) => { const x = filas.get(k) || { k, doc: o.d.id, f: o.d.fecha, pg: null }; x.o = o; filas.set(k, x); });
@@ -9132,15 +9148,18 @@
       else if (d && Math.abs(x.pg - xt) > 0.5) obs.push(`monto en Pagos distinto al XML (${mil(r2(x.pg - xt))})`);
       if (o && o.sinE) obs.push(`S/ ${mil(o.sinE)} sin emparejar`);
       if (o && o.ign) obs.push(`S/ ${mil(o.ign)} marcado "no es producto"`);
+      const ob = oi.get(x.k);
+      if (ob && ob.pend > TOL_NC) obs.unshift(`<b class="baja">NC pendiente S/ ${mil(ob.pend)}</b> <span class="quien">(observado S/ ${mil(ob.obs)}: ${esc(ob.prods.slice(0, 120))})</span>`);
+      else if (ob && ob.obs) obs.unshift(`<span class="quien">observado S/ ${mil(ob.obs)} · ${esc(ob.est)}</span>`);
       if (o && o.bon) obs.push(`<span class="quien">bonificaciones gratuitas por S/ ${mil(o.bon)} (valor referencial, no se cobran ni se suman)</span>`);
       if (o && o.desc) obs.push(`<span class="quien">descuento global de S/ ${mil(o.desc)} repartido entre sus productos</span>`);
       if (d && o && Math.abs(xt - o.cont - o.sinE - o.ign) > 0.5) obs.push(`S/ ${mil(r2(xt - o.cont - o.sinE - o.ign))} del total del XML no está en sus productos (percepción, flete u otro cargo)`);
-      return { ...x, xt, ct, dif: r2((x.pg || 0) - ct), obs };
+      return { ...x, xt, ct, dif: r2((x.pg || 0) - ct), obs, pendNc: ob && ob.pend > TOL_NC ? ob.pend : 0 };
     }).sort((a, b) => String(a.f).localeCompare(String(b.f)) || a.doc.localeCompare(b.doc));
-    const T = (k) => r2(lista.reduce((a, x) => a + (Number(x[k]) || 0), 0)), conDif = lista.filter((x) => Math.abs(x.dif) > 0.5);
-    return `<details${conDif.length ? ' open' : ''}><summary><b>Cuadre con Ingreso de facturas (Pagos)</b> · Pagos S/ ${mil(T('pg'))} · XML S/ ${mil(T('xt'))} · contado en rebate S/ ${mil(T('ct'))} · <b class="${Math.abs(T('dif')) > 0.5 ? 'sube' : ''}">diferencia S/ ${mil(T('dif'))}</b>${conDif.length ? ` en ${conDif.length} factura(s)` : ' · cuadra'}</summary>` +
+    const T = (k) => r2(lista.reduce((a, x) => a + (Number(x[k]) || 0), 0)), conDif = lista.filter((x) => Math.abs(x.dif) > 0.5), conPend = lista.filter((x) => x.pendNc);
+    return `<details${conDif.length || conPend.length ? ' open' : ''}><summary><b>Cuadre con Ingreso de facturas (Pagos)</b> · Pagos S/ ${mil(T('pg'))} · XML S/ ${mil(T('xt'))} · contado en rebate S/ ${mil(T('ct'))} · <b class="${Math.abs(T('dif')) > 0.5 ? 'sube' : ''}">diferencia S/ ${mil(T('dif'))}</b>${conDif.length ? ` en ${conDif.length} factura(s)` : ' · cuadra'}${conPend.length ? ` · <b class="baja">NC pendiente S/ ${mil(T('pendNc'))} en ${conPend.length} factura(s)</b> (se cuenta como comprado hasta que llegue la NC)` : ''}</summary>` +
       '<div class="tabla" style="max-height:50vh;overflow:auto"><table><thead><tr><th>Factura</th><th>Fecha</th><th class="num">En Pagos</th><th class="num">Total XML</th><th class="num">Contado en rebate</th><th class="num">Diferencia</th><th>Motivo</th></tr></thead><tbody>' +
-      lista.map((x) => `<tr${Math.abs(x.dif) > 0.5 ? ' style="background:#fff7e6"' : ''}><td>${esc(x.doc)}</td><td>${esc(dia(x.f))}</td><td class="num">${x.pg === null ? '—' : mil(x.pg)}</td><td class="num">${x.xt === null ? '—' : mil(x.xt)}</td><td class="num">${mil(x.ct)}</td><td class="num"><b>${Math.abs(x.dif) > 0.5 ? mil(x.dif) : ''}</b></td><td>${x.obs.join(' · ')}</td></tr>`).join('') +
+      lista.map((x) => `<tr${x.pendNc ? ' style="background:#fdecea"' : (Math.abs(x.dif) > 0.5 ? ' style="background:#fff7e6"' : '')}><td>${esc(x.doc)}</td><td>${esc(dia(x.f))}</td><td class="num">${x.pg === null ? '—' : mil(x.pg)}</td><td class="num">${x.xt === null ? '—' : mil(x.xt)}</td><td class="num">${mil(x.ct)}</td><td class="num"><b>${Math.abs(x.dif) > 0.5 ? mil(x.dif) : ''}</b></td><td>${x.obs.join(' · ')}</td></tr>`).join('') +
       `</tbody><tfoot><tr class="tot"><td colspan="2">TOTAL (${lista.length})</td><td class="num">${mil(T('pg'))}</td><td class="num">${mil(T('xt'))}</td><td class="num">${mil(T('ct'))}</td><td class="num">${mil(T('dif'))}</td><td></td></tr></tfoot></table></div></details>`;
   }
   function rbPintar() {
