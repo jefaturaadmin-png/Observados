@@ -3922,23 +3922,27 @@
     const ncNota = (f) => rebTxt(f) || (R.usoNc.get(`${f.s}-${f.n}`) || []).join(', ') || f.e || '';
     const mesCompra = (R.d.compra || []).map((c) => MESES[+c.slice(5)]).join(' Y ');
     cab(false);
-    // Facturas que tienen su nota de crédito en este mismo pago: primero se muestran juntas (factura − NC − retención) para que el proveedor vea a cuál se resta
-    const rr = (f) => (R.CP && R.CP.R.get(f.i)) || {}, facCon = R.normales.filter((f) => rr(f).ncAp2 > 0);
-    if (facCon.length) {
-      fila('obsT', ['NOTAS DE CRÉDITO QUE SE RESTAN DE SU FACTURA:']);
-      facCon.forEach((f) => {
+    // Con retención o con NC de una factura del mismo pago: cada factura con su NC debajo (subtotal) y su retención 3%;
+    // las NC que no son de estas facturas van al final; el TOTAL ya es lo que se paga (con la retención descontada)
+    const rr = (f) => (R.CP && R.CP.R.get(f.i)) || {}, agrupar = R.normales.some((f) => rr(f).q || rr(f).ncAp2);
+    if (agrupar) {
+      const usadas = new Set();
+      R.normales.forEach((f, i) => {
         const k = cpDocNorm(`${f.s}-${f.n}`), ns = R.ncs.filter((n) => rr(n).apl === k), x = rr(f);
-        doc1(f); ns.forEach((n) => doc1(n, '', `${f.s}-${f.n}`));
-        fila('res', ['', '', '', '', 'SUBTOTAL', r2((Number(f.m) || 0) + ns.reduce((a, n) => a + (Number(n.m) || 0), 0))]);
+        if (i) fila('');
+        doc1(f); ns.forEach((n) => { usadas.add(n); doc1(n); });
+        if (ns.length) fila('res', ['', '', '', '', 'SUBTOTAL', r2((Number(f.m) || 0) + ns.reduce((a, n) => a + (Number(n.m) || 0), 0))]);
         if (x.q) fila('resNc', ['', '', '', '', 'RET. 3%', -x.q]);
-        fila('resPg', ['', '', '', '', 'A PAGAR', x.neto]);
-        fila('');
       });
-      fila('obsT', ['TODAS LAS FACTURAS Y NOTAS DE CRÉDITO:']);
+      const sueltas = R.ncs.filter((n) => !usadas.has(n));
+      if (sueltas.length) { fila(''); sueltas.forEach((n) => doc1(n)); }
+      fila('');
+      fila('tot', ['', '', '', '', 'TOTAL', R.tPagar, R.cuota === null ? '' : R.cuota]);
+    } else {
+      R.normales.forEach((f) => doc1(f));
+      R.ncs.forEach((f) => doc1(f));
+      fila('tot', ['', '', '', '', 'TOTAL', r2(R.tCompras + R.nCredito), R.cuota === null ? '' : R.cuota]);
     }
-    R.normales.forEach((f) => doc1(f));
-    R.ncs.forEach((f) => doc1(f));
-    fila('tot', ['', '', '', '', 'TOTAL', r2(R.tCompras + R.nCredito), R.cuota === null ? '' : R.cuota]);
     fila('');
     const cpFacs = (c) => c.docs.filter((f) => f.t === 'FACTURA');
     const cpPagos = (c) => cpFacs(c).map((f) => { const r = R.CP.R.get(f.i) || {}; return { fp: f.fp || '', doc: f.d, m: Number(f.m) || 0, q: r.q || 0, neto: r.neto ?? (Number(f.m) || 0), pg: f.pg === true }; });
