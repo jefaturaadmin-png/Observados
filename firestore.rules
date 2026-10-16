@@ -67,6 +67,14 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lst', 'emp', 'dist', 'doc'])
         && request.resource.data.get('lst', {}).diff(resource.data.get('lst', {})).affectedKeys().hasOnly([request.auth.uid]);
     }
+    // Fotos de los comentarios de Observaciones (reducidas en el navegador); cada uno solo sube o borra las suyas
+    match /obsImg/{id} {
+      allow read: if puede('verPagos') || puede('verObs');
+      allow create: if (puede('verObs') || puede('pagos'))
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.d is string && request.resource.data.d.size() < 400000;
+      allow delete: if request.auth != null && (resource.data.uid == request.auth.uid || puede('pagos'));
+    }
     // Índice de facturas que ya están en pagos: lo lee cualquier usuario activo para cerrar las observaciones
     match /pagosIdx/{id} {
       allow read: if activo();
