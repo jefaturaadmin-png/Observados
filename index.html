@@ -9049,6 +9049,7 @@
     try {
       await rbCatalogo();
       await rbKdxCargar();
+      await rbNuevosCargar();
       await rbPagos();
       if (!rb.docs) { const s = await sincroDocs('xmlf'); rb.docs = s.docs.map((d) => ({ k: d.id, ...d.data() })); }
     } catch (e) { rb.err = errorTexto(e); }
@@ -9059,6 +9060,24 @@
     $('rbProv').innerHTML = rb.provs.map((p) => `<option value="${esc(p.ruc)}"${p.ruc === rb.prov ? ' selected' : ''}>${esc(p.nom)} (${p.n})</option>`).join('');
     await rbMapa(rb.prov);
     rbPintar();
+  }
+  // Productos que no están en el catálogo ni en el kardex (se venden sin ingresar): se dan de alta aquí para el rebate.
+  // rebMap/_productos: { p: { 'N-xxxx': { n: nombre, l: laboratorio } } }
+  async function rbNuevosCargar() {
+    if (rb.nuevos) return;
+    rb.nuevos = {};
+    try { const s = await getDoc(doc(db, 'rebMap', '_productos')); if (s.exists()) rb.nuevos = s.data().p || {}; } catch (e) { console.warn('Productos nuevos del rebate:', e); }
+    Object.entries(rb.nuevos).forEach(([c, x]) => rbNuevoPoner(c, x));
+  }
+  function rbNuevoPoner(c, x) {
+    const p = { c, n: String(x.n || ''), l: String(x.l || ''), nuevo: true };
+    rb.porC.set(c, p);
+    const o = document.createElement('option'); o.value = `${c} · ${p.n} · ${p.l || 'sin laboratorio'}`; $('rbCatL').appendChild(o);
+  }
+  async function rbNuevoGuardar(c, x) {
+    rb.nuevos[c] = { ...(rb.nuevos[c] || {}), ...x };
+    const p = rb.porC.get(c); if (p) Object.assign(p, { n: rb.nuevos[c].n, l: rb.nuevos[c].l }); else rbNuevoPoner(c, rb.nuevos[c]);
+    await setDoc(doc(db, 'rebMap', '_productos'), { p: { [c]: { ...rb.nuevos[c], por: firma(), f: hoy() } }, act: serverTimestamp() }, { merge: true });
   }
   async function rbMapa(ruc) {
     if (!ruc || rb.maps.has(ruc)) return;
@@ -9168,10 +9187,11 @@
     const C = rbCalc(), ed = puede('reb'), q3 = (v) => (Math.round(v * 1000) / 1000).toLocaleString('es-PE');
     const tot = { qc: 0, qn: 0, qb: 0, v: 0, t: 0 }; C.prods.forEach((a) => { tot.qc += a.qc; tot.qn += a.qn; tot.qb += a.qb; tot.v = r2(tot.v + a.v); tot.t = r2(tot.t + a.t); });
     const sinV = r2(C.sin.reduce((s, u) => s + u.v, 0)), autos = C.todos.filter((a) => a.auto).flatMap((a) => [...a.items.values()]);
-    $('rbLabs').innerHTML = C.labs.map((x) => `<option value="${esc(x.l)}">`).join('');
+    $('rbLabs').innerHTML = [...new Set(rb.cat.map((p) => p.l).concat(Object.values(rb.nuevos || {}).map((x) => x.l)).filter(Boolean))].sort().map((l) => `<option value="${esc(l)}">`).join(''); // todos los laboratorios del catálogo
     const sel = (u) => `<div class="rbElegir">${(u.sug || []).length ? `<select class="rbSug">${u.sug.map((s) => `<option value="${esc(s.p.c)}"${s.p.c === u.c ? ' selected' : ''}>${esc(`${s.p.c} · ${s.p.n} · ${s.p.l}`)}</option>`).join('')}<option value="">— ninguno de estos: buscar abajo —</option></select>` : '<span class="quien">Sin sugerencias: búscalo abajo</span>'}<input class="rbPick" list="rbCatL" placeholder="O busca en el catálogo: código o nombre"></div>`;
     const filaSin = (u, auto) => `<tr data-k="${esc(u.k)}"><td><b>${esc(u.desc)}</b>${u.cod ? `<div class="quien">Cód. proveedor ${esc(u.cod)}</div>` : ''}</td>${auto ? '' : `<td class="num">${u.n}</td><td class="num">${q3(u.q)}</td><td class="num">${mil(u.v)}</td>`}<td style="min-width:320px">${ed ? sel(u) : esc((u.sug || []).map((s) => s.p.n).join(' / '))}</td>` +
-      `<td style="white-space:nowrap">${ed ? `<button class="mini pri rbUsar">${auto ? 'Confirmar' : 'Usar'}</button> <button class="mini rbIgn" title="No es un producto (descuento, flete, etc.): no se cuenta">No es producto</button>` : ''}</td></tr>`;
+      `<td style="white-space:nowrap">${ed ? `<button class="mini pri rbUsar">${auto ? 'Confirmar' : 'Usar'}</button> <button class="mini rbIgn" title="No es un producto (descuento, flete, etc.): no se cuenta">No es producto</button>${auto ? '' : ` <button class="mini rbNuevo" title="No está en el catálogo ni en el kardex (se vende sin ingresar): darlo de alta para el rebate con este nombre y su laboratorio">Producto nuevo</button>`}` : ''}` +
+      (ed && !auto ? `<div class="rbNuevoF oculto" style="margin-top:6px;display:flex;flex-direction:column;gap:4px;min-width:260px"><input class="rbNN" value="${esc(u.desc)}" placeholder="Nombre del producto"><input class="rbNL" list="rbLabs" placeholder="Laboratorio (escribe o elige)"><button class="mini pri rbNG">Guardar producto nuevo</button></div>` : '') + '</td></tr>';
     caja.innerHTML = (rb.err ? `<div class="msg err">${esc(rb.err)}</div>` : '') +
       (!rb.cat.length ? '<div class="msg err">No se pudo cargar el catálogo de productos. Súbelo en Productos (administrador).</div>' : `<p class="quien" style="margin:0 0 8px">Catálogo: ${rb.cat.length.toLocaleString('es-PE')} productos (${esc(rb.fuente || '')}) · Kardex LolFar: ${rb.kdx && rb.kdx.size ? `${rb.kdx.size.toLocaleString('es-PE')} facturas de compra` : 'sin cargar (súbelo para emparejar por factura)'}</p>`) + (rb.kdxErr ? `<div class="msg err">${esc(rb.kdxErr)}</div>` : '') +
       '<div class="kpis">' +
@@ -9183,7 +9203,7 @@
       `<h3 class="sub">Por laboratorio <span class="quien">clic para ver sus productos</span></h3><div class="tabla" style="max-height:280px;overflow:auto"><table><thead><tr><th>Laboratorio</th><th class="num">Productos</th><th class="num">Unidades netas</th><th class="num">Neto sin IGV</th><th class="num">Neto con IGV</th></tr></thead><tbody>` +
       C.labs.map((x) => `<tr class="click${x.l === rb.lab ? ' sel' : ''}" data-lab="${esc(x.l)}"${x.l === rb.lab ? ' style="background:var(--suave)"' : ''}><td><b>${esc(x.l)}</b></td><td class="num">${x.n}</td><td class="num">${q3(x.q)}</td><td class="num">${mil(x.v)}</td><td class="num">${mil(x.t)}</td></tr>`).join('') + '</tbody></table></div>' +
       `<h3 class="sub">Productos${rb.lab ? ' · ' + esc(rb.lab) : ''}</h3><div class="tabla" style="max-height:60vh;overflow:auto"><table><thead><tr><th>Código</th><th>Producto</th><th>Laboratorio</th><th class="num">Comprado</th><th class="num">NC (devuelto)</th><th class="num">Cantidad neta</th><th class="num">Bonif.</th><th class="num">Neto sin IGV</th><th class="num">Neto con IGV</th></tr></thead><tbody>` +
-      (C.prods.map((a) => `<tr><td>${esc(a.c)}</td><td>${esc(a.n)}${a.auto ? ' <span class="est e0" title="Emparejado automáticamente: revísalo abajo">auto</span>' : (a.kdx ? ' <span class="est e2" title="Emparejado con el kardex de LolFar: el mismo producto en la misma factura">factura</span>' : '')}</td><td>${esc(a.l)}</td><td class="num">${q3(a.qc)}</td><td class="num">${a.qn ? q3(-a.qn) : ''}</td><td class="num"><b>${q3(a.qc - a.qn)}</b></td><td class="num">${a.qb ? q3(a.qb) : ''}</td><td class="num"><b>${mil(a.v)}</b></td><td class="num">${mil(a.t)}</td></tr>`).join('') || '<tr><td colspan="9" class="vacio">Sin productos con estos filtros</td></tr>') +
+      (C.prods.map((a) => `<tr><td>${String(a.c).startsWith('N-') ? '<span class="est e0" title="Producto dado de alta en el rebate (no está en el catálogo)">nuevo</span>' : esc(a.c)}</td><td>${esc(a.n)}${a.auto ? ' <span class="est e0" title="Emparejado automáticamente: revísalo abajo">auto</span>' : (a.kdx ? ' <span class="est e2" title="Emparejado con el kardex de LolFar: el mismo producto en la misma factura">factura</span>' : '')}</td><td>${String(a.c).startsWith('N-') && ed ? `<input class="rbLabEd" data-c="${esc(a.c)}" list="rbLabs" value="${esc(a.l)}" placeholder="Elige el laboratorio" style="width:100%;min-width:160px">` : esc(a.l)}</td><td class="num">${q3(a.qc)}</td><td class="num">${a.qn ? q3(-a.qn) : ''}</td><td class="num"><b>${q3(a.qc - a.qn)}</b></td><td class="num">${a.qb ? q3(a.qb) : ''}</td><td class="num"><b>${mil(a.v)}</b></td><td class="num">${mil(a.t)}</td></tr>`).join('') || '<tr><td colspan="9" class="vacio">Sin productos con estos filtros</td></tr>') +
       `</tbody><tfoot><tr class="tot"><td colspan="3">TOTAL${rb.lab ? ' ' + esc(rb.lab) : ''}</td><td class="num">${q3(tot.qc)}</td><td class="num">${tot.qn ? q3(-tot.qn) : ''}</td><td class="num">${q3(tot.qc - tot.qn)}</td><td class="num">${tot.qb ? q3(tot.qb) : ''}</td><td class="num">${mil(tot.v)}</td><td class="num">${mil(tot.t)}</td></tr></tfoot></table></div>` +
       (C.ncSin.length ? `<h3 class="sub">Notas de crédito sin su factura en los XML (${C.ncSin.length}) <span class="quien">no suman ni restan: sube el XML de la factura que afectan y se descontarán en el mes de esa factura</span></h3><div class="tabla" style="max-height:40vh;overflow:auto"><table><thead><tr><th>Nota de crédito</th><th>Emitida</th><th>Afecta a</th><th>Productos</th><th class="num">Sin IGV</th></tr></thead><tbody>` +
         C.ncSin.sort((a, b) => String(b.d.fecha).localeCompare(String(a.d.fecha))).map(({ d, fe }) => `<tr><td>${esc(d.id)}</td><td>${esc(dia(d.fecha))}</td><td>${fe.ref ? `<b>${esc(d.ref)}</b>${fe.mesK ? `<div class="quien">en el kardex: ${esc(perTxt(fe.mesK))}</div>` : ''}` : '<span class="quien">la NC no indica la factura</span>'}</td><td>${esc((d.lineas || []).map((l) => `${l.desc} (${l.cant})`).join(' · ').slice(0, 160))}</td><td class="num">${mil(-(Number(d.base) || (d.lineas || []).reduce((a, l) => a + (Number(l.valor) || 0), 0)))}</td></tr>`).join('') + '</tbody></table></div>' : '') +
@@ -9197,6 +9217,10 @@
   $('rbQuitar').addEventListener('click', () => { rb.lab = ''; rb.txt = ''; rb.desde = ''; rb.hasta = ''; ['rbLab', 'rbTxt', 'rbDesde', 'rbHasta'].forEach((id) => { $(id).value = ''; }); rbPintar(); });
   $('rbKdxBtn').addEventListener('click', () => { if (!puede('reb')) { msg('rbMsg', 'No tienes permiso para emparejar productos.'); return; } $('rbKdxArch').click(); });
   $('rbKdxArch').addEventListener('change', (e) => { const fs = [...e.target.files]; e.target.value = ''; if (fs.length) rbKdxSubir(fs); });
+  $('rbCont').addEventListener('change', (e) => { // laboratorio de un producto nuevo
+    const i = e.target.closest('.rbLabEd'); if (!i) return;
+    rbNuevoGuardar(i.dataset.c, { l: txt(i.value.trim().toUpperCase(), 80) }).then(() => rbPintar()).catch((err) => msg('rbMsg', 'No se guardó: ' + errorTexto(err)));
+  });
   $('rbExcel').addEventListener('click', () => {
     const C = rbCalc();
     exportar(`rebate-${(rb.provs.find((p) => p.ruc === rb.prov) || {}).nom || rb.prov}${rb.lab ? '-' + rb.lab : ''}`, [['Código', 'c'], ['Producto', 'n'], ['Laboratorio', 'l'], ['Comprado', 'qc'], ['NC (devuelto)', (a) => -a.qn], ['Cantidad neta', (a) => a.qc - a.qn], ['Bonificación', 'qb'], ['Neto sin IGV', 'v'], ['Neto con IGV', 't'], ['Emparejado', (a) => (a.auto ? 'automático' : 'confirmado')]], C.prods);
@@ -9206,6 +9230,15 @@
     if (fl) { rb.lab = rb.lab === fl.dataset.lab ? '' : fl.dataset.lab; $('rbLab').value = rb.lab; rbPintar(); return; }
     if (e.target.id === 'rbConfTodo') { e.preventDefault(); const C = rbCalc(), c = {}; C.todos.forEach((a) => a.items.forEach((u) => { c[u.k] = u.c; })); rb.verAuto = true; rbGuardar(rb.prov, c); return; }
     const tr = e.target.closest('tr[data-k]'); if (!tr) return;
+    if (e.target.classList.contains('rbNuevo')) { tr.querySelector('.rbNuevoF').classList.toggle('oculto'); tr.querySelector('.rbNL').focus(); return; }
+    if (e.target.classList.contains('rbNG')) {
+      const n = tr.querySelector('.rbNN').value.trim(), l = tr.querySelector('.rbNL').value.trim().toUpperCase();
+      if (!n) { msg('rbMsg', 'Escribe el nombre del producto.'); return; }
+      const c = 'N-' + Date.now().toString(36).toUpperCase();
+      e.target.disabled = true;
+      rbNuevoGuardar(c, { n: txt(n, 140), l: txt(l, 80) }).then(() => { msg('rbMsg', `Producto nuevo "${n}"${l ? ' de ' + l : ''} guardado. Ya cuenta en el rebate.`, 'ok'); return rbGuardar(rb.prov, { [tr.dataset.k]: c }); }).catch((err) => { e.target.disabled = false; msg('rbMsg', 'No se guardó: ' + errorTexto(err)); });
+      return;
+    }
     if (e.target.classList.contains('rbIgn')) { rbGuardar(rb.prov, { [tr.dataset.k]: '-' }); return; }
     if (e.target.classList.contains('rbUsar')) {
       const pick = tr.querySelector('.rbPick').value.trim(), c = pick ? pick.split(' · ')[0].trim() : tr.querySelector('.rbSug').value;
