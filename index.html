@@ -4880,9 +4880,10 @@
         const cuotas = [];
         for (let q = 1; q <= n; q += 1) {
           const c = (pr.cu || [])[q - 1] || {}, imp = (c.m === '' || c.m === null || c.m === undefined) ? (q < n ? ref : r2(neto - ref * (n - 1))) : Number(c.m);
-          const dv = c.v ? diasEntre(hoyIso, c.v) : null;
-          cuotas.push({ n: q, l: c.l || '', v: c.v || '', m: imp, pg: c.pg === true, fp: c.fp || '', op: c.op || '',
-            sit: c.pg === true ? 'PAGADO' : (!c.v ? 'SIN FECHA' : (dv < 0 ? 'VENCIDO' : (dv <= cpCfg.alerta ? 'POR VENCER' : 'VIGENTE'))) });
+          const vv = c.v || c.fp || ''; // sin vencimiento: vale la fecha de pago que se puso
+          const dv = vv ? diasEntre(hoyIso, vv) : null;
+          cuotas.push({ n: q, l: c.l || '', v: vv, m: imp, pg: c.pg === true, fp: c.fp || '', op: c.op || '',
+            sit: c.pg === true ? 'PAGADO' : (!vv ? 'SIN FECHA' : (dv < 0 ? 'VENCIDO' : (dv <= cpCfg.alerta ? 'POR VENCER' : 'VIGENTE'))) });
         }
         const todasPg = facs.length > 0 && facs.every((f) => f.pg === true);
         const pagado = r2(n ? cuotas.filter((c) => c.pg).reduce((s, c) => s + c.m, 0) : (todasPg ? neto : facs.filter((f) => f.pg === true).reduce((s, f) => s + R.get(f.i).neto, 0)));
