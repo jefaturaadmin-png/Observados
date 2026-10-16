@@ -3822,7 +3822,10 @@
     const dev = fa.filter((f) => esDevTotal(f, cruceDe(d.per, f)));
     const ncDev = new Set();
     dev.forEach((f) => cruceDe(d.per, f).det.forEach((x) => ncDev.add(x.k)));
-    const normales = fa.filter((f) => !dev.includes(f));
+    // Facturas al contado (nota "CONTADO" o forma de pago Contado en su XML): ya se pagaron, no entran a la programación.
+    // Sus notas de crédito sí se descuentan del pago de las facturas que se programan en el mes.
+    const esContado = (f) => f.t === 'FA' && (/\bCONTADO\b/i.test(String(f.x || '')) || (() => { const X = czXmlDe(`FA|${serDoc(f.s)}|${numDoc(f.n)}`, f.m, dist.nombre); return !!(X && X.x && !X.otro && X.x.forma === 'Contado'); })());
+    const todasN = fa.filter((f) => !dev.includes(f)), contado = todasN.filter(esContado), normales = todasN.filter((f) => !contado.includes(f));
     const ncTodas = fs.filter((f) => f.t === 'NC').sort(orden);
     const ncs = ncTodas.filter((f) => f.pg || (!ncDev.has(`${f.s}-${f.n}`) && !(f.dt === 1 && dev.length)));
     const ncDeDev = ncTodas.filter((f) => !ncs.includes(f));
@@ -3830,7 +3833,7 @@
     const usoNc = new Map();
     pgDocs.forEach((p) => (p.filas || []).forEach((f) => { if (f.t === 'FA') cruceDe(p.per, f).det.forEach((x) => { if (!usoNc.has(x.k)) usoNc.set(x.k, []); usoNc.get(x.k).push(`${f.s}-${f.n}`); }); }));
     const suma = (a) => r2(a.reduce((s, f) => s + (Number(f.m) || 0), 0));
-    const CP = cpCalc(cpDeDoc(d)), ret = CP.tot.ret; // retención 3% como en Cuentas por pagar, en letras, cuotas o por fecha
+    const CP = cpCalc(cpDeDoc(contado.length ? { ...d, filas: fs.filter((f) => !contado.includes(f)) } : d)), ret = CP.tot.ret; // retención 3% como en Cuentas por pagar, en letras, cuotas o por fecha (sin las de contado)
     const tCompras = suma(normales), nCredito = suma(ncs), tPagar = r2(tCompras + nCredito + ret);
     const letras = dist.pago === 'letras' ? (Number(d.letras) || 0) : 0;
     const desde = d.desde || (/^\d{4}-\d{2}$/.test(d.per) ? diasHabiles(`${d.per}-01`, 1).dias[0] : '');
@@ -3846,14 +3849,14 @@
       if (extra && c.det.length && !falta) return; // de meses anteriores solo interesa lo que sigue sin nota de crédito
       lista.push({ fac: `${f.s}-${f.n}`, extra: extra ? ` (${extra.replace(/^ · /, '')})` : '', c, total: c.obs, falta: r2(Math.max(0, c.obs - c.aplicada)), sit, lineas: c.lineas });
     };
-    normales.forEach((f) => cuadro(f, d.per, obs));
+    normales.concat(contado).forEach((f) => cuadro(f, d.per, obs));
     // Observaciones de facturas de meses anteriores (hasta 6 meses atrás) que siguen esperando su NC: incluye las observadas después de programar
     if (/^\d{4}-\d{2}$/.test(d.per)) {
       const nMes = (p) => +p.slice(0, 4) * 12 + +p.slice(5);
       pgDocs.filter((p) => /^\d{4}-\d{2}$/.test(p.per) && p.per < d.per && nMes(d.per) - nMes(p.per) <= 6).sort((a, b) => String(a.per).localeCompare(String(b.per)))
         .forEach((p) => (p.filas || []).filter((f) => f.t === 'FA' && !esDevTotal(f, cruceDe(p.per, f))).sort(orden).forEach((f) => cuadro(f, p.per, obsAnt, ` · pagada en ${perTxt(p.per)}`)));
     }
-    return { d, dist, emp, normales, ncs, dev, ncDeDev, usoNc, tCompras, nCredito, tPagar, CP, ret, letras, cuota: letras ? r2(tPagar / letras) : null, desde, cal, obs, obsAnt };
+    return { d, dist, emp, normales, contado, tContado: suma(contado), ncs, dev, ncDeDev, usoNc, tCompras, nCredito, tPagar, CP, ret, letras, cuota: letras ? r2(tPagar / letras) : null, desde, cal, obs, obsAnt };
   }
   // Las filas del resumen, con el modelo de la hoja de programación (DIMEXA): columnas A–H, iguales en pantalla y en el Excel
   const fechaGuion = (s) => dia(s).replace(/\//g, '-');
@@ -3946,6 +3949,12 @@
       fila('');
     });
     fila('res', ['', '', '', '', 'T.COMPRAS', R.tCompras]); fila('resNc', ['', '', '', '', 'N.CRÉDITO', R.nCredito]); if (R.ret) fila('resNc', ['', '', '', '', 'RET. 3%', R.ret]); fila('resPg', ['', '', '', '', 'T.PAGAR', R.tPagar]);
+    if (R.contado.length) { // pagadas al contado: se muestran aparte y no suman al T.PAGAR
+      fila(''); fila('obsT', ['FACTURAS PAGADAS AL CONTADO (YA PAGADAS, NO SE PROGRAMAN):']);
+      R.contado.forEach((f) => doc1(f));
+      fila('tot', ['', '', '', '', 'CONTADO', R.tContado]);
+      if (R.ncs.length) fila('txt2', [`LAS NOTAS DE CRÉDITO (S/${mil(Math.abs(R.nCredito))}) SE DESCUENTAN DEL PAGO DE LAS FACTURAS PROGRAMADAS DE ESTE MES.`]);
+    }
     if (R.ncs.length) {
       fila(''); fila(''); cab(true);
       R.ncs.forEach((f) => doc1(f, ncNota(f), ncRef(f)));
@@ -4033,7 +4042,8 @@
       (R.obsAnt.length ? `<label style="margin:0;display:flex;gap:6px;align-items:center;font-weight:500;color:inherit"><input type="checkbox" id="rAnt"${resAnt ? ' checked' : ''}> Mostrar observaciones de meses anteriores sin NC (${R.obsAnt.length} · S/ ${mil(R.obsAnt.reduce((s, o) => s + (Number(o.falta) || 0), 0))})</label>` : '') +
       '<span style="flex:1"></span><button id="rExcelNc">Descargar solo notas de crédito</button><button class="pri" id="rExcel">Descargar Excel para el proveedor</button></div><div id="rMsg"></div>' +
       '<div class="kpis">' +
-      `<div class="kpi"><b>T. compras</b><strong>S/ ${mil(R.tCompras)}</strong><small>${R.normales.length} facturas</small></div>` +
+      `<div class="kpi"><b>T. compras</b><strong>S/ ${mil(R.tCompras)}</strong><small>${R.normales.length} facturas a programar</small></div>` +
+      (R.contado.length ? `<div class="kpi"><b>Pagadas al contado</b><strong>S/ ${mil(R.tContado)}</strong><small>${R.contado.length} factura(s) · no suman al T. a pagar</small></div>` : '') +
       `<div class="kpi"><b>N. crédito</b><strong class="baja">S/ ${mil(R.nCredito)}</strong><small>${R.ncs.length} notas de crédito</small></div>` +
       `<div class="kpi" style="border-color:var(--marca);background:var(--suave)"><b>T. a pagar</b><strong>S/ ${mil(R.tPagar)}</strong><small>${esc(perTxt(d.per))}</small></div>` +
       (conLetras ? `<div class="kpi"><b>${R.letras || '—'} letras de</b><strong>${R.cuota === null ? '—' : 'S/ ' + mil(R.cuota)}</strong><small>${R.cal.dias.length ? `${esc(dia(R.cal.dias[0]))} al ${esc(dia(R.cal.dias[R.cal.dias.length - 1]))}` : 'falta definir'}</small></div>` : '') +
