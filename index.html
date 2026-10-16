@@ -3816,14 +3816,22 @@
   }
   function modoPago(d) { const di = distDe(d.dist); return (d && d.modo) || di.pago || (di.tipo === 'C' ? 'cuotas' : 'letras'); }
   const esContadoF = (f) => f.t === 'FA' && /\bCONTADO\b/i.test(String(f.x || '')); // nota "CONTADO": ya pagada, no se programa
-  const pgSinContado = (d) => ((d.filas || []).some(esContadoF) ? { ...d, filas: d.filas.filter((f) => !esContadoF(f)) } : d);
   function resumenDatos(d) {
     const dist = { ...distDe(d.dist), pago: modoPago(d) }, emp = empDe(d.emp), fs = d.filas || []; // la forma de pago se puede cambiar en cada mes
     const orden = (a, b) => String(a.f).localeCompare(String(b.f)) || String(a.n).localeCompare(String(b.n), undefined, { numeric: true });
-    const fa = fs.filter((f) => f.t !== 'NC').sort(orden);
-    const dev = fa.filter((f) => esDevTotal(f, cruceDe(d.per, f)));
+    const fa = fs.filter((f) => f.t !== 'NC').sort(orden), ncTodas0 = fs.filter((f) => f.t === 'NC');
+    // NC que dicen afectar a la factura (referencia "F001-5539" o solo "5539")
+    const ncRefDe = (f) => ncTodas0.filter((n) => { const r = String(n.r || '').toUpperCase().replace(/\s+/g, ''); if (!r) return false; const m = r.match(/^(?:([A-Z0-9]{2,5})-)?0*(\d+)$/); return !!m && numDoc(m[2]) === numDoc(f.n) && (!m[1] || serDoc(m[1]) === serDoc(f.s)); });
+    // Recambio o devolución total: nota "DEV. TOTAL" / "RECAMBIO", o una NC que la anula por su monto completo
+    const ncAnula = (f) => ncRefDe(f).find((n) => Math.abs(Math.abs(Number(n.m) || 0) - Math.abs(Number(f.m) || 0)) <= TOL_NC) || null;
+    const esRecambio = (f) => f.t === 'FA' && !f.pg && Number(f.m) > 0 && (/DEV\.?\s*TOTAL|RECAMBIO|ANULAD/i.test(String(f.x || '')) || !!ncAnula(f));
+    const dev = fa.filter((f) => esDevTotal(f, cruceDe(d.per, f)) || esRecambio(f));
     const ncDev = new Set();
-    dev.forEach((f) => cruceDe(d.per, f).det.forEach((x) => ncDev.add(x.k)));
+    dev.forEach((f) => {
+      const an = ncAnula(f);
+      if (an) { ncDev.add(`${an.s}-${an.n}`); return; } // solo la NC que la anula; las demás (p. ej. un faltante) se siguen descontando del pago
+      cruceDe(d.per, f).det.forEach((x) => ncDev.add(x.k));
+    });
     // Facturas al contado (las que tienen "CONTADO" en su nota): ya se pagaron, no entran a la programación.
     // Sus notas de crédito sí se descuentan del pago de las facturas que se programan en el mes.
     const todasN = fa.filter((f) => !dev.includes(f)), contado = todasN.filter(esContadoF), normales = todasN.filter((f) => !contado.includes(f));
@@ -3834,7 +3842,8 @@
     const usoNc = new Map();
     pgDocs.forEach((p) => (p.filas || []).forEach((f) => { if (f.t === 'FA') cruceDe(p.per, f).det.forEach((x) => { if (!usoNc.has(x.k)) usoNc.set(x.k, []); usoNc.get(x.k).push(`${f.s}-${f.n}`); }); }));
     const suma = (a) => r2(a.reduce((s, f) => s + (Number(f.m) || 0), 0));
-    const CP = cpCalc(cpDeDoc(pgSinContado(d))), ret = CP.tot.ret; // retención 3% como en Cuentas por pagar, en letras, cuotas o por fecha (sin las de contado)
+    const fuera = new Set([...contado, ...dev, ...ncDeDev]), dProg = fuera.size ? { ...d, filas: fs.filter((f) => !fuera.has(f)) } : d; // lo que se programa: sin contado ni recambios
+    const CP = cpCalc(cpDeDoc(dProg)), ret = CP.tot.ret; // retención 3% como en Cuentas por pagar, en letras, cuotas o por fecha (sin las de contado)
     const tCompras = suma(normales), nCredito = suma(ncs), tPagar = r2(tCompras + nCredito + ret);
     const letras = dist.pago === 'letras' ? (Number(d.letras) || 0) : 0;
     const desde = d.desde || (/^\d{4}-\d{2}$/.test(d.per) ? diasHabiles(`${d.per}-01`, 1).dias[0] : '');
@@ -3857,7 +3866,7 @@
       pgDocs.filter((p) => /^\d{4}-\d{2}$/.test(p.per) && p.per < d.per && nMes(d.per) - nMes(p.per) <= 6).sort((a, b) => String(a.per).localeCompare(String(b.per)))
         .forEach((p) => (p.filas || []).filter((f) => f.t === 'FA' && !esDevTotal(f, cruceDe(p.per, f))).sort(orden).forEach((f) => cuadro(f, p.per, obsAnt, ` · pagada en ${perTxt(p.per)}`)));
     }
-    return { d, dist, emp, normales, contado, tContado: suma(contado), ncs, dev, ncDeDev, usoNc, tCompras, nCredito, tPagar, CP, ret, letras, cuota: letras ? r2(tPagar / letras) : null, desde, cal, obs, obsAnt };
+    return { d, dProg, dist, emp, normales, contado, tContado: suma(contado), ncs, dev, ncDeDev, usoNc, tCompras, nCredito, tPagar, CP, ret, letras, cuota: letras ? r2(tPagar / letras) : null, desde, cal, obs, obsAnt };
   }
   // Las filas del resumen, con el modelo de la hoja de programación (DIMEXA): columnas A–H, iguales en pantalla y en el Excel
   const fechaGuion = (s) => dia(s).replace(/\//g, '-');
@@ -3969,13 +3978,13 @@
       const usadas = new Set();
       R.dev.forEach((f) => {
         doc1(f);
-        const claves = cruceDe(R.d.per, f).det.map((x) => x.k);
+        const claves = cruceDe(R.d.per, f).det.map((x) => x.k).concat(R.ncDeDev.filter((n) => { const r = String(n.r || '').toUpperCase().replace(/\s+/g, ''); const m = r.match(/^(?:([A-Z0-9]{2,5})-)?0*(\d+)$/); return !!m && numDoc(m[2]) === numDoc(f.n) && (!m[1] || serDoc(m[1]) === serDoc(f.s)); }).map((n) => `${n.s}-${n.n}`));
         R.ncDeDev.filter((n) => claves.includes(`${n.s}-${n.n}`)).forEach((n) => { usadas.add(n); doc1(n, '', `${f.s}-${f.n}`); });
       });
       R.ncDeDev.filter((n) => !usadas.has(n)).forEach((n) => doc1(n, '', ncRef(n)));
       fila('tot', ['', '', '', '', 'TOTAL', r2(R.dev.reduce((s, f) => s + Number(f.m), 0) + R.ncDeDev.reduce((s, f) => s + Number(f.m), 0))]);
       fila('');
-      fila('txt1', ['Devolución total de factura: se cancela con su nota de crédito según detalle']);
+      fila('txt1', ['Devolución total o recambio de factura: se cancela con su nota de crédito según detalle']);
     }
     return out;
   }
@@ -4070,7 +4079,7 @@
   $('gv_res').addEventListener('click', async (e) => {
     const d = pgDoc();
     if (!d) return;
-    if (e.target.classList.contains('rProg')) { const D = cpDeDoc(pgSinContado(d)); return cpProgramar(e.target.dataset.k, { C: cpCalc(D), D, guardar: (fn, a, det) => pgGuardarCp(d, fn, a, det), msgId: 'rMsg' }); }
+    if (e.target.classList.contains('rProg')) { const D = cpDeDoc(resumenDatos(d).dProg); return cpProgramar(e.target.dataset.k, { C: cpCalc(D), D, guardar: (fn, a, det) => pgGuardarCp(d, fn, a, det), msgId: 'rMsg' }); }
     if (e.target.id === 'rGuardar') {
       const n = $('rLetras').value === '' ? null : Number($('rLetras').value);
       if (n !== null && !(n >= 0 && n <= 60 && Number.isInteger(n))) return msg('rMsg', 'El número de letras debe ser un entero entre 0 y 60.');
