@@ -3912,14 +3912,18 @@
     const porFecha = (fs) => { // fs: [{ fp, doc, m, q, neto, pg }]
       const g = new Map();
       fs.filter((x) => x.fp).forEach((x) => { if (!g.has(x.fp)) g.set(x.fp, []); g.get(x.fp).push(x); });
-      [...g.keys()].sort().forEach((k) => {
-        const xs = g.get(k), m = r2(xs.reduce((a, x) => a + x.m, 0)), q = r2(xs.reduce((a, x) => a + x.q, 0)), neto = r2(xs.reduce((a, x) => a + x.neto, 0));
-        fila('fpL', [`${fechaLarga(k)} DEL ${k.slice(0, 4)}:`, `IMPORTE S/${mil(m)}${q ? ` · RET. 3% S/${mil(q)}` : ''} · A PAGAR S/${mil(neto)}${xs.every((x) => x.pg) ? ' · PAGADO' : ''}`]);
+      const det = (x) => `${x.doc} · IMPORTE S/${mil(x.m)}${x.nc ? ` · NC ${x.ncDocs || ''} S/${mil(x.nc)}` : ''}${x.q ? ` · RET. 3% S/${mil(x.q)}` : ''} · A PAGAR S/${mil(x.neto)}${x.pg ? ' · PAGADO' : ''}`;
+      [...g.keys()].sort().forEach((k) => { // cada factura con su número; si en un día se pagan varias, primero el total del día
+        const xs = g.get(k), dia0 = `${fechaLarga(k)} DEL ${k.slice(0, 4)}:`;
+        if (xs.length === 1) { fila('fpL', [dia0, det(xs[0])]); return; }
+        fila('fpL', [dia0, `A PAGAR S/${mil(r2(xs.reduce((a, x) => a + x.neto, 0)))} (${xs.length} facturas)${xs.every((x) => x.pg) ? ' · PAGADO' : ''}`]);
+        xs.forEach((x) => fila('fpL', ['      ', det(x)]));
       });
       const sinF = fs.filter((x) => !x.fp && x.m);
       if (sinF.length) fila('txt2', [`SIN FECHA DE PAGO: ${sinF.map((x) => x.doc).join(', ')}`]);
     };
-    const docPago = (f) => { const r = R.CP.R.get(f.i) || {}; return { fp: f.fpg || '', doc: `${f.s}-${f.n}`, m: Number(f.m) || 0, q: r.q || 0, neto: r.neto ?? (Number(f.m) || 0), pg: f.pgd === true }; };
+    const ncsDe = (doc) => { const k = cpDocNorm(doc); return (R.d.filas || []).filter((n) => n.t === 'NC' && (R.CP.R.get(n.i) || {}).apl === k).map((n) => `${n.s}-${n.n}`).join(', '); };
+    const docPago = (f) => { const r = R.CP.R.get(f.i) || {}, doc = `${f.s}-${f.n}`; return { fp: f.fpg || '', doc, m: Number(f.m) || 0, q: r.q || 0, nc: r.ncAp2 || 0, ncDocs: r.ncAp2 ? ncsDe(doc) : '', neto: r.neto ?? (Number(f.m) || 0), pg: f.pgd === true }; };
     const doc1 = (f, g, h) => fila(f.t === 'NC' ? 'nc' : 'fa', [R.dist.nombre, fechaGuion(f.f), f.t, f.s, f.n, Number(f.m) || 0, g || '', h || '']);
     const lin = (l) => { const p = String(l.p || '').trim(); return l.q && !/^\d/.test(p) ? `${l.q} ${p}` : p; };
     const pintaObs = (o) => { const es = obsEstados(o.c); o.lineas.forEach((l, i) => fila('obs', [o.fac, lin(l), '', '', '', l.m === null || l.m === undefined || l.m === '' ? '' : Number(l.m), es[i].t + (o.extra || '')], { ok: es[i].ok })); };
@@ -3950,7 +3954,7 @@
     }
     fila('');
     const cpFacs = (c) => c.docs.filter((f) => f.t === 'FACTURA');
-    const cpPagos = (c) => cpFacs(c).map((f) => { const r = R.CP.R.get(f.i) || {}; return { fp: f.fp || '', doc: f.d, m: Number(f.m) || 0, q: r.q || 0, neto: r.neto ?? (Number(f.m) || 0), pg: f.pg === true }; });
+    const cpPagos = (c) => cpFacs(c).map((f) => { const r = R.CP.R.get(f.i) || {}; return { fp: f.fp || '', doc: f.d, m: Number(f.m) || 0, q: r.q || 0, nc: r.ncAp2 || 0, ncDocs: r.ncAp2 ? ncsDe(f.d) : '', neto: r.neto ?? (Number(f.m) || 0), pg: f.pg === true }; });
     const c1 = R.dist.pago === 'cuotas' && R.CP && R.CP.cuadros.length === 1 ? R.CP.cuadros[0] : null;
     if (c1 && !c1.n && cpFacs(c1).some((f) => f.fp)) { // un solo grupo pagado por fechas: "en su totalidad" y la fecha programada de cada pago
       fila('txt1', [`Programación de facturas${mesCompra ? ' del mes de ' + mesCompra : ''} por S/${mil(R.tPagar)} en su totalidad${/^\d{4}-\d{2}$/.test(R.d.per) ? ' para pago en ' + MESES[+R.d.per.slice(5)] : ''}${R.ret ? ` (con retención 3% de S/${mil(Math.abs(R.ret))})` : ''}`]);
