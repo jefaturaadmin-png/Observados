@@ -2700,7 +2700,8 @@
   function provCoincide(nombre, dist) { // "DIMEXA", "DIMEXA SA." y "DIMEXA S.A." son el mismo distribuidor
     const a = soloAlfa(nombre), b = soloAlfa(dist.nombre), k = soloAlfa(dist.k);
     if (a.length < 4) return false;
-    return a === b || a === k || b.includes(a) || a.includes(k) || a.startsWith(b);
+    if (a === b || a === k || b.includes(a) || a.includes(k) || a.startsWith(b)) return true;
+    return (dist.otros || []).some((o) => { const c = soloAlfa(o); return c.length >= 4 && (a === c || c.includes(a) || a.startsWith(c)); }); // nombres de proveedores unidos a este
   }
   function indexarObservados() { pgObs = obsMapDe(pgDist()); } // observaciones de Recepción del distribuidor elegido, por factura
   function obsMapDe(dk) {
@@ -4657,16 +4658,69 @@
   function prvPintar() {
     const ops = (arr, v) => arr.map(([k, n]) => `<option value="${k}"${v === k ? ' selected' : ''}>${n}</option>`).join('');
     $('dCuerpo').innerHTML = '<div id="dMsg"></div><p class="quien" style="margin:0 0 8px"><b>Distribuidor</b>: se programa en letras para todo el mes. <b>Cuotas por grupos</b>: como en Cuentas por pagar, un grupo por mes de emisión con sus cuotas, plazo y retención del 3%.</p>' +
-      '<div class="tabla" style="max-height:60vh;overflow:auto"><table style="font-size:13px"><tr><th>Nombre</th><th>Tipo</th><th>Forma de pago</th><th>Plazo (días)</th><th>Retención 3%</th><th>Cuenta</th></tr>' +
+      '<div class="tabla" style="max-height:60vh;overflow:auto"><table style="font-size:13px"><tr><th>Nombre</th><th>Tipo</th><th>Forma de pago</th><th>Plazo (días)</th><th>Retención 3%</th><th>Cuenta</th><th>Duplicado</th></tr>' +
       prvLista.map((d, i) => `<tr><td><input class="gIn prvIn" data-i="${i}" data-c="nombre" value="${esc(d.nombre)}" style="min-width:220px"></td>` +
         `<td><select class="gIn prvIn" data-i="${i}" data-c="tipo">${ops([['D', 'Distribuidor'], ['C', 'Cuotas por grupos']], d.tipo === 'C' ? 'C' : 'D')}</select></td>` +
         `<td><select class="gIn prvIn" data-i="${i}" data-c="pago">${ops(MODOS.filter(([v]) => v === 'letras' || v === 'cuotas' || v === d.pago), d.pago || (d.tipo === 'C' ? 'cuotas' : 'letras'))}</select></td>` +
         `<td><input class="gIn prvIn n" data-i="${i}" data-c="pl" value="${esc(d.pl ?? '')}" style="width:70px"></td>` +
         `<td style="text-align:center"><input type="checkbox" class="prvIn" data-i="${i}" data-c="ret"${d.ret ? ' checked' : ''}></td>` +
-        `<td><input class="gIn prvIn" data-i="${i}" data-c="cta" value="${esc(d.cta || '')}" style="min-width:160px"></td></tr>`).join('') +
+        `<td><input class="gIn prvIn" data-i="${i}" data-c="cta" value="${esc(d.cta || '')}" style="min-width:160px"></td>` +
+        `<td>${d.k && pgCfg.dists.some((x) => x.k === d.k) ? `<select class="gIn prvUnir" data-k="${esc(d.k)}" title="Si es el mismo proveedor (mismo RUC) registrado dos veces, pasa todo lo suyo al otro y lo quita de la lista"><option value="">Unir con…</option>${pgCfg.dists.filter((x) => x.k !== d.k).map((x) => `<option value="${esc(x.k)}">${esc(x.nombre)}</option>`).join('')}</select>` : ''}</td></tr>`).join('') +
       '</table></div><p style="margin-top:10px"><button id="prvMas">+ Agregar proveedor</button> <button class="pri" id="prvOk">Guardar</button></p>';
   }
   $('gProvs').addEventListener('click', prvAbrir);
+  // Unir dos proveedores que son el mismo (mismo RUC): todo lo del duplicado pasa al que queda y el duplicado sale de la lista
+  $('dCuerpo').addEventListener('change', async (e) => {
+    const t = e.target;
+    if (modo !== 'provs' || !t.classList.contains('prvUnir') || !t.value) return;
+    const de = distDe(t.dataset.k), a = distDe(t.value);
+    t.value = '';
+    try {
+      msg('dMsg', 'Revisando…', 'ok');
+      const [sp, sc] = await Promise.all([getDocs(query(collection(db, 'pagos'), where('dist', '==', de.k))), getDocs(query(collection(db, 'obsCom'), where('dist', '==', de.k)))]);
+      const nDocs = sp.docs.reduce((n, x) => n + (x.data().filas || []).length, 0);
+      msg('dMsg', '');
+      if (!confirm(`¿Unir "${de.nombre}" con "${a.nombre}"?\n\n· ${sp.docs.length} mes(es) a pagar con ${nDocs} facturas y NC pasan a ${a.nombre} (si el mes ya existe allí, se agregan las que falten, sin repetir)\n· ${sc.docs.length} comentario(s) de Observaciones también pasan\n· Las observaciones de Recepción hechas con el nombre "${de.nombre}" se reconocen como de ${a.nombre}\n· "${de.nombre}" sale de la lista de proveedores\n\nNo se puede deshacer. ¿Continuar?`)) return;
+      const idx = {}, quitar = [];
+      for (let i = 0; i < sp.docs.length; i += 1) {
+        const x = sp.docs[i], o = x.data(), ref = doc(db, 'pagos', `${o.emp}_${a.k}_${o.per}`);
+        msg('dMsg', `Pasando mes ${i + 1} de ${sp.docs.length}…`, 'ok');
+        const ya = await getDoc(ref), d0 = ya.exists() ? ya.data() : null;
+        let filas = (o.filas || []).slice(), datos;
+        if (d0) {
+          filas = (d0.filas || []).slice();
+          const ids = new Set(filas.map((f) => f.i)), claves = new Set(filas.map((f) => `${f.t}|${f.s}|${f.n}`));
+          (o.filas || []).forEach((f) => { if (claves.has(`${f.t}|${f.s}|${f.n}`)) return; filas.push(ids.has(f.i) ? { ...f, i: idNuevo() } : f); claves.add(`${f.t}|${f.s}|${f.n}`); });
+          const prog = (d0.prog || []).slice(); (o.prog || []).forEach((p) => { if (!prog.some((q) => q.g === p.g)) prog.push(p); });
+          datos = { ...d0, filas, prog, compra: unicos((d0.compra || []).concat(o.compra || [])).sort().slice(-3), letras: d0.letras || o.letras || null, desde: d0.desde || o.desde || '', sueltas: (d0.sueltas || []).concat(o.sueltas || []), act: serverTimestamp(), actPor: firma() };
+        } else datos = { ...o, dist: a.k, act: serverTimestamp(), actPor: firma() };
+        await setDoc(ref, datos);
+        await deleteDoc(x.ref); sincroQuitar('pagos', x.id);
+        (idx[`${o.emp}_${a.k}`] = idx[`${o.emp}_${a.k}`] || {})[idxCampo(o.per)] = idxDe(filas);
+        quitar.push(`${o.emp}_${de.k}`);
+      }
+      for (const [ki, p] of Object.entries(idx)) await setDoc(doc(db, 'pagosIdx', ki), { p }, { merge: true });
+      for (const ki of unicos(quitar)) await deleteDoc(doc(db, 'pagosIdx', ki)).catch(console.warn);
+      for (const x of sc.docs) {
+        const c = x.data(), id = x.id.replace(`_${de.k}_`, `_${a.k}_`);
+        if (id !== x.id) {
+          const ya = await getDoc(doc(db, 'obsCom', id)), c0 = ya.exists() ? ya.data() : {};
+          await setDoc(doc(db, 'obsCom', id), { ...c, ...c0, dist: a.k, lst: { ...(c.lst || {}), ...(c0.lst || {}) } });
+          await deleteDoc(x.ref);
+        } else await setDoc(x.ref, { dist: a.k }, { merge: true });
+      }
+      const al = await getDoc(doc(db, 'config', 'concilia')).catch(() => null), alias = (al && al.exists() && al.data().alias) || {};
+      if (Object.values(alias).includes('D:' + de.k)) {
+        Object.keys(alias).forEach((n) => { if (alias[n] === 'D:' + de.k) alias[n] = 'D:' + a.k; });
+        await setDoc(doc(db, 'config', 'concilia'), { alias }, { mergeFields: ['alias'] }); cn.alias = alias;
+      }
+      const dists = pgCfg.dists.filter((d) => d.k !== de.k).map((d) => (d.k !== a.k ? d : { ...d, otros: unicos((d.otros || []).concat(de.nombre, de.otros || [])) }));
+      await setDoc(doc(db, 'config', 'pagos'), { dists }, { merge: true });
+      pgLog('Unió proveedores', `${de.nombre} → ${a.nombre}: ${sp.docs.length} mes(es), ${nDocs} documentos, ${sc.docs.length} comentario(s)`, '').catch(console.error);
+      prvLista = prvLista.filter((d) => d.k !== de.k);
+      $('dlg').close(); msg('gMsg', `Listo: ${de.nombre} quedó unido a ${a.nombre}.`, 'ok');
+    } catch (err) { msg('dMsg', 'No se pudo unir: ' + errorTexto(err)); }
+  });
   /* ---------- Pasar Cuentas por pagar a Pagos a proveedores (una sola vez, solo administrador). No borra nada de Cuentas por pagar. ---------- */
   const CP_A_PG = { 'FACTURA': 'FA', 'NOTA DE CRÉDITO': 'NC', 'BONIFICACIÓN': 'BON', 'RETENCIÓN 3%': 'RET', 'PAGO / TRANSFERENCIA': 'PAG' };
   function migFila(f) { // una fila de Cuentas por pagar → fila de Pagos a proveedores
