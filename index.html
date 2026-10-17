@@ -607,6 +607,7 @@
         <select id="gPer" aria-label="Mes a pagar"></select>
         <button id="gNuevoPer">+ Nuevo mes a pagar</button>
         <button id="gEditPer" title="Cambiar de qué mes son las compras">Editar mes</button>
+        <button id="gBorrarPer" class="pel oculto" title="Eliminar este mes a pagar (solo si no tiene facturas ni NC)">Eliminar mes</button>
         <input type="month" id="gMes" aria-label="Mes a pagar" class="oculto">
       </div>
       <div class="subnav" id="gSub">
@@ -2862,6 +2863,7 @@
     $('gPer').classList.toggle('oculto', !['grid', 'res'].includes(v));
     $('gNuevoPer').classList.toggle('oculto', v !== 'grid' || !puede('pagos'));
     $('gEditPer').classList.toggle('oculto', v !== 'grid' || !puede('pagos'));
+    if (v !== 'grid') $('gBorrarPer').classList.add('oculto');
     $('gMes').classList.toggle('oculto', porDist);
     if (v === 'cxp') cxSuscribir();
     pintarPagos(true);
@@ -2986,6 +2988,7 @@
     ['gDel', 'gMover'].forEach((id) => $(id).classList.toggle('oculto', !puede('pagosBorrar')));
     $('gImp').classList.toggle('oculto', yo.area !== 'ADMIN'); $('gProvs').classList.toggle('oculto', yo.area !== 'ADMIN');
     $('gNuevoPer').classList.toggle('oculto', !puede('pagos')); $('gEditPer').classList.toggle('oculto', !edita || !d);
+    $('gBorrarPer').classList.toggle('oculto', yo.area !== 'ADMIN' || !d || (d.filas || []).length > 0); // solo un mes vacío (creado por error)
     if (!pgCfg.empresas.length) {
       cuerpo.innerHTML = `<tr><td colspan="16" class="vacio">${yo.area === 'ADMIN' ? 'Aún no hay datos de pagos. Usa "Importar datos" y elige el archivo datos-pagos.json.' : 'Aún no hay datos de pagos cargados.'}</td></tr>`;
       $('gRes').textContent = ''; $('gPie').textContent = ''; return;
@@ -3470,6 +3473,17 @@
   }
   $('gNuevoPer').addEventListener('click', () => dlgMes(false));
   $('gEditPer').addEventListener('click', () => dlgMes(true));
+  $('gBorrarPer').addEventListener('click', async () => {
+    const d = pgDoc(); if (!d) return;
+    if ((d.filas || []).length) return msg('gMsg', 'Este mes tiene facturas o NC: muévelas o elimínalas primero.');
+    if (!confirm(`¿Eliminar el mes a pagar ${perTxt(d.per)} de ${distDe(d.dist).nombre}? Está vacío (sin facturas ni NC).`)) return;
+    try {
+      await deleteDoc(doc(db, 'pagos', d.id)); sincroQuitar('pagos', d.id);
+      await setDoc(doc(db, 'pagosIdx', `${d.emp}_${d.dist}`), { p: { [idxCampo(d.per)]: deleteField() } }, { merge: true }).catch(console.warn);
+      pgLog('Eliminó mes', `${perTxt(d.per)} (vacío)`, d.per).catch(console.error);
+      msg('gMsg', `Mes ${perTxt(d.per)} eliminado.`, 'ok');
+    } catch (err) { pgError(err); }
+  });
   $('dCuerpo').addEventListener('click', async (e) => {
     if (modo !== 'mesPago' || e.target.id !== 'nmOk') return;
     const per = $('nmPer').value, compra = unicos([$('nmC1').value, $('nmC2').value].filter((x) => /^\d{4}-\d{2}$/.test(x))).sort();
