@@ -3932,9 +3932,9 @@
     const ncNota = (f) => rebTxt(f) || (R.usoNc.get(`${f.s}-${f.n}`) || []).join(', ') || f.e || '';
     const mesCompra = (R.d.compra || []).map((c) => MESES[+c.slice(5)]).join(' Y ');
     cab(false);
-    // Con retención o con NC de una factura del mismo pago: cada factura con su NC debajo (subtotal) y su retención 3%;
+    // Con retención o con NC de una factura del mismo pago (salvo en letras): cada factura con su NC debajo (subtotal) y su retención 3%;
     // las NC que no son de estas facturas van al final; el TOTAL ya es lo que se paga (con la retención descontada)
-    const rr = (f) => (R.CP && R.CP.R.get(f.i)) || {}, agrupar = R.normales.some((f) => rr(f).q || rr(f).ncAp2);
+    const rr = (f) => (R.CP && R.CP.R.get(f.i)) || {}, agrupar = R.dist.pago !== 'letras' && R.normales.some((f) => rr(f).q || rr(f).ncAp2); // en letras: la lista de siempre (facturas, NC y total)
     if (agrupar) {
       const usadas = new Set();
       R.normales.forEach((f, i) => {
