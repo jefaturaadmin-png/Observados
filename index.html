@@ -8841,6 +8841,67 @@
     if (leidos.length === 1) xl.abiertos.add(xlKey(leidos[0]));
     await xlCargar();
   }
+  /* ---------- PDF de un comprobante (representación impresa armada con lo leído del XML) ---------- */
+  const cargarJs = (src) => new Promise((ok, mal) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => mal(new Error('No se pudo cargar el generador de PDF.')); document.head.appendChild(s); });
+  async function cargarPdf() {
+    if (!window.jspdf) await cargarJs('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    if (!window.jspdf.jsPDF.API.autoTable) await cargarJs('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
+    return window.jspdf.jsPDF;
+  }
+  function enLetras(v, mon) { // 354.13 → "TRESCIENTOS CINCUENTA Y CUATRO CON 13/100 SOLES"
+    const U = ['', 'UNO', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO', 'NUEVE', 'DIEZ', 'ONCE', 'DOCE', 'TRECE', 'CATORCE', 'QUINCE', 'DIECISÉIS', 'DIECISIETE', 'DIECIOCHO', 'DIECINUEVE', 'VEINTE', 'VEINTIUNO', 'VEINTIDÓS', 'VEINTITRÉS', 'VEINTICUATRO', 'VEINTICINCO', 'VEINTISÉIS', 'VEINTISIETE', 'VEINTIOCHO', 'VEINTINUEVE'];
+    const D = ['', '', '', 'TREINTA', 'CUARENTA', 'CINCUENTA', 'SESENTA', 'SETENTA', 'OCHENTA', 'NOVENTA'], C = ['', 'CIENTO', 'DOSCIENTOS', 'TRESCIENTOS', 'CUATROCIENTOS', 'QUINIENTOS', 'SEISCIENTOS', 'SETECIENTOS', 'OCHOCIENTOS', 'NOVECIENTOS'];
+    const c999 = (n) => { if (n === 100) return 'CIEN'; const c = Math.floor(n / 100), r = n % 100; return [C[c], r < 30 ? U[r] : D[Math.floor(r / 10)] + (r % 10 ? ' Y ' + U[r % 10] : '')].filter(Boolean).join(' '); };
+    const ent = (n) => { if (!n) return 'CERO'; const mi = Math.floor(n / 1e6), k = Math.floor((n % 1e6) / 1000), r = n % 1000; return [mi ? (mi === 1 ? 'UN MILLÓN' : c999(mi).replace(/UNO$/, 'UN') + ' MILLONES') : '', k ? (k === 1 ? 'MIL' : c999(k).replace(/UNO$/, 'UN') + ' MIL') : '', c999(r)].filter(Boolean).join(' '); };
+    const a = Math.abs(Number(v) || 0), e = Math.floor(a + 1e-9), cts = Math.round((a - e) * 100);
+    return `SON: ${ent(e)} CON ${String(cts).padStart(2, '0')}/100 ${mon === 'USD' ? 'DÓLARES AMERICANOS' : 'SOLES'}`;
+  }
+  async function xlPdf(x) {
+    const jsPDF = await cargarPdf(), p = new jsPDF({ unit: 'mm', format: 'a4' }), W = 210, M = 12, mon = x.moneda === 'USD' ? 'US$' : 'S/';
+    const n2 = (v, d) => (v === null || v === undefined || v === '' ? '' : Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: d || 2 }));
+    const tipoT = `${x.tipo} ELECTRÓNICA`;
+    // Emisor a la izquierda, recuadro con RUC, tipo y número a la derecha
+    p.setFont('helvetica', 'bold'); p.setFontSize(12);
+    const nomL = p.splitTextToSize(x.emisor.nom || '', 112); p.text(nomL, M, 18);
+    p.setFont('helvetica', 'normal'); p.setFontSize(8.5);
+    let y = 18 + nomL.length * 5;
+    const dirL = p.splitTextToSize(x.emisor.dir || '', 112); p.text(dirL, M, y); y += dirL.length * 4;
+    p.setLineWidth(0.4); p.roundedRect(130, 10, W - 130 - M, 28, 2, 2);
+    p.setFont('helvetica', 'bold'); p.setFontSize(11);
+    p.text(`R.U.C. ${x.emisor.ruc}`, (130 + W - M) / 2, 18, { align: 'center' });
+    p.setFillColor(235, 235, 235); p.rect(131, 21, W - 132 - M, 8, 'F');
+    p.setFontSize(9.5); p.text(tipoT, (130 + W - M) / 2, 26.5, { align: 'center' });
+    p.setFontSize(11); p.text(x.id, (130 + W - M) / 2, 34.5, { align: 'center' });
+    y = Math.max(y, 40) + 4;
+    // Datos del cliente y del documento
+    const fila = (et, v, xx, yy) => { p.setFont('helvetica', 'bold'); p.text(et, xx, yy); p.setFont('helvetica', 'normal'); p.text(p.splitTextToSize(String(v || ''), 120), xx + 32, yy); };
+    p.setFontSize(8.5); p.setLineWidth(0.2); const y0 = y;
+    fila('Señor(es):', x.cliente.nom, M + 2, y + 5); fila('R.U.C.:', x.cliente.ruc, M + 2, y + 10); fila('Dirección:', x.cliente.dir, M + 2, y + 15);
+    fila('Fecha de emisión:', dia(x.fecha), M + 2, y + 23); fila('Moneda:', x.moneda === 'PEN' ? 'SOLES' : x.moneda, 120, y + 23);
+    y += 28;
+    if (x.forma || x.vence) { fila('Forma de pago:', `${x.forma || ''}${x.cuotas.length ? ` · ${x.cuotas.length} cuota(s)` : ''}`, M + 2, y); if (x.vence) fila('Vencimiento:', dia(x.vence), 120, y); y += 5; }
+    if (x.ref) { fila('Doc. que modifica:', `FACTURA ${x.ref}`, M + 2, y); y += 5; }
+    if (x.motivo) { fila('Motivo:', x.motivo, M + 2, y); y += 5; }
+    p.roundedRect(M, y0, W - 2 * M, y - y0 + 1, 2, 2); y += 5;
+    // Detalle
+    p.autoTable({ startY: y, margin: { left: M, right: M }, theme: 'grid', styles: { fontSize: 7.5, cellPadding: 1.4, lineColor: [180, 180, 180] }, headStyles: { fillColor: [235, 235, 235], textColor: 20, fontStyle: 'bold' },
+      head: [['#', 'Cant.', 'Und.', 'Código', 'Descripción', 'V. unit.', 'P. unit.', 'Valor venta', 'IGV', 'Importe']],
+      body: x.lineas.map((l) => [l.n, l.cant === null ? '' : n2(l.cant, 3).replace(/\.000$/, ''), l.um, l.cod, l.desc, n2(l.pu, 4), n2(l.puIgv, 4), n2(l.valor), n2(l.igv), n2(l.total)]),
+      columnStyles: { 0: { halign: 'center', cellWidth: 7 }, 1: { halign: 'right', cellWidth: 12 }, 2: { cellWidth: 10 }, 3: { cellWidth: 17 }, 5: { halign: 'right', cellWidth: 17 }, 6: { halign: 'right', cellWidth: 17 }, 7: { halign: 'right', cellWidth: 19 }, 8: { halign: 'right', cellWidth: 15 }, 9: { halign: 'right', cellWidth: 19 } } });
+    y = p.lastAutoTable.finalY + 6;
+    if (y > 250) { p.addPage(); y = 20; }
+    // Importe en letras y totales
+    p.setFontSize(8.5); p.setFont('helvetica', 'bold');
+    const letras = p.splitTextToSize(x.letras && /^SON/i.test(x.letras) ? x.letras.toUpperCase() : enLetras(x.total, x.moneda), 110); p.text(letras, M, y + 4);
+    const tot = [['Op. gravada', x.base], ['I.G.V. 18%', x.igv], ['IMPORTE TOTAL', x.total]];
+    tot.forEach(([a, v], i) => { const yy = y + 4 + i * 6; p.setFont('helvetica', i === 2 ? 'bold' : 'normal'); p.text(a, 140, yy); p.text(`${mon} ${n2(v)}`, W - M, yy, { align: 'right' }); });
+    p.setLineWidth(0.2); p.line(138, y + 13.5, W - M, y + 13.5);
+    y += 4 + tot.length * 6 + 4;
+    if (x.cuotas.length) { p.setFont('helvetica', 'normal'); p.setFontSize(8); p.text(p.splitTextToSize('Cuotas: ' + x.cuotas.map((c) => `${c.id || ''} ${mon} ${n2(c.m)} al ${dia(c.v)}`).join(' · '), W - 2 * M), M, y + 2); y += 8; }
+    p.setFont('helvetica', 'italic'); p.setFontSize(7); p.setTextColor(110);
+    p.text(`Representación impresa del comprobante electrónico ${x.id}, generada a partir de su XML${x.arch ? ' (' + x.arch + ')' : ''}.`, M, 287);
+    p.save(`${x.emisor.ruc}-${x.cod || (x.tipo === 'FACTURA' ? '01' : x.tipo === 'NOTA DE CRÉDITO' ? '07' : '08')}-${x.id}.pdf`);
+  }
   const xlMia = (ruc) => { const e = pgCfg.empresas.find((x) => x.ruc === ruc); return e ? ` <span class="est e3">${esc(e.k)}</span>` : ''; };
   const xlN = (v, dec) => (v === null || v === undefined ? '' : (dec ? Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: dec }) : mil(v)));
   function xlPintar() {
@@ -8851,7 +8912,7 @@
       '<div class="tabla"><table><thead><tr><th></th><th>Tipo</th><th>Número</th><th>Emisión</th><th>Emisor</th><th>Cliente</th><th class="num">Valor venta</th><th class="num">IGV</th><th class="num">Total</th><th>Pago</th><th>Vence</th><th class="num">Ítems</th><th>En pagos</th></tr>' + xlFiltros(D0, F) + '</thead><tbody>' +
       D.map((x, i) => {
         const ab = xl.abiertos.has(x.k);
-        return `<tr class="xlFila${x.tipo === 'NOTA DE CRÉDITO' ? ' esnc' : ''}" data-k="${esc(x.k)}" style="cursor:pointer"><td>${ab ? '▾' : '▸'}</td><td>${esc(x.tipo)}</td><td><b>${esc(x.id)}</b>${x.ref ? `<div class="quien">afecta a ${esc(x.ref)}</div>` : ''}</td><td>${esc(dia(x.fecha))}${x.hora ? ` <span class="quien">${esc(x.hora)}</span>` : ''}</td>` +
+        return `<tr class="xlFila${x.tipo === 'NOTA DE CRÉDITO' ? ' esnc' : ''}" data-k="${esc(x.k)}" style="cursor:pointer"><td>${ab ? '▾' : '▸'}</td><td>${esc(x.tipo)}</td><td><b>${esc(x.id)}</b> <button class="mini xlPdf" data-k="${esc(x.k)}" title="Descargar en PDF (representación impresa del XML)">PDF</button>${x.ref ? `<div class="quien">afecta a ${esc(x.ref)}</div>` : ''}</td><td>${esc(dia(x.fecha))}${x.hora ? ` <span class="quien">${esc(x.hora)}</span>` : ''}</td>` +
           `<td>${esc(x.emisor.nom)}${xlMia(x.emisor.ruc)}<div class="quien">RUC ${esc(x.emisor.ruc)}</div></td><td>${esc(x.cliente.nom)}${xlMia(x.cliente.ruc)}<div class="quien">RUC ${esc(x.cliente.ruc)}</div></td>` +
           `<td class="num">${xlN(x.base)}</td><td class="num">${xlN(x.igv)}</td><td class="num"><b>${x.moneda !== 'PEN' ? esc(x.moneda) + ' ' : ''}${xlN(x.total)}</b></td><td>${esc(x.forma)}${x.cuotas.length > 1 ? ` · ${x.cuotas.length} cuotas` : ''}</td><td>${esc(dia(x.vence))}</td><td class="num">${x.lineas.length}</td><td>${rgCeldaXml(x)}</td></tr>` +
           (ab ? `<tr class="det"><td colspan="13"><div class="xlDet">` +
@@ -8920,6 +8981,8 @@
       } catch (err) { alert(errorTexto(err)); }
       return;
     }
+    const pb = e.target.closest('.xlPdf');
+    if (pb) { const x = xl.docs.find((y) => y.k === pb.dataset.k); if (!x) return; pb.disabled = true; try { await xlPdf(x); } catch (err) { alert(errorTexto(err)); } pb.disabled = false; return; }
     const b = e.target.closest('.xlBorrar');
     if (b) { const x = xl.docs.find((y) => y.k === b.dataset.k); if (!x || !confirm(`¿Eliminar ${x.tipo} ${x.id} de lo guardado?`)) return; try { await deleteDoc(doc(db, 'xmlf', x.k)); sincroQuitar('xmlf', x.k); xl.avisos = [`${x.id} eliminado.`]; xl.errores = []; xlCargar(); } catch (err) { xl.errores = [errorTexto(err)]; xlPintar(); } return; }
     if (e.target.closest('input, button, .rgIr')) return;
