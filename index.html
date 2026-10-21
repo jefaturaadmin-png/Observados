@@ -1196,7 +1196,8 @@
     return v.listo.then(() => v);
   }
   const sincroQuitar = (nombre, id) => { const v = sincros.get(nombre); if (v && v.m.delete(id)) v.cbs.forEach((f) => f(v)); };
-  const sincroDocs = (nombre, filtro) => sincro(nombre).then((v) => ({ docs: v.docs().filter((d) => !filtro || filtro(d.data())) }));
+  const sincroDat = new WeakMap(), datoDe = (d) => { let x = sincroDat.get(d); if (!x) { x = d.data(); sincroDat.set(d, x); } return x; }; // solo para filtrar: quien usa el documento recibe su propia copia con d.data()
+  const sincroDocs = (nombre, filtro) => sincro(nombre).then((v) => ({ docs: v.docs().filter((d) => !filtro || filtro(datoDe(d))) }));
   const xmlfYa = async (k) => { const v = sincros.get('xmlf'); if (v) { try { await v.listo; return v.m.has(k); } catch (e) { /* se pregunta */ } } return (await getDoc(doc(db, 'xmlf', k))).exists(); }; // ¿ese XML ya está guardado?
   const xmlfDe = (meses) => { const M = new Set(meses); return sincroDocs('xmlf', (x) => M.has(x.ym)).then((s) => s.docs.map((d) => d.data())); };
 
@@ -2675,7 +2676,8 @@
     const n = Number(s);
     return isFinite(n) ? r2(n) : null;
   };
-  const mil = (n) => ((n === null || n === undefined || n === '') ? '' : Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+  const numFmt = new Map(), fmtN = (d) => { if (!numFmt.has(d)) numFmt.set(d, new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: d })); return numFmt.get(d); }; // un solo formateador (crearlo en cada número es lento)
+  const mil = (n) => ((n === null || n === undefined || n === '') ? '' : fmtN(2).format(Number(n)));
   const pgEmp = () => $('gEmp').value, pgDist = () => $('gDist').value, pgPer = () => $('gPer').value;
   const TODOS_K = '*', distTxt = (k) => (k === TODOS_K ? 'TODOS LOS PROVEEDORES' : (k ? distDe(k).nombre : ''));
   const obsSolo = () => puede('verObs') && !puede('verPagos'); // usuario que solo ve Observaciones
@@ -7760,7 +7762,7 @@
   function rgBarra(pre, xs) { // barra para llevar lo marcado a un mes de pago
     if (!rg.t) return (puede('verPagos') || puede('verCxp')) ? '<p class="quien" style="margin:0 0 8px">Revisando qué está registrado en Pagos y Cuentas por pagar…</p>' : '';
     const fil = rgArmar(xs), falta = fil.filter((r) => !r.reg), sel = falta.filter((r) => rg.sel.has(r.id));
-    rg.vista = rg.vista.filter((r) => !fil.some((y) => y.id === r.id)).concat(fil);
+    const ids = new Set(fil.map((y) => y.id)); rg.vista = rg.vista.filter((r) => !ids.has(r.id)).concat(fil);
     if (!falta.length) return '';
     const tot = r2(sel.reduce((a, r) => a + (r.t === 'NC' ? -1 : 1) * Math.abs(Number(r.x.total) || 0), 0)), puedeAlgo = puede('pagos') || puede('cxp');
     return `<div class="caja" style="padding:10px 14px;border-color:var(--marca)"><div class="herr" style="margin:0"><b>${falta.length} sin registrar en Pagos ni en Cuentas por pagar</b>` +
@@ -8927,14 +8929,15 @@
     p.save(`${x.emisor.ruc}-${x.cod || (x.tipo === 'FACTURA' ? '01' : x.tipo === 'NOTA DE CRÉDITO' ? '07' : '08')}-${x.id}.pdf`);
   }
   const xlMia = (ruc) => { const e = pgCfg.empresas.find((x) => x.ruc === ruc); return e ? ` <span class="est e3">${esc(e.k)}</span>` : ''; };
-  const xlN = (v, dec) => (v === null || v === undefined ? '' : (dec ? Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: dec }) : mil(v)));
+  const xlN = (v, dec) => (v === null || v === undefined ? '' : (dec ? fmtN(dec).format(Number(v)) : mil(v)));
+  const XL_PAG = 200; // filas que se dibujan a la vez (con miles de XML, dibujarlos todos congela la página)
   function xlPintar() {
     const t = xl.txt.trim().toLowerCase(), D0 = xl.docs.filter((x) => !t || [x.id, x.emisor.nom, x.emisor.ruc, x.cliente.nom, x.cliente.ruc, x.ref, x.nota || '', x.lineas.map((l) => l.desc).join(' ')].join(' ').toLowerCase().includes(t)), F = xl.f || (xl.f = {}), D = D0.filter((x) => xlPasa(x, F)), sg2 = (x) => (x.tipo === 'NOTA DE CRÉDITO' ? -1 : 1), suma = (k) => r2(D.reduce((s, x) => s + sg2(x) * (Number(x[k]) || 0), 0));
     if (!rg.t && !rg.carg && (puede('verPagos') || puede('verCxp'))) rgCargarBase().then(() => { if (vista === 'vXml') xlPintar(); });
     $('xlCont').innerHTML = rgBarra('xl', D) + (xl.avisos.length ? `<div class="msg ok">${xl.avisos.map(esc).join('<br>')}</div>` : '') + (xl.errores.length ? `<div class="msg err">${xl.errores.map(esc).join('<br>')}</div>` : '') + (xl.cargando ? '<p class="resumen">Cargando…</p>' : !xl.docs.length ? `<div class="caja"><p class="resumen" style="margin:0">${xl.docs.length ? 'Nada coincide con la búsqueda.' : `Aún no hay documentos guardados. Sube los XML o los ZIP de las facturas.`}</p></div>` :
       '<div class="kpis">' + [[xl.txt.trim() ? 'Documentos encontrados' : 'Documentos guardados', String(D.length), `${D.filter((x) => x.tipo === 'FACTURA').length} facturas · ${D.filter((x) => x.tipo !== 'FACTURA').length} notas`], ['Valor de venta (sin IGV)', 'S/ ' + mil(suma('base')), 'las NC restan'], ['IGV', 'S/ ' + mil(suma('igv')), ''], ['Total', 'S/ ' + mil(suma('total')), `${D.reduce((s, x) => s + x.lineas.length, 0)} líneas de producto`]].map(([a, b, c], i) => `<div class="kpi"${i === 3 ? ' style="border-color:var(--marca);background:var(--suave)"' : ''}><b>${a}</b><strong>${b}</strong><small>${c}</small></div>`).join('') + '</div>' +
       '<div class="tabla"><table><thead><tr><th></th><th>Tipo</th><th>Número</th><th>Emisión</th><th>Emisor</th><th>Cliente</th><th class="num">Valor venta</th><th class="num">IGV</th><th class="num">Total</th><th>Pago</th><th>Vence</th><th class="num">Ítems</th><th>En pagos</th></tr>' + xlFiltros(D0, F) + '</thead><tbody>' +
-      D.map((x, i) => {
+      D.slice(0, xl.max || XL_PAG).map((x, i) => {
         const ab = xl.abiertos.has(x.k);
         return `<tr class="xlFila${x.tipo === 'NOTA DE CRÉDITO' ? ' esnc' : ''}" data-k="${esc(x.k)}" style="cursor:pointer"><td>${ab ? '▾' : '▸'}</td><td>${esc(x.tipo)}</td><td><b>${esc(x.id)}</b> <button class="mini xlPdf" data-k="${esc(x.k)}" title="Descargar en PDF (representación impresa del XML)">PDF</button>${x.ref ? `<div class="quien">afecta a ${esc(x.ref)}</div>` : ''}</td><td>${esc(dia(x.fecha))}${x.hora ? ` <span class="quien">${esc(x.hora)}</span>` : ''}</td>` +
           `<td>${esc(x.emisor.nom)}${xlMia(x.emisor.ruc)}<div class="quien">RUC ${esc(x.emisor.ruc)}</div></td><td>${esc(x.cliente.nom)}${xlMia(x.cliente.ruc)}<div class="quien">RUC ${esc(x.cliente.ruc)}</div></td>` +
@@ -8946,7 +8949,8 @@
             `<table><tr><th>#</th><th>Código</th><th>Descripción</th><th class="num">Cant.</th><th>Und.</th><th class="num">P. unit. sin IGV</th><th class="num">P. unit. con IGV</th><th class="num">Valor</th><th class="num">IGV</th><th class="num">Total</th></tr>` +
             x.lineas.map((l) => `<tr><td>${esc(l.n)}</td><td>${esc(l.cod)}</td><td>${esc(l.desc)}</td><td class="num">${l.cant === null ? '' : l.cant}</td><td>${esc(l.um)}</td><td class="num">${xlN(l.pu, 4)}</td><td class="num">${xlN(l.puIgv, 4)}</td><td class="num">${xlN(l.valor)}</td><td class="num">${xlN(l.igv)}</td><td class="num"><b>${xlN(l.total)}</b></td></tr>`).join('') +
             `<tr class="tot"><td colspan="7">Totales del documento</td><td class="num">${xlN(x.base)}</td><td class="num">${xlN(x.igv)}</td><td class="num">${xlN(x.total)}</td></tr></table></div></td></tr>` : '');
-      }).join('') + (D.length ? '' : '<tr><td colspan="13" class="vacio">Nada coincide con los filtros. <button class="mini xlLimpiar">Quitar filtros</button></td></tr>') + '</tbody></table></div>');
+      }).join('') + (D.length ? '' : '<tr><td colspan="13" class="vacio">Nada coincide con los filtros. <button class="mini xlLimpiar">Quitar filtros</button></td></tr>') +
+      (D.length > (xl.max || XL_PAG) ? `<tr><td colspan="13" class="vacio">Se muestran ${xl.max || XL_PAG} de ${D.length}. Usa la búsqueda o los filtros para encontrar uno, o <button class="mini xlMas">ver ${Math.min(XL_PAG, D.length - (xl.max || XL_PAG))} más</button></td></tr>` : '') + '</tbody></table></div>');
     xl.vista = D;
     if (xl.foco) { const el = $('xlCont').querySelector(`.xlFil [data-f="${xl.foco.f}"]`); if (el) { el.focus(); if (el.tagName === 'INPUT') el.setSelectionRange(xl.foco.p, xl.foco.p); } xl.foco = null; }
   }
@@ -8974,9 +8978,9 @@
       `<th>${lista('pago', D0.map((x) => x.forma || '(vacío)'))}</th><th>${texto('ven', 'dd/mm/aaaa')}</th><th>${texto('items', '#')}</th>` +
       `<th>${lista('enp', D0.map(xlEnPagos).filter(Boolean))}</th></tr>`;
   }
-  $('xlCont').addEventListener('input', (e) => { const c = e.target.closest('.xlFil [data-f]'); if (!c || c.tagName !== 'INPUT') return; xl.f[c.dataset.f] = c.value; xl.foco = { f: c.dataset.f, p: c.selectionStart }; xlPintar(); });
-  $('xlCont').addEventListener('change', (e) => { const c = e.target.closest('.xlFil [data-f]'); if (!c || c.tagName !== 'SELECT') return; xl.f[c.dataset.f] = c.value; xl.foco = { f: c.dataset.f, p: 0 }; xlPintar(); });
-  $('xlCont').addEventListener('click', (e) => { if (e.target.classList.contains('xlLimpiar')) { xl.f = {}; xlPintar(); } });
+  $('xlCont').addEventListener('input', (e) => { const c = e.target.closest('.xlFil [data-f]'); if (!c || c.tagName !== 'INPUT') return; xl.f[c.dataset.f] = c.value; xl.max = 0; xl.foco = { f: c.dataset.f, p: c.selectionStart }; xlPintar(); });
+  $('xlCont').addEventListener('change', (e) => { const c = e.target.closest('.xlFil [data-f]'); if (!c || c.tagName !== 'SELECT') return; xl.f[c.dataset.f] = c.value; xl.max = 0; xl.foco = { f: c.dataset.f, p: 0 }; xlPintar(); });
+  $('xlCont').addEventListener('click', (e) => { if (e.target.classList.contains('xlLimpiar')) { xl.f = {}; xl.max = 0; xlPintar(); } if (e.target.classList.contains('xlMas')) { xl.max = (xl.max || XL_PAG) + XL_PAG; xlPintar(); } });
   $('xlCont').addEventListener('keydown', (e) => { // ← → entre filtros
     const c = e.target.closest('.xlFil [data-f]');
     if (!c || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
@@ -8988,7 +8992,7 @@
   $('xlElegir').addEventListener('click', () => $('xlArch').click());
   $('xlArch').addEventListener('change', (e) => { const a = [...e.target.files]; e.target.value = ''; if (a.length) xlSubir(a); });
   { const z = $('xlZona'); ['dragenter', 'dragover'].forEach((n) => z.addEventListener(n, (e) => { e.preventDefault(); z.classList.add('sobre'); })); ['dragleave', 'drop'].forEach((n) => z.addEventListener(n, (e) => { e.preventDefault(); z.classList.remove('sobre'); })); z.addEventListener('drop', (e) => { const a = [...e.dataTransfer.files]; if (a.length) xlSubir(a); }); }
-  $('xlTxt').addEventListener('input', (e) => { xl.txt = e.target.value; xlPintar(); });
+  $('xlTxt').addEventListener('input', (e) => { xl.txt = e.target.value; xl.max = 0; clearTimeout(xl.tt); xl.tt = setTimeout(xlPintar, 250); });
   $('xlQuitar').addEventListener('click', () => { xl.f = {}; xl.txt = ''; $('xlTxt').value = ''; xlPintar(); });
   $('xlAbrir').addEventListener('click', () => { xl.abiertos = xl.abiertos.size >= (xl.vista || []).length && xl.abiertos.size ? new Set() : new Set((xl.vista || []).map((x) => x.k)); xlPintar(); });
   $('xlCont').addEventListener('click', async (e) => {
