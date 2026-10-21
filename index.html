@@ -2301,6 +2301,7 @@
         dato('Devolvió', f.devueltoPor ? `${f.devueltoPor} · ${fecha(f.devueltoFecha)}` : '') +
         (puede('verPrecios') ? dato('Precio unit.', soles(f.precio)) + dato('Monto', soles(montoObs(f))) : '') + dato('N° NC', f.nc) + dato('Fecha NC', dia(f.fechaNc)) + '</div>';
     }
+    if (yo.area === 'ADMIN' && f.estado === 'Devuelto' && !f.nc) h += '<p style="margin-top:8px"><button class="pel" id="dDeshacer" title="Para una devolución registrada por error o de prueba: borra la guía y la cantidad devuelta">Deshacer devolución (volver a "Por devolver")</button></p>';
     if (f.actPor) h += `<div class="quien">Última actualización: ${esc(f.actPor)} · ${esc(fecha(f.actFecha))}</div>`;
     h += '</div>';
     $('dCuerpo').innerHTML = h;
@@ -2311,12 +2312,15 @@
   $('dCuerpo').addEventListener('click', async (e) => {
     const b = e.target;
     if (b.id === 'gGuardar') return guardarGrupo(b);
-    if (!['dGuardar', 'dAdmin', 'dVolver'].includes(b.id)) return;
+    if (!['dGuardar', 'dAdmin', 'dVolver', 'dDeshacer'].includes(b.id)) return;
     const f = filas.find((x) => x._id === abierto);
     if (!f) return;
     let cambios;
     if (b.id === 'dVolver') {
       cambios = { estado: 'Por devolver', quedaMotivo: '', quedaPor: '', quedaFecha: null };
+    } else if (b.id === 'dDeshacer') {
+      if (!confirm(`¿Deshacer la devolución de ${f.codigo} (${f.producto})? Vuelve a "Por devolver" y se borran la guía ${f.guia || ''} y la cantidad devuelta.`)) return;
+      cambios = { estado: 'Por devolver', cantDevuelta: null, faltante: null, parcialConforme: null, parcialPor: '', parcialFecha: null, guia: '', devueltoPor: '', devueltoFecha: null };
     } else if (b.id === 'dGuardar') {
       const texto = txt($('dTexto').value, 500);
       if (!texto) return msg('dMsg', 'Escribe el comentario.');
