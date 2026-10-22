@@ -569,7 +569,9 @@
         <select id="pLab" aria-label="Laboratorio"></select>
         <input id="pTxt" placeholder="Buscar código, producto, factura, lote…" aria-label="Buscar">
         <button id="bExpPend">Exportar a Excel</button>
+        <button id="bDevTot" class="pri oculto" title="Toda la factura se devuelve: con su XML cargado, se registran todos sus productos de una vez">Devolver factura completa</button>
       </div>
+      <div id="pendMsg"></div>
       <p class="resumen" id="resPend"></p>
       <div class="tabla"><table>
         <thead><tr><th>ID</th><th>Fecha</th><th>Producto</th><th>Laboratorio</th><th>Lote</th><th>Vence</th><th class="num">Cant. observada</th><th>Motivo</th><th>Observó</th></tr></thead>
@@ -2035,6 +2037,7 @@
 
   function pintarPend() {
     if (!yo) return;
+    $('bDevTot').classList.toggle('oculto', !puede('observar'));
     const quedan = $('pEst').value === 'Se queda';
     const lista = pendFiltradas(), grupos = agrupar(lista);
     contador('nPend', filas.filter((f) => f.estado === 'Por devolver').length);
@@ -2090,6 +2093,101 @@
   $('pTxt').addEventListener('input', pintarPend);
   ['dEst', 'dProv', 'dLab'].forEach((id) => $(id).addEventListener('change', pintarDev));
   $('dTxt').addEventListener('input', pintarDev);
+  /* ---------- Devolver una factura completa: con su XML, todos sus productos se registran (y se devuelven con la guía) de una vez ---------- */
+  let dt = { x: null };
+  $('bDevTot').addEventListener('click', () => {
+    modo = 'devTot'; abierto = null; dt = { x: null };
+    $('dTit').textContent = 'Devolver factura completa';
+    $('dCuerpo').innerHTML = '<div id="dMsg"></div><p class="quien" style="margin:0 0 8px">Escribe el proveedor y la factura. Si su XML está cargado, salen todos sus productos con la cantidad facturada; si no, hay que registrarlos uno por uno en Observar productos.</p>' +
+      `<div class="rejilla"><div class="campo"><label for="dtProv">Proveedor</label><input id="dtProv" list="dtProvs" maxlength="80" autocomplete="off"><datalist id="dtProvs">${listas.proveedores.map((v) => `<option value="${esc(v)}">`).join('')}</datalist></div>` +
+      '<div class="campo"><label for="dtSer">Serie</label><input id="dtSer" maxlength="20" placeholder="F160"></div><div class="campo"><label for="dtNum">Número</label><input id="dtNum" maxlength="12" inputmode="numeric" placeholder="301260"></div>' +
+      '<div class="campo" style="align-self:end"><button id="dtBuscar">Buscar XML</button></div></div><div id="dtRes"></div>';
+    if (!$('dlg').open) $('dlg').showModal();
+    $('dtProv').focus();
+  });
+  async function dtBuscar() {
+    const ser = serDoc($('dtSer').value), num = numDoc($('dtNum').value), prov = may($('dtProv').value, 80);
+    if (!prov || !/^[A-Z0-9]{2,6}$/.test(ser) || !/^\d{1,10}$/.test(num)) return msg('dMsg', 'Completa el proveedor, la serie y el número de la factura.');
+    msg('dMsg', 'Buscando el XML…', 'ok');
+    let xs = [];
+    try {
+      const v = sincros.get('xmlf');
+      if (v) { await v.listo; xs = v.docs().map((d) => d.data()).filter((x) => x.serie === ser && numDoc(x.num) === num); }
+      else xs = (await getDocs(query(collection(db, 'xmlf'), where('serie', '==', ser), where('num', '==', num)))).docs.map((d) => d.data());
+    } catch (e) { return msg('dMsg', errorTexto(e)); }
+    xs = xs.filter((x) => x.tipo === 'FACTURA' && (x.lineas || []).length);
+    const p1 = norm(prov).split(' ')[0];
+    dt.x = xs.find((x) => norm(x.emisor?.nom || '').includes(p1)) || xs[0] || null; dt.prov = prov; dt.fac = `${ser}-${num}`;
+    msg('dMsg', '');
+    if (!dt.x) {
+      $('dtRes').innerHTML = `<div class="msg err">La factura ${esc(dt.fac)} no tiene su XML cargado. Regístrala producto por producto en Observar productos.</div><button id="dtIrObs">Ir a Observar productos con esta factura</button>`;
+      return;
+    }
+    const x = dt.x, pr = puede('precioObs');
+    $('dtRes').innerHTML = `<p><b>XML encontrado:</b> ${esc(x.id)} · ${esc(x.emisor?.nom || '')} · ${esc(dia(x.fecha))} · ${x.lineas.length} producto(s) · S/ ${mil(x.total)}</p>` +
+      `<div class="tabla" style="max-height:42vh;overflow:auto"><table style="font-size:13px"><tr><th><input type="checkbox" id="dtTodos" checked></th><th>Producto</th><th class="num">Facturado</th><th class="num">Cant. a devolver</th>${pr ? '<th class="num">P. unit. c/IGV</th>' : ''}</tr>` +
+      x.lineas.map((l, i) => `<tr><td><input type="checkbox" class="dtSel" data-i="${i}" checked></td><td>${esc(l.desc)}${l.cod ? `<div class="quien">Cód. proveedor ${esc(l.cod)}</div>` : ''}</td><td class="num">${esc(l.cant ?? '')}</td><td class="num"><input class="dtCant" data-i="${i}" type="number" min="0" step="any" value="${esc(l.cant ?? '')}" style="width:90px"></td>${pr ? `<td class="num">${mil(nXmlPu(l))}</td>` : ''}</tr>`).join('') + '</table></div>' +
+      '<div class="rejilla" style="margin-top:10px"><div class="campo"><label for="dtMot">Motivo</label><select id="dtMot"></select></div>' +
+      (puede('devolver') ? '<div class="campo"><label for="dtGuia">N° guía de devolución</label><input id="dtGuia" maxlength="40" placeholder="Si ya se devolvió"></div>' : '') +
+      '<div class="campo"><label for="dtObs">Observación</label><input id="dtObs" maxlength="300" value="DEVOLUCIÓN TOTAL DE LA FACTURA"></div></div>' +
+      `<p class="quien">${puede('devolver') ? 'Con la guía, quedan como devueltos de una vez; sin guía, quedan en Por devolver.' : 'Quedan en Por devolver; quien tenga el permiso confirmará la devolución con la guía.'}</p><button class="pri" id="dtOk">Registrar devolución total</button>`;
+    opcionesMot($('dtMot'));
+    const mDev = [...$('dtMot').options].find((o) => /DEVOL|TOTAL|ANUL/i.test(o.value)); if (mDev) $('dtMot').value = mDev.value;
+  }
+  async function dtGuardar(b) {
+    const x = dt.x; if (!x) return;
+    const motivo = $('dtMot').value, guia = $('dtGuia') ? may($('dtGuia').value, 40) : '', obs = txt($('dtObs').value, 300);
+    if (!motivo) return msg('dMsg', 'Elige el motivo.');
+    const lineas = [];
+    for (const c of $('dCuerpo').querySelectorAll('.dtSel')) {
+      if (!c.checked) continue;
+      const l = x.lineas[Number(c.dataset.i)], q = Number($('dCuerpo').querySelector(`.dtCant[data-i="${c.dataset.i}"]`).value);
+      if (!(q > 0)) return msg('dMsg', `${l.desc}: la cantidad debe ser mayor que cero (o desmárcalo).`);
+      const cat = catalogo.find((p0) => norm(p0.n) === norm(l.desc)), pu = puede('precioObs') ? nXmlPu(l) : null;
+      lineas.push({ codProd: cat ? cat.c : '', producto: may(l.desc, 150), laboratorio: cat ? cat.l : '', lote: '', vence: '', cantidad: q, motivo, obs, precio: pu ? Math.round(pu * 10000) / 10000 : null });
+    }
+    if (!lineas.length) return msg('dMsg', 'Marca al menos un producto.');
+    const proveedor = await proveedorDe('dtProv', 'dMsg'); if (!proveedor) return;
+    let enPagos = '';
+    try { enPagos = await facturaEnPagos(proveedor, dt.fac); } catch (err) { console.error(err); }
+    if (enPagos && !puede('observarCerrada')) return msg('dMsg', `La factura ${dt.fac} ya fue ingresada a pagos (${enPagos}), por eso ya no admite observaciones. Debe registrarla alguien con el permiso "Observar facturas que ya están en pagos".`);
+    if (!confirm(`¿Registrar la devolución total de ${dt.fac} (${proveedor})?\n${lineas.length} producto(s)${guia ? ` · se marcan como devueltos con la guía ${guia}` : ' · quedan en Por devolver'}.`)) return;
+    b.disabled = true;
+    const base = {
+      creado: serverTimestamp(), uid: yo.uid, usuario: firma(), area: yo.area, proveedor, factura: dt.fac, estado: ESTADOS[0],
+      obsCompras: '', comprasUsuario: '', comprasFecha: null, obsGerencia: '', gerenciaUsuario: '', gerenciaFecha: null,
+      cantDevuelta: null, faltante: null, parcialConforme: null, parcialPor: '', parcialFecha: null,
+      guia: '', devueltoPor: '', devueltoFecha: null, quedaMotivo: '', quedaPor: '', quedaFecha: null,
+      precio: null, monto: null, nc: '', fechaNc: '', actPor: '', actFecha: null
+    };
+    if (enPagos) { base.tardia = true; base.tardiaInfo = enPagos; }
+    try {
+      const refs = lineas.map(() => doc(collection(db, 'observaciones')));
+      const cods = await runTransaction(db, async (tx) => {
+        const ref = doc(db, 'config', 'contador'), s0 = await tx.get(ref);
+        let n = s0.exists() ? s0.data().n : 0; const lista = [];
+        lineas.forEach((l, i) => { n += 1; const codigo = 'OBS-' + String(n).padStart(4, '0'); tx.set(refs[i], { ...base, ...l, codigo }); lista.push(codigo); });
+        tx.set(ref, { n });
+        return lista;
+      });
+      if (guia) {
+        const lote = writeBatch(db);
+        refs.forEach((rf, i) => lote.update(rf, { estado: 'Devuelto', cantDevuelta: lineas[i].cantidad, faltante: 0, parcialConforme: null, guia, devueltoPor: firma(), devueltoFecha: serverTimestamp(), actPor: firma(), actFecha: serverTimestamp() }));
+        await lote.commit();
+      }
+      $('dlg').close();
+      msg('pendMsg', `Devolución total de ${dt.fac}: ${cods.length} producto(s) registrados (${cods[0]}${cods.length > 1 ? ' a ' + cods[cods.length - 1] : ''})${guia ? `, devueltos con la guía ${guia} (están en Devueltos y NC)` : ', en Por devolver'}.`, 'ok');
+    } catch (err) { msg('dMsg', errorTexto(err)); b.disabled = false; }
+  }
+  $('dCuerpo').addEventListener('click', (e) => {
+    if (modo !== 'devTot') return;
+    const id = e.target.id;
+    if (id === 'dtBuscar') dtBuscar();
+    else if (id === 'dtOk') dtGuardar(e.target);
+    else if (id === 'dtTodos') $('dCuerpo').querySelectorAll('.dtSel').forEach((c) => { c.checked = e.target.checked; });
+    else if (id === 'dtIrObs') { $('dlg').close(); ver('vNuevo'); $('nSer').value = dt.fac.split('-')[0]; $('nNum').value = dt.fac.split('-')[1]; $('nProv').value = dt.prov; $('nNum').dispatchEvent(new Event('change', { bubbles: true })); }
+  });
+  $('dCuerpo').addEventListener('keydown', (e) => { if (modo === 'devTot' && e.key === 'Enter' && ['dtProv', 'dtSer', 'dtNum'].includes(e.target.id)) { e.preventDefault(); dtBuscar(); } });
   $('bExpPend').addEventListener('click', () => exportar($('pEst').value === 'Se queda' ? 'se-quedan' : 'por-devolver', colsObs(), pendFiltradas()));
   $('bExpDev').addEventListener('click', () => exportar('devueltos-nc', colsObs(), devFiltradas()));
 
@@ -4317,6 +4415,38 @@
     const q = m / pu, qr = Math.round(q);
     return { t: Math.abs(q - qr) < 0.02 ? String(qr) : '≈' + (Math.round(q * 100) / 100), est: true };
   }
+  // Qué falta en la NC, producto por producto: cantidad observada − cantidad que trae el XML de la NC (mismo producto),
+  // valorizado con el precio unitario del XML de la factura (si no está, el de la NC). Solo si el XML de la NC está cargado.
+  const linCoincide = (p, y) => {
+    const P = String(p || '').toUpperCase().replace(/\s+/g, ' ').trim(), cod = String(y.cod || '').toUpperCase().trim();
+    if (cod && (P.startsWith(cod + ' ') || P.startsWith(cod + ' ·'))) return true;
+    const t = soloAlfa(P), d = soloAlfa(y.desc);
+    return d.length >= 6 && t.length >= 6 && (t.includes(d.slice(0, 18)) || d.includes(t.replace(/^\d+/, '').slice(0, 18)));
+  };
+  function faltaProd(x) {
+    if (!x.pend || !x.c.det.length) return null;
+    const ncL = x.c.det.flatMap((d) => {
+      const i = d.k.lastIndexOf('-'), es = czXml.idx.get(`NC|${serDoc(d.k.slice(0, i))}|${numDoc(d.k.slice(i + 1))}`) || [];
+      const e = es.find((y) => Math.abs(y.m - (Number(d.monto) || 0)) <= TOL_NC) || es[0];
+      return e && e.x ? e.x.lineas || [] : [];
+    });
+    if (!ncL.length) return null;
+    const X = x.f.m ? czXmlDe(`FA|${serDoc(x.f.s)}|${numDoc(x.f.n)}`, x.f.m, distDe(x.dk).nombre) : null, faL = X && X.x && !X.otro ? X.x.lineas || [] : [];
+    const out = [];
+    x.c.lineas.forEach((l) => {
+      const m0 = Number(l.m) || 0; if (m0 <= 0) return;
+      let q = null;
+      if (l.origen === 'recepcion') { const mm = String(l.p || '').match(/(?:por devolver|devuelto):\s*([\d.]+)/); q = mm ? Number(mm[1]) : null; } else { const c = obsCant(l, x); q = c ? Number(String(c.t).replace('≈', '')) : null; }
+      if (!(q > 0)) return;
+      const nom = String(l.p || '').replace(/\s*\((?:por devolver|devuelto):[^)]*\)\s*$/, '');
+      const en = ncL.filter((y) => linCoincide(nom, y)), qnc = Math.round(en.reduce((a, y) => a + (Number(y.cant) || 0), 0) * 1000) / 1000, falta = Math.round((q - qnc) * 1000) / 1000;
+      if (falta <= 0.001) return;
+      const lf = faL.find((y) => linCoincide(nom, y)), pu = (lf && czPu(lf)) || (en[0] && czPu(en[0])) || m0 / q;
+      out.push({ p: nom, q, qnc, falta, pu: Math.round(pu * 10000) / 10000, m: r2(falta * pu) });
+    });
+    return out;
+  }
+  const faltaTxt = (r) => `${r.falta} ${r.p} (la NC trae ${r.qnc} de ${r.q}) · ${r.falta} × ${mil(r.pu)} = S/ ${mil(r.m)}`;
   function pintarCruce(yaCalc) {
     const caja = $('gv_cruce'), soloPend = pgVista === 'ncp', todosP = pgDist() === TODOS_K;
     obsComOir();
@@ -4352,7 +4482,7 @@
       $('cTxt').addEventListener('input', () => pintarCruce());
       $('cExp').addEventListener('click', () => exportar(soloPend ? `nc-pendientes-${pgDist()}` : `cruce-observaciones-${pgDist()}`, [
         ['Fecha', (x) => dia(x.f.f)], ['Factura', (x) => `${x.f.s}-${x.f.n}`], ['Total factura', (x) => x.f.m], ['Laboratorio', (x) => labDe(x.f)],
-        ['Productos observados', (x) => x.c.lineas.map((l) => { const q = obsCant(l, x); return `${l.p}${q ? ' x ' + q.t : ''} (${mil(l.m)})`; }).join('\n')], ['Pendiente de NC (productos)', (x) => (x.c.pendI ? x.c.pendI.map((i) => `${x.c.lineas[i].p} (${mil(x.c.lineas[i].m)})`).join('\n') : '')], ['Monto observado', (x) => x.c.obs],
+        ['Productos observados', (x) => x.c.lineas.map((l) => { const q = obsCant(l, x); return `${l.p}${q ? ' x ' + q.t : ''} (${mil(l.m)})`; }).join('\n')], ['Pendiente de NC (productos)', (x) => { const fp = faltaProd(x); return fp && fp.length ? fp.map(faltaTxt).join('\n') : (x.c.pendI ? x.c.pendI.map((i) => `${x.c.lineas[i].p} (${mil(x.c.lineas[i].m)})`).join('\n') : ''); }], ['Monto observado', (x) => x.c.obs],
         ['NC aplicadas', (x) => x.c.det.map((n) => `${n.k} (${mil(n.aplicado)}, ${n.tipo})`).join('\n')], ['NC aplicada total', (x) => x.c.aplicada], ['Pendiente de NC', 'pend'],
         ['Estado', 'est'], ['Tipo de devolución', 'tipo'], ['Mes a pagar', (x) => perTxt(x.per)], ['Comentario u observación', (x) => obsComLista(obsCom.get(obsComId(x)) || {}).map((m) => `${m.t} (${String(m.por || '').split(' (')[0]})`).join('\n')], ['Alerta', 'alerta']
       ].filter((c) => !(obsSolo() && c[0] === 'Mes a pagar')), cruceVista()));
@@ -4365,7 +4495,7 @@
       `pendiente de NC S/ ${mil(lista.reduce((s, x) => s + x.pend, 0))} en ${lista.filter((x) => x.pend).length} factura(s)`;
     $('cCuerpo').innerHTML = lista.map((x) =>
       `<tr data-id="${esc(x.f.i)}" data-per="${esc(x.per)}" data-dk="${esc(x.dk)}">${todosP ? `<td><b>${esc(distDe(x.dk).nombre)}</b></td>` : ''}<td>${esc(dia(x.f.f))}</td><td><b>${esc(x.f.s)}-${esc(x.f.n)}</b>${x.sinReg ? '<div class="quien">sin registrar</div>' : ''}</td><td>${esc(labDe(x.f))}</td>` +
-      `<td class="larga">${(x.c.pendI ? x.c.pendI.map((i) => x.c.lineas[i]) : x.c.lineas).map((l) => { const q = obsCant(l, x); return `${esc(l.p)}${q ? ` <b title="${q.est ? 'Cantidad calculada: monto ÷ precio unitario del XML de la factura' : 'Cantidad observada'}">× ${esc(q.t)}</b>` : ''}${l.m !== null && l.m !== undefined ? ` <span class="quien">(${esc(mil(l.m))})</span>` : ''}`; }).join('<br>')}${x.c.pendI ? `<br><span class="quien" title="${esc(x.c.lineas.filter((l, i) => !x.c.pendI.includes(i)).map((l) => l.p).join(' · '))}">✓ ${x.c.lineas.length - x.c.pendI.length} producto(s) ya con NC</span>` : ''}</td>` +
+      `<td class="larga">${(x.c.pendI ? x.c.pendI.map((i) => x.c.lineas[i]) : x.c.lineas).map((l) => { const q = obsCant(l, x); return `${esc(l.p)}${q ? ` <b title="${q.est ? 'Cantidad calculada: monto ÷ precio unitario del XML de la factura' : 'Cantidad observada'}">× ${esc(q.t)}</b>` : ''}${l.m !== null && l.m !== undefined ? ` <span class="quien">(${esc(mil(l.m))})</span>` : ''}`; }).join('<br>')}${x.c.pendI ? `<br><span class="quien" title="${esc(x.c.lineas.filter((l, i) => !x.c.pendI.includes(i)).map((l) => l.p).join(' · '))}">✓ ${x.c.lineas.length - x.c.pendI.length} producto(s) ya con NC</span>` : ''}${((fp) => (fp && fp.length ? `<div class="baja" style="margin-top:4px;font-size:12px" title="Cantidad observada menos la cantidad del mismo producto en el XML de la NC, por el precio unitario del XML de la factura"><b>Falta en la NC:</b><br>${fp.map((r) => esc(faltaTxt(r))).join('<br>')}</div>` : ''))(faltaProd(x))}</td>` +
       `<td class="num">${esc(mil(x.c.obs))}</td><td>${x.c.det.map((n) => `${esc(n.k)} <span class="quien">${esc(n.tipo)}</span>`).join('<br>') || '<span class="quien">—</span>'}</td>` +
       `<td class="num">${esc(mil(x.c.aplicada))}</td><td class="num${x.pend ? ' baja' : ''}">${esc(mil(x.pend))}</td>` +
       `<td><span class="est ${claseEst(x.est)}">${esc(x.est)}</span></td><td><span class="est ${x.tipo === DEV_INM ? 'e3' : 'e1'}">${esc(x.tipo)}</span></td>${obsSolo() ? '' : `<td>${x.sinReg ? '<span class="est e0">Factura sin registrar</span>' : esc(perTxt(x.per))}</td>`}<td class="cCom">${obsNotasHtml(x)}${obsComHtml(x)}</td><td class="larga quien">${esc(x.alerta)}</td></tr>`).join('') ||
