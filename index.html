@@ -636,6 +636,7 @@
           <input id="gTxt" placeholder="Buscar número, laboratorio, producto… (busca en todos los meses)" aria-label="Buscar" style="flex:1;min-width:200px">
           <button id="gHist">Historial de cambios</button>
           <button id="gExp">Exportar a Excel</button>
+          <button id="gExpAnio" title="Todas las facturas y NC de este proveedor emitidas desde el 1 de enero, de todos los meses a pagar y de todas las empresas">Excel del año</button>
         </div>
         <div id="gMsg"></div>
         <p class="resumen" id="gRes"></p>
@@ -3612,6 +3613,23 @@
       '<div class="tabla"><table><tr><th>Factura (como estaba)</th><th>Producto</th><th class="n">Monto</th><th>Nota de NC</th></tr>' +
       (pgDoc().sueltas || []).map((x) => `<tr><td>${esc(x.fac)}</td><td class="larga">${esc(x.prod)}</td><td class="n">${esc(mil(x.monto))}</td><td>${esc(x.nc)}</td></tr>`).join('') + '</table></div>';
     if (!$('dlg').open) $('dlg').showModal();
+  });
+  // Todo lo del proveedor elegido emitido este año (enero a hoy), de todos los meses a pagar y empresas
+  $('gExpAnio').addEventListener('click', async (e) => {
+    const dk = pgDist(); if (!dk || dk === TODOS_K) return msg('gMsg', 'Elige un proveedor.');
+    const desde = hoy().slice(0, 4) + '-01-01', b = e.target; b.disabled = true;
+    try {
+      const docs = (await sincroDocs('pagos', (x) => x.dist === dk)).docs.map((x) => x.data());
+      const filas = docs.flatMap((d) => (d.filas || []).filter((f) => String(f.f || '') >= desde).map((f) => ({ ...f, _d: d })))
+        .sort((a, b2) => String(a.f).localeCompare(String(b2.f)) || (a.t === b2.t ? 0 : a.t === 'FA' ? -1 : 1) || String(a.n).localeCompare(String(b2.n), undefined, { numeric: true }));
+      if (!filas.length) return msg('gMsg', `${distDe(dk).nombre} no tiene documentos emitidos desde el ${dia(desde)}.`);
+      await exportar(`compras-${dk}-${desde.slice(0, 4)}`, [
+        ['Empresa', (f) => empDe(f._d.emp).nombre], ['Proveedor', () => distDe(dk).nombre], ['Fecha emisión', (f) => dia(f.f)], ['Mes', (f) => (/^\d{4}-\d{2}/.test(f.f || '') ? perTxt(f.f.slice(0, 7)) : '')], ['Tipo', 't'], ['Serie', 's'], ['Número', 'n'],
+        ['Total', (f) => Number(f.m) || 0], ['Laboratorio', (f) => f.l || f.e || f.dp || ''], ['Ref. factura (NC)', (f) => f.r || ''], ['Rebate', (f) => (rebDe(f) ? rebTxt(f) : '')], ['Mes a pagar', (f) => perTxt(f._d.per)], ['Pagado', (f) => (f.pgd ? 'Sí' : '')], ['Nota', (f) => f.x || '']
+      ], filas);
+      const fa = filas.filter((f) => f.t !== 'NC'), nc = filas.filter((f) => f.t === 'NC'), sm = (l) => r2(l.reduce((a, f) => a + (Number(f.m) || 0), 0));
+      msg('gMsg', `${distDe(dk).nombre} desde el ${dia(desde)}: ${fa.length} facturas S/ ${mil(sm(fa))} · ${nc.length} NC S/ ${mil(sm(nc))} · neto S/ ${mil(r2(sm(fa) + sm(nc)))}.`, 'ok');
+    } catch (err) { msg('gMsg', errorTexto(err)); } finally { b.disabled = false; }
   });
   $('gExp').addEventListener('click', () => {
     const d = pgDoc();
