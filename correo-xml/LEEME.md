@@ -13,7 +13,7 @@ Correo del proveedor ─► Script de Gmail (cada 10 min) ─► Firebase: xmlBu
 - Se descarta la constancia de SUNAT (CDR) que viene en algunos .zip. Solo entran facturas, NC y ND.
 - Los correos ya revisados quedan con la etiqueta **XML-procesado** en Gmail.
 - Abre también un ZIP que viene dentro de otro ZIP (por ejemplo, uno por mes).
-- Si el correo **no trae el XML adjunto** sino un botón o enlace (**"Ver XML"**, **"Descargar XML"**, como los de PERUFARMA por efacturacion.pe), el script abre el enlace y descarga el XML. Si el enlace abre una página que pide iniciar sesión, el correo queda con la etiqueta **XML-sin-leer**.
+- Si el correo **no trae el XML adjunto** sino un botón o enlace (**"Ver XML"**, **"Descargar XML"**, o un **"aquí"** después de "en formato XML lo puede obtener accediendo…", como los de PERUFARMA o ALCIDES QUIROZ por efacturacion.pe), el script abre el enlace y descarga el XML (o el ZIP). Si el enlace abre una página con un botón de descarga, lo sigue una vez. Si el enlace abre una página que pide iniciar sesión, el correo queda con la etiqueta **XML-sin-leer**.
 - Los **RAR** también entran: Google no puede abrirlos, así que el script los manda tal cual (hasta 650 KB) y la página los abre al leer la bandeja.
 - Si el adjunto es **7z**, un RAR de más de 650 KB, un ZIP dañado o no trae facturas ni notas, el correo queda con la etiqueta **XML-sin-leer** (no como procesado). Descomprímelo o súbelo en el **Lector de XML** (acepta XML, ZIP y RAR).
 - **Si actualizas el script:** pega de nuevo `Codigo.gs` y guarda. No hace falta volver a ejecutar `instalar`.
@@ -95,7 +95,7 @@ Listo: no hace falta ejecutar `instalar` de nuevo. Para dejar de revisarlo, ejec
 | En Ejecuciones: `Firestore respondió 403 … PERMISSION_DENIED` | Falta el paso 2: el Gmail no tiene permiso en el proyecto de Firebase. |
 | En Ejecuciones: `Cloud Firestore API has not been used in project …` | En el script: **Configuración del proyecto → Proyecto de Google Cloud → Cambiar proyecto** y escribe el número de proyecto de Firebase (**20439347200**). Si te lo pide, configura la "pantalla de consentimiento" de ese proyecto como **Interno** o **Externo / en prueba**, agregando tu Gmail. |
 | En la página: "No se pudo leer la bandeja de XML del correo" | Falta el paso 3: la regla de `xmlBuzon`. |
-| No aparece ningún XML | Revisa que el correo tenga el `.xml` o `.zip` **adjunto**. Si solo trae un enlace para descargarlo, el script no lo ve. |
+| No aparece ningún XML | Revisa que el correo tenga el `.xml` o `.zip` adjunto o un enlace al XML. Si el enlace pide usuario y clave, el correo queda con la etiqueta **XML-sin-leer** y el XML se sube a mano. |
 | En Ejecuciones: `Se perdió la conexión con Outlook` | Microsoft venció el permiso (por ejemplo, cambiaste la contraseña). Ejecuta `outlookConectar` y `outlookTerminar` otra vez. |
 | `outlookConectar` dice `AADSTS7000218` o `invalid_client` | Falta el paso A.4: activar "Permitir flujos de clientes públicos". |
 | Reenviaste correos desde Outlook "como adjunto" (en Gmail se ven con ícono de sobre, `.eml`) y no se leyeron | El script ya abre esos correos adjuntos y saca sus XML. Si llegaron antes de actualizar el script y quedaron con la etiqueta `XML-procesado`, ejecuta **una vez** la función **`revisarDeNuevo`**. |
