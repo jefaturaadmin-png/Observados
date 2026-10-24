@@ -40,7 +40,8 @@ function revisarCorreo() {
     const resto = `newer_than:${DIAS_ATRAS}d -label:${ETIQUETA} -label:${ETIQUETA_REVISAR}`;
     const conAdjunto = GmailApp.search(`has:attachment {filename:xml filename:zip filename:rar filename:7z filename:eml} ${resto}`, 0, MAX_CORREOS);
     // Correos que no traen el XML adjunto sino un botón o enlace para descargarlo ("Ver XML", "Descargar XML")
-    const conEnlace = GmailApp.search(`{"Ver XML" "Descargar XML" "Descarga XML" "Descargar el XML" "Ver el XML"} ${resto}`, 0, MAX_CORREOS);
+    // (también "El comprobante ... en formato XML lo puede obtener accediendo aquí", como el de efacturacion.pe)
+    const conEnlace = GmailApp.search(`{"Ver XML" "Descargar XML" "Descarga XML" "Descargar el XML" "Ver el XML" "formato XML" "archivo XML" "el XML" "su XML" "XML aquí" "XML aqui"} ${resto}`, 0, MAX_CORREOS);
     const vistos = new Set(), hilos = conAdjunto.concat(conEnlace).filter((h) => !vistos.has(h.getId()) && vistos.add(h.getId())).slice(0, MAX_CORREOS);
     let enviados = 0, repetidos = 0;
     const inicio = Date.now();
@@ -84,7 +85,9 @@ function xmlsDe(m) {
   return r2;
 }
 
-/** Enlaces del correo que dicen XML ("Ver XML", "Descargar XML", o que terminan en .xml): se descargan (máximo 5). */
+/** Enlaces del correo que llevan al XML: los que dicen XML ("Ver XML", "Descargar XML"), los que terminan en .xml
+ *  y los que dicen solo "aquí" pero el texto de antes habla del XML ("en formato XML lo puede obtener accediendo aquí").
+ *  Se descargan (máximo 5). Si el enlace abre una página en vez del archivo, se prueba una vez el enlace de descarga de esa página. */
 function xmlsDeEnlaces(html) {
   const adjuntos = [], raros = [], vistos = new Set();
   const limpiar = (t) => t.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
@@ -93,20 +96,57 @@ function xmlsDeEnlaces(html) {
   while ((m = re.exec(html)) && vistos.size < 5) {
     const url = m[1].replace(/&amp;/g, '&').trim(), texto = limpiar(m[2]);
     if (!/^https?:\/\//i.test(url) || vistos.has(url)) continue;
-    if (!/\bxml\b/i.test(texto) && !/\.xml(\?|#|$)/i.test(url)) continue;
+    const antes = limpiar(html.slice(Math.max(0, m.index - 400), m.index)).slice(-160), iX = antes.toUpperCase().lastIndexOf('XML'), iP = antes.toUpperCase().lastIndexOf('PDF');
+    const porContexto = /^(aqu[ií]|ac[aá]|clic|click|haga clic|haz clic|descargar|ver|enlace|link)(?=$|[\s.,:;!)])/i.test(texto) && iX >= 0 && iX > iP; // "...en formato XML lo puede obtener accediendo aquí"
+    if (!/\bxml\b/i.test(texto) && !/\.xml(\?|#|$)/i.test(url) && !porContexto) continue;
     vistos.add(url);
+    const etq = porContexto ? `${texto} (XML)` : texto;
     try {
-      const r = UrlFetchApp.fetch(url, { followRedirects: true, muteHttpExceptions: true, headers: { 'User-Agent': 'Mozilla/5.0' } });
-      if (r.getResponseCode() !== 200) { raros.push(`enlace "${texto}" (respondió ${r.getResponseCode()})`); continue; }
-      const blob = r.getBlob(), bytes = blob.getBytes(), cab = Utilities.newBlob(bytes.slice(0, 400)).getDataAsString('ISO-8859-1');
-      const disp = String((r.getHeaders() || {})['Content-Disposition'] || (r.getHeaders() || {})['content-disposition'] || '');
-      const nom = ((disp.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i) || [])[1] || url.split('?')[0].split('/').pop() || 'enlace').trim();
-      if ((bytes[0] & 255) === 0x50 && (bytes[1] & 255) === 0x4B) adjuntos.push({ blob: Utilities.newBlob(bytes, 'application/zip', /\.zip$/i.test(nom) ? nom : nom + '.zip'), nombre: /\.zip$/i.test(nom) ? nom : nom + '.zip' });
-      else if (/<\?xml|<(\w+:)?(Invoice|CreditNote|DebitNote)[\s>]/.test(cab) || (bytes[0] & 255) === 0xFF || (bytes[0] & 255) === 0xFE) adjuntos.push({ blob: Utilities.newBlob(bytes, 'application/xml', /\.xml$/i.test(nom) ? nom : nom + '.xml'), nombre: `enlace → ${/\.xml$/i.test(nom) ? nom : nom + '.xml'}` });
-      else raros.push(`enlace "${texto}" (abre una página, no descarga el XML)`);
-    } catch (e) { raros.push(`enlace "${texto}" (no se pudo descargar)`); }
+      let b = bajarEnlace(url);
+      if (b.err) { raros.push(`enlace "${etq}" (${b.err})`); continue; }
+      if (!b.tipo && b.html) { // abrió una página: se busca en ella el enlace de descarga del XML o del ZIP y se prueba una vez
+        const sig = enlaceEnPagina(b.html, url);
+        if (sig) b = bajarEnlace(sig);
+      }
+      if (b.tipo === 'zip') adjuntos.push({ blob: Utilities.newBlob(b.bytes, 'application/zip', /\.zip$/i.test(b.nom) ? b.nom : b.nom + '.zip'), nombre: /\.zip$/i.test(b.nom) ? b.nom : b.nom + '.zip' });
+      else if (b.tipo === 'xml') adjuntos.push({ blob: Utilities.newBlob(b.bytes, 'application/xml', /\.xml$/i.test(b.nom) ? b.nom : b.nom + '.xml'), nombre: `enlace → ${/\.xml$/i.test(b.nom) ? b.nom : b.nom + '.xml'}` });
+      else raros.push(`enlace "${etq}" (${b.err || 'abre una página, no descarga el XML; puede que pida usuario y clave'})`);
+    } catch (e) { raros.push(`enlace "${etq}" (no se pudo descargar)`); }
   }
   return { adjuntos, raros };
+}
+
+/** Descarga un enlace y dice qué es: { tipo: 'zip' | 'xml' | '', bytes, nom, html (si es una página), err } */
+function bajarEnlace(url) {
+  const r = UrlFetchApp.fetch(url, { followRedirects: true, muteHttpExceptions: true, headers: { 'User-Agent': 'Mozilla/5.0' } });
+  if (r.getResponseCode() !== 200) return { err: `respondió ${r.getResponseCode()}` };
+  const bytes = r.getBlob().getBytes(), cab = Utilities.newBlob(bytes.slice(0, 400)).getDataAsString('ISO-8859-1');
+  const h = r.getHeaders() || {}, disp = String(h['Content-Disposition'] || h['content-disposition'] || '');
+  const nom = ((disp.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i) || [])[1] || url.split('?')[0].split('/').pop() || 'enlace').trim();
+  if ((bytes[0] & 255) === 0x50 && (bytes[1] & 255) === 0x4B) return { tipo: 'zip', bytes, nom };
+  if (/<\?xml|<(\w+:)?(Invoice|CreditNote|DebitNote)[\s>]/.test(cab) || (bytes[0] & 255) === 0xFF || (bytes[0] & 255) === 0xFE) {
+    if (/<html[\s>]/i.test(cab)) return { tipo: '', bytes, nom, html: Utilities.newBlob(bytes).getDataAsString() };
+    return { tipo: 'xml', bytes, nom };
+  }
+  return { tipo: '', bytes, nom, html: /<(html|body|a)[\s>]/i.test(cab + Utilities.newBlob(bytes.slice(0, 4000)).getDataAsString('ISO-8859-1')) ? Utilities.newBlob(bytes).getDataAsString() : '' };
+}
+
+/** En una página de descarga, el primer enlace que lleva al XML o al ZIP (por su texto o por su dirección). */
+function enlaceEnPagina(html, base) {
+  const re = /<a\b[^>]*?href\s*=\s*["']([^"'#]+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  let m;
+  while ((m = re.exec(html))) {
+    const href = m[1].replace(/&amp;/g, '&').trim(), texto = m[2].replace(/<[^>]+>/g, ' ');
+    if (/\bxml\b|\bzip\b/i.test(texto) || /\.(xml|zip)(\?|$)|[?&](tipo|type|formato|format)=(xml|zip)/i.test(href)) return absoluta(href, base);
+  }
+  return '';
+}
+function absoluta(href, base) {
+  if (/^https?:\/\//i.test(href)) return href;
+  const o = base.match(/^(https?:\/\/[^/]+)(\/[^?#]*)?/i);
+  if (!o) return href;
+  if (href.startsWith('/')) return o[1] + href;
+  return o[1] + (o[2] || '/').replace(/[^/]*$/, '') + href;
 }
 
 /** Lo mismo, a partir de una lista de adjuntos { blob, nombre } (sirve para Gmail y para Outlook). */
