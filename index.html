@@ -6732,18 +6732,18 @@
       else filas2.push({ sec: 'F', pl: Math.abs(imp) < 0.005 ? '' : a.pl, n: a.prov + rpEmpTxt(a.emp), imp, c: pag, d: sal, ini: sal > 0.05 ? rpDia(v0) : '' });
     });
     rp.notaMes = (fuera ? `${fuera} letra(s) o cuota(s) registradas en este mes vencen en un mes posterior y se suman allá. ` : '') + (traidas ? `${traidas} letra(s) o cuota(s) de meses anteriores vencen en este mes y se suman aquí.` : '');
-    (pgCfg.cxpMig ? pgCfg.dists.filter((d) => d.tipo === 'C').map((d) => ({ n: d.nombre })) : cpCfg.provs.filter((p) => p.act !== false)).filter((p) => !vistos.has(p.n)).forEach((p) => filas2.push({ sec: 'F', pl: '', n: p.n, imp: 0, c: 0, d: 0, ini: '' })); // habituales sin compras este mes
     const m = man && man.exists() ? man.data() : {};
     rp = { per, nota: rp.notaMes || '', filas: filas2, man: { cred: m.cred || RP_CRED.map((n) => ({ n, imp: '', c: '', d: '', ini: '', fa: '' })), extra: m.extra || [] }, cargando: false, avisos, guardado: !!(man && man.exists()) };
   }
+  const rpCero = (f) => [f.imp, f.c, f.d].every((v) => !(Math.abs(Number(v) || 0) >= 0.005)); // proveedor sin nada que pagar este mes: no sale
   function rpSecciones() { // bloques en el orden de la hoja
     const out = [{ tit: 'CRÉDITOS BANCARIOS', color: '#ff0000', man: 'cred', cab: ['IMPORTE', 'LETRAS', 'IMPORTE', 'INICIO'], filas: rp.man.cred }];
-    out.push({ tit: 'LETRAS · DISTRIBUIDORES', color: '#ff0000', cab: ['IMPORTE', 'LETRAS', 'IMPORTE', 'INICIO'], filas: rp.filas.filter((f) => f.sec === 'D') });
+    out.push({ tit: 'LETRAS · DISTRIBUIDORES', color: '#ff0000', cab: ['IMPORTE', 'LETRAS', 'IMPORTE', 'INICIO'], filas: rp.filas.filter((f) => f.sec === 'D' && Math.abs(Number(f.imp) || 0) >= 0.005) });
     const plz = (sec) => unicos(rp.filas.filter((f) => f.sec === sec).map((f) => String(f.pl))).map((x) => (x === '' ? '' : Number(x))).sort((a, b) => (b === '' ? -1 : b) - (a === '' ? -1 : a));
     const hayVacio = (sec) => rp.filas.some((f) => f.sec === sec && f.pl === '');
     [['L', 'LETRAS', '#ed7d31', ['IMPORTE', 'LETRAS', 'IMPORTE', 'INICIO']], ['F', 'FACTURAS', '#0070c0', ['IMPORTE', 'PAGADO', 'SALDO', 'VENCE']]].forEach(([sec, nom, color, cab]) => {
       plz(sec).concat(hayVacio(sec) ? [''] : []).filter((v, i, a) => a.indexOf(v) === i).forEach((pl) => {
-        const fs = rp.filas.filter((f) => f.sec === sec && f.pl === pl).sort((a, b) => (b.imp !== 0) - (a.imp !== 0) || a.n.localeCompare(b.n));
+        const fs = rp.filas.filter((f) => f.sec === sec && f.pl === pl && !rpCero(f)).sort((a, b) => (b.imp !== 0) - (a.imp !== 0) || a.n.localeCompare(b.n));
         if (fs.length) out.push({ tit: pl === '' ? nom : (pl === 0 ? `${nom} AL CONTADO` : `${nom} ${pl} DIAS`), color, cab, filas: fs, esF: sec === 'F' });
       });
     });
