@@ -3924,9 +3924,9 @@
       prog: (d.prog || []).map((p) => ({ ...p, k: `${nom}|${p.g || ''}` })) };
   }
   const pgEsC = (d) => distDe(d.dist).tipo === 'C';
-  function cpmDePagos(docs) { // los meses de los proveedores en cuotas, juntos por empresa y mes, con el formato de Cuentas por pagar
+  function cpmDePagos(docs, es = pgEsC) { // los meses de los proveedores en cuotas, juntos por empresa y mes, con el formato de Cuentas por pagar
     const m = new Map();
-    docs.forEach((d) => { if (!pgEsC(d)) return; const k = `${d.emp}_${d.per}`; if (!m.has(k)) m.set(k, { emp: d.emp, per: d.per, filas: [], prog: [] }); const c = cpDeDoc(d), x = m.get(k); x.filas.push(...c.filas); x.prog.push(...c.prog); });
+    docs.forEach((d) => { if (!es(d)) return; const k = `${d.emp}_${d.per}`; if (!m.has(k)) m.set(k, { emp: d.emp, per: d.per, filas: [], prog: [] }); const c = cpDeDoc(d), x = m.get(k); x.filas.push(...c.filas); x.prog.push(...c.prog); });
     return [...m.values()];
   }
   const comoSnap = (x) => ({ exists: () => !!x, data: () => x, id: x ? `${x.emp}_${x.per}` : '' });
@@ -4836,12 +4836,13 @@
   function prvPintar() {
     const ops = (arr, v) => arr.map(([k, n]) => `<option value="${k}"${v === k ? ' selected' : ''}>${n}</option>`).join('');
     $('dCuerpo').innerHTML = '<div id="dMsg"></div><p class="quien" style="margin:0 0 8px"><b>Distribuidor</b>: se programa en letras para todo el mes. <b>Cuotas por grupos</b>: como en Cuentas por pagar, un grupo por mes de emisión con sus cuotas, plazo y retención del 3%.</p>' +
-      '<div class="tabla" style="max-height:60vh;overflow:auto"><table style="font-size:13px"><tr><th>Nombre</th><th>Tipo</th><th>Forma de pago</th><th>Plazo (días)</th><th>Retención 3%</th><th>Cuenta</th><th>Duplicado</th></tr>' +
+      '<div class="tabla" style="max-height:60vh;overflow:auto"><table style="font-size:13px"><tr><th>Nombre</th><th>Tipo</th><th>Forma de pago</th><th>Plazo (días)</th><th>Retención 3%</th><th>RUC</th><th>Cuenta</th><th>Duplicado</th></tr>' +
       prvLista.map((d, i) => `<tr><td><input class="gIn prvIn" data-i="${i}" data-c="nombre" value="${esc(d.nombre)}" style="min-width:220px"></td>` +
         `<td><select class="gIn prvIn" data-i="${i}" data-c="tipo">${ops([['D', 'Distribuidor'], ['C', 'Cuotas por grupos']], d.tipo === 'C' ? 'C' : 'D')}</select></td>` +
         `<td><select class="gIn prvIn" data-i="${i}" data-c="pago">${ops(MODOS.filter(([v]) => v === 'letras' || v === 'cuotas' || v === d.pago), d.pago || (d.tipo === 'C' ? 'cuotas' : 'letras'))}</select></td>` +
         `<td><input class="gIn prvIn n" data-i="${i}" data-c="pl" value="${esc(d.pl ?? '')}" style="width:70px"></td>` +
         `<td style="text-align:center"><input type="checkbox" class="prvIn" data-i="${i}" data-c="ret"${d.ret ? ' checked' : ''}></td>` +
+        `<td><input class="gIn prvIn" data-i="${i}" data-c="ruc" value="${esc(d.ruc || '')}" placeholder="20xxxxxxxxx" inputmode="numeric" maxlength="11" style="width:110px"></td>` +
         `<td><input class="gIn prvIn" data-i="${i}" data-c="cta" value="${esc(d.cta || '')}" style="min-width:160px"></td>` +
         `<td>${d.k && pgCfg.dists.some((x) => x.k === d.k) ? `<select class="gIn prvUnir" data-k="${esc(d.k)}" title="Si es el mismo proveedor (mismo RUC) registrado dos veces, pasa todo lo suyo al otro y lo quita de la lista"><option value="">Unir con…</option>${pgCfg.dists.filter((x) => x.k !== d.k).map((x) => `<option value="${esc(x.k)}">${esc(x.nombre)}</option>`).join('')}</select>` : ''}</td></tr>`).join('') +
       '</table></div><p style="margin-top:10px"><button id="prvMas">+ Agregar proveedor</button> <button class="pri" id="prvOk">Guardar</button></p>';
@@ -5003,6 +5004,7 @@
     else if (c === 'pl') { const n = t.value.trim() === '' ? '' : Number(t.value); d.pl = n === '' || (n >= 0 && n <= 365) ? n : d.pl; }
     else if (c === 'nombre') d.nombre = may(t.value, 80);
     else if (c === 'cta') d.cta = txt(t.value, 80);
+    else if (c === 'ruc') { const v = t.value.replace(/\D/g, ''); if (v && v.length !== 11) { msg('dMsg', 'El RUC debe tener 11 dígitos.'); t.value = d.ruc || ''; return; } d.ruc = v; msg('dMsg', ''); }
     else d[c] = t.value;
     if (c === 'tipo' && t.value === 'C' && (!d.pago || d.pago === 'letras')) { d.pago = 'cuotas'; prvPintar(); }
   });
@@ -5010,6 +5012,7 @@
     if (modo !== 'provs') return;
     if (e.target.id === 'prvMas') { prvLista.push({ k: '', nombre: '', tipo: 'C', pago: 'cuotas', pl: '', ret: false, cta: '' }); prvPintar(); const ins = $('dCuerpo').querySelectorAll('.prvIn[data-c="nombre"]'); ins[ins.length - 1].focus(); return; }
     if (e.target.id !== 'prvOk') return;
+    prvLista.forEach((d) => { const a = d.k && pgCfg.dists.find((x) => x.k === d.k); if (a && a.nombre !== d.nombre) d.otros = unicos((d.otros || []).concat(a.nombre)); }); // al cambiar el nombre, el anterior se sigue reconociendo (observaciones de Recepción)
     const lista = prvLista.filter((d) => d.nombre.trim()), usadas = new Set(lista.filter((d) => d.k).map((d) => d.k));
     const nombres = lista.map((d) => d.nombre); if (new Set(nombres).size !== nombres.length) return msg('dMsg', 'Hay dos proveedores con el mismo nombre.');
     lista.forEach((d) => { if (d.k) return; let k = pgSlug(d.nombre), n = 2; while (usadas.has(k)) k = pgSlug(d.nombre).slice(0, 21) + n++; d.k = k; usadas.add(k); });
@@ -5351,6 +5354,7 @@
     if (!prov || czNomOk(x.nom, prov)) return true;
     const ruc = x.ruc;
     if (!ruc) return true;
+    if (pgCfg.dists.some((d) => d.ruc === ruc && czNomOk(d.nombre, prov))) return true; // RUC escrito en Proveedores
     if (czXml.rucsExtra[ruc] && czNomOk(czNomDeClave(czXml.rucsExtra[ruc]), prov)) return true;
     if (Object.entries(czXml.rucs).some(([k, r]) => r === ruc && czNomOk(czNomDeClave(k), prov))) return true;
     return !!(QR_RUC[ruc] && czNomOk(distDe(QR_RUC[ruc]).nombre, prov));
@@ -6677,14 +6681,16 @@
   async function rpCargar(per) {
     rp.cargando = true;
     const lee = (p) => p.catch(() => null);
-    const pers = []; // el mes y los 8 anteriores: sus letras o cuotas pueden vencer en este mes
+    const pers = []; // el mes, los 8 anteriores y los 4 siguientes: sus letras o cuotas pueden vencer en este mes
     for (let k = 0, y = Number(per.slice(0, 4)), m = Number(per.slice(5, 7)); k <= 8; k++) { pers.push(`${y}-${String(m).padStart(2, '0')}`); m--; if (!m) { m = 12; y--; } }
+    for (let k = 1, y = Number(per.slice(0, 4)), m = Number(per.slice(5, 7)); k <= 4; k++) { m++; if (m > 12) { m = 1; y++; } pers.push(`${y}-${String(m).padStart(2, '0')}`); }
     const pares = pers.flatMap((pp) => CP_EMP.map((e) => ({ emp: e.k, pp })));
     let pg, man, cps;
     if (pgCfg.cxpMig) { // los proveedores en cuotas están en Pagos a proveedores: se arman como los meses de Cuentas por pagar
       const [todos, m2] = await Promise.all([lee(sincroDocs('pagos', (x) => pers.includes(x.per))), lee(getDoc(doc(db, 'cpRes', per)))]);
-      const ds = todos ? todos.docs.map((d) => d.data()) : [], pseudo = cpmDePagos(ds);
-      pg = todos ? { docs: ds.filter((d) => d.per === per && !pgEsC(d)).map((d) => ({ data: () => d })) } : null; man = m2;
+      const esCuo = (d) => pgEsC(d) || modoPago(d) === 'cuotas'; // un distribuidor que este mes se paga por grupos (cuotas) cuenta como los de cuotas: cada cuota en su mes
+      const ds = todos ? todos.docs.map((d) => d.data()) : [], pseudo = cpmDePagos(ds, esCuo);
+      pg = todos ? { docs: ds.filter((d) => d.per === per && !esCuo(d)).map((d) => ({ data: () => d })) } : null; man = m2;
       cps = pares.map((x) => comoSnap(pseudo.find((c) => c.emp === x.emp && c.per === x.pp) || null));
     } else [pg, man, ...cps] = await Promise.all([lee(sincroDocs('pagos', (x) => x.per === per)), lee(getDoc(doc(db, 'cpRes', per))), ...pares.map((x) => lee(getDoc(doc(db, 'cpm', `${x.emp}_${x.pp}`))))]);
     const filas2 = [], avisos = [];
@@ -6701,7 +6707,7 @@
       });
     });
     // Cuentas por pagar: por plazo; con letras programadas va a LETRAS, si no a FACTURAS (pagado y saldo)
-    // Cada letra o cuota cuenta en el mes en que vence: si vence en un mes posterior al de su registro, pasa a ese mes.
+    // Cada letra o cuota cuenta en el mes en que vence (antes o después del mes a pagar donde está registrada).
     const vistos = new Set(), acu = new Map(); let fuera = 0, traidas = 0;
     cps.forEach((s, k) => {
       if (!s || !s.exists()) return;
@@ -6714,7 +6720,7 @@
         p.cuadros.forEach((c) => {
           const bruto = c.docs.reduce((t, f) => t + (f.t === 'FACTURA' ? (Number(f.m) || 0) : (f.t === 'NOTA DE CRÉDITO' ? -(Number(f.m) || 0) : 0)), 0), fx = Math.abs(c.neto) > 0.005 ? bruto / c.neto : 1; // facturas − NC
           if (c.n) c.cuotas.forEach((q) => {
-            const mes = q.v && q.v.slice(0, 7) > pp ? q.v.slice(0, 7) : pp;
+            const mes = /^\d{4}-\d{2}/.test(q.v || '') ? q.v.slice(0, 7) : pp;
             if (mes !== per) { if (pp === per) fuera++; return; }
             if (pp !== per) traidas++;
             const a = A(), qm = Math.abs(c.neto) > 0.005 ? q.m * fx : bruto / c.n; a.hay = true; a.imp += qm; if (q.pg) a.pag += qm; else if (q.v) a.vs.push(q.v);
@@ -6731,7 +6737,7 @@
       if (a.nL) filas2.push({ sec: 'L', pl: a.pl, n: a.prov + rpEmpTxt(a.emp), imp, c: `${String(a.nL).padStart(2, '0')} ${a.nL === 1 ? 'LETRA' : 'LETRAS'}`, d: r2(a.impL / a.nL), ini: rpDia(v0) });
       else filas2.push({ sec: 'F', pl: Math.abs(imp) < 0.005 ? '' : a.pl, n: a.prov + rpEmpTxt(a.emp), imp, c: pag, d: sal, ini: sal > 0.05 ? rpDia(v0) : '' });
     });
-    rp.notaMes = (fuera ? `${fuera} letra(s) o cuota(s) registradas en este mes vencen en un mes posterior y se suman allá. ` : '') + (traidas ? `${traidas} letra(s) o cuota(s) de meses anteriores vencen en este mes y se suman aquí.` : '');
+    rp.notaMes = (fuera ? `${fuera} letra(s) o cuota(s) registradas en este mes vencen en otro mes y se suman allá. ` : '') + (traidas ? `${traidas} letra(s) o cuota(s) registradas en otros meses vencen en este mes y se suman aquí.` : '');
     const m = man && man.exists() ? man.data() : {};
     rp = { per, nota: rp.notaMes || '', filas: filas2, man: { cred: m.cred || RP_CRED.map((n) => ({ n, imp: '', c: '', d: '', ini: '', fa: '' })), extra: m.extra || [] }, cargando: false, avisos, guardado: !!(man && man.exists()) };
   }
