@@ -4019,7 +4019,8 @@
       pgDocs.filter((p) => /^\d{4}-\d{2}$/.test(p.per) && p.per < d.per && nMes(d.per) - nMes(p.per) <= 6).sort((a, b) => String(a.per).localeCompare(String(b.per)))
         .forEach((p) => (p.filas || []).filter((f) => f.t === 'FA' && !esDevTotal(f, cruceDe(p.per, f))).sort(orden).forEach((f) => cuadro(f, p.per, obsAnt, ` · pagada en ${perTxt(p.per)}`)));
     }
-    return { d, dProg, dist, emp, normales, contado, tContado: suma(contado), ncs, dev, ncDeDev, usoNc, tCompras, nCredito, tPagar, CP, ret, letras, cuota: letras ? r2(tPagar / letras) : null, desde, cal, obs, obsAnt };
+    const pagado = dist.pago === 'cuotas' && CP ? r2(CP.cuadros.reduce((a, c) => a + c.cuotas.filter((q) => q.pg).reduce((b, q) => b + (Number(q.m) || 0), 0), 0)) : 0; // cuotas ya pagadas
+    return { d, dProg, dist, emp, normales, contado, tContado: suma(contado), ncs, dev, ncDeDev, usoNc, tCompras, nCredito, tPagar, pagado, saldoPg: r2(tPagar - pagado), CP, ret, letras, cuota: letras ? r2(tPagar / letras) : null, desde, cal, obs, obsAnt };
   }
   // Las filas del resumen, con el modelo de la hoja de programación (DIMEXA): columnas A–H, iguales en pantalla y en el Excel
   const fechaGuion = (s) => dia(s).replace(/\//g, '-');
@@ -4146,6 +4147,10 @@
       fila('');
     }
     fila('res', ['', '', '', '', 'T.COMPRAS', R.tCompras]); fila('resNc', ['', '', '', '', 'N.CRÉDITO', R.nCredito]); if (R.ret) fila('resNc', ['', '', '', '', 'RET. 3%', R.ret]); fila('resPg', ['', '', '', '', 'T.PAGAR', R.tPagar]);
+    if (R.pagado > 0.005) { // cuotas ya pagadas (por ejemplo la de octubre): se descuentan y queda solo el saldo
+      const pq = R.CP.cuadros.flatMap((c) => c.cuotas.filter((q) => q.pg)).map((q) => `${q.v ? dia(q.v) : ''} S/${mil(q.m)}`).join(' · ');
+      fila('resNc', ['', '', '', '', 'YA PAGADO', -R.pagado, pq]); fila('resPg', ['', '', '', '', 'SALDO A PAGAR', R.saldoPg]);
+    }
     if (R.contado.length) { // pagadas al contado: se muestran aparte y no suman al T.PAGAR
       fila(''); fila('obsT', ['FACTURAS PAGADAS AL CONTADO (YA PAGADAS, NO SE PROGRAMAN):']);
       R.contado.forEach((f) => doc1(f));
@@ -4242,7 +4247,7 @@
       `<div class="kpi"><b>T. compras</b><strong>S/ ${mil(R.tCompras)}</strong><small>${R.normales.length} facturas a programar</small></div>` +
       (R.contado.length ? `<div class="kpi"><b>Pagadas al contado</b><strong>S/ ${mil(R.tContado)}</strong><small>${R.contado.length} factura(s) · no suman al T. a pagar</small></div>` : '') +
       `<div class="kpi"><b>N. crédito</b><strong class="baja">S/ ${mil(R.nCredito)}</strong><small>${R.ncs.length} notas de crédito</small></div>` +
-      `<div class="kpi" style="border-color:var(--marca);background:var(--suave)"><b>T. a pagar</b><strong>S/ ${mil(R.tPagar)}</strong><small>${esc(perTxt(d.per))}</small></div>` +
+      `<div class="kpi" style="border-color:var(--marca);background:var(--suave)"><b>${R.pagado > 0.005 ? 'Saldo a pagar' : 'T. a pagar'}</b><strong>S/ ${mil(R.pagado > 0.005 ? R.saldoPg : R.tPagar)}</strong><small>${R.pagado > 0.005 ? `T. a pagar S/ ${mil(R.tPagar)} − ya pagado S/ ${mil(R.pagado)}` : esc(perTxt(d.per))}</small></div>` +
       (conLetras ? `<div class="kpi"><b>${R.letras || '—'} letras de</b><strong>${R.cuota === null ? '—' : 'S/ ' + mil(R.cuota)}</strong><small>${R.cal.dias.length ? `${esc(dia(R.cal.dias[0]))} al ${esc(dia(R.cal.dias[R.cal.dias.length - 1]))}` : 'falta definir'}</small></div>` : '') +
       (R.ret ? `<div class="kpi"><b>Retención 3%</b><strong class="baja">S/ ${mil(Math.abs(R.ret))}</strong><small>${conCuotas ? `${R.CP.cuadros.filter((c) => c.retTxt.startsWith('RET')).length} grupo(s)` : `${R.normales.filter((f) => (R.CP.R.get(f.i) || {}).q).length} factura(s)`}</small></div>` : '') +
       `<div class="kpi"><b>Devoluciones totales</b><strong>${R.dev.length}</strong><small>S/ ${mil(R.dev.reduce((s, f) => s + Number(f.m), 0))}</small></div>` +
