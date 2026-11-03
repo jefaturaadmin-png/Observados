@@ -1788,7 +1788,7 @@
       return true;
     }).sort((a, b) => String(b.fechaRecepcion || '').localeCompare(String(a.fechaRecepcion || '')));
   }
-  let pedMax = 0, pedTt = null;
+  let pedMax = 0, pedTt = null, pedPend = false;
   const PED_PAG = 300;
   const pedResps = () => unicos((listas.responsables || LISTAS_INI.responsables).filter(Boolean)); // los de Listas; uno antiguo distinto se sigue viendo en su fila
   function pedRespForm() { // responsables de recepción (Listas); se elige solo el del usuario si coincide con su nombre
@@ -1797,6 +1797,8 @@
   }
   function pintarPedidos() {
     if (!yo) return;
+    const a = document.activeElement; // no se redibuja mientras se escribe en una casilla de la tabla (se pierde lo escrito)
+    if (a && a.closest && a.closest('#cuerpoPed .peIn')) { pedPend = true; return; }
     pedRespForm();
     $('bImpPed').classList.toggle('oculto', yo.area !== 'ADMIN'); $('bVaciarPed').classList.toggle('oculto', yo.area !== 'ADMIN');
     const lista = pedidosFiltrados();
@@ -1824,13 +1826,21 @@
   ['fpEst', 'fpProv', 'fpRev', 'fpMes'].forEach((id) => $(id).addEventListener('change', () => { pedMax = 0; pintarPedidos(); }));
   $('fpTxt').addEventListener('input', () => { pedMax = 0; clearTimeout(pedTt); pedTt = setTimeout(pintarPedidos, 250); });
   // Lo que era la hoja "Control de recepción": responsable, revisión (fecha y responsable), OC y observaciones se editan en la misma fila
-  $('cuerpoPed').addEventListener('change', async (e) => {
-    const t = e.target; if (!t.classList.contains('peIn')) return;
+  // Las fechas se guardan al salir de la casilla (mientras se escribe el año, el navegador avisa cambios como "0002")
+  const pedGuardar = async (t) => {
     const p = pedidos.find((x) => x._id === t.dataset.id); if (!p) return;
-    const c = t.dataset.c, v = c === 'f2' ? (/^\d{4}-\d{2}-\d{2}$/.test(t.value) ? t.value : '') : txt(t.value, c === 'obs' ? 300 : 40);
+    const c = t.dataset.c;
+    if (c === 'f2' && t.value && !/^(20\d\d)-\d{2}-\d{2}$/.test(t.value)) { alert('Fecha no válida: revisa el año (por ejemplo 2026).'); t.value = p.f2 || ''; return; }
+    const v = c === 'f2' ? t.value : txt(t.value, c === 'obs' ? 300 : 40);
+    if (v === (p[c] || '')) return;
     const cam = { [c]: v, act: serverTimestamp(), actPor: firma() };
     if (c === 'resp2' && v && !p.f2) cam.f2 = hoy(); // al poner quién revisó, la fecha de revisión es hoy (se puede cambiar)
     try { await updateDoc(doc(db, 'pedidos', p._id), cam); Object.assign(p, cam); if (cam.f2 && c === 'resp2') pintarPedidos(); } catch (err) { alert(errorTexto(err)); pintarPedidos(); }
+  };
+  $('cuerpoPed').addEventListener('change', (e) => { const t = e.target; if (t.classList.contains('peIn') && t.type !== 'date') pedGuardar(t); });
+  $('cuerpoPed').addEventListener('focusout', (e) => {
+    const t = e.target; if (t.classList.contains('peIn') && t.type === 'date') pedGuardar(t);
+    setTimeout(() => { if (pedPend && !(document.activeElement && document.activeElement.closest && document.activeElement.closest('#cuerpoPed .peIn'))) { pedPend = false; pintarPedidos(); } }, 50);
   });
   $('bExpPed').addEventListener('click', () => exportar($('fpEst').value === 'P' ? 'facturas-pendientes-compras' : 'pedidos', COLS_PED, pedidosFiltrados()));
   $('cuerpoPed').addEventListener('click', async (e) => {
