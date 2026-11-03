@@ -514,7 +514,8 @@
             <div class="campo"><label for="peBultos">Cantidad de bultos (cajas) *</label><input id="peBultos" type="number" min="1" step="1" required></div>
             <div class="campo"><label for="peResp">Responsable</label><select id="peResp"></select></div>
             <div class="campo"><label for="peOc">OC</label><input id="peOc" maxlength="40" style="max-width:120px"></div>
-            <div class="campo" style="flex:2"><label for="peObs">Observaciones relevantes</label><input id="peObs" maxlength="300" placeholder="conforme"></div>
+            <div class="campo"><label for="peObsSel">Observaciones relevantes</label><select id="peObsSel"><option>Conforme</option><option>Observado</option><option value="*">Otro (escribir)…</option></select></div>
+            <div class="campo oculto" id="peObsCaja" style="flex:2"><label for="peObs">Comentario</label><input id="peObs" maxlength="300" placeholder="Escribe la observación"></div>
           </div>
           <div id="peXml" class="msg ok oculto" style="margin:0 0 8px"></div>
           <div class="fila-bot">
@@ -1751,6 +1752,7 @@
     $('peXml').classList.remove('oculto');
   }
   ['peSer', 'peNum'].forEach((id) => { $(id).addEventListener('change', () => setTimeout(peXmlBuscar, 0)); $(id).addEventListener('input', () => { clearTimeout(peXml.t); peXml.t = setTimeout(peXmlBuscar, 400); }); });
+  $('peObsSel').addEventListener('change', () => { const o = $('peObsSel').value === '*'; $('peObsCaja').classList.toggle('oculto', !o); if (o) $('peObs').focus(); });
   $('fPedido').addEventListener('click', (e) => { if (e.target.id === 'peUsarProv' && peXml.x) { $('peProv').value = provDeEmisor(peXml.x.emisor?.nom) || may(peXml.x.emisor?.nom || '', 80); peXml.k = ''; peXmlBuscar(); } });
   $('fPedido').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1767,10 +1769,10 @@
       await addDoc(collection(db, 'pedidos'), {
         creado: serverTimestamp(), uid: yo.uid, recibidoPor: firma(), fechaRecepcion: $('peFecha').value,
         factura, proveedor, bultos, conforme: false, conformePor: '', conformeFecha: null,
-        resp: $('peResp').value, oc: txt($('peOc').value, 40), obs: txt($('peObs').value, 300), f2: '', resp2: '', act: serverTimestamp()
+        resp: $('peResp').value, oc: txt($('peOc').value, 40), obs: $('peObsSel').value === '*' ? txt($('peObs').value, 300) : $('peObsSel').value, f2: '', resp2: '', act: serverTimestamp()
       });
       msg('pedMsg', `Pedido ${factura} registrado. Queda pendiente de entregar a Compras.`, 'ok');
-      $('peSer').value = ''; $('peNum').value = ''; $('peBultos').value = ''; $('peOc').value = ''; $('peObs').value = ''; $('peProv').value = ''; peXml.k = ''; $('peXml').classList.add('oculto'); $('peSer').focus();
+      $('peSer').value = ''; $('peNum').value = ''; $('peBultos').value = ''; $('peOc').value = ''; $('peObs').value = ''; $('peObsSel').value = 'Conforme'; $('peObsCaja').classList.add('oculto'); $('peProv').value = ''; peXml.k = ''; $('peXml').classList.add('oculto'); $('peSer').focus();
     } catch (err) { msg('pedMsg', errorTexto(err)); }
     ocupado(f, false);
   });
@@ -1809,6 +1811,13 @@
     const ed = puede('pedidos'), rs = pedResps(), max = pedMax || PED_PAG;
     const opR = (v) => '<option value=""></option>' + rs.concat(v && !rs.includes(v) ? [v] : []).map((x) => `<option${x === v ? ' selected' : ''}>${esc(x)}</option>`).join('');
     const inp = (p, c, v, extra) => (ed ? `<input class="peIn" data-id="${esc(p._id)}" data-c="${c}" value="${esc(v ?? '')}" ${extra || ''}>` : esc(c === 'f2' ? dia(v) : (v ?? '')));
+    const obsSel = (p) => { // Conforme / Observado / Otro (con su comentario)
+      const v = String(p.obs || '').trim(), k = /^conforme$/i.test(v) ? 'Conforme' : (/^observado$/i.test(v) ? 'Observado' : v);
+      if (!ed) return esc(k);
+      const otro = k && k !== 'Conforme' && k !== 'Observado';
+      return `<select class="peIn" data-id="${esc(p._id)}" data-c="obs" title="${esc(otro ? k : '')}" style="min-width:150px;max-width:260px"><option value=""></option><option${k === 'Conforme' ? ' selected' : ''}>Conforme</option><option${k === 'Observado' ? ' selected' : ''}>Observado</option>` +
+        (otro ? `<option value="${esc(k)}" selected>${esc(k.length > 40 ? k.slice(0, 40) + '…' : k)}</option>` : '') + '<option value="*">Otro (escribir)…</option></select>';
+    };
     const selR = (p, c) => (ed ? `<select class="peIn" data-id="${esc(p._id)}" data-c="${c}">${opR(p[c] || '')}</select>` : esc(p[c] || ''));
     $('cuerpoPed').innerHTML = lista.length ? lista.slice(0, max).map((p) => {
       const conf = p.conforme
@@ -1819,7 +1828,7 @@
       if (yo.area === 'ADMIN') acc += `<button class="pel mini" data-del="${esc(p._id)}">Eliminar</button>`;
       return `<tr><td>${esc(dia(p.fechaRecepcion))}</td><td><b>${esc(p.factura)}</b></td><td>${esc(p.proveedor)}</td>` +
         `<td class="num">${esc(p.bultos ?? '')}</td><td title="Registró: ${esc(p.recibidoPor || '')}">${selR(p, 'resp')}</td>` +
-        `<td>${inp(p, 'f2', p.f2, 'type="date" style="width:135px"')}</td><td>${selR(p, 'resp2')}</td><td>${inp(p, 'oc', p.oc, 'style="width:70px"')}</td><td>${inp(p, 'obs', p.obs, 'style="min-width:200px;width:100%"')}</td>` +
+        `<td>${inp(p, 'f2', p.f2, 'type="date" style="width:135px"')}</td><td>${selR(p, 'resp2')}</td><td>${inp(p, 'oc', p.oc, 'style="width:70px"')}</td><td>${obsSel(p)}</td>` +
         `<td>${conf}</td><td>${acc}</td></tr>`;
     }).join('') + (lista.length > max ? `<tr><td colspan="11" class="vacio">Se muestran ${max} de ${lista.length}. <button class="mini peMas">ver ${Math.min(PED_PAG, lista.length - max)} más</button></td></tr>` : '') : '<tr><td colspan="11" class="vacio">Sin facturas en esta lista</td></tr>';
   }
@@ -1831,11 +1840,14 @@
     const p = pedidos.find((x) => x._id === t.dataset.id); if (!p) return;
     const c = t.dataset.c;
     if (c === 'f2' && t.value && !/^(20\d\d)-\d{2}-\d{2}$/.test(t.value)) { alert('Fecha no válida: revisa el año (por ejemplo 2026).'); t.value = p.f2 || ''; return; }
-    const v = c === 'f2' ? t.value : txt(t.value, c === 'obs' ? 300 : 40);
+    if (c === 'obs' && t.value === '*') { const w = prompt('Escribe la observación:', /^(conforme|observado)?$/i.test(p.obs || '') ? '' : p.obs); if (w === null || !w.trim()) { pedPend = true; t.blur(); return; } t.value = ''; return pedGuardarV(p, c, txt(w, 300)); }
+    return pedGuardarV(p, c, c === 'f2' ? t.value : txt(t.value, c === 'obs' ? 300 : 40));
+  };
+  const pedGuardarV = async (p, c, v) => {
     if (v === (p[c] || '')) return;
     const cam = { [c]: v, act: serverTimestamp(), actPor: firma() };
     if (c === 'resp2' && v && !p.f2) cam.f2 = hoy(); // al poner quién revisó, la fecha de revisión es hoy (se puede cambiar)
-    try { await updateDoc(doc(db, 'pedidos', p._id), cam); Object.assign(p, cam); if (cam.f2 && c === 'resp2') pintarPedidos(); } catch (err) { alert(errorTexto(err)); pintarPedidos(); }
+    try { await updateDoc(doc(db, 'pedidos', p._id), cam); Object.assign(p, cam); if ((cam.f2 && c === 'resp2') || c === 'obs') { pedPend = true; if (document.activeElement) document.activeElement.blur(); pintarPedidos(); } } catch (err) { alert(errorTexto(err)); pintarPedidos(); }
   };
   $('cuerpoPed').addEventListener('change', (e) => { const t = e.target; if (t.classList.contains('peIn') && t.type !== 'date') pedGuardar(t); });
   $('cuerpoPed').addEventListener('focusout', (e) => {
