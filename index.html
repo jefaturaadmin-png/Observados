@@ -420,6 +420,13 @@
   input:focus, select:focus, textarea:focus { border-color:#e8710a; outline:none; box-shadow:0 0 0 3px rgba(232,113,10,.15); }
   .subnav button.act { background:#e8710a; }
   .inNodo.hi .c { box-shadow:0 8px 22px rgba(232,113,10,.25); }
+  /* Ingreso de pedidos: dos procesos distintos, cada uno con su color (recepción en azul, revisión en naranja) */
+  #tPed tr.pedGrp th { text-align:center; letter-spacing:.06em; }
+  #tPed tr.pedGrp th:nth-child(1) { background:rgba(37,99,235,.16); color:#1d4ed8; }
+  #tPed tr.pedGrp th:nth-child(2) { background:rgba(234,88,12,.16); color:#c2410c; border-left:3px solid rgba(234,88,12,.55); }
+  #tPed thead tr:last-child th:nth-child(-n+5), #tPed tbody td:not(.vacio):nth-child(-n+5) { background:rgba(37,99,235,.06); }
+  #tPed thead tr:last-child th:nth-child(n+6):nth-child(-n+10), #tPed tbody td:not(.vacio):nth-child(n+6):nth-child(-n+10) { background:rgba(234,88,12,.07); }
+  #tPed thead tr:last-child th:nth-child(6), #tPed tbody td:not(.vacio):nth-child(6) { border-left:3px solid rgba(234,88,12,.55); }
 </style>
 </head>
 <body>
@@ -539,8 +546,8 @@
         <button id="bVaciarPed" class="pel oculto" title="Borrar registros de Ingreso de pedidos (solo administrador)">Vaciar…</button>
       </div>
       <p class="resumen" id="resPed"></p>
-      <div class="tabla"><table>
-        <thead><tr><th>Fecha recepción</th><th>Factura</th><th>Proveedor</th><th class="num">Bultos</th><th>Responsable</th><th>Revisión: fecha</th><th>Revisión: responsable</th><th>OC</th><th>Observaciones relevantes</th><th>Conformidad de Compras (firma)</th><th></th></tr></thead>
+      <div class="tabla"><table id="tPed">
+        <thead><tr class="pedGrp"><th colspan="5">Recepción</th><th colspan="5">Revisión</th><th></th></tr><tr><th>Fecha recepción</th><th>Factura</th><th>Proveedor</th><th class="num">Bultos</th><th>Responsable</th><th>Revisión: fecha</th><th>Revisión: responsable</th><th>OC</th><th>Observaciones relevantes</th><th>Conformidad de Compras (firma)</th><th></th></tr></thead>
         <tbody id="cuerpoPed"></tbody>
       </table></div>
     </div>
