@@ -1,0 +1,13 @@
+{
+  "name": "Farmacia Socorro · Pedidos y observados",
+  "short_name": "Observados",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#e07014",
+  "icons": [
+    { "src": "logo.png", "sizes": "447x447", "type": "image/png", "purpose": "any" }
+  ]
+}
