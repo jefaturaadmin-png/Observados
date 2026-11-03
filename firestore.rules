@@ -212,7 +212,9 @@ service cloud.firestore {
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.conforme == false;
       allow update: if esArea('ADMIN')
-        || (puede('conformidad') && soloCambia(['conforme', 'conformePor', 'conformeFecha']));
+        || (puede('conformidad') && soloCambia(['conforme', 'conformePor', 'conformeFecha']))
+        // Control de recepción: responsable, revisión (fecha y responsable), OC y observaciones
+        || (puede('pedidos') && soloCambia(['resp', 'f2', 'resp2', 'oc', 'obs', 'act', 'actPor']));
       allow delete: if esArea('ADMIN');
     }
 
