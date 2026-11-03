@@ -511,7 +511,10 @@
             <div class="campo"><label for="peFecha">Fecha de recepción *</label><input id="peFecha" type="date" required></div>
             <div class="campo"><label for="peSer">Factura: serie y número *</label><div class="par"><input id="peSer" maxlength="20" placeholder="F140" aria-label="Serie" required><input id="peNum" maxlength="12" inputmode="numeric" placeholder="9187" aria-label="Número" required></div></div>
             <div class="campo"><label for="peProv">Proveedor *</label><div class="buscador"><input id="peProv" maxlength="80" placeholder="Escribe para buscar…" autocomplete="off" required><div class="sug oculto"></div></div></div>
-            <div class="campo"><label for="peBultos">Cantidad de bultos *</label><input id="peBultos" type="number" min="1" step="1" required></div>
+            <div class="campo"><label for="peBultos">Cantidad de bultos (cajas) *</label><input id="peBultos" type="number" min="1" step="1" required></div>
+            <div class="campo"><label for="peResp">Responsable</label><select id="peResp"></select></div>
+            <div class="campo"><label for="peOc">OC</label><input id="peOc" maxlength="40" style="max-width:120px"></div>
+            <div class="campo" style="flex:2"><label for="peObs">Observaciones relevantes</label><input id="peObs" maxlength="300" placeholder="conforme"></div>
           </div>
           <div class="fila-bot">
             <button class="pri" type="submit">Registrar pedido</button>
@@ -526,12 +529,15 @@
           <option value="">Todos</option>
         </select>
         <select id="fpProv" aria-label="Proveedor"></select>
-        <input id="fpTxt" placeholder="Buscar factura…" aria-label="Buscar">
+        <select id="fpRev" aria-label="Revisión"><option value="">Con y sin revisión</option><option value="S">Sin revisión</option><option value="R">Revisados</option></select>
+        <input type="month" id="fpMes" aria-label="Mes de recepción" title="Mes de recepción (vacío = todos)" style="max-width:165px">
+        <input id="fpTxt" placeholder="Buscar factura, responsable, observación…" aria-label="Buscar">
         <button id="bExpPed">Exportar a Excel</button>
+        <button id="bImpPed" class="oculto" title="Pasar la hoja Control de recepción (Google Sheets descargada como .xlsx); lo que ya está no se repite">Importar control de recepción</button><input type="file" id="bImpPedArch" accept=".xlsx,.xls" class="oculto">
       </div>
       <p class="resumen" id="resPed"></p>
       <div class="tabla"><table>
-        <thead><tr><th>Fecha recepción</th><th>Factura</th><th>Proveedor</th><th class="num">Bultos</th><th>Recepcionó</th><th>Conformidad de Compras</th><th></th></tr></thead>
+        <thead><tr><th>Fecha recepción</th><th>Factura</th><th>Proveedor</th><th class="num">Bultos</th><th>Responsable</th><th>Revisión: fecha</th><th>Revisión: responsable</th><th>OC</th><th>Observaciones relevantes</th><th>Conformidad de Compras (firma)</th><th></th></tr></thead>
         <tbody id="cuerpoPed"></tbody>
       </table></div>
     </div>
@@ -924,6 +930,7 @@
             <div class="campo"><label for="tLab">Laboratorios adicionales (uno por línea)</label><textarea id="tLab" rows="10"></textarea></div>
             <div class="campo"><label for="tMot">A. Motivos de DEVOLUCIÓN INMEDIATA (uno por línea)</label><textarea id="tMot" rows="10"></textarea></div>
             <div class="campo"><label for="tMotP">B. Motivos de DEVOLUCIÓN PROGRAMADA (uno por línea)</label><textarea id="tMotP" rows="10"></textarea></div>
+            <div class="campo"><label for="tResp">Responsables de recepción (uno por línea)</label><textarea id="tResp" rows="10"></textarea></div>
           </div>
           <div class="campo" style="max-width:520px"><label for="tTol">Margen de diferencia (S/)</label><input id="tTol" type="number" min="0" max="10" step="0.01" style="max-width:160px">
             <div class="quien" style="margin-top:4px">Hasta cuánto de diferencia se consideran iguales dos montos: al cruzar NC con lo observado y al comparar con el XML, Lolfar y el reporte. Por ejemplo 0.05 = cinco céntimos.</div></div>
@@ -987,7 +994,7 @@
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
   const DOMINIO = '@observados.example.com'; // dominio reservado: los usuarios solo escriben su nombre de usuario
-  const MAX_REPORTES = 1500, MAX_PEDIDOS = 800, MAX_LINEAS = 40, TAM_CAT = 1500;
+  const MAX_REPORTES = 1500, MAX_PEDIDOS = 6000, MAX_LINEAS = 40, TAM_CAT = 1500;
   const AREAS = ['RECEPCION', 'COMPRAS', 'GERENCIA', 'PAGOS', 'ADMIN'];
   // Permisos por interfaz: el administrador decide qué ve y qué puede hacer cada usuario
   const GRUPOS = [
@@ -1021,7 +1028,8 @@
     laboratorios: [],
     motivos: ['Vencimiento corto', 'Envase dañado', 'Producto roto', 'Faltante', 'Sobrante',
       'No solicitado', 'Lote o vencimiento no coincide', 'Precio distinto', 'Otro'],
-    motivosProg: ['Canje por fecha próxima a vencer']
+    motivosProg: ['Canje por fecha próxima a vencer'],
+    responsables: ['ALEX🐱', 'AKENY', 'DAVID 👑', 'EDISON', 'EDWIN💪', 'IDER⚡', 'ISABEL', 'LEOMAR', 'MIGUEL 😎', 'RAUL', 'ROSALES']
   };
 
   const $ = (id) => document.getElementById(id);
@@ -1158,7 +1166,7 @@
   const SINCRO = {
     pagos: { campos: ['act'], margen: 600000 },
     observaciones: { campos: ['actFecha', 'creado'], margen: 600000 },
-    pedidos: { campos: ['creado', 'conformeFecha'], margen: 600000 },
+    pedidos: { campos: ['creado', 'conformeFecha', 'act'], margen: 600000 },
     xmlf: { campos: ['subT', 'subido'], texto: ['subido'], margen: 600000 } // subT = hora del servidor; subido = hora de la PC (los guardados antes)
   };
   const sincros = new Map();
@@ -1498,6 +1506,7 @@
       $('tLab').value = listas.laboratorios.join('\n');
       $('tMot').value = motivosInm().join('\n');
       $('tMotP').value = motivosProg().join('\n');
+      $('tResp').value = (listas.responsables || LISTAS_INI.responsables).join('\n');
       $('tTol').value = String(TOL_NC);
     }
   }
@@ -1516,7 +1525,7 @@
     msg('listasMsg', ''); ocupado(f, true);
     try {
       await setDoc(doc(db, 'config', 'listas'), {
-        proveedores: lineas('tProv', true), laboratorios: lineas('tLab', true), motivos: lineas('tMot', false), motivosProg: lineas('tMotP', false),
+        proveedores: lineas('tProv', true), laboratorios: lineas('tLab', true), motivos: lineas('tMot', false), motivosProg: lineas('tMotP', false), responsables: lineas('tResp', true),
         tolNc: Math.max(0, Math.min(10, Number($('tTol').value) >= 0 && $('tTol').value !== '' ? Math.round(Number($('tTol').value) * 100) / 100 : 0.5))
       });
       msg('listasMsg', 'Listas guardadas.', 'ok');
@@ -1641,7 +1650,8 @@
   const COLS_PED = [
     ['Fecha recepción', (p) => dia(p.fechaRecepcion)], ['N° Factura', 'factura'], ['Proveedor', 'proveedor'], ['Bultos', 'bultos'],
     ['Recepcionó', 'recibidoPor'], ['Registrado', (p) => fecha(p.creado)], ['Conformidad Compras', (p) => (p.conforme ? 'Conforme' : 'Pendiente')],
-    ['Conformidad: usuario', 'conformePor'], ['Conformidad: fecha', (p) => fecha(p.conformeFecha)]
+    ['Conformidad: usuario', 'conformePor'], ['Conformidad: fecha', (p) => fecha(p.conformeFecha)],
+    ['Responsable', 'resp'], ['Revisión: fecha', (p) => dia(p.f2)], ['Revisión: responsable', 'resp2'], ['OC', 'oc'], ['Observaciones relevantes', 'obs']
   ];
 
   /* =====================================================================
@@ -1717,32 +1727,49 @@
     try {
       await addDoc(collection(db, 'pedidos'), {
         creado: serverTimestamp(), uid: yo.uid, recibidoPor: firma(), fechaRecepcion: $('peFecha').value,
-        factura, proveedor, bultos, conforme: false, conformePor: '', conformeFecha: null
+        factura, proveedor, bultos, conforme: false, conformePor: '', conformeFecha: null,
+        resp: $('peResp').value, oc: txt($('peOc').value, 40), obs: txt($('peObs').value, 300), f2: '', resp2: '', act: serverTimestamp()
       });
       msg('pedMsg', `Pedido ${factura} registrado. Queda pendiente de entregar a Compras.`, 'ok');
-      $('peSer').value = ''; $('peNum').value = ''; $('peBultos').value = ''; $('peSer').focus();
+      $('peSer').value = ''; $('peNum').value = ''; $('peBultos').value = ''; $('peOc').value = ''; $('peObs').value = ''; $('peSer').focus();
     } catch (err) { msg('pedMsg', errorTexto(err)); }
     ocupado(f, false);
   });
 
   function pedidosFiltrados() {
-    const e = $('fpEst').value, p = $('fpProv').value, t = $('fpTxt').value.trim().toLowerCase();
+    const e = $('fpEst').value, p = $('fpProv').value, t = $('fpTxt').value.trim().toLowerCase(), rv = $('fpRev').value, mes = $('fpMes').value;
     return pedidos.filter((x) => {
       if (e === 'P' && x.conforme) return false;
       if (e === 'C' && !x.conforme) return false;
       if (p && x.proveedor !== p) return false;
-      if (t && !String(x.factura).toLowerCase().includes(t)) return false;
+      if (rv === 'S' && x.f2) return false;
+      if (rv === 'R' && !x.f2) return false;
+      if (mes && !String(x.fechaRecepcion || '').startsWith(mes)) return false;
+      if (t && ![x.factura, x.resp, x.resp2, x.oc, x.obs, x.recibidoPor].join(' ').toLowerCase().includes(t)) return false;
       return true;
-    });
+    }).sort((a, b) => String(b.fechaRecepcion || '').localeCompare(String(a.fechaRecepcion || '')));
+  }
+  let pedMax = 0, pedTt = null;
+  const PED_PAG = 300;
+  const pedResps = () => unicos((listas.responsables || LISTAS_INI.responsables).filter(Boolean)); // los de Listas; uno antiguo distinto se sigue viendo en su fila
+  function pedRespForm() { // responsables de recepción (Listas); se elige solo el del usuario si coincide con su nombre
+    const rs = pedResps(), v0 = $('peResp').value || rs.find((x) => soloAlfa(x).startsWith(soloAlfa(String((yo && yo.nombre) || '').split(' ')[0]) || '-')) || '';
+    $('peResp').innerHTML = '<option value="">Elige…</option>' + rs.map((x) => `<option${x === v0 ? ' selected' : ''}>${esc(x)}</option>`).join('');
   }
   function pintarPedidos() {
     if (!yo) return;
+    pedRespForm();
+    $('bImpPed').classList.toggle('oculto', yo.area !== 'ADMIN');
     const lista = pedidosFiltrados();
     const pend = pedidos.filter((x) => !x.conforme);
     contador('nPed', pend.length);
     $('resPed').textContent = `${lista.length} factura(s) en la lista · ${pend.length} pendiente(s) de entregar a Compras` +
       ` (${pend.reduce((s, x) => s + (Number(x.bultos) || 0), 0)} bultos)`;
-    $('cuerpoPed').innerHTML = lista.length ? lista.map((p) => {
+    const ed = puede('pedidos'), rs = pedResps(), max = pedMax || PED_PAG;
+    const opR = (v) => '<option value=""></option>' + rs.concat(v && !rs.includes(v) ? [v] : []).map((x) => `<option${x === v ? ' selected' : ''}>${esc(x)}</option>`).join('');
+    const inp = (p, c, v, extra) => (ed ? `<input class="peIn" data-id="${esc(p._id)}" data-c="${c}" value="${esc(v ?? '')}" ${extra || ''}>` : esc(c === 'f2' ? dia(v) : (v ?? '')));
+    const selR = (p, c) => (ed ? `<select class="peIn" data-id="${esc(p._id)}" data-c="${c}">${opR(p[c] || '')}</select>` : esc(p[c] || ''));
+    $('cuerpoPed').innerHTML = lista.length ? lista.slice(0, max).map((p) => {
       const conf = p.conforme
         ? `<span class="est e2">Conforme</span> <span class="quien">${esc(p.conformePor)} · ${esc(fecha(p.conformeFecha))}</span>`
         : '<span class="est e0">Pendiente</span>';
@@ -1750,13 +1777,25 @@
       if (!p.conforme && puede('conformidad')) acc += `<button class="pri mini" data-conf="${esc(p._id)}">Dar conformidad</button> `;
       if (yo.area === 'ADMIN') acc += `<button class="pel mini" data-del="${esc(p._id)}">Eliminar</button>`;
       return `<tr><td>${esc(dia(p.fechaRecepcion))}</td><td><b>${esc(p.factura)}</b></td><td>${esc(p.proveedor)}</td>` +
-        `<td class="num">${esc(p.bultos)}</td><td>${esc(p.recibidoPor)}</td><td>${conf}</td><td>${acc}</td></tr>`;
-    }).join('') : '<tr><td colspan="7" class="vacio">Sin facturas en esta lista</td></tr>';
+        `<td class="num">${esc(p.bultos ?? '')}</td><td title="Registró: ${esc(p.recibidoPor || '')}">${selR(p, 'resp')}</td>` +
+        `<td>${inp(p, 'f2', p.f2, 'type="date" style="width:135px"')}</td><td>${selR(p, 'resp2')}</td><td>${inp(p, 'oc', p.oc, 'style="width:70px"')}</td><td>${inp(p, 'obs', p.obs, 'style="min-width:200px;width:100%"')}</td>` +
+        `<td>${conf}</td><td>${acc}</td></tr>`;
+    }).join('') + (lista.length > max ? `<tr><td colspan="11" class="vacio">Se muestran ${max} de ${lista.length}. <button class="mini peMas">ver ${Math.min(PED_PAG, lista.length - max)} más</button></td></tr>` : '') : '<tr><td colspan="11" class="vacio">Sin facturas en esta lista</td></tr>';
   }
-  ['fpEst', 'fpProv'].forEach((id) => $(id).addEventListener('change', pintarPedidos));
-  $('fpTxt').addEventListener('input', pintarPedidos);
+  ['fpEst', 'fpProv', 'fpRev', 'fpMes'].forEach((id) => $(id).addEventListener('change', () => { pedMax = 0; pintarPedidos(); }));
+  $('fpTxt').addEventListener('input', () => { pedMax = 0; clearTimeout(pedTt); pedTt = setTimeout(pintarPedidos, 250); });
+  // Lo que era la hoja "Control de recepción": responsable, revisión (fecha y responsable), OC y observaciones se editan en la misma fila
+  $('cuerpoPed').addEventListener('change', async (e) => {
+    const t = e.target; if (!t.classList.contains('peIn')) return;
+    const p = pedidos.find((x) => x._id === t.dataset.id); if (!p) return;
+    const c = t.dataset.c, v = c === 'f2' ? (/^\d{4}-\d{2}-\d{2}$/.test(t.value) ? t.value : '') : txt(t.value, c === 'obs' ? 300 : 40);
+    const cam = { [c]: v, act: serverTimestamp(), actPor: firma() };
+    if (c === 'resp2' && v && !p.f2) cam.f2 = hoy(); // al poner quién revisó, la fecha de revisión es hoy (se puede cambiar)
+    try { await updateDoc(doc(db, 'pedidos', p._id), cam); Object.assign(p, cam); if (cam.f2 && c === 'resp2') pintarPedidos(); } catch (err) { alert(errorTexto(err)); pintarPedidos(); }
+  });
   $('bExpPed').addEventListener('click', () => exportar($('fpEst').value === 'P' ? 'facturas-pendientes-compras' : 'pedidos', COLS_PED, pedidosFiltrados()));
   $('cuerpoPed').addEventListener('click', async (e) => {
+    if (e.target.classList.contains('peMas')) { pedMax = (pedMax || PED_PAG) + PED_PAG; return pintarPedidos(); }
     const b = e.target.closest('button');
     if (!b) return;
     const id = b.dataset.conf || b.dataset.del;
@@ -1773,6 +1812,52 @@
         await deleteDoc(doc(db, 'pedidos', id)); sincroQuitar('pedidos', id);
       }
     } catch (err) { alert(errorTexto(err)); b.disabled = false; }
+  });
+
+  // Pasar la hoja "Control de recepción" (Google Sheets descargada como .xlsx) a Ingreso de pedidos, una sola vez: lo que ya está no se repite.
+  // FIRMA = conformidad de Compras · CAJAS = bultos · FECHA 2 y RESPONSABLE 2 = revisión.
+  $('bImpPed').addEventListener('click', () => $('bImpPedArch').click());
+  $('bImpPedArch').addEventListener('change', async (e) => {
+    const a = e.target.files[0]; e.target.value = ''; if (!a) return;
+    try {
+      await cargarXlsx();
+      const wb = XLSX.read(await a.arrayBuffer(), { type: 'array', cellDates: true }), ws = wb.Sheets[wb.SheetNames[0]];
+      const R = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: null });
+      const iCab = R.findIndex((f) => f && f.some((c) => /^FACTURA$/i.test(String(c || '').trim())));
+      if (iCab < 0) throw new Error('No se encontró la fila de títulos (FIRMA, FECHA, FACTURA, DISTRIBUIDOR…).');
+      const cab = R[iCab].map((c) => soloAlfa(c)), col = (...ns) => cab.findIndex((c) => ns.includes(c));
+      const C = { firma: col('FIRMA'), f: col('FECHA'), fac: col('FACTURA'), prov: col('DISTRIBUIDOR', 'PROVEEDOR'), resp: col('RESPONSABLE'), cajas: col('CAJAS', 'BULTOS'), f2: col('FECHA2'), resp2: col('RESPONSABLE2'), oc: col('OC'), obs: col('OBSERVACIONESRELEVANTES', 'OBSERVACIONES') };
+      const fe = (v) => { if (v instanceof Date && !isNaN(v)) return new Date(v.getTime() - v.getTimezoneOffset() * 60000).toISOString().slice(0, 10); if (typeof v === 'number') return new Date(Math.round((v - 25569) * 86400000)).toISOString().slice(0, 10); const m = String(v || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : ''; };
+      const val = (f, k) => (C[k] >= 0 ? f[C[k]] : null), t0 = (v) => (v === null || v === undefined ? '' : String(v).trim());
+      const fac = (v) => { const m = t0(v).toUpperCase().replace(/\s+/g, '').match(/^([A-Z0-9]{2,6})-?0*(\d{1,12})$/); return m ? `${serDoc(m[1])}-${numDoc(m[2])}` : t0(v).toUpperCase().replace(/\s+/g, '').slice(0, 30); };
+      const prov = (v) => { const k = soloAlfa(v); if (!k) return ''; const o = listas.proveedores.find((p) => soloAlfa(p) === k) || (k.length >= 4 && listas.proveedores.find((p) => soloAlfa(p).startsWith(k))); return o || may(t0(v), 80); };
+      const ya = new Set(pedidos.map((x) => `${refDoc(x.factura)}|${soloAlfa(x.proveedor)}`)), nuevos = [];
+      R.slice(iCab + 1).forEach((f) => {
+        if (!f) return;
+        const factura = fac(val(f, 'fac')), proveedor = prov(val(f, 'prov'));
+        if (!factura || !proveedor) return;
+        const k = `${refDoc(factura)}|${soloAlfa(proveedor)}`; if (ya.has(k)) return; ya.add(k);
+        const b = Number(val(f, 'cajas')), fr = fe(val(f, 'f'));
+        nuevos.push({ fechaRecepcion: fr, factura, proveedor, bultos: b > 0 ? b : null, resp: t0(val(f, 'resp')).toUpperCase().slice(0, 40), f2: fe(val(f, 'f2')), resp2: t0(val(f, 'resp2')).toUpperCase().slice(0, 40), oc: t0(val(f, 'oc')).slice(0, 40), obs: t0(val(f, 'obs')).slice(0, 300),
+          firma: val(f, 'firma') === true || /^(TRUE|VERDADERO|SI|SÍ|X|1)$/i.test(t0(val(f, 'firma'))) });
+      });
+      if (!nuevos.length) return msg('pedMsg', 'No hay recepciones nuevas en ese archivo: todas ya estaban.', 'ok');
+      if (!confirm(`Se cargarán ${nuevos.length} recepciones a Ingreso de pedidos (${nuevos.filter((d) => d.firma).length} con firma/conformidad, ${nuevos.filter((d) => !d.firma).length} pendientes). Las que ya estaban no se repiten. ¿Continuar?`)) return;
+      const refs = nuevos.map(() => doc(collection(db, 'pedidos')));
+      for (let i = 0; i < nuevos.length; i += 400) { // se crean pendientes (así lo piden las reglas) y luego se pone la conformidad de las firmadas
+        const lote = writeBatch(db);
+        nuevos.slice(i, i + 400).forEach((d, j) => { const { firma: fi, ...x } = d; lote.set(refs[i + j], { ...x, creado: /^\d{4}-/.test(d.fechaRecepcion) ? new Date(d.fechaRecepcion + 'T12:00:00') : serverTimestamp(), uid: yo.uid, recibidoPor: (d.resp || firma()) + ' (hoja)', conforme: false, conformePor: '', conformeFecha: null, act: serverTimestamp() }); });
+        await lote.commit();
+        msg('pedMsg', `Importando… ${Math.min(i + 400, nuevos.length)} de ${nuevos.length}.`, 'ok');
+      }
+      const fir = nuevos.map((d, i) => [d, refs[i]]).filter(([d]) => d.firma);
+      for (let i = 0; i < fir.length; i += 400) {
+        const lote = writeBatch(db);
+        fir.slice(i, i + 400).forEach(([d, rf]) => lote.update(rf, { conforme: true, conformePor: (d.resp2 || d.resp || 'Hoja de control') + ' (firma en la hoja)', conformeFecha: /^\d{4}-/.test(d.f2 || d.fechaRecepcion) ? new Date((d.f2 || d.fechaRecepcion) + 'T12:00:00') : serverTimestamp(), act: serverTimestamp() }));
+        await lote.commit();
+      }
+      msg('pedMsg', `Listo: ${nuevos.length} recepciones de la hoja ya están en Ingreso de pedidos.`, 'ok');
+    } catch (err) { msg('pedMsg', 'No se pudo importar: ' + errorTexto(err)); }
   });
 
   /* =====================================================================
