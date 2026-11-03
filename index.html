@@ -534,6 +534,7 @@
         <input id="fpTxt" placeholder="Buscar factura, responsable, observación…" aria-label="Buscar">
         <button id="bExpPed">Exportar a Excel</button>
         <button id="bImpPed" class="oculto" title="Pasar la hoja Control de recepción (Google Sheets descargada como .xlsx); lo que ya está no se repite">Importar control de recepción</button><input type="file" id="bImpPedArch" accept=".xlsx,.xls" class="oculto">
+        <button id="bVaciarPed" class="pel oculto" title="Borrar registros de Ingreso de pedidos (solo administrador)">Vaciar…</button>
       </div>
       <p class="resumen" id="resPed"></p>
       <div class="tabla"><table>
@@ -1759,7 +1760,7 @@
   function pintarPedidos() {
     if (!yo) return;
     pedRespForm();
-    $('bImpPed').classList.toggle('oculto', yo.area !== 'ADMIN');
+    $('bImpPed').classList.toggle('oculto', yo.area !== 'ADMIN'); $('bVaciarPed').classList.toggle('oculto', yo.area !== 'ADMIN');
     const lista = pedidosFiltrados();
     const pend = pedidos.filter((x) => !x.conforme);
     contador('nPed', pend.length);
@@ -1816,6 +1817,24 @@
 
   // Pasar la hoja "Control de recepción" (Google Sheets descargada como .xlsx) a Ingreso de pedidos, una sola vez: lo que ya está no se repite.
   // FIRMA = conformidad de Compras · CAJAS = bultos · FECHA 2 y RESPONSABLE 2 = revisión.
+  // Vaciar Ingreso de pedidos (administrador): solo lo importado de la hoja, o todo. No se puede deshacer.
+  $('bVaciarPed').addEventListener('click', async () => {
+    const hoja = pedidos.filter((x) => /\(hoja\)$/.test(String(x.recibidoPor || '')));
+    const op = prompt(`Vaciar Ingreso de pedidos (no se puede deshacer).\n\nEscribe:\n  HOJA  → borrar solo lo importado de la hoja Control de recepción (${hoja.length})\n  TODO  → borrar TODOS los registros (${pedidos.length})`, '');
+    if (op === null) return;
+    const k = op.trim().toUpperCase(), L = k === 'HOJA' ? hoja : k === 'TODO' ? pedidos.slice() : null;
+    if (!L) return msg('pedMsg', 'No se borró nada: escribe HOJA o TODO.');
+    if (!L.length) return msg('pedMsg', 'No hay registros para borrar.', 'ok');
+    if (!confirm(`¿Seguro? Se borrarán ${L.length} registro(s) de Ingreso de pedidos.`)) return;
+    try {
+      for (let i = 0; i < L.length; i += 400) {
+        const lote = writeBatch(db); L.slice(i, i + 400).forEach((x) => lote.delete(doc(db, 'pedidos', x._id))); await lote.commit();
+        L.slice(i, i + 400).forEach((x) => sincroQuitar('pedidos', x._id));
+        msg('pedMsg', `Borrando… ${Math.min(i + 400, L.length)} de ${L.length}.`, 'ok');
+      }
+      msg('pedMsg', `Listo: se borraron ${L.length} registro(s).`, 'ok');
+    } catch (err) { msg('pedMsg', 'No se pudo borrar: ' + errorTexto(err)); }
+  });
   $('bImpPed').addEventListener('click', () => $('bImpPedArch').click());
   $('bImpPedArch').addEventListener('change', async (e) => {
     const a = e.target.files[0]; e.target.value = ''; if (!a) return;
