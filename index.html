@@ -1539,7 +1539,8 @@
   // "DIMEXA S.A.", "DIMEXA SA." y "DIMEXA" son el mismo proveedor: se compara sin puntos, espacios ni la forma societaria
   const provClave = (n) => soloAlfa(String(n || '').toUpperCase().replace(/[.,]/g, '').replace(/(\s+(S\s*A\s*C|S\s*A\s*A|S\s*A|S\s*R\s*L|E\s*I\s*R\s*L|SOCIEDAD ANONIMA( CERRADA)?))+\s*$/, ''));
   const provUnicos = (arr) => { const m = new Map(); unicos(arr).forEach((x) => { const k = provClave(x) || x, o = m.get(k); if (!o || x.length > o.length) m.set(k, x); }); return [...m.values()].sort(); }; // de los repetidos queda el nombre más completo
-  const proveedoresConocidos = () => provUnicos(listas.proveedores); // lista oficial: la mantiene el administrador en la pestaña Listas
+  // Lista oficial (pestaña Listas) más los proveedores de Pagos a proveedores (distribuidores y en cuotas)
+  const proveedoresConocidos = () => provUnicos(listas.proveedores.concat(pgCfg.dists.map((d) => may(d.nombre, 80))));
   function buscadorProveedor(id) {
     const inp = $(id), caja = inp.parentElement.querySelector('.sug');
     let ops = [], i = -1;
@@ -1547,7 +1548,7 @@
     const pintar = () => {
       const q = may(inp.value, 80), ts = q.split(/\s+/).filter(Boolean);
       const todos = proveedoresConocidos();
-      ops = todos.filter((x) => ts.every((t) => x.includes(t)))
+      ops = todos.filter((x) => ts.every((t) => x.includes(t) || soloAlfa(x).includes(soloAlfa(t)))) // "DM" también encuentra "D&M PHARMA"
         .sort((a, b) => (a.startsWith(q) ? 0 : 1) - (b.startsWith(q) ? 0 : 1)).slice(0, 30);
       const nuevo = q && !ops.length;
       i = ops.length ? 0 : -1;
@@ -1593,6 +1594,7 @@
     const v = may($(id).value, 80);
     if (!v) return '';
     if (listas.proveedores.includes(v)) return v;
+    { const o = proveedoresConocidos().find((x) => x === v || provClave(x) === provClave(v)); if (o) return o; } // también los de Pagos a proveedores
     if (yo.area !== 'ADMIN') { msg(idMsg, `"${v}" no está en la lista oficial de proveedores. Elige uno de la lista; si es un proveedor nuevo, pide al administrador que lo agregue en Listas.`); return ''; }
     if (!confirm(`"${v}" no está en la lista oficial de proveedores.\n¿Agregarlo a la lista?`)) return '';
     try { await setDoc(doc(db, 'config', 'listas'), { ...listas, proveedores: unicos(listas.proveedores.concat([v])) }); } catch (e) { msg(idMsg, errorTexto(e)); return ''; }
@@ -1722,7 +1724,7 @@
   const peXml = { k: '', x: null };
   const provDeEmisor = (nom) => { // el proveedor de la lista oficial que corresponde al nombre del XML
     const e = soloAlfa(nom); if (!e) return '';
-    const cands = listas.proveedores.filter((p) => { const k = soloAlfa(p), w = soloAlfa(String(p).split(/\s+/)[0]); return k && (e.startsWith(k) || k.startsWith(e) || (w.length >= 4 && e.startsWith(w))); });
+    const cands = proveedoresConocidos().filter((p) => { const k = soloAlfa(p), w = soloAlfa(String(p).split(/\s+/)[0]); return k && (e.startsWith(k) || k.startsWith(e) || (w.length >= 4 && e.startsWith(w))); });
     return cands.sort((a, b) => soloAlfa(b).length - soloAlfa(a).length)[0] || '';
   };
   async function peXmlBuscar() {
