@@ -517,7 +517,7 @@
         <div id="pedMsg"></div>
         <form id="fPedido" autocomplete="off">
           <div class="rejilla">
-            <div class="campo"><label for="peFecha">Fecha de recepción *</label><input id="peFecha" type="date" required></div>
+            <div class="campo"><label for="peFecha">Fecha de recepción *</label><input id="peFecha" type="date" required readonly tabindex="-1" title="Es la fecha de hoy: el pedido se registra el día que llega" style="background:var(--suave,#f4f4f4);pointer-events:none"></div>
             <div class="campo"><label for="peSer">Factura: serie y número *</label><div class="par"><input id="peSer" maxlength="20" placeholder="F140" aria-label="Serie" required><input id="peNum" maxlength="12" inputmode="numeric" placeholder="9187" aria-label="Número" required></div></div>
             <div class="campo"><label for="peProv">Proveedor *</label><div class="buscador"><input id="peProv" maxlength="80" placeholder="Escribe para buscar…" autocomplete="off" required><div class="sug oculto"></div></div></div>
             <div class="campo"><label for="peBultos">Cantidad de bultos (cajas) *</label><input id="peBultos" type="number" min="1" step="1" required></div>
@@ -1772,7 +1772,7 @@
     msg('pedMsg', ''); ocupado(f, true);
     try {
       await addDoc(collection(db, 'pedidos'), {
-        creado: serverTimestamp(), uid: yo.uid, recibidoPor: firma(), fechaRecepcion: $('peFecha').value,
+        creado: serverTimestamp(), uid: yo.uid, recibidoPor: firma(), fechaRecepcion: hoy(), // siempre la fecha del día en que se registra (llegó el pedido)
         factura, proveedor, bultos, conforme: false, conformePor: '', conformeFecha: null,
         resp: $('peResp').value, oc: '', obs: '', f2: '', // OC y observaciones se llenan en la tabla, al revisar resp2: '', act: serverTimestamp()
       });
@@ -1833,7 +1833,7 @@
       if (yo.area === 'ADMIN') acc += `<button class="pel mini" data-del="${esc(p._id)}">Eliminar</button>`;
       return `<tr><td>${esc(dia(p.fechaRecepcion))}</td><td><b>${esc(p.factura)}</b></td><td>${esc(p.proveedor)}</td>` +
         `<td class="num">${esc(p.bultos ?? '')}</td><td title="Registró: ${esc(p.recibidoPor || '')}">${p.resp ? esc(p.resp) : selR(p, 'resp')}</td>` +
-        `<td>${inp(p, 'f2', p.f2, 'type="date" style="width:135px"')}</td><td>${selR(p, 'resp2')}</td><td>${inp(p, 'oc', p.oc, 'style="width:70px"')}</td><td>${obsSel(p)}</td>` +
+        `<td>${inp(p, 'f2', p.f2, 'type="date" style="width:135px"')}</td><td>${ed ? `<button type="button" class="mini peRev" data-id="${esc(p._id)}" title="Elegir quiénes revisaron (pueden ser varios)" style="min-width:150px;text-align:left;white-space:normal">${esc(p.resp2 || 'Elegir…')}</button>` : esc(p.resp2 || '')}</td><td>${inp(p, 'oc', p.oc, 'style="width:70px"')}</td><td>${obsSel(p)}</td>` +
         `<td>${conf}</td><td>${acc}</td></tr>`;
     }).join('') + (lista.length > max ? `<tr><td colspan="11" class="vacio">Se muestran ${max} de ${lista.length}. <button class="mini peMas">ver ${Math.min(PED_PAG, lista.length - max)} más</button></td></tr>` : '') : '<tr><td colspan="11" class="vacio">Sin facturas en esta lista</td></tr>';
   }
@@ -1860,6 +1860,32 @@
     setTimeout(() => { if (pedPend && !(document.activeElement && document.activeElement.closest && document.activeElement.closest('#cuerpoPed .peIn'))) { pedPend = false; pintarPedidos(); } }, 50);
   });
   $('bExpPed').addEventListener('click', () => exportar($('fpEst').value === 'P' ? 'facturas-pendientes-compras' : 'pedidos', COLS_PED, pedidosFiltrados()));
+  // Revisión: pueden revisar varios; se eligen con casillas y se guardan juntos ("ALEX, RAUL")
+  $('cuerpoPed').addEventListener('click', (e) => {
+    const b = e.target.closest('.peRev'); if (!b) return;
+    const p = pedidos.find((x) => x._id === b.dataset.id); if (!p) return;
+    const ya = String(p.resp2 || '').split(/\s*,\s*/).filter(Boolean), rs = unicos(pedResps().concat(ya));
+    modo = 'peRev'; abierto = p._id;
+    $('dTit').textContent = `Revisión de ${p.factura} · ${p.proveedor}`;
+    $('dCuerpo').innerHTML = '<div id="dMsg"></div><p class="quien" style="margin:0 0 8px">Marca a todos los que revisaron este pedido.</p><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px 14px">' +
+      rs.map((x) => `<label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" class="peRevC" value="${esc(x)}"${ya.includes(x) ? ' checked' : ''}> ${esc(x)}</label>`).join('') +
+      '</div><p style="margin-top:12px"><button class="pri" id="peRevOk">Guardar</button></p>';
+    if (!$('dlg').open) $('dlg').showModal();
+  });
+  $('dCuerpo').addEventListener('click', async (e) => {
+    if (modo !== 'peRev' || e.target.id !== 'peRevOk') return;
+    const p = pedidos.find((x) => x._id === abierto); if (!p) return;
+    const v = [...$('dCuerpo').querySelectorAll('.peRevC:checked')].map((c) => c.value).join(', ').slice(0, 200);
+    e.target.disabled = true;
+    try {
+      if (v !== (p.resp2 || '')) {
+        const cam = { resp2: v, act: serverTimestamp(), actPor: firma() };
+        if (v && !p.f2) cam.f2 = hoy(); // al poner quién revisó, la fecha de revisión es hoy (se puede cambiar)
+        await updateDoc(doc(db, 'pedidos', p._id), cam); Object.assign(p, cam);
+      }
+      $('dlg').close(); pintarPedidos();
+    } catch (err) { msg('dMsg', errorTexto(err)); e.target.disabled = false; }
+  });
   $('cuerpoPed').addEventListener('click', async (e) => {
     if (e.target.classList.contains('peMas')) { pedMax = (pedMax || PED_PAG) + PED_PAG; return pintarPedidos(); }
     const b = e.target.closest('button');
