@@ -136,8 +136,9 @@ service cloud.firestore {
     }
     // Lector de XML: solo la información leída de cada factura o nota (no el archivo)
     match /xmlf/{id} {
-      // quien observa productos también puede leer el XML de esa factura (para elegir el producto y su precio)
-      allow read: if puede('verXml') || puede('observar') || puede('verObs') || puede('verReb');
+      // quien observa productos también puede leer el XML de esa factura (para elegir el producto y su precio);
+      // quien registra pedidos, para que el proveedor salga solo al escribir la factura
+      allow read: if puede('verXml') || puede('observar') || puede('verObs') || puede('verReb') || puede('pedidos');
       allow write: if puede('xml');
     }
     // Rebate: productos del XML emparejados con el catálogo, un documento por proveedor (RUC)

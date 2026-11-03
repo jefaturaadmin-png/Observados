@@ -516,6 +516,7 @@
             <div class="campo"><label for="peOc">OC</label><input id="peOc" maxlength="40" style="max-width:120px"></div>
             <div class="campo" style="flex:2"><label for="peObs">Observaciones relevantes</label><input id="peObs" maxlength="300" placeholder="conforme"></div>
           </div>
+          <div id="peXml" class="msg ok oculto" style="margin:0 0 8px"></div>
           <div class="fila-bot">
             <button class="pri" type="submit">Registrar pedido</button>
             <span class="quien" id="peQuien"></span>
@@ -1714,6 +1715,38 @@
   /* =====================================================================
      1. INGRESO DE PEDIDOS
      ===================================================================== */
+  // Al escribir la factura, si su XML ya está en el Lector de XML, el proveedor se llena solo (y se ve qué factura es)
+  const peXml = { k: '', x: null };
+  const provDeEmisor = (nom) => { // el proveedor de la lista oficial que corresponde al nombre del XML
+    const e = soloAlfa(nom); if (!e) return '';
+    const cands = listas.proveedores.filter((p) => { const k = soloAlfa(p), w = soloAlfa(String(p).split(/\s+/)[0]); return k && (e.startsWith(k) || k.startsWith(e) || (w.length >= 4 && e.startsWith(w))); });
+    return cands.sort((a, b) => soloAlfa(b).length - soloAlfa(a).length)[0] || '';
+  };
+  async function peXmlBuscar() {
+    const k = facturaDe('pe');
+    if (k === peXml.k) return;
+    peXml.k = k; peXml.x = null; $('peXml').classList.add('oculto');
+    if (!k) return;
+    const [ser, num] = k.split('-');
+    let xs = [];
+    try {
+      const v = sincros.get('xmlf');
+      if (v) { await v.listo; xs = v.docs().map((d) => d.data()).filter((x) => x.serie === ser && numDoc(x.num) === num); }
+      else xs = (await getDocs(query(collection(db, 'xmlf'), where('serie', '==', ser), where('num', '==', num)))).docs.map((d) => d.data());
+    } catch (e) { return; } // sin permiso para leer los XML: se escribe a mano como siempre
+    if (peXml.k !== k) return;
+    const x = xs.find((y) => y.tipo === 'FACTURA') || xs[0]; if (!x) return;
+    peXml.x = x;
+    const prov = provDeEmisor(x.emisor?.nom) || may(x.emisor?.nom || '', 80);
+    if (!$('peProv').value.trim()) $('peProv').value = prov;
+    const ya = pedidos.find((p) => refDoc(p.factura) === k);
+    $('peXml').innerHTML = `<b>Está en el Lector de XML:</b> ${esc(x.tipo)} ${esc(x.id)} · ${esc(x.emisor?.nom || '')} · emitida el ${esc(dia(x.fecha))} · ${x.lineas ? x.lineas.length : 0} producto(s)` +
+      ($('peProv').value !== prov ? ` · <button type="button" class="mini" id="peUsarProv">Usar proveedor ${esc(prov)}</button>` : ` · proveedor: <b>${esc(prov)}</b>`) +
+      (ya ? `<div style="color:var(--rojo,#c00)">Esta factura ya está registrada en Ingreso de pedidos (recibida el ${esc(dia(ya.fechaRecepcion))}).</div>` : '');
+    $('peXml').classList.remove('oculto');
+  }
+  ['peSer', 'peNum'].forEach((id) => { $(id).addEventListener('change', () => setTimeout(peXmlBuscar, 0)); $(id).addEventListener('input', () => { clearTimeout(peXml.t); peXml.t = setTimeout(peXmlBuscar, 400); }); });
+  $('fPedido').addEventListener('click', (e) => { if (e.target.id === 'peUsarProv' && peXml.x) { $('peProv').value = provDeEmisor(peXml.x.emisor?.nom) || may(peXml.x.emisor?.nom || '', 80); peXml.k = ''; peXmlBuscar(); } });
   $('fPedido').addEventListener('submit', async (e) => {
     e.preventDefault();
     const f = e.currentTarget;
@@ -1732,7 +1765,7 @@
         resp: $('peResp').value, oc: txt($('peOc').value, 40), obs: txt($('peObs').value, 300), f2: '', resp2: '', act: serverTimestamp()
       });
       msg('pedMsg', `Pedido ${factura} registrado. Queda pendiente de entregar a Compras.`, 'ok');
-      $('peSer').value = ''; $('peNum').value = ''; $('peBultos').value = ''; $('peOc').value = ''; $('peObs').value = ''; $('peSer').focus();
+      $('peSer').value = ''; $('peNum').value = ''; $('peBultos').value = ''; $('peOc').value = ''; $('peObs').value = ''; $('peProv').value = ''; peXml.k = ''; $('peXml').classList.add('oculto'); $('peSer').focus();
     } catch (err) { msg('pedMsg', errorTexto(err)); }
     ocupado(f, false);
   });
