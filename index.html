@@ -1513,7 +1513,7 @@
     }
   }
   function pintarFiltros() {
-    const provs = unicos(filas.map((f) => f.proveedor).concat(pedidos.map((p) => p.proveedor))); // en los filtros, solo los que tienen registros
+    const provs = provUnicos(filas.map((f) => f.proveedor).concat(pedidos.map((p) => p.proveedor))); // en los filtros, solo los que tienen registros (sin repetir "S.A." / "SA.")
     const labsUso = unicos(filas.map((f) => f.laboratorio));
     const labs = unicos(listas.laboratorios.concat(labsUso, catalogo.map((p) => p.l)));
     ['fpProv', 'pProv', 'dProv'].forEach((id) => opciones($(id), provs, 'Todos los proveedores'));
@@ -1527,7 +1527,7 @@
     msg('listasMsg', ''); ocupado(f, true);
     try {
       await setDoc(doc(db, 'config', 'listas'), {
-        proveedores: lineas('tProv', true), laboratorios: lineas('tLab', true), motivos: lineas('tMot', false), motivosProg: lineas('tMotP', false), responsables: lineas('tResp', true),
+        proveedores: provUnicos(lineas('tProv', true)), laboratorios: lineas('tLab', true), motivos: lineas('tMot', false), motivosProg: lineas('tMotP', false), responsables: lineas('tResp', true),
         tolNc: Math.max(0, Math.min(10, Number($('tTol').value) >= 0 && $('tTol').value !== '' ? Math.round(Number($('tTol').value) * 100) / 100 : 0.5))
       });
       msg('listasMsg', 'Listas guardadas.', 'ok');
@@ -1536,7 +1536,10 @@
   });
 
   /* ---------- Buscador de proveedor: escribes y aparecen las coincidencias; si no existe, se registra como nuevo ---------- */
-  const proveedoresConocidos = () => unicos(listas.proveedores); // lista oficial: la mantiene el administrador en la pestaña Listas
+  // "DIMEXA S.A.", "DIMEXA SA." y "DIMEXA" son el mismo proveedor: se compara sin puntos, espacios ni la forma societaria
+  const provClave = (n) => soloAlfa(String(n || '').toUpperCase().replace(/[.,]/g, '').replace(/(\s+(S\s*A\s*C|S\s*A\s*A|S\s*A|S\s*R\s*L|E\s*I\s*R\s*L|SOCIEDAD ANONIMA( CERRADA)?))+\s*$/, ''));
+  const provUnicos = (arr) => { const m = new Map(); unicos(arr).forEach((x) => { const k = provClave(x) || x, o = m.get(k); if (!o || x.length > o.length) m.set(k, x); }); return [...m.values()].sort(); }; // de los repetidos queda el nombre más completo
+  const proveedoresConocidos = () => provUnicos(listas.proveedores); // lista oficial: la mantiene el administrador en la pestaña Listas
   function buscadorProveedor(id) {
     const inp = $(id), caja = inp.parentElement.querySelector('.sug');
     let ops = [], i = -1;
@@ -1775,7 +1778,7 @@
     return pedidos.filter((x) => {
       if (e === 'P' && x.conforme) return false;
       if (e === 'C' && !x.conforme) return false;
-      if (p && x.proveedor !== p) return false;
+      if (p && provClave(x.proveedor) !== provClave(p)) return false;
       if (rv === 'S' && x.f2) return false;
       if (rv === 'R' && !x.f2) return false;
       if (mes && !String(x.fechaRecepcion || '').startsWith(mes)) return false;
@@ -2153,7 +2156,7 @@
   function filtrar(lista, prov, lab, t) {
     t = t.trim().toLowerCase();
     return lista.filter((f) => {
-      if (prov && f.proveedor !== prov) return false;
+      if (prov && provClave(f.proveedor) !== provClave(prov)) return false;
       if (lab && f.laboratorio !== lab) return false;
       if (t && ![f.codigo, f.codProd, f.producto, f.factura, f.lote, f.nc, f.guia, f.motivo, f.obs].join(' ').toLowerCase().includes(t)) return false;
       return true;
