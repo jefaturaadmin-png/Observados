@@ -520,9 +520,6 @@
             <div class="campo"><label for="peProv">Proveedor *</label><div class="buscador"><input id="peProv" maxlength="80" placeholder="Escribe para buscar…" autocomplete="off" required><div class="sug oculto"></div></div></div>
             <div class="campo"><label for="peBultos">Cantidad de bultos (cajas) *</label><input id="peBultos" type="number" min="1" step="1" required></div>
             <div class="campo"><label for="peResp">Responsable</label><select id="peResp"></select></div>
-            <div class="campo"><label for="peOc">OC</label><input id="peOc" maxlength="40" style="max-width:120px"></div>
-            <div class="campo"><label for="peObsSel">Observaciones relevantes</label><select id="peObsSel"><option>Conforme</option><option>Observado</option><option value="*">Otro (escribir)…</option></select></div>
-            <div class="campo oculto" id="peObsCaja" style="flex:2"><label for="peObs">Comentario</label><input id="peObs" maxlength="300" placeholder="Escribe la observación"></div>
           </div>
           <div id="peXml" class="msg ok oculto" style="margin:0 0 8px"></div>
           <div class="fila-bot">
@@ -1759,7 +1756,6 @@
     $('peXml').classList.remove('oculto');
   }
   ['peSer', 'peNum'].forEach((id) => { $(id).addEventListener('change', () => setTimeout(peXmlBuscar, 0)); $(id).addEventListener('input', () => { clearTimeout(peXml.t); peXml.t = setTimeout(peXmlBuscar, 400); }); });
-  $('peObsSel').addEventListener('change', () => { const o = $('peObsSel').value === '*'; $('peObsCaja').classList.toggle('oculto', !o); if (o) $('peObs').focus(); });
   $('fPedido').addEventListener('click', (e) => { if (e.target.id === 'peUsarProv' && peXml.x) { $('peProv').value = provDeEmisor(peXml.x.emisor?.nom) || may(peXml.x.emisor?.nom || '', 80); peXml.k = ''; peXmlBuscar(); } });
   $('fPedido').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1776,10 +1772,10 @@
       await addDoc(collection(db, 'pedidos'), {
         creado: serverTimestamp(), uid: yo.uid, recibidoPor: firma(), fechaRecepcion: $('peFecha').value,
         factura, proveedor, bultos, conforme: false, conformePor: '', conformeFecha: null,
-        resp: $('peResp').value, oc: txt($('peOc').value, 40), obs: $('peObsSel').value === '*' ? txt($('peObs').value, 300) : $('peObsSel').value, f2: '', resp2: '', act: serverTimestamp()
+        resp: $('peResp').value, oc: '', obs: '', f2: '', // OC y observaciones se llenan en la tabla, al revisar resp2: '', act: serverTimestamp()
       });
       msg('pedMsg', `Pedido ${factura} registrado. Queda pendiente de entregar a Compras.`, 'ok');
-      $('peSer').value = ''; $('peNum').value = ''; $('peBultos').value = ''; $('peOc').value = ''; $('peObs').value = ''; $('peObsSel').value = 'Conforme'; $('peObsCaja').classList.add('oculto'); $('peProv').value = ''; peXml.k = ''; $('peXml').classList.add('oculto'); $('peSer').focus();
+      $('peSer').value = ''; $('peNum').value = ''; $('peBultos').value = '';  $('peProv').value = ''; peXml.k = ''; $('peXml').classList.add('oculto'); $('peSer').focus();
     } catch (err) { msg('pedMsg', errorTexto(err)); }
     ocupado(f, false);
   });
@@ -1834,7 +1830,7 @@
       if (!p.conforme && puede('conformidad')) acc += `<button class="pri mini" data-conf="${esc(p._id)}">Dar conformidad</button> `;
       if (yo.area === 'ADMIN') acc += `<button class="pel mini" data-del="${esc(p._id)}">Eliminar</button>`;
       return `<tr><td>${esc(dia(p.fechaRecepcion))}</td><td><b>${esc(p.factura)}</b></td><td>${esc(p.proveedor)}</td>` +
-        `<td class="num">${esc(p.bultos ?? '')}</td><td title="Registró: ${esc(p.recibidoPor || '')}">${selR(p, 'resp')}</td>` +
+        `<td class="num">${esc(p.bultos ?? '')}</td><td title="Registró: ${esc(p.recibidoPor || '')}">${p.resp ? esc(p.resp) : selR(p, 'resp')}</td>` +
         `<td>${inp(p, 'f2', p.f2, 'type="date" style="width:135px"')}</td><td>${selR(p, 'resp2')}</td><td>${inp(p, 'oc', p.oc, 'style="width:70px"')}</td><td>${obsSel(p)}</td>` +
         `<td>${conf}</td><td>${acc}</td></tr>`;
     }).join('') + (lista.length > max ? `<tr><td colspan="11" class="vacio">Se muestran ${max} de ${lista.length}. <button class="mini peMas">ver ${Math.min(PED_PAG, lista.length - max)} más</button></td></tr>` : '') : '<tr><td colspan="11" class="vacio">Sin facturas en esta lista</td></tr>';
