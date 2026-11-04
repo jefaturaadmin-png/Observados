@@ -998,7 +998,7 @@
     updatePassword, EmailAuthProvider, reauthenticateWithCredential
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
   import {
-    initializeFirestore, persistentLocalCache, persistentSingleTabManager, CACHE_SIZE_UNLIMITED, getDocsFromCache, getCountFromServer, doc, getDoc as getDoc0, getDocs as getDocs0, setDoc, updateDoc, deleteDoc, addDoc, collection, query, where, orderBy, limit,
+    initializeFirestore, persistentLocalCache, persistentSingleTabManager, CACHE_SIZE_UNLIMITED, getDocsFromCache, getCountFromServer, getDocFromServer, doc, getDoc as getDoc0, getDocs as getDocs0, setDoc, updateDoc, deleteDoc, addDoc, collection, query, where, orderBy, limit,
     onSnapshot as onSnapshot0, runTransaction, writeBatch, serverTimestamp, deleteField
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
@@ -1235,7 +1235,8 @@
     if (arranque) return;
     if (!user) { salirLocal(); return; }
     try {
-      const s = await getDoc(doc(db, 'usuarios', user.uid));
+      // Se pregunta al servidor: una copia vieja guardada en el navegador (p. ej. de cuando las reglas estaban mal) no debe dejar fuera a nadie
+      let s; try { s = await getDocFromServer(doc(db, 'usuarios', user.uid)); } catch (e0) { if (e0.code === 'permission-denied') throw e0; s = await getDoc(doc(db, 'usuarios', user.uid)); }
       if (!s.exists() || s.data().activo !== true) throw new Error('Tu usuario no está activo. Consulta con el administrador.');
       yo = { uid: user.uid, ...s.data() };
       if (yo.debeCambiar === true) { $('fCambio').reset(); msg('cambioMsg', ''); pantalla('cambio'); } else iniciar();
