@@ -565,6 +565,7 @@
           <div id="nYaObs" class="oculto" style="margin:-4px 0 10px"></div>
           <div id="nXmlInfo" class="quien oculto" style="margin:-4px 0 10px;padding:8px 12px;border:1px solid var(--marca);border-radius:8px;background:var(--suave);color:inherit"></div>
           <div id="lineas"></div>
+          <div id="nTodaCaja" class="oculto" style="margin:4px 0 12px;padding:14px 16px;border:2px solid var(--marca);border-radius:10px;background:var(--suave)"></div>
           <datalist id="dlLab"></datalist>
           <div class="fila-bot">
             <button type="button" id="bAddLinea">+ Agregar otro producto</button>
@@ -2081,7 +2082,7 @@
   ['nSer', 'nNum'].forEach((id) => $(id).addEventListener('change', () => {
     const k = facturaDe('n'), p = k && pedidos.find((x) => refDoc(x.factura) === k);
     if (p) $('nProv').value = p.proveedor;
-    nXmlBuscar(); nYaPintar();
+    msg('nuevoMsg', ''); nXmlBuscar(); nYaPintar();
   }));
   // Lo que ya se observó de esta factura (para no observarlo dos veces). Quien tiene el permiso "Corregir productos ya observados" lo corrige aquí.
   const nYaDe = (k) => filas.filter((o) => k && refDoc(o.factura) === k && o.estado !== 'Anulado');
@@ -2114,8 +2115,12 @@
   const nXmlPintar = () => {
     const i = $('nXmlInfo'), x = nXml.x;
     i.classList.toggle('oculto', !x);
-    i.innerHTML = x ? `<b>XML encontrado:</b> ${esc(x.id)} · ${esc(x.emisor?.nom || '')} · ${esc(dia(x.fecha))} · ${x.lineas.length} producto(s). En cada producto elige uno de la lista: el precio se llena solo y solo falta la cantidad.` +
-      `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px"><b>Observar toda la factura:</b><select id="nTodaMot" style="width:auto;max-width:320px"></select><button type="button" class="pri mini" id="nToda">Llenar todos los productos</button><span class="quien">Se llenan con la cantidad facturada, el lote y el vencimiento del XML; luego puedes cambiar cada uno o quitar los que no van.</span></div>` : '';
+    i.innerHTML = x ? `<b>XML encontrado:</b> ${esc(x.id)} · ${esc(x.emisor?.nom || '')} · ${esc(dia(x.fecha))} · ${x.lineas.length} producto(s). En cada producto elige uno de la lista: el precio se llena solo y solo falta la cantidad.` : '';
+    // Abajo, en grande: observar la factura completa con un motivo
+    $('nTodaCaja').classList.toggle('oculto', !x);
+    $('nTodaCaja').innerHTML = x ? `<div style="font-size:18px;font-weight:800;color:var(--marca);margin-bottom:8px">OBSERVACIÓN DE FACTURA COMPLETA</div>` +
+      `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><label for="nTodaMot" style="margin:0;font-weight:700">Elige el motivo</label><select id="nTodaMot" style="width:auto;min-width:260px;max-width:420px;font-size:15px"></select><button type="button" class="pri" id="nToda" style="font-size:15px;padding:8px 22px">Observar</button></div>` +
+      `<p class="quien" style="margin:8px 0 0">Se llenan los ${x.lineas.length} productos del XML con la cantidad facturada, el precio, el lote y el vencimiento; luego puedes cambiar el motivo de alguno o quitar los que no van, y guardar.</p>` : '';
     if (x) { opcionesMot($('nTodaMot')); if (!$('nProv').value.trim() && typeof provDeEmisor === 'function') $('nProv').value = provDeEmisor(x.emisor?.nom) || may(x.emisor?.nom || '', 80); }
   };
   const fvIso = (v) => { // "30/06/2028", "06/2028", "30-06-28", "2028-06-30" → AAAA-MM-DD (mes solo: último día)
@@ -2125,7 +2130,9 @@
     if ((m = t.match(/^(\d{1,2})[\/.-](\d{2}|\d{4})$/))) { const y = Number(m[2].length === 2 ? '20' + m[2] : m[2]), mm = Number(m[1]); if (mm < 1 || mm > 12) return ''; return `${y}-${String(mm).padStart(2, '0')}-${String(new Date(y, mm, 0).getDate()).padStart(2, '0')}`; }
     return '';
   };
-  $('nXmlInfo').addEventListener('click', (e) => {
+  // Enter en una casilla no guarda el formulario (antes, al escribir la factura y dar Enter salía "Agrega al menos un producto observado")
+  $('fNuevo').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') e.preventDefault(); });
+  $('nTodaCaja').addEventListener('click', (e) => {
     if (e.target.id !== 'nToda' || !nXml.x) return;
     const mot = $('nTodaMot').value; if (!mot) return msg('nuevoMsg', 'Elige el motivo para todos los productos.');
     const ya = nYaDe(facturaDe('n')).map((o) => norm(o.producto)), ls = nXml.x.lineas.filter((l) => !ya.includes(norm(l.desc)));
