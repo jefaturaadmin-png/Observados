@@ -251,6 +251,10 @@ service cloud.firestore {
             && soloCambia(['precio', 'monto', 'nc', 'fechaNc', 'estado', 'actPor', 'actFecha'])
             && resource.data.estado in ['Devuelto', 'Devuelto al proveedor', 'NC recibida']
             && request.resource.data.estado in ['Devuelto', 'NC recibida'])
+        // Corregir un producto ya observado mientras está por devolver (permiso "Corregir productos ya observados")
+        || (puede('editarObs')
+            && resource.data.estado == 'Por devolver' && request.resource.data.estado == 'Por devolver'
+            && soloCambia(['producto', 'lote', 'cantidad', 'motivo', 'actPor', 'actFecha']))
         // Comentarios
         || (esArea('COMPRAS') && soloCambia(['obsCompras', 'comprasUsuario', 'comprasFecha', 'actPor', 'actFecha']))
         || (esArea('GERENCIA') && soloCambia(['obsGerencia', 'gerenciaUsuario', 'gerenciaFecha', 'actPor', 'actFecha']));
