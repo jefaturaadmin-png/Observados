@@ -141,6 +141,11 @@ service cloud.firestore {
       allow read: if puede('verXml') || puede('observar') || puede('verObs') || puede('verReb') || puede('pedidos');
       allow write: if puede('xml');
     }
+    // XML original completo (comprimido) de cada comprobante: se lee solo al pedir "XML original"
+    match /xmlRaw/{id} {
+      allow read: if puede('verXml');
+      allow write: if puede('xml');
+    }
     // Rebate: productos del XML emparejados con el catálogo, un documento por proveedor (RUC)
     match /rebMap/{ruc} {
       allow read: if puede('verReb');
