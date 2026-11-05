@@ -9157,6 +9157,22 @@
   // xmlns:schemaLocation="urn:... ..\xsd\maindoc\UBLPE-Invoice-2.1.xsd" (con espacios y \): el navegador rechaza todo el XML.
   // Se quita antes de leer; no cambia ningún dato de la factura.
   const xmlLimpio = (t) => String(t || '').replace(/^\ufeff/, '').replace(/^\s+(?=<)/, '').replace(/\s+xmlns:[\w.-]+\s*=\s*("[^"]*[\s\\][^"]*"|'[^']*[\s\\][^']*')/g, '');
+  // El XML original completo se guarda aparte (comprimido) en xmlRaw/{clave}: no se descarga con el Lector, solo cuando se pide verlo
+  const sinRaw = (d) => { const { _raw, ...x } = d; return x; };
+  const b64 = (u8) => { let s0 = ''; for (let i = 0; i < u8.length; i += 0x8000) s0 += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s0); };
+  async function xmlRawGuardar(k, texto) {
+    if (!texto || typeof CompressionStream === 'undefined') return;
+    try {
+      const z = new Uint8Array(await new Response(new Blob([texto]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer()), d = b64(z);
+      if (d.length > 900000) return; // un documento de Firestore admite hasta 1 MB
+      await setDoc(doc(db, 'xmlRaw', k), { z: d, n: texto.length, f: ctAhora() });
+    } catch (e) { console.warn('No se guardó el XML original:', errorTexto(e)); }
+  }
+  async function xmlRawLeer(k) {
+    const s0 = await getDoc(doc(db, 'xmlRaw', k)); if (!s0.exists()) return '';
+    const bin = atob(s0.data().z), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i += 1) u8[i] = bin.charCodeAt(i);
+    return new Response(new Blob([u8]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+  }
   function xlLeer(texto, arch) {
     const d = new DOMParser().parseFromString(xmlLimpio(texto), 'application/xml'), raiz = d.documentElement;
     if (!raiz || d.getElementsByTagName('parsererror').length) throw new Error('no es un XML válido');
@@ -9172,14 +9188,44 @@
     const cuotas = terms.filter((x) => /^cuota/i.test(x.id)), formaT = terms.find((x) => /^(contado|credito)/i.test(x.id));
     const lineas = [...hijos(raiz, 'InvoiceLine'), ...hijos(raiz, 'CreditNoteLine'), ...hijos(raiz, 'DebitNoteLine')].map((l) => {
       const q = hijo(l, 'InvoicedQuantity') || hijo(l, 'CreditedQuantity') || hijo(l, 'DebitedQuantity'), it = hijo(l, 'Item'), valor = num(hijo(l, 'LineExtensionAmount')), igv = num(ruta(l, 'TaxTotal', 'TaxAmount'));
-      return { n: tx(hijo(l, 'ID')), cod: tx(ruta(it, 'SellersItemIdentification', 'ID')), desc: tx(hijo(it, 'Description')) || tx(hijo(it, 'Name')), cant: num(q), um: q ? q.getAttribute('unitCode') || '' : '', pu: num(ruta(l, 'Price', 'PriceAmount')), puIgv: num(ruta(l, 'PricingReference', 'AlternativeConditionPrice', 'PriceAmount')), valor, igv, total: valor === null ? null : r2(valor + (igv || 0)) };
+      const L = { n: tx(hijo(l, 'ID')), cod: tx(ruta(it, 'SellersItemIdentification', 'ID')), desc: tx(hijo(it, 'Description')) || tx(hijo(it, 'Name')), cant: num(q), um: q ? q.getAttribute('unitCode') || '' : '', pu: num(ruta(l, 'Price', 'PriceAmount')), puIgv: num(ruta(l, 'PricingReference', 'AlternativeConditionPrice', 'PriceAmount')), valor, igv, total: valor === null ? null : r2(valor + (igv || 0)) };
+      // Todo lo demás que trae la línea: propiedades (lote, vencimiento, registro sanitario…), notas, lote del bloque de lote y si es bonificación
+      const props = hijos(it, 'AdditionalItemProperty').map((p0) => [tx(hijo(p0, 'Name')) || tx(hijo(p0, 'NameCode')), tx(hijo(p0, 'Value')) || tx(hijo(p0, 'ValueQuantity')) || [tx(ruta(p0, 'UsabilityPeriod', 'StartDate')), tx(ruta(p0, 'UsabilityPeriod', 'EndDate'))].filter(Boolean).join(' a ')]).filter(([a, b]) => a || b);
+      const notas = hijos(l, 'Note').map(tx).concat(hijos(it, 'Note').map(tx)).filter(Boolean);
+      const desc2 = hijos(it, 'Description').slice(1).map(tx).filter(Boolean); // algunos ponen el lote en una segunda descripción
+      const lotX = dentro(it, 'LotNumberID').map(tx).filter(Boolean), expX = dentro(it, 'ExpiryDate').map(tx).filter(Boolean);
+      const extra = [...props, ...notas.map((x) => ['Nota', x]), ...desc2.map((x) => ['Descripción', x]), ...dentro(it, 'StandardItemIdentification').map((e) => ['Código estándar', tx(hijo(e, 'ID'))]), ...dentro(it, 'CommodityClassification').map((e) => ['Código SUNAT', tx(hijo(e, 'ItemClassificationCode'))])].filter(([, b]) => b).slice(0, 25).map(([a, b]) => ({ n: String(a).slice(0, 60), v: String(b).slice(0, 200) })); // {n, v}: Firestore no admite listas dentro de listas
+      const textos = [L.desc, ...desc2, ...notas, ...props.map(([a, b]) => `${a}: ${b}`)].join(' | ');
+      const pLote = props.find(([a]) => /lote|batch/i.test(a)), pFv = props.find(([a]) => /venc|f\.?\s*v\b|expir|caduc/i.test(a));
+      const mLote = textos.match(/\b(?:LOTE|LOT|LT)\b\.?\s*(?:N[°ºO]\.?\s*)?[:#-]?\s*([A-Z0-9][A-Z0-9\-\/.]{1,24})/i);
+      const mFv = textos.match(/\b(?:F\.?\s*V(?:ENC)?\.?|FV|VTO|VCTO|VENC(?:IMIENTO)?|F\.?\s*VENC\.?|EXP(?:IRA)?|CAD(?:UCIDAD)?)\s*[:.-]?\s*(\d{4}-\d{2}-\d{2}|\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}|\d{1,2}[\/.-]\d{4}|\d{1,2}[\/.-]\d{2})\b/i);
+      const lote = (lotX[0] || (pLote && pLote[1]) || (mLote && mLote[1]) || '').slice(0, 40), fv = (expX[0] || (pFv && pFv[1]) || (mFv && mFv[1]) || '').slice(0, 20);
+      const tipoP = tx(ruta(l, 'PricingReference', 'AlternativeConditionPrice', 'PriceTypeCode')), afec = dentro(l, 'TaxExemptionReasonCode').map(tx)[0] || '';
+      const grat = tipoP === '02' || /^(1[1-6]|2[1-6]|3[1-7])$/.test(afec) || /\bBONIF|\bOBSEQUIO|\bGRATUIT|(^|\s)\+\s*\d{1,3}\s*(UND|UNID\w*|U|BONIF\w*|GRATIS)?\s*$/i.test([L.desc, ...notas].join(' ')); // gratuito / bonificación ("+1")
+      if (lote) L.lote = lote;
+      if (fv) L.fv = fv;
+      if (grat) L.bonif = true;
+      if (afec) L.afec = afec;
+      if (extra.length) L.extra = extra;
+      return L;
     });
+    // Datos adicionales del comprobante: notas, orden de compra, guías, otros documentos y propiedades de las extensiones
+    const adic = [
+      ...hijos(raiz, 'Note').map((x) => ['Nota', tx(x)]),
+      ...hijos(raiz, 'OrderReference').map((x) => ['Orden de compra', tx(hijo(x, 'ID'))]),
+      ...hijos(raiz, 'DespatchDocumentReference').map((x) => ['Guía de remisión', tx(hijo(x, 'ID'))]),
+      ...hijos(raiz, 'AdditionalDocumentReference').map((x) => ['Documento relacionado', [tx(hijo(x, 'DocumentTypeCode')), tx(hijo(x, 'ID'))].filter(Boolean).join(' · ')]),
+      ...hijos(raiz, 'PaymentMeans').map((x) => ['Medio de pago', [tx(hijo(x, 'PaymentMeansCode')), tx(ruta(x, 'PayeeFinancialAccount', 'ID'))].filter(Boolean).join(' · ')]),
+      ...hijos(raiz, 'AllowanceCharge').map((x) => [tx(hijo(x, 'ChargeIndicator')) === 'true' ? 'Cargo' : 'Descuento', [tx(hijo(x, 'AllowanceChargeReason')), tx(hijo(x, 'Amount'))].filter(Boolean).join(' · ')]),
+      ...dentro(raiz, 'AdditionalProperty').map((x) => ['Dato ' + (tx(hijo(x, 'ID')) || tx(hijo(x, 'Name'))), tx(hijo(x, 'Value'))]),
+      ...dentro(raiz, 'SUNATCosigneeParty').map((x) => ['Consignatario', tx(x)])
+    ].filter(([, b]) => b).slice(0, 40).map(([a, b]) => ({ n: String(a).slice(0, 60), v: String(b).slice(0, 300) }));
     const total = num(hijo(tot, 'PayableAmount')) ?? num(hijo(tot, 'TaxInclusiveAmount')), base = num(hijo(tot, 'LineExtensionAmount')) ?? (total !== null && igvT !== null ? r2(total - igvT) : null);
     const refs = dentro(raiz, 'InvoiceDocumentReference').map((x) => tx(hijo(x, 'ID'))).filter(Boolean);
     return { arch, tipo: T, cod, id, serie: m ? m[1] : '', num: m ? m[2] : '', fecha: tx(hijo(raiz, 'IssueDate')).slice(0, 10), hora: tx(hijo(raiz, 'IssueTime')).slice(0, 5), moneda: tx(hijo(raiz, 'DocumentCurrencyCode')) || 'PEN',
       emisor: parte('AccountingSupplierParty'), cliente: parte('AccountingCustomerParty'), base, igv: igvT, total, forma: formaT ? (/^cred/i.test(formaT.id) ? 'Crédito' : 'Contado') : '', cuotas,
       vence: cuotas.map((c) => c.v).filter(Boolean).sort().pop() || tx(hijo(raiz, 'DueDate')).slice(0, 10), ref: refs[0] || tx(ruta(raiz, 'DiscrepancyResponse', 'ReferenceID')), motivo: tx(ruta(raiz, 'DiscrepancyResponse', 'Description')),
-      letras: hijos(raiz, 'Note').map(tx).find((x) => /^SON/i.test(x)) || '', lineas };
+      letras: hijos(raiz, 'Note').map(tx).find((x) => /^SON/i.test(x)) || '', lineas, adic, oc: (adic.find((a) => a.n === 'Orden de compra') || {}).v || '', guias: adic.filter((a) => a.n === 'Guía de remisión').map((a) => a.v).join(', '), _raw: texto };
   }
   async function xlCargar() { // lo guardado del mes elegido (por fecha de emisión)
     if (!puede('verXml')) return;
@@ -9216,7 +9262,8 @@
       try {
         const ref = doc(db, 'xmlf', xlKey(d1));
         if (await xmlfYa(xlKey(d1))) { ya += 1; continue; }
-        await setDoc(ref, { ...d1, lineas: d1.lineas.slice(0, 600), arch: String(d1.arch).split('→').pop().trim().slice(0, 120), ym: d1.fecha.slice(0, 7), subido: ctAhora(), subT: serverTimestamp(), por: firma() });
+        await setDoc(ref, { ...sinRaw(d1), lineas: d1.lineas.slice(0, 600), arch: String(d1.arch).split('→').pop().trim().slice(0, 120), ym: d1.fecha.slice(0, 7), subido: ctAhora(), subT: serverTimestamp(), por: firma() });
+        xmlRawGuardar(xlKey(d1), d1._raw);
         czOlvidar(d1.fecha.slice(0, 7)); // Pagos y Cuentas por pagar lo ven al volver a pintar
         nuevos += 1;
       } catch (e) { xl.errores.push(`${d1.id}: no se pudo guardar (${errorTexto(e)})`); }
@@ -9271,7 +9318,7 @@
     // Detalle
     p.autoTable({ startY: y, margin: { left: M, right: M }, theme: 'grid', styles: { fontSize: 7.5, cellPadding: 1.4, lineColor: [180, 180, 180] }, headStyles: { fillColor: [235, 235, 235], textColor: 20, fontStyle: 'bold' },
       head: [['#', 'Cant.', 'Und.', 'Código', 'Descripción', 'V. unit.', 'P. unit.', 'Valor venta', 'IGV', 'Importe']],
-      body: x.lineas.map((l) => [l.n, l.cant === null ? '' : n2(l.cant, 3).replace(/\.000$/, ''), l.um, l.cod, l.desc, n2(l.pu, 4), n2(l.puIgv, 4), n2(l.valor), n2(l.igv), n2(l.total)]),
+      body: x.lineas.map((l) => [l.n, l.cant === null ? '' : n2(l.cant, 3).replace(/\.000$/, ''), l.um, l.cod, l.desc + [l.lote ? `\nLote: ${l.lote}` : '', l.fv ? `${l.lote ? ' · ' : '\n'}F.V.: ${l.fv}` : '', l.bonif ? '\nBONIFICACIÓN' : ''].join(''), n2(l.pu, 4), n2(l.puIgv, 4), n2(l.valor), n2(l.igv), n2(l.total)]),
       columnStyles: { 0: { halign: 'center', cellWidth: 7 }, 1: { halign: 'right', cellWidth: 12 }, 2: { cellWidth: 10 }, 3: { cellWidth: 17 }, 5: { halign: 'right', cellWidth: 17 }, 6: { halign: 'right', cellWidth: 17 }, 7: { halign: 'right', cellWidth: 19 }, 8: { halign: 'right', cellWidth: 15 }, 9: { halign: 'right', cellWidth: 19 } } });
     y = p.lastAutoTable.finalY + 6;
     if (y > 250) { p.addPage(); y = 20; }
@@ -9303,11 +9350,12 @@
           `<td class="num">${xlN(x.base)}</td><td class="num">${xlN(x.igv)}</td><td class="num"><b>${x.moneda !== 'PEN' ? esc(x.moneda) + ' ' : ''}${xlN(x.total)}</b></td><td>${esc(x.forma)}${x.cuotas.length > 1 ? ` · ${x.cuotas.length} cuotas` : ''}</td><td>${esc(dia(x.vence))}</td><td class="num">${x.lineas.length}</td><td>${rgCeldaXml(x)}</td></tr>` +
           (ab ? `<tr class="det"><td colspan="13"><div class="xlDet">` +
             `<div class="ctDatos" style="margin-bottom:10px"><div><b>Emisor</b>${esc(x.emisor.nom)} · RUC ${esc(x.emisor.ruc)}<br><span class="quien">${esc(x.emisor.dir)}</span></div><div><b>Cliente</b>${esc(x.cliente.nom)} · RUC ${esc(x.cliente.ruc)}<br><span class="quien">${esc(x.cliente.dir)}</span></div>` +
-            (x.cuotas.length ? `<div><b>Cuotas</b>${x.cuotas.map((c) => `${xlN(c.m)} al ${esc(dia(c.v))}`).join(' · ')}</div>` : '') + (x.motivo ? `<div><b>Motivo</b>${esc(x.motivo)}</div>` : '') + `<div><b>Guardado</b><span class="quien">${esc(x.por || '')} · ${esc(ctHora(x.subido))} · ${esc(x.arch || '')}</span></div>${puede('xml') ? `<div><button class="mini pel xlBorrar" data-k="${esc(x.k)}">Eliminar este documento</button></div>` : ''}</div>` +
+            (x.cuotas.length ? `<div><b>Cuotas</b>${x.cuotas.map((c) => `${xlN(c.m)} al ${esc(dia(c.v))}`).join(' · ')}</div>` : '') + (x.motivo ? `<div><b>Motivo</b>${esc(x.motivo)}</div>` : '') + `<div><b>Guardado</b><span class="quien">${esc(x.por || '')} · ${esc(ctHora(x.subido))} · ${esc(x.arch || '')}</span> <button class="mini xlRaw" data-k="${esc(x.k)}" title="Descargar el XML original completo (guardado desde noviembre 2026)">XML original</button></div>${puede('xml') ? `<div><button class="mini pel xlBorrar" data-k="${esc(x.k)}">Eliminar este documento</button></div>` : ''}</div>` +
             (x.letras ? `<p class="quien" style="margin:0 0 8px">${esc(x.letras)}</p>` : '') +
-            `<table><tr><th>#</th><th>Código</th><th>Descripción</th><th class="num">Cant.</th><th>Und.</th><th class="num">P. unit. sin IGV</th><th class="num">P. unit. con IGV</th><th class="num">Valor</th><th class="num">IGV</th><th class="num">Total</th></tr>` +
-            x.lineas.map((l) => `<tr><td>${esc(l.n)}</td><td>${esc(l.cod)}</td><td>${esc(l.desc)}</td><td class="num">${l.cant === null ? '' : l.cant}</td><td>${esc(l.um)}</td><td class="num">${xlN(l.pu, 4)}</td><td class="num">${xlN(l.puIgv, 4)}</td><td class="num">${xlN(l.valor)}</td><td class="num">${xlN(l.igv)}</td><td class="num"><b>${xlN(l.total)}</b></td></tr>`).join('') +
-            `<tr class="tot"><td colspan="7">Totales del documento</td><td class="num">${xlN(x.base)}</td><td class="num">${xlN(x.igv)}</td><td class="num">${xlN(x.total)}</td></tr></table></div></td></tr>` : '');
+            (x.adic && x.adic.length ? `<div class="quien" style="margin:0 0 8px;line-height:1.5"><b>Datos adicionales:</b> ${x.adic.map((a) => `<span style="white-space:nowrap">${esc(a.n)}: <b>${esc(a.v)}</b></span>`).join(' · ')}</div>` : '') +
+            `<table><tr><th>#</th><th>Código</th><th>Descripción</th>${x.lineas.some((l) => l.lote || l.fv) ? '<th>Lote</th><th>F.V.</th>' : ''}<th class="num">Cant.</th><th>Und.</th><th class="num">P. unit. sin IGV</th><th class="num">P. unit. con IGV</th><th class="num">Valor</th><th class="num">IGV</th><th class="num">Total</th></tr>` +
+            x.lineas.map((l) => `<tr${l.bonif ? ' style="background:rgba(22,163,74,.08)"' : ''}><td>${esc(l.n)}</td><td>${esc(l.cod)}</td><td>${esc(l.desc)}${l.bonif ? ' <span class="est e2">Bonificación</span>' : ''}${(l.extra || []).length ? `<div class="quien">${l.extra.map((a) => `${esc(a.n)}: ${esc(a.v)}`).join(' · ')}</div>` : ''}</td>${x.lineas.some((y) => y.lote || y.fv) ? `<td>${esc(l.lote || '')}</td><td>${esc(l.fv || '')}</td>` : ''}<td class="num">${l.cant === null ? '' : l.cant}</td><td>${esc(l.um)}</td><td class="num">${xlN(l.pu, 4)}</td><td class="num">${xlN(l.puIgv, 4)}</td><td class="num">${xlN(l.valor)}</td><td class="num">${xlN(l.igv)}</td><td class="num"><b>${xlN(l.total)}</b></td></tr>`).join('') +
+            `<tr class="tot"><td colspan="${x.lineas.some((l) => l.lote || l.fv) ? 9 : 7}">Totales del documento</td><td class="num">${xlN(x.base)}</td><td class="num">${xlN(x.igv)}</td><td class="num">${xlN(x.total)}</td></tr></table></div></td></tr>` : '');
       }).join('') + (D.length ? '' : '<tr><td colspan="13" class="vacio">Nada coincide con los filtros. <button class="mini xlLimpiar">Quitar filtros</button></td></tr>') +
       (D.length > (xl.max || XL_PAG) ? `<tr><td colspan="13" class="vacio">Se muestran ${xl.max || XL_PAG} de ${D.length}. Usa la búsqueda o los filtros para encontrar uno, o <button class="mini xlMas">ver ${Math.min(XL_PAG, D.length - (xl.max || XL_PAG))} más</button></td></tr>` : '') + '</tbody></table></div>');
     xl.vista = D;
@@ -9368,15 +9416,26 @@
       } catch (err) { alert(errorTexto(err)); }
       return;
     }
+    const rb0 = e.target.closest('.xlRaw');
+    if (rb0) {
+      const x = xl.docs.find((y) => y.k === rb0.dataset.k); if (!x) return;
+      rb0.disabled = true;
+      try {
+        const t = await xmlRawLeer(x.k);
+        if (!t) alert('El XML original de este comprobante no está guardado (se guarda completo desde noviembre de 2026). Búscalo en la carpeta "Facturas XML" de Drive o en la PC.');
+        else { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([t], { type: 'application/xml' })); a.download = `${x.emisor.ruc}-${x.id}.xml`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }
+      } catch (err) { alert(errorTexto(err)); }
+      rb0.disabled = false; return;
+    }
     const pb = e.target.closest('.xlPdf');
     if (pb) { const x = xl.docs.find((y) => y.k === pb.dataset.k); if (!x) return; pb.disabled = true; try { await xlPdf(x); } catch (err) { alert(errorTexto(err)); } pb.disabled = false; return; }
     const b = e.target.closest('.xlBorrar');
-    if (b) { const x = xl.docs.find((y) => y.k === b.dataset.k); if (!x || !confirm(`¿Eliminar ${x.tipo} ${x.id} de lo guardado?`)) return; try { await deleteDoc(doc(db, 'xmlf', x.k)); sincroQuitar('xmlf', x.k); xl.avisos = [`${x.id} eliminado.`]; xl.errores = []; xlCargar(); } catch (err) { xl.errores = [errorTexto(err)]; xlPintar(); } return; }
+    if (b) { const x = xl.docs.find((y) => y.k === b.dataset.k); if (!x || !confirm(`¿Eliminar ${x.tipo} ${x.id} de lo guardado?`)) return; try { await deleteDoc(doc(db, 'xmlf', x.k)); sincroQuitar('xmlf', x.k); deleteDoc(doc(db, 'xmlRaw', x.k)).catch(() => {}); xl.avisos = [`${x.id} eliminado.`]; xl.errores = []; xlCargar(); } catch (err) { xl.errores = [errorTexto(err)]; xlPintar(); } return; }
     if (e.target.closest('input, button, .rgIr')) return;
     const tr = e.target.closest('tr.xlFila'); if (!tr) return; const k = tr.dataset.k; if (xl.abiertos.has(k)) xl.abiertos.delete(k); else xl.abiertos.add(k); xlPintar();
   });
   $('xlExpDoc').addEventListener('click', () => exportar('xml-documentos', [['Tipo', 'tipo'], ['Serie', 'serie'], ['Número', 'num'], ['Documento', 'id'], ['Fecha emisión', (x) => dia(x.fecha)], ['RUC emisor', (x) => x.emisor.ruc], ['Emisor', (x) => x.emisor.nom], ['RUC cliente', (x) => x.cliente.ruc], ['Cliente', (x) => x.cliente.nom], ['Moneda', 'moneda'], ['Valor venta', 'base'], ['IGV', 'igv'], ['Total', 'total'], ['Forma de pago', 'forma'], ['Vence', (x) => dia(x.vence)], ['Afecta a', 'ref'], ['Motivo', 'motivo'], ['Ítems', (x) => x.lineas.length], ['Archivo', 'arch']], xl.vista || []));
-  $('xlExpDet').addEventListener('click', () => exportar('xml-detalle-productos', [['Documento', (r) => r.x.id], ['Tipo', (r) => r.x.tipo], ['Fecha', (r) => dia(r.x.fecha)], ['RUC emisor', (r) => r.x.emisor.ruc], ['Emisor', (r) => r.x.emisor.nom], ['RUC cliente', (r) => r.x.cliente.ruc], ['#', (r) => r.l.n], ['Código', (r) => r.l.cod], ['Descripción', (r) => r.l.desc], ['Cantidad', (r) => r.l.cant], ['Unidad', (r) => r.l.um], ['P. unit. sin IGV', (r) => r.l.pu], ['P. unit. con IGV', (r) => r.l.puIgv], ['Valor', (r) => r.l.valor], ['IGV', (r) => r.l.igv], ['Total', (r) => r.l.total]], (xl.vista || []).flatMap((x) => x.lineas.map((l) => ({ x, l })))));
+  $('xlExpDet').addEventListener('click', () => exportar('xml-detalle-productos', [['Documento', (r) => r.x.id], ['Tipo', (r) => r.x.tipo], ['Fecha', (r) => dia(r.x.fecha)], ['RUC emisor', (r) => r.x.emisor.ruc], ['Emisor', (r) => r.x.emisor.nom], ['RUC cliente', (r) => r.x.cliente.ruc], ['#', (r) => r.l.n], ['Código', (r) => r.l.cod], ['Descripción', (r) => r.l.desc], ['Lote', (r) => r.l.lote || ''], ['F.V.', (r) => r.l.fv || ''], ['Bonificación', (r) => (r.l.bonif ? 'Sí' : '')], ['Otros datos', (r) => (r.l.extra || []).map((a) => `${a.n}: ${a.v}`).join(' · ')], ['Cantidad', (r) => r.l.cant], ['Unidad', (r) => r.l.um], ['P. unit. sin IGV', (r) => r.l.pu], ['P. unit. con IGV', (r) => r.l.puIgv], ['Valor', (r) => r.l.valor], ['IGV', (r) => r.l.igv], ['Total', (r) => r.l.total]], (xl.vista || []).flatMap((x) => x.lineas.map((l) => ({ x, l })))));
 
   /* ---------- XML que llegan solos por correo ----------
      El script de Gmail (carpeta correo-xml) deja cada XML recibido en xmlBuzon/{huella} con estado "nuevo".
@@ -9439,8 +9498,8 @@
       const d1 = xlLeer(String(b.xml || ''), b.archivo || 'correo.xml');
       if (!/^\d{4}-\d{2}-\d{2}$/.test(d1.fecha)) throw new Error('no trae fecha de emisión');
       const k = xlKey(d1), refX = doc(db, 'xmlf', k), ya = await xmlfYa(k);
-      if (!ya) await setDoc(refX, { ...d1, lineas: d1.lineas.slice(0, 600), arch: txt(b.archivo, 120), ym: d1.fecha.slice(0, 7), subido: ctAhora(), subT: serverTimestamp(), por: 'Correo · ' + txt(b.de, 100), correo: { de: txt(b.de, 200), asunto: txt(b.asunto, 200), recibido: txt(b.recibido, 40) } });
-      if (!ya) czOlvidar(d1.fecha.slice(0, 7));
+      if (!ya) await setDoc(refX, { ...sinRaw(d1), lineas: d1.lineas.slice(0, 600), arch: txt(b.archivo, 120), ym: d1.fecha.slice(0, 7), subido: ctAhora(), subT: serverTimestamp(), por: 'Correo · ' + txt(b.de, 100), correo: { de: txt(b.de, 200), asunto: txt(b.asunto, 200), recibido: txt(b.recibido, 40) } });
+      if (!ya) { czOlvidar(d1.fecha.slice(0, 7)); xmlRawGuardar(k, d1._raw); }
       await updateDoc(ref, { estado: ya ? 'repetido' : 'leido', k, doc: d1.id, tipo: d1.tipo, emisor: d1.emisor.nom, ruc: d1.emisor.ruc, cliente: d1.cliente.ruc, fecha: d1.fecha, total: d1.total, moneda: d1.moneda, items: d1.lineas.length, ref: d1.ref || '', xml: deleteField(), error: deleteField(), procesado: ctAhora(), por: firma() });
     } catch (e) {
       if (esCuota(e)) { xbEnCurso.delete(b._id); return 'cuota'; } // no es un problema del XML: queda pendiente
@@ -9464,8 +9523,8 @@
           if (!/^\d{4}-\d{2}-\d{2}$/.test(d1.fecha)) throw new Error('no trae fecha de emisión');
           const refX = doc(db, 'xmlf', xlKey(d1));
           if (await xmlfYa(xlKey(d1))) { ya += 1; continue; }
-          await setDoc(refX, { ...d1, lineas: d1.lineas.slice(0, 600), arch: String(x.nombre).split('→').pop().trim().slice(0, 120), ym: d1.fecha.slice(0, 7), subido: ctAhora(), subT: serverTimestamp(), por: 'Correo · ' + txt(b.de, 100), correo: { de: txt(b.de, 200), asunto: txt(b.asunto, 200), recibido: txt(b.recibido, 40) } });
-          czOlvidar(d1.fecha.slice(0, 7)); nuevos += 1;
+          await setDoc(refX, { ...sinRaw(d1), lineas: d1.lineas.slice(0, 600), arch: String(x.nombre).split('→').pop().trim().slice(0, 120), ym: d1.fecha.slice(0, 7), subido: ctAhora(), subT: serverTimestamp(), por: 'Correo · ' + txt(b.de, 100), correo: { de: txt(b.de, 200), asunto: txt(b.asunto, 200), recibido: txt(b.recibido, 40) } });
+          czOlvidar(d1.fecha.slice(0, 7)); xmlRawGuardar(xlKey(d1), d1._raw); nuevos += 1;
         } catch (e) { if (esCuota(e)) throw e; if (!/factura ni una nota/.test(e.message || '')) malos.push(`${String(x.nombre).split('→').pop().trim()}: ${e.message}`); }
       }
       if (!cola.length) throw new Error('el RAR no trae XML');
