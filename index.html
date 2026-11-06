@@ -1817,7 +1817,8 @@
     contador('nPed', pend.length);
     $('resPed').textContent = `${lista.length} factura(s) en la lista · ${pend.length} pendiente(s) de entregar a Compras` +
       ` (${pend.reduce((s, x) => s + (Number(x.bultos) || 0), 0)} bultos)`;
-    const ed = puede('pedidos'), rs = pedResps(), max = pedMax || PED_PAG;
+    const edP = puede('pedidos'), rs = pedResps(), max = pedMax || PED_PAG;
+    let ed = edP; // por fila: con la conformidad de Compras, la revisión queda bloqueada
     const opR = (v) => '<option value=""></option>' + rs.concat(v && !rs.includes(v) ? [v] : []).map((x) => `<option${x === v ? ' selected' : ''}>${esc(x)}</option>`).join('');
     const inp = (p, c, v, extra) => (ed ? `<input class="peIn" data-id="${esc(p._id)}" data-c="${c}" value="${esc(v ?? '')}" ${extra || ''}>` : esc(c === 'f2' ? dia(v) : (v ?? '')));
     const obsSel = (p) => { // Conforme / Observado / Otro (con su comentario)
@@ -1829,6 +1830,7 @@
     };
     const selR = (p, c) => (ed ? `<select class="peIn" data-id="${esc(p._id)}" data-c="${c}">${opR(p[c] || '')}</select>` : esc(p[c] || ''));
     $('cuerpoPed').innerHTML = lista.length ? lista.slice(0, max).map((p) => {
+      ed = edP && !p.conforme;
       const conf = p.conforme
         ? `<span class="est e2">Conforme</span> <span class="quien">${esc(p.conformePor)} · ${esc(fecha(p.conformeFecha))}</span>`
         : '<span class="est e0">Pendiente</span>';
@@ -1836,7 +1838,7 @@
       if (!p.conforme && puede('conformidad')) acc += `<button class="pri mini" data-conf="${esc(p._id)}">Dar conformidad</button> `;
       if (yo.area === 'ADMIN') acc += `<button class="pel mini" data-del="${esc(p._id)}">Eliminar</button>`;
       return `<tr><td>${esc(dia(p.fechaRecepcion))}</td><td><b>${esc(p.factura)}</b></td><td>${esc(p.proveedor)}</td>` +
-        `<td class="num">${esc(p.bultos ?? '')}</td><td title="Registró: ${esc(p.recibidoPor || '')}">${p.resp ? esc(p.resp) : selR(p, 'resp')}</td>` +
+        `<td class="num">${esc(p.bultos ?? '')}</td><td title="Registró: ${esc(p.recibidoPor || '')}">${p.resp || p.conforme ? esc(p.resp || '') : selR(p, 'resp')}</td>` +
         `<td>${inp(p, 'f2', p.f2, 'type="date" style="width:135px"')}</td><td>${ed ? `<button type="button" class="mini peRev" data-id="${esc(p._id)}" title="Elegir quiénes revisaron (pueden ser varios)" style="min-width:150px;text-align:left;white-space:normal">${esc(p.resp2 || 'Elegir…')}</button>` : esc(p.resp2 || '')}</td><td>${inp(p, 'oc', p.oc, 'style="width:70px"')}</td><td>${obsSel(p)}</td>` +
         `<td>${conf}</td><td>${acc}</td></tr>`;
     }).join('') + (lista.length > max ? `<tr><td colspan="11" class="vacio">Se muestran ${max} de ${lista.length}. <button class="mini peMas">ver ${Math.min(PED_PAG, lista.length - max)} más</button></td></tr>` : '') : '<tr><td colspan="11" class="vacio">Sin facturas en esta lista</td></tr>';
@@ -1847,6 +1849,7 @@
   // Las fechas se guardan al salir de la casilla (mientras se escribe el año, el navegador avisa cambios como "0002")
   const pedGuardar = async (t) => {
     const p = pedidos.find((x) => x._id === t.dataset.id); if (!p) return;
+    if (p.conforme) { pedPend = true; return alert('Compras ya dio la conformidad: la revisión de este pedido ya no se puede cambiar.'); }
     const c = t.dataset.c;
     if (c === 'f2' && t.value && !/^(20\d\d)-\d{2}-\d{2}$/.test(t.value)) { alert('Fecha no válida: revisa el año (por ejemplo 2026).'); t.value = p.f2 || ''; return; }
     if (c === 'obs' && t.value === '*') { const w = prompt('Escribe la observación:', /^(conforme|observado)?$/i.test(p.obs || '') ? '' : p.obs); if (w === null || !w.trim()) { pedPend = true; t.blur(); return; } t.value = ''; return pedGuardarV(p, c, txt(w, 300)); }
@@ -1878,7 +1881,7 @@
   });
   $('dCuerpo').addEventListener('click', async (e) => {
     if (modo !== 'peRev' || e.target.id !== 'peRevOk') return;
-    const p = pedidos.find((x) => x._id === abierto); if (!p) return;
+    const p = pedidos.find((x) => x._id === abierto); if (!p || p.conforme) return;
     const v = [...$('dCuerpo').querySelectorAll('.peRevC:checked')].map((c) => c.value).join(', ').slice(0, 200);
     e.target.disabled = true;
     try {
