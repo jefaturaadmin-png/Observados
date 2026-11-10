@@ -9315,7 +9315,7 @@
     return { arch, tipo: T, cod, id, serie: m ? m[1] : '', num: m ? m[2] : '', fecha: tx(hijo(raiz, 'IssueDate')).slice(0, 10), hora: tx(hijo(raiz, 'IssueTime')).slice(0, 5), moneda: tx(hijo(raiz, 'DocumentCurrencyCode')) || 'PEN',
       emisor: parte('AccountingSupplierParty'), cliente: parte('AccountingCustomerParty'), base, igv: igvT, total, forma: formaT ? (/^cred/i.test(formaT.id) ? 'Crédito' : 'Contado') : '', cuotas,
       vence: cuotas.map((c) => c.v).filter(Boolean).sort().pop() || tx(hijo(raiz, 'DueDate')).slice(0, 10), ref: refs[0] || tx(ruta(raiz, 'DiscrepancyResponse', 'ReferenceID')), motivo: tx(ruta(raiz, 'DiscrepancyResponse', 'Description')),
-      letras: hijos(raiz, 'Note').map(tx).find((x) => /^SON/i.test(x)) || '', lineas, adic, oc: (adic.find((a) => a.n === 'Orden de compra') || {}).v || '', guias: adic.filter((a) => a.n === 'Guía de remisión').map((a) => a.v).join(', '), _raw: texto };
+      letras: hijos(raiz, 'Note').map(tx).find((x) => /^SON/i.test(x)) || '', lineas, adic, oc: (adic.find((a) => a.n === 'Orden de compra') || {}).v || '', nums: [...new Set(adic.flatMap((a) => (String(a.v).replace(/(\d)[\s.-](?=\d)/g, '$1').match(/\d{5,15}/g) || [])))].slice(0, 25) /* p. ej. el "número interno" que Dimexa imprime en su QR */, guias: adic.filter((a) => a.n === 'Guía de remisión').map((a) => a.v).join(', '), _raw: texto };
   }
   async function xlCargar() { // lo guardado del mes elegido (por fecha de emisión)
     if (!puede('verXml')) return;
@@ -9495,8 +9495,16 @@
     const m = s0.toUpperCase().match(/\b([FBE][A-Z0-9]{3})\s*-?\s*0*(\d{1,10})\b/) || s0.toUpperCase().replace(/\s+/g, '').match(/([A-Z][A-Z0-9]{3})-?0*(\d{1,10})/);
     return m ? { serie: serDoc(m[1]), num: numDoc(m[2]) } : null;
   }
+  // Un código que es solo un número (el "número interno" que algunos proveedores imprimen en su QR o código de barras):
+  // se busca entre los números de los datos adicionales del XML (campo nums, desde noviembre 2026)
+  const codInterno = (t) => { const d0 = String(t || '').replace(/(\d)[\s.-](?=\d)/g, '$1').trim(); return /^\d{5,15}$/.test(d0) ? d0 : ''; };
+  async function xmlfPorInterno(n) {
+    try { return (await getDocs(query(collection(db, 'xmlf'), where('nums', 'array-contains', n)))).docs.map((d) => ({ k: d.id, ...d.data() })); } catch (e) { console.warn(e); return []; }
+  }
   async function xlBuscarCodigo(t) {
-    const c = xlCodigo(t), res = $('xlScanRes');
+    let c = xlCodigo(t);
+    const res = $('xlScanRes'), ni = !c && codInterno(t);
+    if (ni) { const xs = await xmlfPorInterno(ni); if (xs.length) c = { serie: xs[0].serie, num: numDoc(xs[0].num), ruc: xs[0].emisor && xs[0].emisor.ruc, interno: ni }; else { res.innerHTML = `<div class="msg err">El número <b>${esc(ni)}</b> no aparece en ningún XML guardado. Puede que el proveedor no lo ponga en su XML, o que la factura se haya subido antes de noviembre de 2026.</div>`; return; } }
     if (!c) { res.innerHTML = `<div class="msg err">No se reconoce una factura en "${esc(String(t).slice(0, 80))}".</div>`; return; }
     if (!xl.listo) { res.innerHTML = '<p class="quien">Cargando los XML guardados…</p>'; await xlCargar(); }
     const ds = xl.docs.filter((x) => x.serie === c.serie && numDoc(x.num) === c.num), d = ds.find((x) => !c.ruc || x.emisor.ruc === c.ruc) || ds[0];
@@ -9508,7 +9516,7 @@
     }
     xl.txt = d.id; $('xlTxt').value = d.id; xl.f = {}; xl.max = 0; xl.abiertos.add(d.k); xlPintar();
     const enP = xlEnPagos(d);
-    res.innerHTML = `<div class="msg ok">✓ <b>${esc(d.tipo)} ${esc(d.id)}</b> · ${esc(d.emisor.nom)} · ${esc(dia(d.fecha))} · S/ ${mil(d.total)}${enP ? ` · <b>${esc(enP)}</b>` : ''}${c.total && Math.abs(Number(c.total) - Number(d.total)) > 0.05 ? ` · <span style="color:var(--rojo,#c00)">el QR dice S/ ${esc(c.total)}</span>` : ''}</div>`;
+    res.innerHTML = `<div class="msg ok">✓ ${c.interno ? `Número interno ${esc(c.interno)} → ` : ''}<b>${esc(d.tipo)} ${esc(d.id)}</b> · ${esc(d.emisor.nom)} · ${esc(dia(d.fecha))} · S/ ${mil(d.total)}${enP ? ` · <b>${esc(enP)}</b>` : ''}${c.total && Math.abs(Number(c.total) - Number(d.total)) > 0.05 ? ` · <span style="color:var(--rojo,#c00)">el QR dice S/ ${esc(c.total)}</span>` : ''}</div>`;
     const fila = $('xlCont').querySelector(`tr.xlFila[data-k="${CSS.escape(d.k)}"]`); if (fila) fila.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
   $('xlScan').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); const v = $('xlScan').value; $('xlScan').value = ''; xlBuscarCodigo(v); } }); // la pistola lectora escribe el código y da Enter
@@ -9544,8 +9552,10 @@
   $('xlCamCerrar').addEventListener('click', camCerrar);
   $('xlCam').addEventListener('click', () => camAbrir('xl', xlBuscarCodigo));
   // Ingreso de pedidos: el QR o código de la factura llena serie, número y proveedor; luego solo faltan bultos y responsable
-  function peCodigo(t) {
-    const c = xlCodigo(t);
+  async function peCodigo(t) {
+    let c = xlCodigo(t);
+    const ni = !c && codInterno(t);
+    if (ni) { const xs = await xmlfPorInterno(ni); if (!xs.length) return msg('pedMsg', `El número ${ni} no aparece en ningún XML guardado: escribe la serie y el número de la factura.`); c = { serie: xs[0].serie, num: numDoc(xs[0].num), ruc: xs[0].emisor && xs[0].emisor.ruc }; }
     if (!c) return msg('pedMsg', `No se reconoce una factura en "${String(t).slice(0, 80)}".`);
     $('peSer').value = c.serie; $('peNum').value = c.num;
     if (c.ruc) { // proveedor por el RUC del QR: el escrito en Proveedores, o el del XML de esa empresa
