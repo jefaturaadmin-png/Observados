@@ -1747,10 +1747,19 @@
      ===================================================================== */
   // Al escribir la factura, si su XML ya está en el Lector de XML, el proveedor se llena solo (y se ve qué factura es)
   const peXml = { k: '', x: null };
-  const provDeEmisor = (nom) => { // el proveedor de la lista oficial que corresponde al nombre del XML
-    const e = soloAlfa(nom); if (!e) return '';
-    const cands = proveedoresConocidos().filter((p) => { const k = soloAlfa(p), w = soloAlfa(String(p).split(/\s+/)[0]); return k && (e.startsWith(k) || k.startsWith(e) || (w.length >= 4 && e.startsWith(w))); });
-    return cands.sort((a, b) => soloAlfa(b).length - soloAlfa(a).length)[0] || '';
+  // Palabras que no distinguen a un proveedor (muchos se llaman "REPRESENTACIONES …", "DROGUERIA …", "DISTRIBUIDORA …")
+  const PROV_COMUN = new Set(['REPRESENTACIONES', 'REPRESENTACION', 'DROGUERIA', 'DROGUERIAS', 'DISTRIBUIDORA', 'DISTRIBUIDORES', 'DISTRIBUCIONES', 'DISTRIBUCION', 'CORPORACION', 'INVERSIONES', 'NEGOCIACIONES', 'COMERCIAL', 'COMERCIALIZADORA', 'LABORATORIO', 'LABORATORIOS', 'GRUPO', 'EMPRESA', 'FARMACEUTICA', 'FARMACEUTICOS', 'IMPORTADORA', 'IMPORTACIONES', 'DEL', 'DE', 'LA', 'LOS', 'LAS', 'Y', 'E', 'PERU', 'SAC', 'SA', 'SRL', 'EIRL', 'SAA', 'SOCIEDAD', 'ANONIMA', 'CERRADA']);
+  const provPalabras = (n) => String(n || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Z0-9 ]+/g, ' ').split(/\s+/).filter((w) => w.length >= 2 && !PROV_COMUN.has(w));
+  const provDeEmisor = (nom, ruc) => { // el proveedor que corresponde al emisor del XML: por RUC, por nombre igual o por sus palabras propias (no por "REPRESENTACIONES")
+    const d = ruc && pgCfg.dists.find((x) => x.ruc === ruc); if (d) return may(d.nombre, 80);
+    const e = provClave(nom); if (!e) return '';
+    const todos = proveedoresConocidos();
+    const igual = todos.find((p) => provClave(p) === e); if (igual) return igual;
+    const pref = todos.filter((p) => { const k = provClave(p); return k.length >= 5 && (e.startsWith(k) || k.startsWith(e)); });
+    if (pref.length) return pref.sort((a, b2) => provClave(b2).length - provClave(a).length)[0];
+    const pe = new Set(provPalabras(nom));
+    const cands = todos.map((p) => ({ p, w: provPalabras(p) })).filter((x) => x.w.length && x.w.every((w) => pe.has(w))); // todas sus palabras propias están en el nombre del XML
+    return cands.sort((a, b2) => b2.w.join('').length - a.w.join('').length).map((x) => x.p)[0] || '';
   };
   async function peXmlBuscar() {
     const k = facturaDe('pe');
@@ -1767,7 +1776,7 @@
     if (peXml.k !== k) return;
     const x = xs.find((y) => y.tipo === 'FACTURA') || xs[0]; if (!x) return;
     peXml.x = x;
-    const prov = provDeEmisor(x.emisor?.nom) || may(x.emisor?.nom || '', 80);
+    const prov = provDeEmisor(x.emisor?.nom, x.emisor?.ruc) || may(x.emisor?.nom || '', 80);
     if (!$('peProv').value.trim()) $('peProv').value = prov;
     const ya = pedidos.find((p) => refDoc(p.factura) === k);
     $('peXml').innerHTML = `<b>Está en el Lector de XML:</b> ${esc(x.tipo)} ${esc(x.id)} · ${esc(x.emisor?.nom || '')} · emitida el ${esc(dia(x.fecha))} · ${x.lineas ? x.lineas.length : 0} producto(s)` +
@@ -1776,7 +1785,7 @@
     $('peXml').classList.remove('oculto');
   }
   ['peSer', 'peNum'].forEach((id) => { $(id).addEventListener('change', () => setTimeout(peXmlBuscar, 0)); $(id).addEventListener('input', () => { clearTimeout(peXml.t); peXml.t = setTimeout(peXmlBuscar, 400); }); });
-  $('fPedido').addEventListener('click', (e) => { if (e.target.id === 'peUsarProv' && peXml.x) { $('peProv').value = provDeEmisor(peXml.x.emisor?.nom) || may(peXml.x.emisor?.nom || '', 80); peXml.k = ''; peXmlBuscar(); } });
+  $('fPedido').addEventListener('click', (e) => { if (e.target.id === 'peUsarProv' && peXml.x) { $('peProv').value = provDeEmisor(peXml.x.emisor?.nom, peXml.x.emisor?.ruc) || may(peXml.x.emisor?.nom || '', 80); peXml.k = ''; peXmlBuscar(); } });
   $('fPedido').addEventListener('submit', async (e) => {
     e.preventDefault();
     const f = e.currentTarget;
@@ -2138,7 +2147,7 @@
     $('nTodaCaja').innerHTML = x ? `<div style="font-size:18px;font-weight:800;color:var(--marca);margin-bottom:8px">OBSERVACIÓN DE FACTURA COMPLETA</div>` +
       `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><label for="nTodaMot" style="margin:0;font-weight:700">Elige el motivo</label><select id="nTodaMot" style="width:auto;min-width:260px;max-width:420px;font-size:15px"></select><button type="button" class="pri" id="nToda" style="font-size:15px;padding:8px 22px">Observar</button></div>` +
       `<p class="quien" style="margin:8px 0 0">Se llenan los ${x.lineas.length} productos del XML con la cantidad facturada, el precio, el lote y el vencimiento; luego puedes cambiar el motivo de alguno o quitar los que no van, y guardar.</p>` : '';
-    if (x) { opcionesMot($('nTodaMot')); if (!$('nProv').value.trim() && typeof provDeEmisor === 'function') $('nProv').value = provDeEmisor(x.emisor?.nom) || may(x.emisor?.nom || '', 80); }
+    if (x) { opcionesMot($('nTodaMot')); if (!$('nProv').value.trim() && typeof provDeEmisor === 'function') $('nProv').value = provDeEmisor(x.emisor?.nom, x.emisor?.ruc) || may(x.emisor?.nom || '', 80); }
   };
   const fvIso = (v) => { // "30/06/2028", "06/2028", "30-06-28", "2028-06-30" → AAAA-MM-DD (mes solo: último día)
     const t = String(v || '').trim(); let m;
@@ -9540,7 +9549,7 @@
     $('peSer').value = c.serie; $('peNum').value = c.num;
     if (c.ruc) { // proveedor por el RUC del QR: el escrito en Proveedores, o el del XML de esa empresa
       const d = pgCfg.dists.find((x) => x.ruc === c.ruc), x = !d && (xl.docs || []).find((y) => y.emisor && y.emisor.ruc === c.ruc);
-      const n = d ? may(d.nombre, 80) : (x ? (provDeEmisor(x.emisor.nom) || may(x.emisor.nom, 80)) : '');
+      const n = d ? may(d.nombre, 80) : (x ? (provDeEmisor(x.emisor.nom, x.emisor.ruc) || may(x.emisor.nom, 80)) : '');
       if (n) $('peProv').value = n;
     }
     peXml.k = ''; peXmlBuscar(); // si la factura tiene XML, también pone el proveedor y avisa si ya estaba registrada
