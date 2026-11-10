@@ -9478,9 +9478,11 @@
   });
   /* ---------- Buscar una factura con su código QR (el de SUNAT: RUC|tipo|serie|número|IGV|total|fecha|…) o código de barras ---------- */
   function xlCodigo(t) {
-    const s0 = String(t || '').trim(), ps = s0.split('|').map((x) => x.trim());
-    if (ps.length >= 4 && /^\d{11}$/.test(ps[0])) return { ruc: ps[0], tipo: ps[1], serie: serDoc(ps[2]), num: numDoc(ps[3]), igv: ps[4] || '', total: ps[5] || '', fecha: ps[6] || '' };
-    const m = s0.toUpperCase().replace(/\s+/g, '').match(/([A-Z][A-Z0-9]{1,4})-?0*(\d{1,10})(?!.*[A-Z][A-Z0-9]{1,4}-?\d)/);
+    const s0 = String(t || '').trim(), ps = s0.split('|').map((x) => x.trim()), ok = (v) => (v && !/^null$/i.test(v) ? v : '');
+    // QR de SUNAT: RUC|tipo|serie|número|IGV|total|fecha|… (algunos proveedores ponen "null" en el RUC)
+    if (ps.length >= 4 && /^[A-Z0-9]{4}$/i.test(ps[2]) && /^\d{1,10}$/.test(ps[3])) return { ruc: /^\d{11}$/.test(ps[0]) ? ps[0] : '', tipo: ok(ps[1]), serie: serDoc(ps[2]), num: numDoc(ps[3]), igv: ok(ps[4]), total: ok(ps[5]), fecha: ok(ps[6]) };
+    // Solo el número: la serie de SUNAT tiene 4 caracteres (F001, FF06, F241, E001…)
+    const m = s0.toUpperCase().match(/\b([FBE][A-Z0-9]{3})\s*-?\s*0*(\d{1,10})\b/) || s0.toUpperCase().replace(/\s+/g, '').match(/([A-Z][A-Z0-9]{3})-?0*(\d{1,10})/);
     return m ? { serie: serDoc(m[1]), num: numDoc(m[2]) } : null;
   }
   async function xlBuscarCodigo(t) {
