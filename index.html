@@ -1778,11 +1778,11 @@
     const x = xs.find((y) => y.tipo === 'FACTURA') || xs[0]; if (!x) return;
     peXml.x = x;
     const prov = provDeEmisor(x.emisor?.nom, x.emisor?.ruc) || may(x.emisor?.nom || '', 80);
-    if (!$('peProv').value.trim()) $('peProv').value = prov;
-    const ya = pedidos.find((p) => refDoc(p.factura) === k);
+    $('peProv').value = prov; // lo que dice el XML manda (antes quedaba el proveedor de la factura anterior)
+    const ya = pedidos.find((p) => refDoc(p.factura) === k && (!p.proveedor || provClave(p.proveedor) === provClave(prov) || provDeEmisor(p.proveedor) === prov));
     $('peXml').innerHTML = `<b>Está en el Lector de XML:</b> ${esc(x.tipo)} ${esc(x.id)} · ${esc(x.emisor?.nom || '')} · emitida el ${esc(dia(x.fecha))} · ${x.lineas ? x.lineas.length : 0} producto(s)` +
       ($('peProv').value !== prov ? ` · <button type="button" class="mini" id="peUsarProv">Usar proveedor ${esc(prov)}</button>` : ` · proveedor: <b>${esc(prov)}</b>`) +
-      (ya ? `<div style="color:var(--rojo,#c00)">Esta factura ya está registrada en Ingreso de pedidos (recibida el ${esc(dia(ya.fechaRecepcion))}).</div>` : '');
+      (ya ? `<div style="color:var(--rojo,#c00)">Esta factura ya está registrada en Ingreso de pedidos: recibida el ${esc(dia(ya.fechaRecepcion))}, ${esc(ya.bultos ?? '?')} bulto(s), por ${esc(String(ya.resp || ya.recibidoPor || '').split(' (')[0])}${ya.conforme ? ' · ya tiene la conformidad de Compras' : ''}. No hace falta registrarla otra vez.</div>` : '');
     $('peXml').classList.remove('oculto');
   }
   ['peSer', 'peNum'].forEach((id) => { $(id).addEventListener('change', () => setTimeout(peXmlBuscar, 0)); $(id).addEventListener('input', () => { clearTimeout(peXml.t); peXml.t = setTimeout(peXmlBuscar, 400); }); });
@@ -2148,7 +2148,7 @@
     $('nTodaCaja').innerHTML = x ? `<div style="font-size:18px;font-weight:800;color:var(--marca);margin-bottom:8px">OBSERVACIÓN DE FACTURA COMPLETA</div>` +
       `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><label for="nTodaMot" style="margin:0;font-weight:700">Elige el motivo</label><select id="nTodaMot" style="width:auto;min-width:260px;max-width:420px;font-size:15px"></select><button type="button" class="pri" id="nToda" style="font-size:15px;padding:8px 22px">Observar</button></div>` +
       `<p class="quien" style="margin:8px 0 0">Se llenan los ${x.lineas.length} productos del XML con la cantidad facturada, el precio, el lote y el vencimiento; luego puedes cambiar el motivo de alguno o quitar los que no van, y guardar.</p>` : '';
-    if (x) { opcionesMot($('nTodaMot')); if (!$('nProv').value.trim() && typeof provDeEmisor === 'function') $('nProv').value = provDeEmisor(x.emisor?.nom, x.emisor?.ruc) || may(x.emisor?.nom || '', 80); }
+    if (x) { opcionesMot($('nTodaMot')); if (typeof provDeEmisor === 'function') $('nProv').value = provDeEmisor(x.emisor?.nom, x.emisor?.ruc) || may(x.emisor?.nom || '', 80); }
   };
   const fvIso = (v) => { // "30/06/2028", "06/2028", "30-06-28", "2028-06-30" → AAAA-MM-DD (mes solo: último día)
     const t = String(v || '').trim(); let m;
@@ -9557,7 +9557,7 @@
     const ni = !c && codInterno(t);
     if (ni) { const xs = await xmlfPorInterno(ni); if (!xs.length) return msg('pedMsg', `El número ${ni} no aparece en ningún XML guardado: escribe la serie y el número de la factura.`); c = { serie: xs[0].serie, num: numDoc(xs[0].num), ruc: xs[0].emisor && xs[0].emisor.ruc }; }
     if (!c) return msg('pedMsg', `No se reconoce una factura en "${String(t).slice(0, 80)}".`);
-    $('peSer').value = c.serie; $('peNum').value = c.num;
+    $('peSer').value = c.serie; $('peNum').value = c.num; $('peProv').value = ''; // nada de la factura anterior
     if (c.ruc) { // proveedor por el RUC del QR: el escrito en Proveedores, o el del XML de esa empresa
       const d = pgCfg.dists.find((x) => x.ruc === c.ruc), x = !d && (xl.docs || []).find((y) => y.emisor && y.emisor.ruc === c.ruc);
       const n = d ? may(d.nombre, 80) : (x ? (provDeEmisor(x.emisor.nom, x.emisor.ruc) || may(x.emisor.nom, 80)) : '');
