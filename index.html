@@ -1751,7 +1751,8 @@
   const PROV_COMUN = new Set(['REPRESENTACIONES', 'REPRESENTACION', 'DROGUERIA', 'DROGUERIAS', 'DISTRIBUIDORA', 'DISTRIBUIDORES', 'DISTRIBUCIONES', 'DISTRIBUCION', 'CORPORACION', 'INVERSIONES', 'NEGOCIACIONES', 'COMERCIAL', 'COMERCIALIZADORA', 'LABORATORIO', 'LABORATORIOS', 'GRUPO', 'EMPRESA', 'FARMACEUTICA', 'FARMACEUTICOS', 'IMPORTADORA', 'IMPORTACIONES', 'DEL', 'DE', 'LA', 'LOS', 'LAS', 'Y', 'E', 'PERU', 'SAC', 'SA', 'SRL', 'EIRL', 'SAA', 'SOCIEDAD', 'ANONIMA', 'CERRADA']);
   const provPalabras = (n) => String(n || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Z0-9 ]+/g, ' ').split(/\s+/).filter((w) => w.length >= 2 && !PROV_COMUN.has(w));
   const provDeEmisor = (nom, ruc) => { // el proveedor que corresponde al emisor del XML: por RUC, por nombre igual o por sus palabras propias (no por "REPRESENTACIONES")
-    const d = ruc && pgCfg.dists.find((x) => x.ruc === ruc); if (d) return may(d.nombre, 80);
+    const d = ruc && pgCfg.dists.find((x) => x.ruc === ruc);
+    if (d) { const wd = provPalabras(d.nombre), wx = new Set(provPalabras(nom)); if (!wd.length || !wx.size || wd.some((w) => wx.has(w))) return may(d.nombre, 80); } // RUC mal escrito en Proveedores (nombre sin nada en común): no se usa
     const e = provClave(nom); if (!e) return '';
     const todos = proveedoresConocidos();
     const igual = todos.find((p) => provClave(p) === e); if (igual) return igual;
