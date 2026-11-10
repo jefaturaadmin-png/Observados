@@ -818,6 +818,12 @@
         <span class="quien">Se pueden subir varios a la vez. Se guarda solo la información leída (datos y productos), no el archivo. Si un documento ya estaba guardado, no se repite.</span>
         <button class="pri" id="xlElegir">Elegir archivos</button><input type="file" id="xlArch" accept=".xml,.zip,.rar,text/xml,application/xml,application/zip,application/vnd.rar,application/x-rar-compressed" multiple class="oculto">
       </div>
+      <div class="caja" id="xlScanCaja" style="padding:10px 14px">
+        <b>Buscar con el código de barras o QR de la factura</b>
+        <div class="herr" style="margin:8px 0 0"><input id="xlScan" placeholder="Escanea con la pistola o escribe la factura (F241-62287)" autocomplete="off" style="flex:1;min-width:220px"><button class="pri" id="xlCam">📷 Usar la cámara del celular</button></div>
+        <div id="xlCamBox" class="oculto" style="margin-top:8px;text-align:center"><video id="xlVid" playsinline muted style="width:100%;max-width:420px;border-radius:10px;background:#000"></video><div class="quien" id="xlCamTxt" style="margin:6px 0">Apunta al código QR o de barras de la factura…</div><button id="xlCamCerrar">Cerrar cámara</button></div>
+        <div id="xlScanRes" style="margin-top:8px"></div>
+      </div>
       <div class="herr" id="xlAcc"><input id="xlTxt" placeholder="Buscar por número, proveedor, RUC o producto" style="flex:1;min-width:220px"><button id="xlQuitar">Quitar filtros</button><button id="xlAbrir">Abrir o cerrar todos</button><button id="xlExpDoc">Excel de documentos</button><button id="xlExpDet">Excel del detalle de productos</button></div>
       <div id="xlCont"></div>
     </div>
@@ -1501,6 +1507,7 @@
     if (v === 'vDash') dgPintar();
     if (v === 'vLetras') ltPintar();
     if (v === 'vSeg') sgPintar();
+    if (v !== 'vXml') { try { camCerrar(); } catch (e) { /* la cámara aún no se usó */ } }
     if (v === 'vCot') ctPintar(true);
     if (v === 'vXml') xlAbrirVista();
     if (v === 'vReb') rbAbrir();
@@ -9463,6 +9470,59 @@
     const sig = todos[i + (izq ? -1 : 1)]; if (!sig) return;
     e.preventDefault(); sig.focus(); if (sig.tagName === 'INPUT') { const q = izq ? sig.value.length : 0; sig.setSelectionRange(q, q); }
   });
+  /* ---------- Buscar una factura con su código QR (el de SUNAT: RUC|tipo|serie|número|IGV|total|fecha|…) o código de barras ---------- */
+  function xlCodigo(t) {
+    const s0 = String(t || '').trim(), ps = s0.split('|').map((x) => x.trim());
+    if (ps.length >= 4 && /^\d{11}$/.test(ps[0])) return { ruc: ps[0], tipo: ps[1], serie: serDoc(ps[2]), num: numDoc(ps[3]), igv: ps[4] || '', total: ps[5] || '', fecha: ps[6] || '' };
+    const m = s0.toUpperCase().replace(/\s+/g, '').match(/([A-Z][A-Z0-9]{1,4})-?0*(\d{1,10})(?!.*[A-Z][A-Z0-9]{1,4}-?\d)/);
+    return m ? { serie: serDoc(m[1]), num: numDoc(m[2]) } : null;
+  }
+  async function xlBuscarCodigo(t) {
+    const c = xlCodigo(t), res = $('xlScanRes');
+    if (!c) { res.innerHTML = `<div class="msg err">No se reconoce una factura en "${esc(String(t).slice(0, 80))}".</div>`; return; }
+    if (!xl.listo) { res.innerHTML = '<p class="quien">Cargando los XML guardados…</p>'; await xlCargar(); }
+    const ds = xl.docs.filter((x) => x.serie === c.serie && numDoc(x.num) === c.num), d = ds.find((x) => !c.ruc || x.emisor.ruc === c.ruc) || ds[0];
+    const id = `${c.serie}-${c.num}`;
+    if (!d) {
+      res.innerHTML = `<div class="msg err"><b>${esc(id)}</b> no está en el Lector de XML${c.ruc ? ` (RUC ${esc(c.ruc)}${c.total ? ` · total S/ ${esc(c.total)}` : ''}${c.fecha ? ` · ${esc(c.fecha)}` : ''})` : ''}. Falta subir su XML.</div>`;
+      if (navigator.vibrate) navigator.vibrate([80, 60, 80]);
+      return;
+    }
+    xl.txt = d.id; $('xlTxt').value = d.id; xl.f = {}; xl.max = 0; xl.abiertos.add(d.k); xlPintar();
+    const enP = xlEnPagos(d);
+    res.innerHTML = `<div class="msg ok">✓ <b>${esc(d.tipo)} ${esc(d.id)}</b> · ${esc(d.emisor.nom)} · ${esc(dia(d.fecha))} · S/ ${mil(d.total)}${enP ? ` · <b>${esc(enP)}</b>` : ''}${c.total && Math.abs(Number(c.total) - Number(d.total)) > 0.05 ? ` · <span style="color:var(--rojo,#c00)">el QR dice S/ ${esc(c.total)}</span>` : ''}</div>`;
+    if (navigator.vibrate) navigator.vibrate(120);
+    const fila = $('xlCont').querySelector(`tr.xlFila[data-k="${CSS.escape(d.k)}"]`); if (fila) fila.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  $('xlScan').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); const v = $('xlScan').value; $('xlScan').value = ''; xlBuscarCodigo(v); } }); // la pistola lectora escribe el código y da Enter
+  // Cámara del celular: BarcodeDetector del navegador (Chrome en Android); si no lo tiene, se usa jsQR (solo QR)
+  const cam = { st: null, on: false };
+  function camCerrar() { cam.on = false; if (cam.st) cam.st.getTracks().forEach((t) => t.stop()); cam.st = null; $('xlCamBox').classList.add('oculto'); }
+  $('xlCamCerrar').addEventListener('click', camCerrar);
+  $('xlCam').addEventListener('click', async () => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return alert('Este navegador no permite usar la cámara. Abre la página en Chrome.');
+    try {
+      cam.st = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+    } catch (e) { return alert('No se pudo abrir la cámara: ' + (e.name === 'NotAllowedError' ? 'falta dar permiso a la cámara para esta página.' : e.message)); }
+    const v = $('xlVid'); v.srcObject = cam.st; $('xlCamBox').classList.remove('oculto'); await v.play(); cam.on = true;
+    let det = null, jsqr = null;
+    if ('BarcodeDetector' in window) { try { const ok = await window.BarcodeDetector.getSupportedFormats(); det = new window.BarcodeDetector({ formats: ['qr_code', 'pdf417', 'code_128', 'code_39', 'data_matrix', 'ean_13'].filter((f) => ok.includes(f)) }); } catch (e) { det = null; } }
+    if (!det) { if (!window.jsQR) await cargarJs('https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js').catch(() => {}); jsqr = window.jsQR || null; }
+    if (!det && !jsqr) { camCerrar(); return alert('No se pudo cargar el lector de códigos. Usa la pistola o escribe la factura.'); }
+    const cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently: true });
+    const vuelta = async () => {
+      if (!cam.on) return;
+      try {
+        let t = '';
+        if (det) { const r0 = await det.detect(v); if (r0.length) t = r0[0].rawValue; }
+        else if (v.videoWidth) { cv.width = v.videoWidth; cv.height = v.videoHeight; cx.drawImage(v, 0, 0); const r0 = jsqr(cx.getImageData(0, 0, cv.width, cv.height).data, cv.width, cv.height); if (r0) t = r0.data; }
+        if (t) { camCerrar(); xlBuscarCodigo(t); return; }
+      } catch (e) { /* cuadro sin código */ }
+      setTimeout(vuelta, 250);
+    };
+    vuelta();
+  });
+
   $('xlElegir').addEventListener('click', () => $('xlArch').click());
   $('xlArch').addEventListener('change', (e) => { const a = [...e.target.files]; e.target.value = ''; if (a.length) xlSubir(a); });
   { const z = $('xlZona'); ['dragenter', 'dragover'].forEach((n) => z.addEventListener(n, (e) => { e.preventDefault(); z.classList.add('sobre'); })); ['dragleave', 'drop'].forEach((n) => z.addEventListener(n, (e) => { e.preventDefault(); z.classList.remove('sobre'); })); z.addEventListener('drop', (e) => { const a = [...e.dataTransfer.files]; if (a.length) xlSubir(a); }); }
