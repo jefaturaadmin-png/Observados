@@ -539,9 +539,9 @@
       </div>
       <div class="filtros">
         <select id="fpEst" aria-label="Conformidad">
+          <option value="">Todos</option>
           <option value="P">Pendientes de entregar a Compras</option>
           <option value="C">Con conformidad de Compras</option>
-          <option value="">Todos</option>
         </select>
         <select id="fpProv" aria-label="Proveedor"></select>
         <select id="fpRev" aria-label="Revisión"><option value="">Con y sin revisión</option><option value="S">Sin revisión</option><option value="R">Revisados</option></select>
@@ -1437,7 +1437,7 @@
   function iniciar() {
     pantalla('app');
     $('peFecha').value = hoy();
-    $('fpEst').value = 'P'; $('pEst').value = 'Por devolver'; $('dEst').value = 'Devuelto';
+    $('fpEst').value = ''; $('pEst').value = 'Por devolver'; $('dEst').value = 'Devuelto';
     ['fpTxt', 'pTxt', 'dTxt', 'gTxt', 'xTxt', 'peSer', 'peNum', 'nSer', 'nNum'].forEach((id) => { $(id).value = ''; });
     $('gFiltro').value = ''; msg('gMsg', ''); msg('xMsg', ''); $('cpFiltro').value = ''; $('cpTxt').value = ''; msg('cpMsg', '');
     opciones($('uArea'), AREAS);
@@ -1802,8 +1802,8 @@
       await addDoc(collection(db, 'pedidos'), {
         creado: serverTimestamp(), uid: yo.uid, recibidoPor: firma(), fechaRecepcion: hoy(), // siempre la fecha del día en que se registra (llegó el pedido)
         factura, proveedor, bultos, conforme: false, conformePor: '', conformeFecha: null,
-        // la revisión sale llena (hoy, el mismo responsable, Conforme); se corrige en la tabla si hace falta. La OC se pone al revisar.
-        resp: $('peResp').value, oc: '', obs: 'Conforme', f2: hoy(), resp2: $('peResp').value, act: serverTimestamp()
+        // la revisión (fecha, responsables, OC y observaciones) la llena después quien revisa, en la tabla
+        resp: $('peResp').value, oc: '', obs: '', f2: '', resp2: '', act: serverTimestamp()
       });
       msg('pedMsg', `Pedido ${factura} registrado. Queda pendiente de entregar a Compras.`, 'ok');
       $('peSer').value = ''; $('peNum').value = ''; $('peBultos').value = '';  $('peProv').value = ''; peXml.k = ''; $('peXml').classList.add('oculto'); $('peSer').focus();
@@ -1831,31 +1831,27 @@
     const rs = pedResps(), v0 = $('peResp').value || rs.find((x) => soloAlfa(x).startsWith(soloAlfa(String((yo && yo.nombre) || '').split(' ')[0]) || '-')) || '';
     $('peResp').innerHTML = '<option value="">Elige…</option>' + rs.map((x) => `<option${x === v0 ? ' selected' : ''}>${esc(x)}</option>`).join('');
   }
-  // Pedidos pendientes con la revisión vacía: se completan solos (fecha de recepción, el responsable de recepción y "Conforme")
-  let pedAutoHecho = new Set();
-  async function pedRevAuto() {
-    if (!yo || !puede('pedidos')) return;
-    const L = pedidos.filter((p) => !p.conforme && !pedAutoHecho.has(p._id) && (!p.f2 || !p.resp2 || !String(p.obs || '').trim()));
+  // Deshace el llenado automático de la revisión que estuvo publicado el 13/11/2026 (de 10:25 a. m. a la corrección):
+  // pendientes cuya revisión quedó exactamente como la puso esa función (fecha de recepción, el mismo responsable y "Conforme")
+  let pedDeshecho = false;
+  async function pedRevDeshacer() {
+    if (pedDeshecho || !yo || !puede('pedidos')) return;
+    const desde = Date.parse('2026-11-13T15:25:00Z'), hasta = Date.parse('2026-11-13T22:30:00Z');
+    const L = pedidos.filter((p) => { const t = msDe(p.act); return !p.conforme && t >= desde && t <= hasta && p.f2 && p.f2 === p.fechaRecepcion && p.resp2 && p.resp2 === p.resp && p.obs === 'Conforme' && !p.oc; });
+    pedDeshecho = true;
     if (!L.length) return;
-    L.forEach((p) => pedAutoHecho.add(p._id));
     try {
       for (let i = 0; i < L.length; i += 400) {
         const lote = writeBatch(db);
-        L.slice(i, i + 400).forEach((p) => {
-          const cam = { act: serverTimestamp(), actPor: firma() };
-          if (!p.f2) cam.f2 = /^\d{4}-\d{2}-\d{2}$/.test(p.fechaRecepcion || '') ? p.fechaRecepcion : hoy();
-          if (!p.resp2 && p.resp) cam.resp2 = p.resp;
-          if (!String(p.obs || '').trim()) cam.obs = 'Conforme';
-          lote.update(doc(db, 'pedidos', p._id), cam); Object.assign(p, cam);
-        });
+        L.slice(i, i + 400).forEach((p) => { const cam = { f2: '', resp2: '', obs: '', act: serverTimestamp(), actPor: firma() }; lote.update(doc(db, 'pedidos', p._id), cam); Object.assign(p, cam); });
         await lote.commit();
       }
       pintarPedidos();
-    } catch (e) { console.warn('Revisión automática:', errorTexto(e)); }
+    } catch (e) { pedDeshecho = false; console.warn('Deshacer revisión automática:', errorTexto(e)); }
   }
   function pintarPedidos() {
     if (!yo) return;
-    setTimeout(pedRevAuto, 0);
+    if (!pedDeshecho && pedidos.length) setTimeout(pedRevDeshacer, 0);
     const a = document.activeElement; // no se redibuja mientras se escribe en una casilla de la tabla (se pierde lo escrito)
     if (a && a.closest && a.closest('#cuerpoPed .peIn')) { pedPend = true; return; }
     pedRespForm();
