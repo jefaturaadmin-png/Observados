@@ -10252,9 +10252,10 @@
      Más adelante: lo cotizado/pedido (antes) y el stock (después). */
   let sc = { cargado: false, cargando: false, xs: [], peds: [], lf: new Map(), lfInfo: {}, err: [], vista: [], abiertos: new Set(), memo: {}, snap: {}, lin: new Map(), pdm: new Map() };
   // Lo último calculado queda guardado en este navegador: al abrir el módulo se ve al instante y se actualiza en segundo plano
-  const scSnapK = (emp) => `segC2:${(yo || {}).uid}:${emp}`;
+  const scSnapK = (emp) => `segC3:${(yo || {}).uid}:${emp}`;
   const scSnapLeer = (emp) => { try { return JSON.parse(localStorage.getItem(scSnapK(emp)) || 'null'); } catch (e) { return null; } };
-  const scSnapGuardar = (emp, filas) => { try { localStorage.setItem(scSnapK(emp), JSON.stringify({ t: Date.now(), filas, lfInfo: sc.lfInfo[emp] || null, lfPgN: sc.lfPg ? sc.lfPg.size : 0 })); } catch (e) { /* sin espacio: no pasa nada */ } };
+  const scSnapGuardar = (emp, filas) => { try { localStorage.setItem(scSnapK(emp), JSON.stringify({ t: Date.now(), filas, fuera: filas.fuera || [], lfInfo: sc.lfInfo[emp] || null, lfPgN: sc.lfPg ? sc.lfPg.size : 0 })); } catch (e) { /* sin espacio: no pasa nada */ } };
+  const scConocido = (nom, ruc) => { const k = `?${nom}|${ruc}`; if (!sc.pdm.has(k)) sc.pdm.set(k, !!provDeEmisor(nom, ruc)); return sc.pdm.get(k); }; // emisor que está en la lista de proveedores
   const scProvDe = (nom, ruc) => { const k = `${nom}|${ruc}`; if (!sc.pdm.has(k)) sc.pdm.set(k, provDeEmisor(nom, ruc) || nom || ''); return sc.pdm.get(k); };
   const SC_EST = [['', 'Todas las etapas'], ['T', 'En tránsito (XML, sin recepción)'], ['R', 'Recepcionadas, falta revisar'], ['V', 'Revisadas, falta conformidad de Compras'], ['C', 'Con conformidad, falta LolFar'], ['L', 'Ingresadas a LolFar'], ['S', 'Sin XML (cualquier etapa)']];
   const SC_NOM = { T: 'En tránsito', R: 'Recepcionada', V: 'Revisada', C: 'Con conformidad', L: 'En LolFar' };
@@ -10335,7 +10336,7 @@
     const out0 = scFilas0(emp); sc.memo[emp] = out0; scSnapGuardar(emp, out0); return out0;
   }
   function scFilas0(emp) {
-    const E = pgCfg.empresas.find((e) => e.k === emp) || {}, ped = new Map(), usados = new Set(), out = [];
+    const E = pgCfg.empresas.find((e) => e.k === emp) || {}, ped = new Map(), usados = new Set(), out = [], fuera = new Set();
     sc.peds.forEach((p) => { const k = scK(p.factura); if (!ped.has(k)) ped.set(k, []); ped.get(k).push(p); });
     const pedDe = (k, prov) => { const L = ped.get(k) || []; if (L.length < 2) return L[0] || null; return L.find((p) => !prov || provClave(p.proveedor) === provClave(prov) || scProvDe(prov) === p.proveedor || czNomOk(p.proveedor, prov)) || L[0]; };
     const fila = (o) => {
@@ -10348,8 +10349,10 @@
     };
     sc.xs.filter((x) => !E.ruc || (x.cliente && x.cliente.ruc === E.ruc)).forEach((x) => {
       const k = scK(x.id), p = pedDe(k, x.emisor.nom); if (p) usados.add(p._id);
+      if (!p && !scConocido(x.emisor.nom, x.emisor.ruc) && !sc.lf.get(emp + '|' + k) && !sc.lfPg.get(k)) { fuera.add(x.emisor.nom || x.emisor.ruc || '?'); return; } // bancos, servicios… (no son proveedores)
       fila({ k, doc: `${x.serie}-${numDoc(x.num)}`, prov: scProvDe(x.emisor.nom, x.emisor.ruc), fEmi: x.fecha, total: x.total, xk: x.xk, ped: p });
     });
+    out.fuera = [...fuera].sort();
     sc.peds.filter((p) => !usados.has(p._id)).forEach((p) => { const k = scK(p.factura); fila({ k, doc: p.factura, prov: p.proveedor, fEmi: '', total: null, xk: '', ped: p }); }); // recibidas sin XML
     return out;
   }
@@ -10389,6 +10392,7 @@
     const L = todas.filter((x) => (!est || (est === 'S' ? !x.hasX : x.est === est)) && (!pv || x.prov === pv) && (!t || `${x.doc} ${x.prov}`.toLowerCase().includes(t)))
       .sort((a, b) => String(b.fEmi || b.fRec).localeCompare(String(a.fEmi || a.fRec)));
     sc.vista = L;
+    const fuera = (snap ? snap.fuera : F.fuera) || [];
     if (sc.cargado) scVerificar($('scEmp').value, L.slice(0, 600)).catch(console.warn);
     const n = (e) => todas.filter((x) => x.est === e).length, prom = (k) => { const v = todas.map((x) => x[k]).filter((d) => d !== null && d >= 0); return v.length ? (v.reduce((a, b) => a + b, 0) / v.length).toFixed(1) : '—'; };
     contador('nSegC', n('T') + n('R') + n('V') + n('C'));
@@ -10400,6 +10404,7 @@
       `<div class="kpi"><b>Días promedio</b><strong style="font-size:15px">${prom('dTr')} · ${prom('dRev')} · ${prom('dConf')} · ${prom('dLf')}</strong><small>emisión→recepción · recepción→revisión · revisión→conformidad · conformidad→LolFar</small></div></div>` +
       `<p class="quien">Ya en LolFar según Ingreso de facturas (✓ Lolfar de reportes anteriores): ${snap ? snap.lfPgN || 0 : (sc.lfPg ? sc.lfPg.size : 0)} factura(s), todas las empresas${!snap && sc.pgN ? ` (${sc.pgN} meses a pagar revisados)` : ''}. Si falta alguna, pulsa Actualizar.</p>` +
       `<p class="quien">${li ? `LolFar: ${esc(li.info)} (registros del ${esc(dia(li.desde))} al ${esc(dia(li.hasta))}). Lo registrado después de esa fecha no se ve hasta subir un reporte nuevo en Reporte Lolfar y XML.` : 'No hay reporte de LolFar subido para esta empresa: súbelo en Reporte Lolfar y XML.'}</p>` +
+      (fuera.length ? `<p class="quien" title="${esc(fuera.join(' · '))}">No se muestran los XML de ${fuera.length} emisor(es) que no están en la lista de proveedores (bancos, servicios, etc.): ${esc(fuera.slice(0, 6).join(', '))}${fuera.length > 6 ? '…' : ''}. Si alguno sí es proveedor, agrégalo en Proveedores.</p>` : '') +
       `<p class="resumen">${L.length} factura(s) · S/ ${mil(r2(L.reduce((a, x) => a + (Number(x.total) || 0), 0)))}</p>` +
       '<div class="tabla"><table class="scTab"><thead><tr><th></th><th>Proveedor</th><th>Factura</th><th class="num">Total</th><th>Emitida</th><th>Etapa actual</th><th>Último paso</th></tr></thead><tbody>' +
       (L.slice(0, 600).map((x) => {
