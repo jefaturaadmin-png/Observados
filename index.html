@@ -10283,24 +10283,7 @@
     }));
     sc.lfPg = m; sc.pgReg = reg; sc.pgDev = dev; sc.pgN = porId.size;
   }
-  // Las que no salen en LolFar: se confirma en el servidor con los meses a pagar de su proveedor (una vez por proveedor y sesión)
-  async function scVerificar(emp, L) {
-    if (!sc.vp || !sc.cargado) return;
-    if (!sc.verif) sc.verif = new Set();
-    const ks = new Set();
-    L.forEach((x) => { if (x.est === 'L' || !x.prov) return; pgCfg.dists.forEach((d) => { if ((provCoincide(x.prov, d) || czNomOk(x.prov, d.nombre)) && !sc.verif.has(emp + '_' + d.k)) ks.add(d.k); }); });
-    if (!ks.size) return;
-    const lista = [...ks].slice(0, 25); lista.forEach((k) => sc.verif.add(emp + '_' + k));
-    let cambio = false;
-    await Promise.all(lista.map(async (k) => {
-      try {
-        const s0 = await getDocsFromServer(query(collection(db, 'pagos'), where('emp', '==', emp), where('dist', '==', k)));
-        s0.docs.forEach((d) => { const a = sc.vp.m.get(d.id); if (!a || JSON.stringify(a.get('filas')) !== JSON.stringify(d.get('filas'))) cambio = true; sc.vp.m.set(d.id, d); });
-      } catch (e) { sc.verif.delete(emp + '_' + k); console.warn(e); }
-    }));
-    if (cambio) { scLfPg(sc.vp); sc.memo = {}; if (vista === 'vSegC') scPintar(); }
-  }
-  async function scCargar(forzar) {
+  async function scCargar() {
     sc.cargando = true; sc.err = []; scPintar();
     try { // solo los datos de cabecera; los productos se leen al abrir una factura
       sc.xs = (await sincro('xmlf')).docs().filter((d) => d.get('tipo') === 'FACTURA').map((d) => ({ xk: d.id, id: d.get('id'), serie: d.get('serie'), num: d.get('num'), fecha: d.get('fecha'), total: d.get('total'), emisor: d.get('emisor') || {}, cliente: d.get('cliente') || {} }));
@@ -10309,10 +10292,6 @@
     sc.lf = new Map(); sc.lfInfo = {}; sc.lfPg = new Map(); sc.man = new Map();
     try { // lo que ya se comparó con reportes anteriores de LolFar: la fila de Pagos guarda ✓ Lolfar (regulariza lo de antes del último reporte)
       const vp = await sincro('pagos');
-      if (forzar) { // "Actualizar": los meses a pagar de esta empresa se leen del servidor, por si la copia del navegador quedó atrasada
-        const s0 = await getDocsFromServer(query(collection(db, 'pagos'), where('emp', '==', $('scEmp').value)));
-        s0.docs.forEach((d) => vp.m.set(d.id, d));
-      }
       scLfPg(vp);
       if (sc.vp !== vp) { sc.vp = vp; vp.cbs.add((v2) => { if (sc.vp !== v2 || !sc.cargado) return; scLfPg(v2); sc.memo = {}; if (vista === 'vSegC') scPintar(); }); } // un ✓ Lolfar nuevo se ve sin recargar
     } catch (e) { sc.err.push('No se pudo leer Ingreso de facturas para ver lo que ya estaba en LolFar: ' + errorTexto(e)); }
@@ -10417,7 +10396,6 @@
       .sort((a, b) => String(b.fEmi || b.fRec).localeCompare(String(a.fEmi || a.fRec)));
     sc.vista = L;
     const fuera = (snap ? snap.fuera : F.fuera) || [];
-    if (sc.cargado) scVerificar($('scEmp').value, L.slice(0, 600)).catch(console.warn);
     const n = (e) => todas.filter((x) => x.est === e).length, prom = (k) => { const v = todas.map((x) => x[k]).filter((d) => d !== null && d >= 0); return v.length ? (v.reduce((a, b) => a + b, 0) / v.length).toFixed(1) : '—'; };
     contador('nSegC', n('T') + n('R') + n('V') + n('C'));
     const emp = $('scEmp').value, li = sc.lfInfo[emp] || (snap && snap.lfInfo);
@@ -10426,7 +10404,7 @@
     caja.innerHTML = (snap ? `<div class="msg ok">Mostrando lo calculado el ${esc(new Date(snap.t).toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' }))}${sc.cargando ? ' · actualizando…' : ''}</div>` : '') + sc.err.map((e) => `<div class="msg err">${esc(e)}</div>`).join('') +
       '<div class="kpis">' + [['T', 'En tránsito', 'XML emitido, aún no llega a Recepción'], ['R', 'Recepcionadas', 'falta la revisión'], ['V', 'Revisadas', 'falta la conformidad de Compras'], ['C', 'Con conformidad', 'falta ingresarlas a LolFar'], ['L', 'En LolFar', 'ya registradas en el sistema'], ['X', 'Cerradas', 'devueltas completas, duplicadas…']].map(([k, a, b]) => `<button type="button" class="kpi scKpi" data-e="${k}" style="text-align:left;cursor:pointer${est === k ? ';border-color:var(--marca);background:var(--suave)' : ''}"><b>${a}</b><strong>${n(k)}</strong><small>${b}</small></button>`).join('') +
       `<div class="kpi"><b>Días promedio</b><strong style="font-size:15px">${prom('dTr')} · ${prom('dRev')} · ${prom('dConf')} · ${prom('dLf')}</strong><small>emisión→recepción · recepción→revisión · revisión→conformidad · conformidad→LolFar</small></div></div>` +
-      `<p class="quien">Ya en LolFar según Ingreso de facturas (✓ Lolfar de reportes anteriores): ${snap ? snap.lfPgN || 0 : (sc.lfPg ? sc.lfPg.size : 0)} factura(s), todas las empresas${!snap && sc.pgN ? ` (${sc.pgN} meses a pagar revisados)` : ''}. Si falta alguna, pulsa Actualizar.</p>` +
+      `<p class="quien">Ya en LolFar según Ingreso de facturas (✓ Lolfar de reportes anteriores): ${snap ? snap.lfPgN || 0 : (sc.lfPg ? sc.lfPg.size : 0)} factura(s), todas las empresas${!snap && sc.pgN ? ` (${sc.pgN} meses a pagar revisados)` : ''}.</p>` +
       `<p class="quien">${li ? `LolFar: ${esc(li.info)} (registros del ${esc(dia(li.desde))} al ${esc(dia(li.hasta))}). Lo registrado después de esa fecha no se ve hasta subir un reporte nuevo en Reporte Lolfar y XML.` : 'No hay reporte de LolFar subido para esta empresa: súbelo en Reporte Lolfar y XML.'}</p>` +
       (fuera.length ? `<p class="quien" title="${esc(fuera.join(' · '))}">No se muestran los XML de ${fuera.length} emisor(es) que no están en la lista de proveedores (bancos, servicios, etc.): ${esc(fuera.slice(0, 6).join(', '))}${fuera.length > 6 ? '…' : ''}. Si alguno sí es proveedor, agrégalo en Proveedores.</p>` : '') +
       `<p class="resumen">${L.length} factura(s) · S/ ${mil(r2(L.reduce((a, x) => a + (Number(x.total) || 0), 0)))}</p>` +
@@ -10442,7 +10420,7 @@
   }
   ['scEmp', 'scDesde', 'scHasta', 'scEst', 'scProv'].forEach((id) => $(id).addEventListener('change', scPintar));
   $('scTxt').addEventListener('input', () => { clearTimeout(sc.tt); sc.tt = setTimeout(scPintar, 250); });
-  $('scAct').addEventListener('click', () => { if (sc.cargando) return; sc.cargado = false; sc.verif = new Set(); scCargar(true); });
+  $('scAct').addEventListener('click', () => { if (sc.cargando) return; sc.cargado = false; scCargar(); });
   $('scCont').addEventListener('click', (e) => { const f = e.target.closest('tr.scFila'); if (f) { const ya = sc.abiertos.has(f.dataset.k); sc.abiertos.clear(); if (!ya) sc.abiertos.add(f.dataset.k); return scPintar(); /* solo una abierta a la vez */ } const mb = e.target.closest('.scManP, .scManQ'); if (mb) return scMarcar(mb.dataset.k, mb.classList.contains('scManP') ? mb.dataset.m : null); const b = e.target.closest('.scKpi'); if (b) { $('scEst').value = $('scEst').value === b.dataset.e ? '' : b.dataset.e; scPintar(); } });
   $('scExp').addEventListener('click', () => exportar('seguimiento-compras', [['Proveedor', 'prov'], ['Factura', 'doc'], ['Total', 'total'], ['Emitida (XML)', (x) => dia(x.fEmi)], ['Recibida', (x) => dia(x.fRec)], ['Días emisión→recepción', 'dTr'], ['Revisada', (x) => dia(x.fRev)], ['Revisó', (x) => (x.ped && x.ped.resp2) || ''], ['Días recepción→revisión', 'dRev'], ['Conformidad Compras', (x) => dia(x.fConf)], ['Días revisión→conformidad', 'dConf'], ['Ingresada a LolFar', (x) => dia(x.fLf)], ['Días conformidad→LolFar', 'dLf'], ['Días recepción→LolFar', 'dTot'], ['Etapa', (x) => SC_NOM[x.est] || ''], ['XML', (x) => (x.hasX ? 'Sí' : 'No')], ['Marcada a mano', (x) => (x.man ? x.man.mo : '')], ['En LolFar como', (x) => (x.lf && x.lf.mal) || '']], sc.vista));
 
