@@ -10232,13 +10232,20 @@
      Cada factura por sus etapas: emitida (XML) → recibida (Ingreso de pedidos) → conformidad de Compras → ingresada a LolFar
      (último reporte "Provisiones por Proveedor" subido, con su fecha de registro). XML sin recepción = en tránsito.
      Más adelante: lo cotizado/pedido (antes) y el stock (después). */
-  let sc = { cargado: false, cargando: false, xs: [], peds: [], lf: new Map(), lfInfo: {}, err: [], vista: [], abiertos: new Set() };
+  let sc = { cargado: false, cargando: false, xs: [], peds: [], lf: new Map(), lfInfo: {}, err: [], vista: [], abiertos: new Set(), memo: {}, snap: {}, lin: new Map(), pdm: new Map() };
+  // Lo último calculado queda guardado en este navegador: al abrir el módulo se ve al instante y se actualiza en segundo plano
+  const scSnapK = (emp) => `segC:${(yo || {}).uid}:${emp}`;
+  const scSnapLeer = (emp) => { try { return JSON.parse(localStorage.getItem(scSnapK(emp)) || 'null'); } catch (e) { return null; } };
+  const scSnapGuardar = (emp, filas) => { try { localStorage.setItem(scSnapK(emp), JSON.stringify({ t: Date.now(), filas, lfInfo: sc.lfInfo[emp] || null, lfPgN: sc.lfPg ? sc.lfPg.size : 0 })); } catch (e) { /* sin espacio: no pasa nada */ } };
+  const scProvDe = (nom, ruc) => { const k = `${nom}|${ruc}`; if (!sc.pdm.has(k)) sc.pdm.set(k, provDeEmisor(nom, ruc) || nom || ''); return sc.pdm.get(k); };
   const SC_EST = [['', 'Todas las etapas'], ['T', 'En tránsito (XML, sin recepción)'], ['R', 'Recibidas sin conformidad de Compras'], ['C', 'Con conformidad, falta LolFar'], ['L', 'Ingresadas a LolFar'], ['S', 'Recibidas sin XML']];
   const scK = (d) => cnDocK(String(d || '').toUpperCase().replace(/\s+/g, ''));
   const scFecha = (v) => { if (!v) return ''; if (typeof v === 'string') return v.slice(0, 10); const t = msDe(v); return t ? new Date(t - new Date(t).getTimezoneOffset() * 60000).toISOString().slice(0, 10) : ''; };
   async function scCargar() {
     sc.cargando = true; sc.err = []; scPintar();
-    try { sc.xs = (await sincroDocs('xmlf', (x) => x.tipo === 'FACTURA')).docs.map((d) => d.data()); } catch (e) { sc.xs = []; sc.err.push('No se pudieron leer los XML: ' + errorTexto(e)); }
+    try { // solo los datos de cabecera; los productos se leen al abrir una factura
+      sc.xs = (await sincro('xmlf')).docs().filter((d) => d.get('tipo') === 'FACTURA').map((d) => ({ xk: d.id, id: d.get('id'), serie: d.get('serie'), num: d.get('num'), fecha: d.get('fecha'), total: d.get('total'), emisor: d.get('emisor') || {}, cliente: d.get('cliente') || {} }));
+    } catch (e) { sc.xs = []; sc.err.push('No se pudieron leer los XML: ' + errorTexto(e)); }
     try { sc.peds = (await sincroDocs('pedidos')).docs.map((d) => ({ _id: d.id, ...d.data({ serverTimestamps: 'estimate' }) })); } catch (e) { sc.peds = []; sc.err.push('No se pudo leer Ingreso de pedidos: ' + errorTexto(e)); }
     sc.lf = new Map(); sc.lfInfo = {}; sc.lfPg = new Map();
     try { // lo que ya se comparó con reportes anteriores de LolFar: la fila de Pagos guarda ✓ Lolfar (regulariza lo de antes del último reporte)
@@ -10258,7 +10265,7 @@
         const n = notas[cnDocK(d.doc)], k = scK(n && n.e ? n.e : d.doc); if (!sc.lf.has(e.k + '|' + k)) sc.lf.set(e.k + '|' + k, { f: String(d.f || '').slice(0, 10), m: d.m, prov: d.prov, mal: n && n.e ? d.doc : '' }); });
       } catch (err) { sc.err.push(`No se pudo leer el reporte de LolFar de ${e.nombre}: ${errorTexto(err)}`); }
     }
-    sc.cargado = true; sc.cargando = false; scPintar();
+    sc.memo = {}; sc.cargado = true; sc.cargando = false; scPintar();
   }
   function scAbrir() {
     if (!$('scEmp').options.length) {
@@ -10269,27 +10276,44 @@
     if (!sc.cargado && !sc.cargando) scCargar(); else scPintar();
   }
   function scFilas() {
-    const emp = $('scEmp').value, E = pgCfg.empresas.find((e) => e.k === emp) || {}, ped = new Map(), usados = new Set(), out = [];
+    const emp = $('scEmp').value;
+    if (!sc.cargado) { if (!sc.snap[emp]) sc.snap[emp] = scSnapLeer(emp); return sc.snap[emp] ? sc.snap[emp].filas : null; }
+    if (sc.memo[emp]) return sc.memo[emp];
+    const out0 = scFilas0(emp); sc.memo[emp] = out0; scSnapGuardar(emp, out0); return out0;
+  }
+  function scFilas0(emp) {
+    const E = pgCfg.empresas.find((e) => e.k === emp) || {}, ped = new Map(), usados = new Set(), out = [];
     sc.peds.forEach((p) => { const k = scK(p.factura); if (!ped.has(k)) ped.set(k, []); ped.get(k).push(p); });
-    const pedDe = (k, prov) => { const L = ped.get(k) || []; return L.find((p) => !prov || provClave(p.proveedor) === provClave(prov) || provDeEmisor(prov) === p.proveedor || czNomOk(p.proveedor, prov)) || L[0] || null; };
+    const pedDe = (k, prov) => { const L = ped.get(k) || []; if (L.length < 2) return L[0] || null; return L.find((p) => !prov || provClave(p.proveedor) === provClave(prov) || scProvDe(prov) === p.proveedor || czNomOk(p.proveedor, prov)) || L[0]; };
     const fila = (o) => {
       const pgL = sc.lfPg.get(o.k) || [], pgM = pgL.find((y) => y.emp === emp) || pgL.find((y) => !o.prov || provClave(y.prov) === provClave(o.prov) || czNomOk(y.prov, o.prov)) || null; // en cualquier empresa, del mismo proveedor
       const p = o.ped, lf = sc.lf.get(emp + '|' + o.k) || pgM;
       const fRec = p ? (p.fechaRecepcion || scFecha(p.creado)) : '', fConf = p && p.conforme ? scFecha(p.conformeFecha) : '', fLf = lf && !lf.pg ? lf.f : '';
       const est = lf ? 'L' : p ? (p.conforme ? 'C' : 'R') : 'T';
-      out.push({ ...o, fRec, fConf, fLf, lf, est: !o.x && !lf ? 'S' : est, dTr: diasEntre(o.fEmi, fRec), dConf: diasEntre(fRec, fConf), dLf: diasEntre(fConf || fRec, fLf), dTot: diasEntre(fRec, fLf) });
+      const pc = p ? { bultos: p.bultos ?? null, resp: p.resp || '', recibidoPor: p.recibidoPor || '', conforme: !!p.conforme, conformePor: p.conformePor || '' } : null; // solo lo que se muestra (se guarda en el navegador)
+      out.push({ k: o.k, doc: o.doc, prov: o.prov, fEmi: o.fEmi, total: o.total, xk: o.xk || '', hasX: !!o.xk, ped: pc, fRec, fConf, fLf, lf: lf ? { f: lf.f || '', mal: lf.mal || '', pg: !!lf.pg } : null, est: !o.xk && !lf ? 'S' : est, dTr: diasEntre(o.fEmi, fRec), dConf: diasEntre(fRec, fConf), dLf: diasEntre(fConf || fRec, fLf), dTot: diasEntre(fRec, fLf) });
     };
     sc.xs.filter((x) => !E.ruc || (x.cliente && x.cliente.ruc === E.ruc)).forEach((x) => {
-      const k = scK(x.id), p = pedDe(k, x.emisor && x.emisor.nom); if (p) usados.add(p._id);
-      fila({ k, doc: `${x.serie}-${numDoc(x.num)}`, prov: provDeEmisor(x.emisor && x.emisor.nom, x.emisor && x.emisor.ruc) || (x.emisor && x.emisor.nom) || '', fEmi: x.fecha, total: x.total, x, ped: p });
+      const k = scK(x.id), p = pedDe(k, x.emisor.nom); if (p) usados.add(p._id);
+      fila({ k, doc: `${x.serie}-${numDoc(x.num)}`, prov: scProvDe(x.emisor.nom, x.emisor.ruc), fEmi: x.fecha, total: x.total, xk: x.xk, ped: p });
     });
-    sc.peds.filter((p) => !usados.has(p._id)).forEach((p) => { const k = scK(p.factura); fila({ k, doc: p.factura, prov: p.proveedor, fEmi: '', total: null, x: null, ped: p }); }); // recibidas sin XML
+    sc.peds.filter((p) => !usados.has(p._id)).forEach((p) => { const k = scK(p.factura); fila({ k, doc: p.factura, prov: p.proveedor, fEmi: '', total: null, xk: '', ped: p }); }); // recibidas sin XML
     return out;
+  }
+  // Productos de una factura: de la copia en memoria del Lector de XML o, si no está, se lee solo ese XML (1 lectura)
+  function scLineas(x) {
+    if (!x.hasX) return [];
+    if (sc.lin.has(x.xk)) return sc.lin.get(x.xk);
+    const v = sincros.get('xmlf'), d0 = v && v.m.get(x.xk);
+    if (d0) { const ls = d0.get('lineas') || []; sc.lin.set(x.xk, ls); return ls; }
+    sc.lin.set(x.xk, null);
+    getDoc(doc(db, 'xmlf', x.xk)).then((d1) => { sc.lin.set(x.xk, (d1.exists() && d1.data().lineas) || []); scPintar(); }).catch(() => sc.lin.set(x.xk, []));
+    return null;
   }
   // Detalle de una factura: línea de avance (como el seguimiento de un envío) y los productos del XML
   function scDetalle(x, dd) {
     const pasos = [
-      { t: 'Emitida', s: 'XML del proveedor', f: x.fEmi, sub: x.fEmi ? '' : 'sin XML', ok: !!x.x },
+      { t: 'Emitida', s: 'XML del proveedor', f: x.fEmi, sub: x.fEmi ? '' : 'sin XML', ok: x.hasX },
       { t: 'Recibida', s: 'Recepción', f: x.fRec, sub: x.ped ? `${x.ped.bultos ?? '?'} bulto(s) · ${String(x.ped.resp || x.ped.recibidoPor || '').split(' (')[0]}` : '', d: x.dTr, lim: 7, ok: !!x.ped },
       { t: 'Conformidad', s: 'Compras', f: x.fConf, sub: x.ped && x.ped.conforme ? String(x.ped.conformePor || '').split(' (')[0] : '', d: x.dConf, lim: 3, ok: !!(x.ped && x.ped.conforme) },
       { t: 'En LolFar', s: 'Ingresada al sistema', f: x.fLf, sub: x.lf && x.lf.pg && !x.fLf ? 'reporte anterior' : (x.lf && x.lf.mal ? 'como ' + x.lf.mal : ''), d: x.dLf, lim: 3, ok: !!x.lf }
@@ -10297,26 +10321,28 @@
     const act = pasos.reduce((a, p0, i) => (p0.ok ? i : a), -1);
     return '<div class="scPasos">' + pasos.map((p0, i) => `<div class="scPaso${p0.ok ? ' ok' : ''}${i === act ? ' act' : ''}"><div class="scBola">${p0.ok ? '✓' : i + 1}</div><div class="scPT">${esc(p0.t)}</div><div class="quien">${esc(p0.s)}</div>` +
       `<div class="scPF">${p0.f ? esc(dia(p0.f)) : ''}${p0.d !== undefined && p0.d !== null ? ' ' + dd(p0.d, p0.lim) : ''}</div>${p0.sub ? `<div class="quien">${esc(p0.sub)}</div>` : ''}</div>`).join('') + '</div>' +
-      (x.x && (x.x.lineas || []).length ? `<div class="tabla" style="margin-top:6px"><table style="font-size:13px"><tr><th>Código</th><th>Producto</th><th>Lote</th><th>Vencimiento</th><th class="num">Cantidad</th><th class="num">Total</th></tr>${x.x.lineas.map((l) => `<tr${l.bonif ? ' style="background:rgba(22,163,74,.08)"' : ''}><td>${esc(l.cod || '')}</td><td>${esc(l.desc || '')}${l.bonif ? ' <span class="est e2">Bonificación</span>' : ''}</td><td>${esc(l.lote || '')}</td><td>${esc(l.fv || '')}</td><td class="num">${esc(l.cant ?? '')} <span class="quien">${esc(l.um || '')}</span></td><td class="num">${l.total === null || l.total === undefined ? '' : mil(l.total)}</td></tr>`).join('')}</table></div>` : `<p class="quien" style="margin:6px 0 0">${x.x ? 'El XML no trae el detalle de productos.' : 'Sin XML: no se tienen los productos de esta factura.'}</p>`);
+      ((ls) => (ls && ls.length ? `<div class="tabla" style="margin-top:6px"><table style="font-size:13px"><tr><th>Código</th><th>Producto</th><th>Lote</th><th>Vencimiento</th><th class="num">Cantidad</th><th class="num">Total</th></tr>${ls.map((l) => `<tr${l.bonif ? ' style="background:rgba(22,163,74,.08)"' : ''}><td>${esc(l.cod || '')}</td><td>${esc(l.desc || '')}${l.bonif ? ' <span class="est e2">Bonificación</span>' : ''}</td><td>${esc(l.lote || '')}</td><td>${esc(l.fv || '')}</td><td class="num">${esc(l.cant ?? '')} <span class="quien">${esc(l.um || '')}</span></td><td class="num">${l.total === null || l.total === undefined ? '' : mil(l.total)}</td></tr>`).join('')}</table></div>` : `<p class="quien" style="margin:6px 0 0">${!x.hasX ? 'Sin XML: no se tienen los productos de esta factura.' : (ls === null ? 'Cargando los productos…' : 'El XML no trae el detalle de productos.')}</p>`))(scLineas(x));
   }
   function scPintar() {
     const caja = $('scCont'); if (!caja) return;
-    if (sc.cargando || !sc.cargado) { caja.innerHTML = '<p class="resumen">Leyendo XML, recepción y LolFar…</p>'; return; }
+    const F = scFilas();
+    if (!F) { caja.innerHTML = '<p class="resumen">Leyendo XML, recepción y LolFar… (la primera vez en esta PC tarda un poco; después se abre al instante)</p>'; return; }
+    const snap = !sc.cargado && sc.snap[$('scEmp').value];
     const de = $('scDesde').value, ha = $('scHasta').value, est = $('scEst').value, pv = $('scProv').value, t = $('scTxt').value.trim().toLowerCase();
-    const todas = scFilas().filter((x) => { const f = x.fEmi || x.fRec; return (!de || f >= de) && (!ha || f <= ha); });
+    const todas = F.filter((x) => { const f = x.fEmi || x.fRec; return (!de || f >= de) && (!ha || f <= ha); });
     const provs = unicos(todas.map((x) => x.prov)); $('scProv').innerHTML = '<option value="">Todos los proveedores</option>' + provs.map((v) => `<option${v === pv ? ' selected' : ''}>${esc(v)}</option>`).join('');
     const L = todas.filter((x) => (!est || x.est === est) && (!pv || x.prov === pv) && (!t || `${x.doc} ${x.prov}`.toLowerCase().includes(t)))
       .sort((a, b) => String(b.fEmi || b.fRec).localeCompare(String(a.fEmi || a.fRec)));
     sc.vista = L;
     const n = (e) => todas.filter((x) => x.est === e).length, prom = (k) => { const v = todas.map((x) => x[k]).filter((d) => d !== null && d >= 0); return v.length ? (v.reduce((a, b) => a + b, 0) / v.length).toFixed(1) : '—'; };
     contador('nSegC', n('T') + n('R') + n('C'));
-    const emp = $('scEmp').value, li = sc.lfInfo[emp];
+    const emp = $('scEmp').value, li = sc.lfInfo[emp] || (snap && snap.lfInfo);
     const dd = (d, lim) => (d === null ? '' : `<span class="${d > lim ? 'baja' : 'quien'}" title="días">${d} d</span>`);
     const EST = { T: ['En tránsito', 'e0'], R: ['Recibida', 'e1'], C: ['Con conformidad', 'e3'], L: ['En LolFar', 'e2'], S: ['Recibida sin XML', 'alerta'] };
-    caja.innerHTML = sc.err.map((e) => `<div class="msg err">${esc(e)}</div>`).join('') +
+    caja.innerHTML = (snap ? `<div class="msg ok">Mostrando lo calculado el ${esc(new Date(snap.t).toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' }))}${sc.cargando ? ' · actualizando…' : ''}</div>` : '') + sc.err.map((e) => `<div class="msg err">${esc(e)}</div>`).join('') +
       '<div class="kpis">' + [['T', 'En tránsito', 'XML emitido, aún no llega a Recepción'], ['R', 'Recibidas', 'falta la conformidad de Compras'], ['C', 'Con conformidad', 'falta ingresarlas a LolFar'], ['L', 'En LolFar', 'ya registradas en el sistema']].map(([k, a, b]) => `<button type="button" class="kpi scKpi" data-e="${k}" style="text-align:left;cursor:pointer${est === k ? ';border-color:var(--marca);background:var(--suave)' : ''}"><b>${a}</b><strong>${n(k)}</strong><small>${b}</small></button>`).join('') +
       `<div class="kpi"><b>Días promedio</b><strong style="font-size:15px">${prom('dTr')} · ${prom('dConf')} · ${prom('dLf')}</strong><small>emisión→recepción · recepción→conformidad · conformidad→LolFar</small></div></div>` +
-      `<p class="quien">Ya en LolFar según Ingreso de facturas (✓ Lolfar de reportes anteriores): ${sc.lfPg ? sc.lfPg.size : 0} factura(s), todas las empresas.</p>` +
+      `<p class="quien">Ya en LolFar según Ingreso de facturas (✓ Lolfar de reportes anteriores): ${snap ? snap.lfPgN || 0 : (sc.lfPg ? sc.lfPg.size : 0)} factura(s), todas las empresas.</p>` +
       `<p class="quien">${li ? `LolFar: ${esc(li.info)} (registros del ${esc(dia(li.desde))} al ${esc(dia(li.hasta))}). Lo registrado después de esa fecha no se ve hasta subir un reporte nuevo en Reporte Lolfar y XML.` : 'No hay reporte de LolFar subido para esta empresa: súbelo en Reporte Lolfar y XML.'}</p>` +
       `<p class="resumen">${L.length} factura(s) · S/ ${mil(r2(L.reduce((a, x) => a + (Number(x.total) || 0), 0)))}</p>` +
       '<div class="tabla"><table class="scTab"><thead><tr><th></th><th>Proveedor</th><th>Factura</th><th class="num">Total</th><th>Emitida</th><th>Etapa actual</th><th>Último paso</th></tr></thead><tbody>' +
