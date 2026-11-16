@@ -6555,14 +6555,32 @@
     const o = { ...repSer(cn.rep), info, subido: ctAhora(), por: firma() };
     cn.repEmp = emp; cn.info = repInfo(o);
     try { localStorage.setItem('lolfarRep:' + emp, JSON.stringify(o)); } catch (e) { /* sin almacenamiento */ }
-    if (o.d.length < 900000) try { await setDoc(doc(db, 'lolfarRep', emp), o); } catch (e) { console.warn('El reporte quedó guardado solo en este navegador:', errorTexto(e)); }
+    try { // un documento de Firestore admite hasta 1 MB: si el reporte es grande se guarda comprimido (así lo ven todos, también Seguimiento de compras)
+      let g = o;
+      if (o.d.length >= 900000) { const dz = await repComprimir(o.d); if (!dz || dz.length >= 900000) throw new Error('el reporte es demasiado grande'); g = { ...o, d: '', dz }; }
+      await setDoc(doc(db, 'lolfarRep', emp), g);
+    } catch (e) { console.warn('El reporte quedó guardado solo en este navegador:', errorTexto(e)); alert('Ojo: el reporte de LolFar quedó guardado solo en este navegador (' + errorTexto(e) + '). Las otras PC y Seguimiento de compras no lo verán.'); }
+  }
+  async function repComprimir(t) {
+    if (typeof CompressionStream === 'undefined') return '';
+    return b64(new Uint8Array(await new Response(new Blob([t]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer()));
+  }
+  async function repAbrir(o) { // el reporte guardado comprimido se descomprime al leerlo
+    if (!o || !o.dz || o.d) return o;
+    const bin = atob(o.dz), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i += 1) u8[i] = bin.charCodeAt(i);
+    return { ...o, d: await new Response(new Blob([u8]).stream().pipeThrough(new DecompressionStream('gzip'))).text() };
+  }
+  async function repUltimo(emp, xDoc) { // el más reciente entre Firebase y la copia de este navegador
+    let o = xDoc && xDoc.exists() ? xDoc.data() : null, l = null;
+    try { l = JSON.parse(localStorage.getItem('lolfarRep:' + emp) || 'null'); } catch (e) { l = null; }
+    if (l && (!o || String(l.subido) > String(o.subido))) o = l;
+    return repAbrir(o);
   }
   async function cnTraerRep(emp) { // true si hay un reporte (en memoria, en Firebase o en este navegador)
     if (cn.rep && cn.repEmp === emp) return true;
     let o = null, l = null;
-    try { const x = await getDoc(doc(db, 'lolfarRep', emp)); if (x.exists()) o = x.data(); } catch (e) { /* sin permiso o sin cuota: se usa la copia local */ }
-    try { l = JSON.parse(localStorage.getItem('lolfarRep:' + emp) || 'null'); } catch (e) { l = null; }
-    if (l && (!o || String(l.subido) > String(o.subido))) o = l;
+    let x = null; try { x = await getDoc(doc(db, 'lolfarRep', emp)); } catch (e) { /* sin permiso o sin cuota: se usa la copia local */ }
+    o = await repUltimo(emp, x); l = null;
     if (!o) return false;
     if (!Object.keys(cn.alias || {}).length) { const al = await getDoc(doc(db, 'config', 'concilia')).catch(() => null); cn.alias = (al && al.exists() && al.data().alias) || {}; }
     cn.rep = repDes(o); cn.repEmp = emp; cn.info = repInfo(o); cn.sis = null; cn.prov = ''; cn.otros = null;
@@ -10246,12 +10264,33 @@
     const m = new Map(), porId = new Map();
     vp.docs().forEach((d) => porId.set(d.id, d.data()));
     pgDocs.forEach((d) => porId.set(d.id, d));
+    const reg = new Map(); // toda factura registrada en Ingreso de facturas (para decir dónde está)
     porId.forEach((d) => (d.filas || []).forEach((f) => {
-      if (f.t !== 'FA' || !f.n || f.lfM === undefined || f.lfM === null) return;
-      const k = scK(`${f.s}-${f.n}`); if (!m.has(k)) m.set(k, []);
+      if (f.t !== 'FA' || !f.n) return;
+      const k = scK(`${f.s}-${f.n}`); if (!reg.has(k)) reg.set(k, []);
+      reg.get(k).push({ emp: d.emp, prov: distDe(d.dist).nombre, per: d.per, lf: f.lfM !== undefined && f.lfM !== null });
+      if (f.lfM === undefined || f.lfM === null) return;
+      if (!m.has(k)) m.set(k, []);
       m.get(k).push({ emp: d.emp, prov: distDe(d.dist).nombre, f: f.lfF || '', mal: f.lfE ? String(f.lfE).split(' (')[0] : '', pg: true });
     }));
-    sc.lfPg = m; sc.pgN = porId.size;
+    sc.lfPg = m; sc.pgReg = reg; sc.pgN = porId.size;
+  }
+  // Las que no salen en LolFar: se confirma en el servidor con los meses a pagar de su proveedor (una vez por proveedor y sesión)
+  async function scVerificar(emp, L) {
+    if (!sc.vp || !sc.cargado) return;
+    if (!sc.verif) sc.verif = new Set();
+    const ks = new Set();
+    L.forEach((x) => { if (x.est === 'L' || !x.prov) return; pgCfg.dists.forEach((d) => { if ((provCoincide(x.prov, d) || czNomOk(x.prov, d.nombre)) && !sc.verif.has(emp + '_' + d.k)) ks.add(d.k); }); });
+    if (!ks.size) return;
+    const lista = [...ks].slice(0, 25); lista.forEach((k) => sc.verif.add(emp + '_' + k));
+    let cambio = false;
+    await Promise.all(lista.map(async (k) => {
+      try {
+        const s0 = await getDocsFromServer(query(collection(db, 'pagos'), where('emp', '==', emp), where('dist', '==', k)));
+        s0.docs.forEach((d) => { const a = sc.vp.m.get(d.id); if (!a || JSON.stringify(a.get('filas')) !== JSON.stringify(d.get('filas'))) cambio = true; sc.vp.m.set(d.id, d); });
+      } catch (e) { sc.verif.delete(emp + '_' + k); console.warn(e); }
+    }));
+    if (cambio) { scLfPg(sc.vp); sc.memo = {}; if (vista === 'vSegC') scPintar(); }
   }
   async function scCargar(forzar) {
     sc.cargando = true; sc.err = []; scPintar();
@@ -10272,8 +10311,8 @@
     for (const e of pgCfg.empresas) { // último reporte de LolFar de cada empresa (y los empates a mano de sus facturas mal digitadas)
       try {
         const [x, nt] = await Promise.all([getDoc(doc(db, 'lolfarRep', e.k)), getDoc(doc(db, 'lolfarRep', e.k + '_notas')).catch(() => null)]);
-        if (!x.exists()) continue;
-        const o = x.data(), rep = repDes(o), notas = (nt && nt.exists() && nt.data().n) || {};
+        const o = await repUltimo(e.k, x); if (!o) continue;
+        const rep = repDes(o), notas = (nt && nt.exists() && nt.data().n) || {};
         sc.lfInfo[e.k] = { desde: rep.desde, hasta: rep.hasta, info: repInfo(o) };
         rep.docs.forEach((d) => { if (/^N/.test(d.tipo || '')) return; // solo facturas, no notas de crédito o débito
         const n = notas[cnDocK(d.doc)], k = scK(n && n.e ? n.e : d.doc); if (!sc.lf.has(e.k + '|' + k)) sc.lf.set(e.k + '|' + k, { f: String(d.f || '').slice(0, 10), m: d.m, prov: d.prov, mal: n && n.e ? d.doc : '' }); });
@@ -10334,7 +10373,8 @@
       { t: 'En LolFar', s: 'Ingresada al sistema', f: x.fLf, sub: x.lf && x.lf.pg && !x.fLf ? 'reporte anterior' : (x.lf && x.lf.mal ? 'como ' + x.lf.mal : ''), d: x.dLf, lim: 3, ok: !!x.lf }
     ];
     const act = pasos.reduce((a, p0, i) => (p0.ok ? i : a), -1);
-    return '<div class="scPasos">' + pasos.map((p0, i) => `<div class="scPaso${p0.ok ? ' ok' : ''}${i === act ? ' act' : ''}"><div class="scBola">${p0.ok ? '✓' : i + 1}</div><div class="scPT">${esc(p0.t)}</div><div class="quien">${esc(p0.s)}</div>` +
+    const rg = sc.pgReg && sc.pgReg.get(x.k), dnd = !sc.pgReg ? '' : rg && rg.length ? 'En Ingreso de facturas: ' + rg.map((r) => `${(pgCfg.empresas.find((e) => e.k === r.emp) || {}).nombre || r.emp} · ${r.prov} · ${perTxt(r.per)} ${r.lf ? '(✓ Lolfar)' : '(sin ✓ Lolfar)'}`).join(' / ') : 'No está registrada en Ingreso de facturas.';
+    return (dnd ? `<p class="quien" style="margin:0 0 4px">${esc(dnd)}</p>` : '') + '<div class="scPasos">' + pasos.map((p0, i) => `<div class="scPaso${p0.ok ? ' ok' : ''}${i === act ? ' act' : ''}"><div class="scBola">${p0.ok ? '✓' : i + 1}</div><div class="scPT">${esc(p0.t)}</div><div class="quien">${esc(p0.s)}</div>` +
       `<div class="scPF">${p0.f ? esc(dia(p0.f)) : ''}${p0.d !== undefined && p0.d !== null ? ' ' + dd(p0.d, p0.lim) : ''}</div>${p0.sub ? `<div class="quien">${esc(p0.sub)}</div>` : ''}</div>`).join('') + '</div>' +
       ((ls) => (ls && ls.length ? `<div class="tabla" style="margin-top:6px"><table style="font-size:13px"><tr><th>Código</th><th>Producto</th><th>Lote</th><th>Vencimiento</th><th class="num">Cantidad</th><th class="num">Total</th></tr>${ls.map((l) => `<tr${l.bonif ? ' style="background:rgba(22,163,74,.08)"' : ''}><td>${esc(l.cod || '')}</td><td>${esc(l.desc || '')}${l.bonif ? ' <span class="est e2">Bonificación</span>' : ''}</td><td>${esc(l.lote || '')}</td><td>${esc(l.fv || '')}</td><td class="num">${esc(l.cant ?? '')} <span class="quien">${esc(l.um || '')}</span></td><td class="num">${l.total === null || l.total === undefined ? '' : mil(l.total)}</td></tr>`).join('')}</table></div>` : `<p class="quien" style="margin:6px 0 0">${!x.hasX ? 'Sin XML: no se tienen los productos de esta factura.' : (ls === null ? 'Cargando los productos…' : 'El XML no trae el detalle de productos.')}</p>`))(scLineas(x));
   }
@@ -10349,6 +10389,7 @@
     const L = todas.filter((x) => (!est || (est === 'S' ? !x.hasX : x.est === est)) && (!pv || x.prov === pv) && (!t || `${x.doc} ${x.prov}`.toLowerCase().includes(t)))
       .sort((a, b) => String(b.fEmi || b.fRec).localeCompare(String(a.fEmi || a.fRec)));
     sc.vista = L;
+    if (sc.cargado) scVerificar($('scEmp').value, L.slice(0, 600)).catch(console.warn);
     const n = (e) => todas.filter((x) => x.est === e).length, prom = (k) => { const v = todas.map((x) => x[k]).filter((d) => d !== null && d >= 0); return v.length ? (v.reduce((a, b) => a + b, 0) / v.length).toFixed(1) : '—'; };
     contador('nSegC', n('T') + n('R') + n('V') + n('C'));
     const emp = $('scEmp').value, li = sc.lfInfo[emp] || (snap && snap.lfInfo);
@@ -10372,7 +10413,7 @@
   }
   ['scEmp', 'scDesde', 'scHasta', 'scEst', 'scProv'].forEach((id) => $(id).addEventListener('change', scPintar));
   $('scTxt').addEventListener('input', () => { clearTimeout(sc.tt); sc.tt = setTimeout(scPintar, 250); });
-  $('scAct').addEventListener('click', () => { if (sc.cargando) return; sc.cargado = false; scCargar(true); });
+  $('scAct').addEventListener('click', () => { if (sc.cargando) return; sc.cargado = false; sc.verif = new Set(); scCargar(true); });
   $('scCont').addEventListener('click', (e) => { const f = e.target.closest('tr.scFila'); if (f) { const ya = sc.abiertos.has(f.dataset.k); sc.abiertos.clear(); if (!ya) sc.abiertos.add(f.dataset.k); return scPintar(); /* solo una abierta a la vez */ } const b = e.target.closest('.scKpi'); if (b) { $('scEst').value = $('scEst').value === b.dataset.e ? '' : b.dataset.e; scPintar(); } });
   $('scExp').addEventListener('click', () => exportar('seguimiento-compras', [['Proveedor', 'prov'], ['Factura', 'doc'], ['Total', 'total'], ['Emitida (XML)', (x) => dia(x.fEmi)], ['Recibida', (x) => dia(x.fRec)], ['Días emisión→recepción', 'dTr'], ['Revisada', (x) => dia(x.fRev)], ['Revisó', (x) => (x.ped && x.ped.resp2) || ''], ['Días recepción→revisión', 'dRev'], ['Conformidad Compras', (x) => dia(x.fConf)], ['Días revisión→conformidad', 'dConf'], ['Ingresada a LolFar', (x) => dia(x.fLf)], ['Días conformidad→LolFar', 'dLf'], ['Días recepción→LolFar', 'dTot'], ['Etapa', (x) => SC_NOM[x.est] || ''], ['XML', (x) => (x.hasX ? 'Sí' : 'No')], ['En LolFar como', (x) => (x.lf && x.lf.mal) || '']], sc.vista));
 
