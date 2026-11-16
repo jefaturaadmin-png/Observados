@@ -10214,7 +10214,10 @@
     sc.cargando = true; sc.err = []; scPintar();
     try { sc.xs = (await sincroDocs('xmlf', (x) => x.tipo === 'FACTURA')).docs.map((d) => d.data()); } catch (e) { sc.xs = []; sc.err.push('No se pudieron leer los XML: ' + errorTexto(e)); }
     try { sc.peds = (await sincroDocs('pedidos')).docs.map((d) => ({ _id: d.id, ...d.data({ serverTimestamps: 'estimate' }) })); } catch (e) { sc.peds = []; sc.err.push('No se pudo leer Ingreso de pedidos: ' + errorTexto(e)); }
-    sc.lf = new Map(); sc.lfInfo = {};
+    sc.lf = new Map(); sc.lfInfo = {}; sc.lfPg = new Map();
+    try { // lo que ya se comparó con reportes anteriores de LolFar: la fila de Pagos guarda ✓ Lolfar (regulariza lo de antes del último reporte)
+      (await sincroDocs('pagos')).docs.forEach((d0) => { const d = d0.data(); (d.filas || []).forEach((f) => { if (f.t === 'FA' && f.n && f.lfM !== undefined && f.lfM !== null) sc.lfPg.set(d.emp + '|' + scK(`${f.s}-${f.n}`), { f: f.lfF || '', mal: f.lfE ? String(f.lfE).split(' (')[0] : '', pg: true }); }); });
+    } catch (e) { /* sin permiso para Pagos: solo el último reporte */ }
     for (const e of pgCfg.empresas) { // último reporte de LolFar de cada empresa (y los empates a mano de sus facturas mal digitadas)
       try {
         const [x, nt] = await Promise.all([getDoc(doc(db, 'lolfarRep', e.k)), getDoc(doc(db, 'lolfarRep', e.k + '_notas')).catch(() => null)]);
@@ -10240,8 +10243,8 @@
     sc.peds.forEach((p) => { const k = scK(p.factura); if (!ped.has(k)) ped.set(k, []); ped.get(k).push(p); });
     const pedDe = (k, prov) => { const L = ped.get(k) || []; return L.find((p) => !prov || provClave(p.proveedor) === provClave(prov) || provDeEmisor(prov) === p.proveedor || czNomOk(p.proveedor, prov)) || L[0] || null; };
     const fila = (o) => {
-      const p = o.ped, lf = sc.lf.get(emp + '|' + o.k) || null;
-      const fRec = p ? (p.fechaRecepcion || scFecha(p.creado)) : '', fConf = p && p.conforme ? scFecha(p.conformeFecha) : '', fLf = lf ? lf.f : '';
+      const p = o.ped, lf = sc.lf.get(emp + '|' + o.k) || sc.lfPg.get(emp + '|' + o.k) || null;
+      const fRec = p ? (p.fechaRecepcion || scFecha(p.creado)) : '', fConf = p && p.conforme ? scFecha(p.conformeFecha) : '', fLf = lf && !lf.pg ? lf.f : '';
       const est = lf ? 'L' : p ? (p.conforme ? 'C' : 'R') : 'T';
       out.push({ ...o, fRec, fConf, fLf, lf, est: !o.x && !lf ? 'S' : est, dTr: diasEntre(o.fEmi, fRec), dConf: diasEntre(fRec, fConf), dLf: diasEntre(fConf || fRec, fLf), dTot: diasEntre(fRec, fLf) });
     };
@@ -10276,7 +10279,7 @@
         `<td>${x.fEmi ? esc(dia(x.fEmi)) : '<span class="quien">sin XML</span>'}</td>` +
         `<td>${x.fRec ? `${esc(dia(x.fRec))} ${dd(x.dTr, 7)}${x.ped && x.ped.bultos ? `<div class="quien">${esc(x.ped.bultos)} bulto(s) · ${esc(String(x.ped.resp || x.ped.recibidoPor || '').split(' (')[0])}</div>` : ''}` : ''}</td>` +
         `<td>${x.fConf ? `${esc(dia(x.fConf))} ${dd(x.dConf, 3)}<div class="quien">${esc(String(x.ped.conformePor || '').split(' (')[0])}</div>` : ''}</td>` +
-        `<td>${x.fLf ? `${esc(dia(x.fLf))} ${dd(x.dLf, 3)}${x.dTot !== null ? `<div class="quien">${x.dTot} d desde la recepción</div>` : ''}` : ''}</td>` +
+        `<td>${x.fLf ? `${esc(dia(x.fLf))} ${dd(x.dLf, 3)}${x.dTot !== null ? `<div class="quien">${x.dTot} d desde la recepción</div>` : ''}` : (x.lf && x.lf.pg ? `<span class="quien" title="Ya estaba en un reporte anterior de LolFar (✓ Lolfar en Ingreso de facturas)${x.lf.f ? '; comparado el ' + esc(dia(x.lf.f)) : ''}">✓ en LolFar (reporte anterior)</span>` : '')}</td>` +
         `<td><span class="est ${EST[x.est][1]}">${esc(EST[x.est][0])}</span></td></tr>`).join('') || '<tr><td colspan="8" class="vacio">Nada en esta lista</td></tr>') +
       (L.length > 600 ? `<tr><td colspan="8" class="vacio">Se muestran 600 de ${L.length}: usa los filtros.</td></tr>` : '') + '</tbody></table></div>';
   }
