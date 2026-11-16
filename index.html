@@ -882,7 +882,7 @@
         <label for="scHasta" style="margin:0">hasta</label><input type="date" id="scHasta" style="max-width:165px">
         <select id="scEst" aria-label="Etapa" style="width:auto"></select>
         <select id="scProv" aria-label="Proveedor" style="width:auto;max-width:280px"></select>
-        <input id="scTxt" placeholder="Buscar factura o proveedor" style="flex:1;min-width:180px">
+        <input id="scTxt" placeholder="Buscar factura, proveedor o producto (nombre o código)" style="flex:1;min-width:180px">
         <button id="scAct" title="Volver a leer XML, recepción y el último reporte de LolFar">Actualizar</button>
         <button id="scExp">Exportar a Excel</button>
       </div>
@@ -10396,6 +10396,13 @@
       sc.memo = {}; scPintar();
     } catch (e) { alert('No se pudo guardar: ' + errorTexto(e)); }
   }
+  function scProdTxt(xk) { // productos de un XML en minúsculas ("código descripción"), de la copia en memoria
+    if (!sc.ptx) sc.ptx = new Map();
+    if (sc.ptx.has(xk)) return sc.ptx.get(xk);
+    const v = sincros.get('xmlf'), d0 = v && v.m.get(xk), ls = d0 ? (d0.get('lineas') || []).map((l) => `${l.cod || ''} ${l.desc || ''}`.trim().toLowerCase()) : [];
+    if (d0) sc.ptx.set(xk, ls);
+    return ls;
+  }
   function scPintar() {
     const caja = $('scCont'); if (!caja) return;
     const F = scFilas();
@@ -10404,7 +10411,9 @@
     const de = $('scDesde').value, ha = $('scHasta').value, est = $('scEst').value, pv = $('scProv').value, t = $('scTxt').value.trim().toLowerCase();
     const todas = F.filter((x) => { const f = x.fEmi || x.fRec; return (!de || f >= de) && (!ha || f <= ha); });
     const provs = unicos(todas.map((x) => x.prov)); $('scProv').innerHTML = '<option value="">Todos los proveedores</option>' + provs.map((v) => `<option${v === pv ? ' selected' : ''}>${esc(v)}</option>`).join('');
-    const L = todas.filter((x) => (!est || (est === 'S' ? !x.hasX : x.est === est)) && (!pv || x.prov === pv) && (!t || `${x.doc} ${x.prov}`.toLowerCase().includes(t)))
+    const pal = t.split(/\s+/).filter(Boolean), prodHit = new Map(); // búsqueda por producto: en las líneas del XML (todas las palabras en la misma línea)
+    const porProd = (x) => { if (!x.hasX || t.length < 3) return false; const ls = scProdTxt(x.xk).filter((l) => pal.every((w) => l.includes(w))); if (ls.length) prodHit.set(x.k, ls); return ls.length > 0; };
+    const L = todas.filter((x) => (!est || (est === 'S' ? !x.hasX : x.est === est)) && (!pv || x.prov === pv) && (!t || `${x.doc} ${x.prov}`.toLowerCase().includes(t) || porProd(x)))
       .sort((a, b) => String(b.fEmi || b.fRec).localeCompare(String(a.fEmi || a.fRec)));
     sc.vista = L;
     const fuera = (snap ? snap.fuera : F.fuera) || [];
@@ -10423,7 +10432,7 @@
       '<div class="tabla"><table class="scTab"><thead><tr><th></th><th>Proveedor</th><th>Factura</th><th class="num">Total</th><th>Emitida</th><th>Etapa actual</th><th>Último paso</th></tr></thead><tbody>' +
       (L.slice(0, 600).map((x) => {
         const ab = sc.abiertos.has(x.k), ult = x.fLf || x.fConf || x.fRev || x.fRec || x.fEmi;
-        return `<tr class="scFila${ab ? ' ab' : ''}" data-k="${esc(x.k)}" style="cursor:pointer"><td>${ab ? '▾' : '▸'}</td><td>${esc(x.prov)}</td><td><b>${esc(x.doc)}</b>${x.lf && x.lf.mal ? `<div class="quien">en LolFar como ${esc(x.lf.mal)}</div>` : ''}</td><td class="num">${x.total === null ? '' : mil(x.total)}</td>` +
+        return `<tr class="scFila${ab ? ' ab' : ''}" data-k="${esc(x.k)}" style="cursor:pointer"><td>${ab ? '▾' : '▸'}</td><td>${esc(x.prov)}</td><td><b>${esc(x.doc)}</b>${prodHit.has(x.k) ? `<div class="quien" style="color:var(--pri)">${esc(prodHit.get(x.k).slice(0, 2).map((l) => l.toUpperCase()).join(' · '))}${prodHit.get(x.k).length > 2 ? ` (+${prodHit.get(x.k).length - 2})` : ''}</div>` : ''}${x.lf && x.lf.mal ? `<div class="quien">en LolFar como ${esc(x.lf.mal)}</div>` : ''}</td><td class="num">${x.total === null ? '' : mil(x.total)}</td>` +
           `<td>${x.fEmi ? esc(dia(x.fEmi)) : '<span class="quien">sin XML</span>'}</td><td><span class="scEta ${'sc' + x.est}">${esc(EST[x.est][0])}</span>${x.hasX ? '' : ' <span class="scEta scS" title="No se tiene el XML de esta factura">sin XML</span>'}</td>` +
           `<td>${ult ? esc(dia(ult)) : (x.lf && x.lf.pg ? '<span class="quien">reporte anterior</span>' : '')}${x.dTot !== null ? ` <span class="quien">· ${x.dTot} d de recepción a LolFar</span>` : ''}</td></tr>` +
           (ab ? `<tr class="det"><td colspan="7">${scDetalle(x, dd)}</td></tr>` : '');
