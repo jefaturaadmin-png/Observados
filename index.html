@@ -10250,7 +10250,7 @@
      Cada factura por sus etapas: emitida (XML) → recibida (Ingreso de pedidos) → conformidad de Compras → ingresada a LolFar
      (último reporte "Provisiones por Proveedor" subido, con su fecha de registro). XML sin recepción = en tránsito.
      Más adelante: lo cotizado/pedido (antes) y el stock (después). */
-  let sc = { cargado: false, cargando: false, xs: [], peds: [], lf: new Map(), lfInfo: {}, err: [], vista: [], abiertos: new Set(), memo: {}, snap: {}, lin: new Map(), pdm: new Map() };
+  let sc = { man: new Map(), cargado: false, cargando: false, xs: [], peds: [], lf: new Map(), lfInfo: {}, err: [], vista: [], abiertos: new Set(), memo: {}, snap: {}, lin: new Map(), pdm: new Map() };
   // Lo último calculado queda guardado en este navegador: al abrir el módulo se ve al instante y se actualiza en segundo plano
   const scSnapK = (emp) => `segC3:${(yo || {}).uid}:${emp}`;
   const scSnapLeer = (emp) => { try { return JSON.parse(localStorage.getItem(scSnapK(emp)) || 'null'); } catch (e) { return null; } };
@@ -10299,7 +10299,7 @@
       sc.xs = (await sincro('xmlf')).docs().filter((d) => d.get('tipo') === 'FACTURA').map((d) => ({ xk: d.id, id: d.get('id'), serie: d.get('serie'), num: d.get('num'), fecha: d.get('fecha'), total: d.get('total'), emisor: d.get('emisor') || {}, cliente: d.get('cliente') || {} }));
     } catch (e) { sc.xs = []; sc.err.push('No se pudieron leer los XML: ' + errorTexto(e)); }
     try { sc.peds = (await sincroDocs('pedidos')).docs.map((d) => ({ _id: d.id, ...d.data({ serverTimestamps: 'estimate' }) })); } catch (e) { sc.peds = []; sc.err.push('No se pudo leer Ingreso de pedidos: ' + errorTexto(e)); }
-    sc.lf = new Map(); sc.lfInfo = {}; sc.lfPg = new Map();
+    sc.lf = new Map(); sc.lfInfo = {}; sc.lfPg = new Map(); sc.man = new Map();
     try { // lo que ya se comparó con reportes anteriores de LolFar: la fila de Pagos guarda ✓ Lolfar (regulariza lo de antes del último reporte)
       const vp = await sincro('pagos');
       if (forzar) { // "Actualizar": los meses a pagar de esta empresa se leen del servidor, por si la copia del navegador quedó atrasada
@@ -10312,6 +10312,7 @@
     for (const e of pgCfg.empresas) { // último reporte de LolFar de cada empresa (y los empates a mano de sus facturas mal digitadas)
       try {
         const [x, nt] = await Promise.all([getDoc(doc(db, 'lolfarRep', e.k)), getDoc(doc(db, 'lolfarRep', e.k + '_notas')).catch(() => null)]);
+        Object.entries((nt && nt.exists() && nt.data().seg) || {}).forEach(([k, v]) => sc.man.set(e.k + '|' + k, v)); // marcadas a mano: "ya está en LolFar"
         const o = await repUltimo(e.k, x); if (!o) continue;
         const rep = repDes(o), notas = (nt && nt.exists() && nt.data().n) || {};
         sc.lfInfo[e.k] = { desde: rep.desde, hasta: rep.hasta, info: repInfo(o) };
@@ -10341,11 +10342,11 @@
     const pedDe = (k, prov) => { const L = ped.get(k) || []; if (L.length < 2) return L[0] || null; return L.find((p) => !prov || provClave(p.proveedor) === provClave(prov) || scProvDe(prov) === p.proveedor || czNomOk(p.proveedor, prov)) || L[0]; };
     const fila = (o) => {
       const pgL = sc.lfPg.get(o.k) || [], pgM = pgL.find((y) => y.emp === emp) || pgL.find((y) => !o.prov || provClave(y.prov) === provClave(o.prov) || czNomOk(y.prov, o.prov)) || null; // en cualquier empresa, del mismo proveedor
-      const p = o.ped, lf = sc.lf.get(emp + '|' + o.k) || pgM;
+      const mn = sc.man.get(emp + '|' + o.k), p = o.ped, lf = sc.lf.get(emp + '|' + o.k) || pgM || (mn ? { f: '', mal: '', pg: true, man: mn.mo || 'marcada a mano' } : null);
       const fRec = p ? (p.fechaRecepcion || scFecha(p.creado)) : '', fRev = p && p.f2 ? p.f2 : '', fConf = p && p.conforme ? scFecha(p.conformeFecha) : '', fLf = lf && !lf.pg ? lf.f : '';
       const est = lf ? 'L' : p ? (p.conforme ? 'C' : fRev ? 'V' : 'R') : 'T';
       const pc = p ? { bultos: p.bultos ?? null, resp: p.resp || '', recibidoPor: p.recibidoPor || '', resp2: p.resp2 || '', conforme: !!p.conforme, conformePor: p.conformePor || '' } : null; // solo lo que se muestra (se guarda en el navegador)
-      out.push({ k: o.k, doc: o.doc, prov: o.prov, fEmi: o.fEmi, total: o.total, xk: o.xk || '', hasX: !!o.xk, ped: pc, fRec, fRev, fConf, fLf, lf: lf ? { f: lf.f || '', mal: lf.mal || '', pg: !!lf.pg } : null, est, dTr: diasEntre(o.fEmi, fRec), dRev: diasEntre(fRec, fRev), dConf: diasEntre(fRev || fRec, fConf), dLf: diasEntre(fConf || fRec, fLf), dTot: diasEntre(fRec, fLf) });
+      out.push({ k: o.k, doc: o.doc, prov: o.prov, fEmi: o.fEmi, total: o.total, xk: o.xk || '', hasX: !!o.xk, ped: pc, fRec, fRev, fConf, fLf, lf: lf ? { f: lf.f || '', mal: lf.mal || '', pg: !!lf.pg, man: lf.man || '' } : null, man: mn ? { mo: mn.mo || '', por: mn.por || '' } : null, est, dTr: diasEntre(o.fEmi, fRec), dRev: diasEntre(fRec, fRev), dConf: diasEntre(fRev || fRec, fConf), dLf: diasEntre(fConf || fRec, fLf), dTot: diasEntre(fRec, fLf) });
     };
     sc.xs.filter((x) => !E.ruc || (x.cliente && x.cliente.ruc === E.ruc)).forEach((x) => {
       const k = scK(x.id), p = pedDe(k, x.emisor.nom); if (p) usados.add(p._id);
@@ -10373,13 +10374,26 @@
       { t: 'Recepcionada', s: 'Recepción', f: x.fRec, sub: x.ped ? `${x.ped.bultos ?? '?'} bulto(s) · ${String(x.ped.resp || x.ped.recibidoPor || '').split(' (')[0]}` : '', d: x.dTr, lim: 7, ok: !!x.ped },
       { t: 'Revisada', s: 'Revisión', f: x.fRev, sub: x.ped && x.ped.resp2 ? x.ped.resp2 : '', d: x.dRev, lim: 2, ok: !!(x.fRev || (x.ped && x.ped.conforme)) },
       { t: 'Conformidad', s: 'Compras · generación de secuencia', f: x.fConf, sub: x.ped && x.ped.conforme ? String(x.ped.conformePor || '').split(' (')[0] : '', d: x.dConf, lim: 3, ok: !!(x.ped && x.ped.conforme) },
-      { t: 'En LolFar', s: 'Ingresada al sistema', f: x.fLf, sub: x.lf && x.lf.pg && !x.fLf ? 'reporte anterior' : (x.lf && x.lf.mal ? 'como ' + x.lf.mal : ''), d: x.dLf, lim: 3, ok: !!x.lf }
+      { t: 'En LolFar', s: 'Ingresada al sistema', f: x.fLf, sub: x.lf && x.lf.man ? 'marcada a mano: ' + x.lf.man : x.lf && x.lf.pg && !x.fLf ? 'reporte anterior' : (x.lf && x.lf.mal ? 'como ' + x.lf.mal : ''), d: x.dLf, lim: 3, ok: !!x.lf }
     ];
     const act = pasos.reduce((a, p0, i) => (p0.ok ? i : a), -1);
     const rg = sc.pgReg && sc.pgReg.get(x.k), dnd = !sc.pgReg ? '' : rg && rg.length ? 'En Ingreso de facturas: ' + rg.map((r) => `${(pgCfg.empresas.find((e) => e.k === r.emp) || {}).nombre || r.emp} · ${r.prov} · ${perTxt(r.per)} ${r.lf ? '(✓ Lolfar)' : '(sin ✓ Lolfar)'}`).join(' / ') : 'No está registrada en Ingreso de facturas.';
-    return (dnd ? `<p class="quien" style="margin:0 0 4px">${esc(dnd)}</p>` : '') + '<div class="scPasos">' + pasos.map((p0, i) => `<div class="scPaso${p0.ok ? ' ok' : ''}${i === act ? ' act' : ''}"><div class="scBola">${p0.ok ? '✓' : i + 1}</div><div class="scPT">${esc(p0.t)}</div><div class="quien">${esc(p0.s)}</div>` +
+    const btn = !puede('pagos') ? '' : x.man
+      ? ` <button type="button" class="mini scManQ" data-k="${esc(x.k)}" title="Marcada por ${esc(String(x.man.por).split(' (')[0])}">Quitar marca "ya está en LolFar"</button>`
+      : x.est !== 'L' ? ` <select class="scManM" style="font-size:12px;padding:2px 4px"><option>Error de digitación en LolFar</option><option>Ingresada con otro número</option><option>Otro motivo</option></select> <button type="button" class="mini scManP" data-k="${esc(x.k)}" title="Para las que ya están en LolFar pero el reporte no las trae (error de digitación u otro motivo)">✓ Ya está en LolFar</button>` : '';
+    return (dnd || btn ? `<p class="quien" style="margin:0 0 4px">${esc(dnd)}${btn}</p>` : '') + '<div class="scPasos">' + pasos.map((p0, i) => `<div class="scPaso${p0.ok ? ' ok' : ''}${i === act ? ' act' : ''}"><div class="scBola">${p0.ok ? '✓' : i + 1}</div><div class="scPT">${esc(p0.t)}</div><div class="quien">${esc(p0.s)}</div>` +
       `<div class="scPF">${p0.f ? esc(dia(p0.f)) : ''}${p0.d !== undefined && p0.d !== null ? ' ' + dd(p0.d, p0.lim) : ''}</div>${p0.sub ? `<div class="quien">${esc(p0.sub)}</div>` : ''}</div>`).join('') + '</div>' +
       ((ls) => (ls && ls.length ? `<div class="tabla" style="margin-top:6px"><table style="font-size:13px"><tr><th>Código</th><th>Producto</th><th>Lote</th><th>Vencimiento</th><th class="num">Cantidad</th><th class="num">Total</th></tr>${ls.map((l) => `<tr${l.bonif ? ' style="background:rgba(22,163,74,.08)"' : ''}><td>${esc(l.cod || '')}</td><td>${esc(l.desc || '')}${l.bonif ? ' <span class="est e2">Bonificación</span>' : ''}</td><td>${esc(l.lote || '')}</td><td>${esc(l.fv || '')}</td><td class="num">${esc(l.cant ?? '')} <span class="quien">${esc(l.um || '')}</span></td><td class="num">${l.total === null || l.total === undefined ? '' : mil(l.total)}</td></tr>`).join('')}</table></div>` : `<p class="quien" style="margin:6px 0 0">${!x.hasX ? 'Sin XML: no se tienen los productos de esta factura.' : (ls === null ? 'Cargando los productos…' : 'El XML no trae el detalle de productos.')}</p>`))(scLineas(x));
+  }
+  async function scMarcar(k, mo) { // "ya está en LolFar" a mano (se guarda junto a los empates del reporte de esa empresa)
+    const emp = $('scEmp').value;
+    if (!mo && !confirm('¿Quitar la marca "ya está en LolFar" de ' + k + '?')) return;
+    try {
+      const v = mo ? { mo, por: firma(), f: ctAhora() } : null;
+      await setDoc(doc(db, 'lolfarRep', emp + '_notas'), { seg: { [k]: v || deleteField() } }, { merge: true });
+      if (v) sc.man.set(emp + '|' + k, v); else sc.man.delete(emp + '|' + k);
+      sc.memo = {}; scPintar();
+    } catch (e) { alert('No se pudo guardar: ' + errorTexto(e)); }
   }
   function scPintar() {
     const caja = $('scCont'); if (!caja) return;
@@ -10419,7 +10433,7 @@
   ['scEmp', 'scDesde', 'scHasta', 'scEst', 'scProv'].forEach((id) => $(id).addEventListener('change', scPintar));
   $('scTxt').addEventListener('input', () => { clearTimeout(sc.tt); sc.tt = setTimeout(scPintar, 250); });
   $('scAct').addEventListener('click', () => { if (sc.cargando) return; sc.cargado = false; sc.verif = new Set(); scCargar(true); });
-  $('scCont').addEventListener('click', (e) => { const f = e.target.closest('tr.scFila'); if (f) { const ya = sc.abiertos.has(f.dataset.k); sc.abiertos.clear(); if (!ya) sc.abiertos.add(f.dataset.k); return scPintar(); /* solo una abierta a la vez */ } const b = e.target.closest('.scKpi'); if (b) { $('scEst').value = $('scEst').value === b.dataset.e ? '' : b.dataset.e; scPintar(); } });
+  $('scCont').addEventListener('click', (e) => { const f = e.target.closest('tr.scFila'); if (f) { const ya = sc.abiertos.has(f.dataset.k); sc.abiertos.clear(); if (!ya) sc.abiertos.add(f.dataset.k); return scPintar(); /* solo una abierta a la vez */ } const mb = e.target.closest('.scManP, .scManQ'); if (mb) return scMarcar(mb.dataset.k, mb.classList.contains('scManP') ? (mb.parentElement.querySelector('.scManM') || {}).value || 'Otro motivo' : null); const b = e.target.closest('.scKpi'); if (b) { $('scEst').value = $('scEst').value === b.dataset.e ? '' : b.dataset.e; scPintar(); } });
   $('scExp').addEventListener('click', () => exportar('seguimiento-compras', [['Proveedor', 'prov'], ['Factura', 'doc'], ['Total', 'total'], ['Emitida (XML)', (x) => dia(x.fEmi)], ['Recibida', (x) => dia(x.fRec)], ['Días emisión→recepción', 'dTr'], ['Revisada', (x) => dia(x.fRev)], ['Revisó', (x) => (x.ped && x.ped.resp2) || ''], ['Días recepción→revisión', 'dRev'], ['Conformidad Compras', (x) => dia(x.fConf)], ['Días revisión→conformidad', 'dConf'], ['Ingresada a LolFar', (x) => dia(x.fLf)], ['Días conformidad→LolFar', 'dLf'], ['Días recepción→LolFar', 'dTot'], ['Etapa', (x) => SC_NOM[x.est] || ''], ['XML', (x) => (x.hasX ? 'Sí' : 'No')], ['En LolFar como', (x) => (x.lf && x.lf.mal) || '']], sc.vista));
 
   function inPintar() {
