@@ -10265,16 +10265,23 @@
     const m = new Map(), porId = new Map();
     vp.docs().forEach((d) => porId.set(d.id, d.data()));
     pgDocs.forEach((d) => porId.set(d.id, d));
-    const reg = new Map(); // toda factura registrada en Ingreso de facturas (para decir dónde está)
+    const reg = new Map(), dev = new Map(); // toda factura registrada en Ingreso de facturas (para decir dónde está) y las devueltas completas
+    const obsR = new Map(); (typeof filas !== 'undefined' ? filas : []).forEach((o) => { if (!obsCuenta(o)) return; const k = refDoc(o.factura); if (!k) return; if (!obsR.has(k)) obsR.set(k, []); obsR.get(k).push(o); });
     porId.forEach((d) => (d.filas || []).forEach((f) => {
       if (f.t !== 'FA' || !f.n) return;
       const k = scK(`${f.s}-${f.n}`); if (!reg.has(k)) reg.set(k, []);
+      if (!dev.has(d.emp + '|' + k)) { // devolución completa: lo dice el comentario o lo observado ≈ el total de la factura (por céntimos)
+        const tx = `${f.l || ''} ${f.e || ''} ${f.dp || ''} ${f.x || ''}`.toUpperCase(), dist = distDe(d.dist), m = Math.abs(Number(f.m) || 0);
+        const obs = (f.o || []).reduce((a, l) => a + (Number(l.m) || 0), 0) + (obsR.get(refDoc(`${f.s}-${f.n}`)) || []).filter((o) => provCoincide(o.proveedor, dist)).reduce((a, o) => a + (Number(montoObs(o)) || 0), 0);
+        if (/DEVUELVE\s*TOD|DEVOLUCI[OÓ]N\s*(TOTAL|COMPLETA)|DEVUELTA\s*(TOTAL|COMPLETA)|DEVOLVER\s*TOD/.test(tx)) dev.set(d.emp + '|' + k, `Devolución completa (Ingreso de facturas: "${(f.l || f.e || f.dp || f.x || '').trim()}")`);
+        else if (m > 0 && obs > 0 && Math.abs(obs - m) <= 1) dev.set(d.emp + '|' + k, `Devolución completa: observado S/ ${mil(r2(obs))} ≈ factura S/ ${mil(m)}`);
+      }
       reg.get(k).push({ emp: d.emp, prov: distDe(d.dist).nombre, per: d.per, lf: f.lfM !== undefined && f.lfM !== null });
       if (f.lfM === undefined || f.lfM === null) return;
       if (!m.has(k)) m.set(k, []);
       m.get(k).push({ emp: d.emp, prov: distDe(d.dist).nombre, f: f.lfF || '', mal: f.lfE ? String(f.lfE).split(' (')[0] : '', pg: true });
     }));
-    sc.lfPg = m; sc.pgReg = reg; sc.pgN = porId.size;
+    sc.lfPg = m; sc.pgReg = reg; sc.pgDev = dev; sc.pgN = porId.size;
   }
   // Las que no salen en LolFar: se confirma en el servidor con los meses a pagar de su proveedor (una vez por proveedor y sesión)
   async function scVerificar(emp, L) {
@@ -10342,11 +10349,11 @@
     const pedDe = (k, prov) => { const L = ped.get(k) || []; if (L.length < 2) return L[0] || null; return L.find((p) => !prov || provClave(p.proveedor) === provClave(prov) || scProvDe(prov) === p.proveedor || czNomOk(p.proveedor, prov)) || L[0]; };
     const fila = (o) => {
       const pgL = sc.lfPg.get(o.k) || [], pgM = pgL.find((y) => y.emp === emp) || pgL.find((y) => !o.prov || provClave(y.prov) === provClave(o.prov) || czNomOk(y.prov, o.prov)) || null; // en cualquier empresa, del mismo proveedor
-      const mn = sc.man.get(emp + '|' + o.k), p = o.ped, lf = sc.lf.get(emp + '|' + o.k) || pgM || (mn && mn.t !== 'X' ? { f: '', mal: '', pg: true, man: mn.mo || 'marcada a mano' } : null);
+      const dv = !sc.man.get(emp + '|' + o.k) && sc.pgDev && sc.pgDev.get(emp + '|' + o.k), mn = sc.man.get(emp + '|' + o.k) || (dv ? { mo: dv, t: 'X', por: 'automático', auto: true } : null), p = o.ped, lf = sc.lf.get(emp + '|' + o.k) || pgM || (mn && mn.t !== 'X' ? { f: '', mal: '', pg: true, man: mn.mo || 'marcada a mano' } : null);
       const fRec = p ? (p.fechaRecepcion || scFecha(p.creado)) : '', fRev = p && p.f2 ? p.f2 : '', fConf = p && p.conforme ? scFecha(p.conformeFecha) : '', fLf = lf && !lf.pg ? lf.f : '';
       const est = mn && mn.t === 'X' ? 'X' : lf ? 'L' : p ? (p.conforme ? 'C' : fRev ? 'V' : 'R') : 'T';
       const pc = p ? { bultos: p.bultos ?? null, resp: p.resp || '', recibidoPor: p.recibidoPor || '', resp2: p.resp2 || '', conforme: !!p.conforme, conformePor: p.conformePor || '' } : null; // solo lo que se muestra (se guarda en el navegador)
-      out.push({ k: o.k, doc: o.doc, prov: o.prov, fEmi: o.fEmi, total: o.total, xk: o.xk || '', hasX: !!o.xk, ped: pc, fRec, fRev, fConf, fLf, lf: lf ? { f: lf.f || '', mal: lf.mal || '', pg: !!lf.pg, man: lf.man || '' } : null, man: mn ? { mo: mn.mo || '', por: mn.por || '', t: mn.t || 'L' } : null, est, dTr: diasEntre(o.fEmi, fRec), dRev: diasEntre(fRec, fRev), dConf: diasEntre(fRev || fRec, fConf), dLf: diasEntre(fConf || fRec, fLf), dTot: diasEntre(fRec, fLf) });
+      out.push({ k: o.k, doc: o.doc, prov: o.prov, fEmi: o.fEmi, total: o.total, xk: o.xk || '', hasX: !!o.xk, ped: pc, fRec, fRev, fConf, fLf, lf: lf ? { f: lf.f || '', mal: lf.mal || '', pg: !!lf.pg, man: lf.man || '' } : null, man: mn ? { mo: mn.mo || '', por: mn.por || '', t: mn.t || 'L', auto: !!mn.auto } : null, est, dTr: diasEntre(o.fEmi, fRec), dRev: diasEntre(fRec, fRev), dConf: diasEntre(fRev || fRec, fConf), dLf: diasEntre(fConf || fRec, fLf), dTot: diasEntre(fRec, fLf) });
     };
     sc.xs.filter((x) => !E.ruc || (x.cliente && x.cliente.ruc === E.ruc)).forEach((x) => {
       const k = scK(x.id), p = pedDe(k, x.emisor.nom); if (p) usados.add(p._id);
@@ -10378,10 +10385,10 @@
     ];
     const act = pasos.reduce((a, p0, i) => (p0.ok ? i : a), -1);
     const rg = sc.pgReg && sc.pgReg.get(x.k), dnd = !sc.pgReg ? '' : rg && rg.length ? 'En Ingreso de facturas: ' + rg.map((r) => `${(pgCfg.empresas.find((e) => e.k === r.emp) || {}).nombre || r.emp} · ${r.prov} · ${perTxt(r.per)} ${r.lf ? '(✓ Lolfar)' : '(sin ✓ Lolfar)'}`).join(' / ') : 'No está registrada en Ingreso de facturas.';
-    const btn = !puede('pagos') ? '' : x.man
+    const btn = !puede('pagos') || (x.man && x.man.auto) ? '' : x.man
       ? ` <button type="button" class="mini scManQ" data-k="${esc(x.k)}" title="Marcada por ${esc(String(x.man.por).split(' (')[0])}">${x.man.t === 'X' ? 'Reabrir (quitar cierre)' : 'Quitar marca "ya está en LolFar"'}</button>`
       : x.est !== 'L' ? ` <button type="button" class="mini scManP" data-k="${esc(x.k)}" data-m="X|Cerrada" title="Devuelta completa, facturación duplicada, anulada…: ya no sigue el proceso">✕ Cerrar</button> <button type="button" class="mini scManP" data-k="${esc(x.k)}" data-m="L|Marcada a mano" title="Ya está en LolFar aunque el reporte no la traiga (error de digitación u otro número)">✓ Ya está en LolFar</button>` : '';
-    const cierre = x.man && x.man.t === 'X' ? `<div class="msg" style="margin:0 0 6px;background:#eceff1;color:#37474f">Cerrada por ${esc(String(x.man.por).split(' (')[0])}. No sigue el proceso.</div>` : '';
+    const cierre = x.man && x.man.t === 'X' ? `<div class="msg" style="margin:0 0 6px;background:#eceff1;color:#37474f">${x.man.auto ? 'Cerrada automáticamente: ' + esc(x.man.mo) : 'Cerrada por ' + esc(String(x.man.por).split(' (')[0])}. No sigue el proceso.</div>` : '';
     return cierre + (dnd || btn ? `<p class="quien" style="margin:0 0 4px">${esc(dnd)}${btn}</p>` : '') + '<div class="scPasos">' + pasos.map((p0, i) => `<div class="scPaso${p0.ok ? ' ok' : ''}${i === act ? ' act' : ''}"><div class="scBola">${p0.ok ? '✓' : i + 1}</div><div class="scPT">${esc(p0.t)}</div><div class="quien">${esc(p0.s)}</div>` +
       `<div class="scPF">${p0.f ? esc(dia(p0.f)) : ''}${p0.d !== undefined && p0.d !== null ? ' ' + dd(p0.d, p0.lim) : ''}</div>${p0.sub ? `<div class="quien">${esc(p0.sub)}</div>` : ''}</div>`).join('') + '</div>' +
       ((ls) => (ls && ls.length ? `<div class="tabla" style="margin-top:6px"><table style="font-size:13px"><tr><th>Código</th><th>Producto</th><th>Lote</th><th>Vencimiento</th><th class="num">Cantidad</th><th class="num">Total</th></tr>${ls.map((l) => `<tr${l.bonif ? ' style="background:rgba(22,163,74,.08)"' : ''}><td>${esc(l.cod || '')}</td><td>${esc(l.desc || '')}${l.bonif ? ' <span class="est e2">Bonificación</span>' : ''}</td><td>${esc(l.lote || '')}</td><td>${esc(l.fv || '')}</td><td class="num">${esc(l.cant ?? '')} <span class="quien">${esc(l.um || '')}</span></td><td class="num">${l.total === null || l.total === undefined ? '' : mil(l.total)}</td></tr>`).join('')}</table></div>` : `<p class="quien" style="margin:6px 0 0">${!x.hasX ? 'Sin XML: no se tienen los productos de esta factura.' : (ls === null ? 'Cargando los productos…' : 'El XML no trae el detalle de productos.')}</p>`))(scLineas(x));
