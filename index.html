@@ -336,6 +336,19 @@
   .inCab { text-align:center; margin:6px 0 4px; }
   .inChip { display:inline-block; border:1px solid var(--borde); background:#fff; border-radius:99px; padding:5px 14px; font-size:13px; color:#423d38; }
   .inCab h2 { margin:12px 0 4px; font-size:34px; letter-spacing:-.02em; color:#231d17; } .inCab p { margin:0; color:var(--gris); font-size:15px; }
+  .inBan { display:flex; flex-wrap:wrap; background:#fff; border:1px solid #e6e1d9; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.05); overflow:hidden; }
+  .inBanL { flex:1 1 260px; display:flex; align-items:center; justify-content:center; gap:16px; padding:22px; border-right:3px solid var(--marca,#e07014); }
+  .inBanL img { width:76px; height:76px; object-fit:contain; } .inBanL b { display:block; font-size:22px; color:var(--marca,#e07014); } .inBanL span { color:var(--gris); }
+  .inBanR { flex:2 1 360px; padding:20px 26px; } .inBanR h2 { margin:10px 0 6px; font-size:28px; letter-spacing:-.02em; color:#231d17; } .inBanR p { margin:0; color:var(--gris); }
+  .inGrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:26px 18px; margin:8px 0 22px; align-items:start; }
+  .inTile { border:0; background:none; padding:0; font:inherit; color:inherit; cursor:pointer; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; }
+  .inTile .c { position:relative; width:96px; height:96px; margin:0 auto 10px; border-radius:16px; display:flex; align-items:center; justify-content:center; background:linear-gradient(160deg,#fff,#fde9dc); border:1px solid #f1dfd2; box-shadow:0 4px 12px rgba(0,0,0,.08); color:var(--marca,#e07014); transition:transform .15s, box-shadow .15s; }
+  .inTile .c svg { width:44px; height:44px; stroke-width:1.8; }
+  .inTile .t { display:block; font-weight:700; font-size:14px; line-height:1.3; }
+  .inTile:hover .c, .inTile:focus-visible .c { transform:translateY(-3px); box-shadow:0 10px 22px rgba(0,0,0,.14); }
+  .inTile .bd { position:absolute; top:-8px; right:-8px; min-width:24px; height:24px; padding:0 6px; border-radius:12px; background:#dc2626; color:#fff; font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+  .inTile .lk { position:absolute; bottom:-6px; right:-6px; font-size:16px; }
+  .inTile.sinAcceso { opacity:.45; }
   .inArco { position:relative; max-width:880px; height:400px; margin:6px auto 0; }
   .inArco:before { content:""; position:absolute; left:6%; right:6%; top:70px; bottom:-30px; border-radius:50% 50% 0 0 / 100% 100% 0 0; background:radial-gradient(ellipse at 50% 100%, #efebe5 0, #f3f0eb 55%, transparent 78%); }
   .inNodo { position:absolute; width:150px; transform:translate(-50%, -44px); text-align:center; border:0; background:none; padding:0; font:inherit; color:inherit; cursor:pointer; }
@@ -10355,9 +10368,12 @@
       const a = Math.PI * (1 - (i + 0.5) / arco.length), x = 50 + 41 * Math.cos(a), y = 92 - 70 * Math.sin(a); // % del ancho y del alto del arco
       return `<button type="button" class="inNodo${v === hi ? ' hi' : ''}${sinAcc(v) ? ' sinAcceso' : ''}" data-ir="${v}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%"><span class="c">${ico(v)}${avisos[v] ? `<span class="bd">${avisos[v]}</span>` : ''}</span><span class="t">${esc(nom(v))}</span></button>`;
     }).join('');
-    caja.innerHTML = `<div class="inCab"><span class="inChip">${esc(fecha)} · ${esc(yo.area)}</span><h2>Hola, ${esc(String(yo.nombre || '').split(' ')[0])}</h2><p>${arco.length ? 'Elige un módulo para empezar' : ''}</p></div>` +
-      (arco.length ? `<div class="inArco">${nodos}</div>` : '') +
-      (resto.length ? `<div class="inPills">${resto.map((v) => `<button type="button" class="inPill${sinAcc(v) ? ' sinAcceso' : ''}" data-ir="${v}" title="${esc(sinAcc(v) ? 'No tienes acceso a este módulo' : (IN_DESC[v] || ''))}">${ico(v)}${esc(nom(v))}</button>`).join('')}</div>` : '') +
+    // Como un portal: recuadro de bienvenida y todos los módulos en cuadrícula (los que no tiene el usuario, con candado)
+    const pend = K.filter(([, n0, , av]) => av && n0).reduce((a, [, n0]) => a + n0, 0);
+    const orden = todos.slice().sort((a, b) => (sinAcc(a) ? 1 : 0) - (sinAcc(b) ? 1 : 0));
+    caja.innerHTML = `<div class="inBan"><div class="inBanL"><img src="logo.png" alt=""><div><b>Farmacia Socorro</b><span>Pedidos, observados, XML y pagos</span></div></div>` +
+      `<div class="inBanR"><span class="inChip">${esc(fecha)} · ${esc(yo.area)}</span><h2>Hola, ${esc(String(yo.nombre || '').split(' ')[0])}</h2><p>${pend ? `Tienes <b>${pend}</b> pendiente(s) por atender: abajo está el detalle.` : 'Todo al día. Elige un módulo para empezar.'}</p></div></div>` +
+      (orden.length ? `<p class="inSec" style="margin-top:18px">Inicio</p><div class="inGrid">${orden.map((v) => `<button type="button" class="inTile${sinAcc(v) ? ' sinAcceso' : ''}" data-ir="${v}" title="${esc(sinAcc(v) ? 'No tienes acceso a este módulo' : (IN_DESC[v] || nom(v)))}"><span class="c">${ico(v)}${avisos[v] ? `<span class="bd">${avisos[v]}</span>` : ''}${sinAcc(v) ? '<span class="lk">🔒</span>' : ''}</span><span class="t">${esc(nom(v))}</span></button>`).join('')}</div>` : '') +
       (K.length ? '<p class="inSec">Por atender</p><div class="inKpis">' + K.map(([v, n, t, av]) => `<button type="button" class="inKpi${av && n ? ' aviso' : ''}" data-ir="${v}"><div class="inKpiA">${ico(v)}<strong>${n}</strong></div><div class="inKpiB">${esc(t)}</div><div class="inKpiC"><span>Abrir ${esc(nom(v))}</span><span aria-hidden="true">→</span></div></button>`).join('') + '</div>' : '') +
       (grupos.length ? '' : '<div class="caja"><p class="resumen" style="margin:0">Tu usuario aún no tiene módulos habilitados. Consulta con el administrador.</p></div>') +
       (yo.area === 'ADMIN' ? `<p class="inSec">Uso de Firebase en esta PC hoy</p><div class="caja"><p class="resumen" style="margin:0">Lecturas aproximadas: <b>${mil(lect.total).replace('.00', '')}</b> de 50,000 al día (se suman las de todas las PC)${Object.keys(lect.por).length ? ' · ' + Object.entries(lect.por).filter((x) => x[1] > 0).sort((x, y) => y[1] - x[1]).map(([k, n]) => `${esc(k)} ${n}`).join(' · ') : ''}</p>` +
