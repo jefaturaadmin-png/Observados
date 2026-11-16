@@ -41,7 +41,7 @@ service cloud.firestore {
     // Un documento por empresa + distribuidor + mes a pagar, con sus facturas y NC adentro.
     // Quitar filas (eliminar o mover) exige el permiso "pagosBorrar".
     match /pagos/{id} {
-      allow read: if puede('verPagos') || puede('verDash') || puede('verEnt') || puede('verObs');
+      allow read: if puede('verPagos') || puede('verDash') || puede('verEnt') || puede('verObs') || puede('verSegC');
       allow create: if puede('pagos');
       allow update: if puede('pagos')
         && (puede('pagosBorrar') || request.resource.data.filas.size() >= resource.data.filas.size());
