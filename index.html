@@ -492,7 +492,7 @@
     <nav>
       <div class="navGrupo"><button data-v="vInicio" title="Inicio"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span class="navT">Inicio</span></button></div>
       <div class="navGrupo"><div class=navG>Recepción</div><button data-v="vPedidos" title="Ingreso de pedidos"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><span class="navT">Ingreso de pedidos</span><span class="cuenta oculto" id="nPed"></span></button><button data-v="vNuevo" id="tabNuevo" title="Observar productos"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span class="navT">Observar productos</span></button><button data-v="vPend" title="Por devolver"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg><span class="navT">Por devolver</span><span class="cuenta oculto" id="nPend"></span></button><button data-v="vDev" title="Devueltos y NC"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="navT">Devueltos y NC</span><span class="cuenta oculto" id="nDev"></span></button><button data-v="vSeg" id="tabSeg" title="Seguimiento de devoluciones"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg><span class="navT">Seguimiento de devoluciones</span></button></div>
-      <div class="navGrupo"><div class=navG>Compras</div><button data-v="vCot" id="tabCot" title="Cotizaciones"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span class="navT">Cotizaciones</span></button></div>
+      <div class="navGrupo"><div class=navG>Compras</div><button data-v="vCot" id="tabCot" title="Cotizaciones"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span class="navT">Cotizaciones</span></button><button data-v="vSegC" title="Seguimiento de compras: de la factura emitida (XML) a la recepción, la conformidad de Compras y el ingreso a LolFar, con los días de cada paso"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><line x1="7" y1="12" x2="10" y2="12"/><line x1="14" y1="12" x2="17" y2="12"/></svg><span class="navT">Seguimiento de compras</span><span class="cuenta oculto" id="nSegC"></span></button></div>
       <div class="navGrupo"><div class=navG>Pagos</div><button data-v="vPagos" id="tabPagos" title="Ingreso de facturas y NC de cada proveedor"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg><span class="navT">Ingreso de facturas y NC</span></button><button data-v="vPagosLf" id="tabPagosLf" class="navHijo" title="Reporte de Lolfar: qué facturas de TODOS los proveedores están en Lolfar pero no registradas aquí"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="navT">Reporte Lolfar y XML</span></button><button data-v="vPagosRes" id="tabPagosRes" title="Resumen de pago de cada proveedor y mes"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg><span class="navT">Resumen de pago</span></button><button data-v="vLetras" id="tabLetras" title="Aprobación de la programación de letras de cada mes"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><polyline points="8 15 11 18 16 12"/></svg><span class="navT">Letras aprobadas</span></button><button data-v="vPagosObs" id="tabPagosObs" title="Facturas observadas y sus notas de crédito"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span class="navT">Observaciones</span></button><button data-v="vResPag" id="tabResPag" title="Resumen de pagos del mes: créditos, distribuidores, proveedores y otros pagos"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg><span class="navT">Resumen general</span></button></div>
       <div class="navGrupo"><div class=navG>Análisis de datos</div><button data-v="vDash" id="tabDash" title="Dashboard"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="navT">Dashboard</span></button></div>
       <div class="navGrupo"><div class=navG>Herramientas</div><button data-v="vXml" id="tabXml" title="Lector de XML"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg><span class="navT">Lector de XML</span><span class="cuenta oculto" id="nXml"></span></button><button data-v="vReb" id="tabReb" title="Rebate: compras por producto y laboratorio según los XML (facturas menos notas de crédito)"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg><span class="navT">Rebate</span></button></div>
@@ -848,6 +848,20 @@
       <div id="rbCont"></div>
     </div>
     <!-- ===== 9. COTIZACIONES ===== -->
+    <!-- ===== SEGUIMIENTO DE COMPRAS: factura emitida → recibida → conformidad de Compras → ingresada a LolFar ===== -->
+    <div id="vSegC" class="oculto">
+      <div class="herr">
+        <select id="scEmp" aria-label="Empresa" style="width:auto"></select>
+        <label for="scDesde" style="margin:0">Emitidas desde</label><input type="date" id="scDesde" style="max-width:165px">
+        <label for="scHasta" style="margin:0">hasta</label><input type="date" id="scHasta" style="max-width:165px">
+        <select id="scEst" aria-label="Etapa" style="width:auto"></select>
+        <select id="scProv" aria-label="Proveedor" style="width:auto;max-width:280px"></select>
+        <input id="scTxt" placeholder="Buscar factura o proveedor" style="flex:1;min-width:180px">
+        <button id="scAct" title="Volver a leer XML, recepción y el último reporte de LolFar">Actualizar</button>
+        <button id="scExp">Exportar a Excel</button>
+      </div>
+      <div id="scCont"></div>
+    </div>
     <div id="vCot" class="oculto">
       <div class="subnav" id="ctSub"><button data-tv="lista">Cotizaciones</button><button data-tv="ped">Pedidos aprobados</button><button data-tv="prov">Proveedores y códigos</button></div>
       <input type="file" id="ctArch" accept=".xls,.xlsx" class="oculto"><input type="file" id="ctArchR" accept=".xls,.xlsx" class="oculto">
@@ -1030,6 +1044,7 @@
     ['Resumen de pagos', [['verCxp', 'Ver el resumen de pagos, cierre y documentos por proveedor'], ['cxp', 'Llenar créditos bancarios y otros pagos del resumen; configurar la retención']]],
     ['Dashboard', [['verDash', 'Ver el dashboard general de compras (todas las empresas)']]],
     ['Seguimiento de devoluciones', [['verEnt', 'Ver las facturas observadas y si ya se entregaron'], ['ent', 'Marcar entregado / falta entregar']]],
+    ['Seguimiento de compras', [['verSegC', 'Ver el seguimiento de facturas: XML, recepción, conformidad e ingreso a LolFar']]],
     ['Cotizaciones', [['verCot', 'Ver las cotizaciones y los pedidos aprobados'], ['cot', 'Crear cotizaciones, registrar respuestas y decisiones'], ['cotAprobar', 'Aprobar, observar o rechazar (Gerencia)'], ['cotRec', 'Marcar la llegada de los pedidos (Recepción)']]],
     ['Lector de XML', [['verXml', 'Ver la información guardada de los XML de facturas'], ['xml', 'Subir XML y eliminar documentos guardados']]],
     ['Rebate', [['verReb', 'Ver el reporte de rebate (compras por producto y laboratorio según los XML)'], ['reb', 'Emparejar los productos del XML con el catálogo']]]
@@ -1414,7 +1429,7 @@
   }
   function aplicarPermisos() {
     const admin = yo.area === 'ADMIN';
-    const tabs = { vInicio: true, vPedidos: puede('verPedidos'), vNuevo: puede('observar'), vPend: puede('verPend'), vDev: puede('verDev'), vPagos: puede('verPagos'), vPagosRes: puede('verPagos'), vPagosObs: puede('verPagos') || puede('verObs'), vPagosLf: puede('verPagos'), vLetras: puede('verPagos'), vCxp: false, vResPag: puede('verPagos') || puede('verCxp'), vCierre: false, vProvDocs: false, vRegFac: false, vDash: puede('verDash'), vSeg: puede('verEnt'), vCot: puede('verCot'), vXml: puede('verXml'), vReb: puede('verReb'),
+    const tabs = { vInicio: true, vSegC: puede('verSegC'), vPedidos: puede('verPedidos'), vNuevo: puede('observar'), vPend: puede('verPend'), vDev: puede('verDev'), vPagos: puede('verPagos'), vPagosRes: puede('verPagos'), vPagosObs: puede('verPagos') || puede('verObs'), vPagosLf: puede('verPagos'), vLetras: puede('verPagos'), vCxp: false, vResPag: puede('verPagos') || puede('verCxp'), vCierre: false, vProvDocs: false, vRegFac: false, vDash: puede('verDash'), vSeg: puede('verEnt'), vCot: puede('verCot'), vXml: puede('verXml'), vReb: puede('verReb'),
       vUsuarios: admin, vCat: admin, vListas: admin };
     $('quien').textContent = `${yo.nombre} · ${yo.area}`;
     // Se ve toda la interfaz; lo que el usuario no tiene habilitado queda con candado y al entrar dice "No tienes acceso"
@@ -1491,7 +1506,7 @@
 
   /* ---------- Navegación ---------- */
   const NAV_DE = { vRegFac: 'vCierre' }; // vistas que comparten un mismo botón del menú
-  const VISTAS = ['vInicio', 'vPedidos', 'vNuevo', 'vPend', 'vDev', 'vPagos', 'vCxp', 'vProvDocs', 'vResPag', 'vLetras', 'vCierre', 'vRegFac', 'vDash', 'vSeg', 'vCot', 'vXml', 'vReb', 'vUsuarios', 'vCat', 'vListas', 'vNada'];
+  const VISTAS = ['vInicio', 'vPedidos', 'vNuevo', 'vPend', 'vDev', 'vPagos', 'vCxp', 'vProvDocs', 'vResPag', 'vLetras', 'vCierre', 'vRegFac', 'vDash', 'vSeg', 'vSegC', 'vCot', 'vXml', 'vReb', 'vUsuarios', 'vCat', 'vListas', 'vNada'];
   document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => { ver(b.dataset.v); if (b.dataset.v === 'vPagos' && vista === 'vPagos') pgVer('grid'); }));
   // Pagos a proveedores se abre en tres ventanas del menú (antes eran pestañas dentro del módulo)
   const PG_ALIAS = { vPagosRes: 'res', vPagosObs: 'cruce', vPagosLf: 'lf' };
@@ -1513,6 +1528,7 @@
     if (v === 'vDash') dgPintar();
     if (v === 'vLetras') ltPintar();
     if (v === 'vSeg') sgPintar();
+    if (v === 'vSegC') scAbrir();
     try { camCerrar(); } catch (e) { /* la cámara aún no se usó */ }
     if (v === 'vCot') ctPintar(true);
     if (v === 'vXml') xlAbrirVista();
@@ -10186,6 +10202,90 @@
       rb.verAuto = !!tr.closest('#rbAutoD'); rbGuardar(rb.prov, { [tr.dataset.k]: c });
     }
   });
+  /* =====================  SEGUIMIENTO DE COMPRAS  =====================
+     Cada factura por sus etapas: emitida (XML) → recibida (Ingreso de pedidos) → conformidad de Compras → ingresada a LolFar
+     (último reporte "Provisiones por Proveedor" subido, con su fecha de registro). XML sin recepción = en tránsito.
+     Más adelante: lo cotizado/pedido (antes) y el stock (después). */
+  let sc = { cargado: false, cargando: false, xs: [], peds: [], lf: new Map(), lfInfo: {}, err: [], vista: [] };
+  const SC_EST = [['', 'Todas las etapas'], ['T', 'En tránsito (XML, sin recepción)'], ['R', 'Recibidas sin conformidad de Compras'], ['C', 'Con conformidad, falta LolFar'], ['L', 'Ingresadas a LolFar'], ['S', 'Recibidas sin XML']];
+  const scK = (d) => cnDocK(String(d || '').toUpperCase().replace(/\s+/g, ''));
+  const scFecha = (v) => { if (!v) return ''; if (typeof v === 'string') return v.slice(0, 10); const t = msDe(v); return t ? new Date(t - new Date(t).getTimezoneOffset() * 60000).toISOString().slice(0, 10) : ''; };
+  async function scCargar() {
+    sc.cargando = true; sc.err = []; scPintar();
+    try { sc.xs = (await sincroDocs('xmlf', (x) => x.tipo === 'FACTURA')).docs.map((d) => d.data()); } catch (e) { sc.xs = []; sc.err.push('No se pudieron leer los XML: ' + errorTexto(e)); }
+    try { sc.peds = (await sincroDocs('pedidos')).docs.map((d) => ({ _id: d.id, ...d.data({ serverTimestamps: 'estimate' }) })); } catch (e) { sc.peds = []; sc.err.push('No se pudo leer Ingreso de pedidos: ' + errorTexto(e)); }
+    sc.lf = new Map(); sc.lfInfo = {};
+    for (const e of pgCfg.empresas) { // último reporte de LolFar de cada empresa (y los empates a mano de sus facturas mal digitadas)
+      try {
+        const [x, nt] = await Promise.all([getDoc(doc(db, 'lolfarRep', e.k)), getDoc(doc(db, 'lolfarRep', e.k + '_notas')).catch(() => null)]);
+        if (!x.exists()) continue;
+        const o = x.data(), rep = repDes(o), notas = (nt && nt.exists() && nt.data().n) || {};
+        sc.lfInfo[e.k] = { desde: rep.desde, hasta: rep.hasta, info: repInfo(o) };
+        rep.docs.forEach((d) => { if (/^N/.test(d.tipo || '')) return; // solo facturas, no notas de crédito o débito
+        const n = notas[cnDocK(d.doc)], k = scK(n && n.e ? n.e : d.doc); if (!sc.lf.has(e.k + '|' + k)) sc.lf.set(e.k + '|' + k, { f: String(d.f || '').slice(0, 10), m: d.m, prov: d.prov, mal: n && n.e ? d.doc : '' }); });
+      } catch (err) { sc.err.push(`No se pudo leer el reporte de LolFar de ${e.nombre}: ${errorTexto(err)}`); }
+    }
+    sc.cargado = true; sc.cargando = false; scPintar();
+  }
+  function scAbrir() {
+    if (!$('scEmp').options.length) {
+      $('scEmp').innerHTML = pgCfg.empresas.map((e) => `<option value="${esc(e.k)}">${esc(e.nombre)}</option>`).join('');
+      $('scEst').innerHTML = SC_EST.map(([v, n]) => `<option value="${v}">${esc(n)}</option>`).join('');
+      const d = new Date(); d.setDate(d.getDate() - 45); $('scDesde').value = d.toISOString().slice(0, 10); $('scHasta').value = hoy();
+    }
+    if (!sc.cargado && !sc.cargando) scCargar(); else scPintar();
+  }
+  function scFilas() {
+    const emp = $('scEmp').value, E = pgCfg.empresas.find((e) => e.k === emp) || {}, ped = new Map(), usados = new Set(), out = [];
+    sc.peds.forEach((p) => { const k = scK(p.factura); if (!ped.has(k)) ped.set(k, []); ped.get(k).push(p); });
+    const pedDe = (k, prov) => { const L = ped.get(k) || []; return L.find((p) => !prov || provClave(p.proveedor) === provClave(prov) || provDeEmisor(prov) === p.proveedor || czNomOk(p.proveedor, prov)) || L[0] || null; };
+    const fila = (o) => {
+      const p = o.ped, lf = sc.lf.get(emp + '|' + o.k) || null;
+      const fRec = p ? (p.fechaRecepcion || scFecha(p.creado)) : '', fConf = p && p.conforme ? scFecha(p.conformeFecha) : '', fLf = lf ? lf.f : '';
+      const est = lf ? 'L' : p ? (p.conforme ? 'C' : 'R') : 'T';
+      out.push({ ...o, fRec, fConf, fLf, lf, est: !o.x && !lf ? 'S' : est, dTr: diasEntre(o.fEmi, fRec), dConf: diasEntre(fRec, fConf), dLf: diasEntre(fConf || fRec, fLf), dTot: diasEntre(fRec, fLf) });
+    };
+    sc.xs.filter((x) => !E.ruc || (x.cliente && x.cliente.ruc === E.ruc)).forEach((x) => {
+      const k = scK(x.id), p = pedDe(k, x.emisor && x.emisor.nom); if (p) usados.add(p._id);
+      fila({ k, doc: `${x.serie}-${numDoc(x.num)}`, prov: provDeEmisor(x.emisor && x.emisor.nom, x.emisor && x.emisor.ruc) || (x.emisor && x.emisor.nom) || '', fEmi: x.fecha, total: x.total, x, ped: p });
+    });
+    sc.peds.filter((p) => !usados.has(p._id)).forEach((p) => { const k = scK(p.factura); fila({ k, doc: p.factura, prov: p.proveedor, fEmi: '', total: null, x: null, ped: p }); }); // recibidas sin XML
+    return out;
+  }
+  function scPintar() {
+    const caja = $('scCont'); if (!caja) return;
+    if (sc.cargando || !sc.cargado) { caja.innerHTML = '<p class="resumen">Leyendo XML, recepción y LolFar…</p>'; return; }
+    const de = $('scDesde').value, ha = $('scHasta').value, est = $('scEst').value, pv = $('scProv').value, t = $('scTxt').value.trim().toLowerCase();
+    const todas = scFilas().filter((x) => { const f = x.fEmi || x.fRec; return (!de || f >= de) && (!ha || f <= ha); });
+    const provs = unicos(todas.map((x) => x.prov)); $('scProv').innerHTML = '<option value="">Todos los proveedores</option>' + provs.map((v) => `<option${v === pv ? ' selected' : ''}>${esc(v)}</option>`).join('');
+    const L = todas.filter((x) => (!est || x.est === est) && (!pv || x.prov === pv) && (!t || `${x.doc} ${x.prov}`.toLowerCase().includes(t)))
+      .sort((a, b) => String(b.fEmi || b.fRec).localeCompare(String(a.fEmi || a.fRec)));
+    sc.vista = L;
+    const n = (e) => todas.filter((x) => x.est === e).length, prom = (k) => { const v = todas.map((x) => x[k]).filter((d) => d !== null && d >= 0); return v.length ? (v.reduce((a, b) => a + b, 0) / v.length).toFixed(1) : '—'; };
+    contador('nSegC', n('T') + n('R') + n('C'));
+    const emp = $('scEmp').value, li = sc.lfInfo[emp];
+    const dd = (d, lim) => (d === null ? '' : `<span class="${d > lim ? 'baja' : 'quien'}" title="días">${d} d</span>`);
+    const EST = { T: ['En tránsito', 'e0'], R: ['Recibida', 'e1'], C: ['Con conformidad', 'e3'], L: ['En LolFar', 'e2'], S: ['Recibida sin XML', 'alerta'] };
+    caja.innerHTML = sc.err.map((e) => `<div class="msg err">${esc(e)}</div>`).join('') +
+      '<div class="kpis">' + [['T', 'En tránsito', 'XML emitido, aún no llega a Recepción'], ['R', 'Recibidas', 'falta la conformidad de Compras'], ['C', 'Con conformidad', 'falta ingresarlas a LolFar'], ['L', 'En LolFar', 'ya registradas en el sistema']].map(([k, a, b]) => `<button type="button" class="kpi scKpi" data-e="${k}" style="text-align:left;cursor:pointer${est === k ? ';border-color:var(--marca);background:var(--suave)' : ''}"><b>${a}</b><strong>${n(k)}</strong><small>${b}</small></button>`).join('') +
+      `<div class="kpi"><b>Días promedio</b><strong style="font-size:15px">${prom('dTr')} · ${prom('dConf')} · ${prom('dLf')}</strong><small>emisión→recepción · recepción→conformidad · conformidad→LolFar</small></div></div>` +
+      `<p class="quien">${li ? `LolFar: ${esc(li.info)} (registros del ${esc(dia(li.desde))} al ${esc(dia(li.hasta))}). Lo registrado después de esa fecha no se ve hasta subir un reporte nuevo en Reporte Lolfar y XML.` : 'No hay reporte de LolFar subido para esta empresa: súbelo en Reporte Lolfar y XML.'}</p>` +
+      `<p class="resumen">${L.length} factura(s) · S/ ${mil(r2(L.reduce((a, x) => a + (Number(x.total) || 0), 0)))}</p>` +
+      '<div class="tabla"><table><thead><tr><th>Proveedor</th><th>Factura</th><th class="num">Total</th><th>Emitida (XML)</th><th>Recibida</th><th>Conformidad Compras</th><th>Ingresada a LolFar</th><th>Etapa</th></tr></thead><tbody>' +
+      (L.slice(0, 600).map((x) => `<tr><td>${esc(x.prov)}</td><td><b>${esc(x.doc)}</b>${x.lf && x.lf.mal ? `<div class="quien">en LolFar como ${esc(x.lf.mal)}</div>` : ''}</td><td class="num">${x.total === null ? '' : mil(x.total)}</td>` +
+        `<td>${x.fEmi ? esc(dia(x.fEmi)) : '<span class="quien">sin XML</span>'}</td>` +
+        `<td>${x.fRec ? `${esc(dia(x.fRec))} ${dd(x.dTr, 7)}${x.ped && x.ped.bultos ? `<div class="quien">${esc(x.ped.bultos)} bulto(s) · ${esc(String(x.ped.resp || x.ped.recibidoPor || '').split(' (')[0])}</div>` : ''}` : ''}</td>` +
+        `<td>${x.fConf ? `${esc(dia(x.fConf))} ${dd(x.dConf, 3)}<div class="quien">${esc(String(x.ped.conformePor || '').split(' (')[0])}</div>` : ''}</td>` +
+        `<td>${x.fLf ? `${esc(dia(x.fLf))} ${dd(x.dLf, 3)}${x.dTot !== null ? `<div class="quien">${x.dTot} d desde la recepción</div>` : ''}` : ''}</td>` +
+        `<td><span class="est ${EST[x.est][1]}">${esc(EST[x.est][0])}</span></td></tr>`).join('') || '<tr><td colspan="8" class="vacio">Nada en esta lista</td></tr>') +
+      (L.length > 600 ? `<tr><td colspan="8" class="vacio">Se muestran 600 de ${L.length}: usa los filtros.</td></tr>` : '') + '</tbody></table></div>';
+  }
+  ['scEmp', 'scDesde', 'scHasta', 'scEst', 'scProv'].forEach((id) => $(id).addEventListener('change', scPintar));
+  $('scTxt').addEventListener('input', () => { clearTimeout(sc.tt); sc.tt = setTimeout(scPintar, 250); });
+  $('scAct').addEventListener('click', () => { sc.cargado = false; scCargar(); });
+  $('scCont').addEventListener('click', (e) => { const b = e.target.closest('.scKpi'); if (b) { $('scEst').value = $('scEst').value === b.dataset.e ? '' : b.dataset.e; scPintar(); } });
+  $('scExp').addEventListener('click', () => exportar('seguimiento-compras', [['Proveedor', 'prov'], ['Factura', 'doc'], ['Total', 'total'], ['Emitida (XML)', (x) => dia(x.fEmi)], ['Recibida', (x) => dia(x.fRec)], ['Días emisión→recepción', 'dTr'], ['Conformidad Compras', (x) => dia(x.fConf)], ['Días recepción→conformidad', 'dConf'], ['Ingresada a LolFar', (x) => dia(x.fLf)], ['Días conformidad→LolFar', 'dLf'], ['Días recepción→LolFar', 'dTot'], ['Etapa', (x) => ({ T: 'En tránsito', R: 'Recibida', C: 'Con conformidad', L: 'En LolFar', S: 'Recibida sin XML' }[x.est])], ['En LolFar como', (x) => (x.lf && x.lf.mal) || '']], sc.vista));
+
   function inPintar() {
     const caja = $('vInicio');
     if (!caja || !yo || vista !== 'vInicio') return;
