@@ -138,7 +138,7 @@ service cloud.firestore {
     match /xmlf/{id} {
       // quien observa productos también puede leer el XML de esa factura (para elegir el producto y su precio);
       // quien registra pedidos, para que el proveedor salga solo al escribir la factura
-      allow read: if puede('verXml') || puede('observar') || puede('verObs') || puede('verReb') || puede('pedidos');
+      allow read: if puede('verXml') || puede('observar') || puede('verObs') || puede('verReb') || puede('pedidos') || puede('verSegC');
       allow write: if puede('xml');
     }
     // XML original completo (comprimido) de cada comprobante: se lee solo al pedir "XML original"
@@ -167,7 +167,7 @@ service cloud.firestore {
     }
     // Último reporte de Lolfar de cada empresa (para comparar sin volver a subirlo)
     match /lolfarRep/{emp} {
-      allow read: if puede('verPagos');
+      allow read: if puede('verPagos') || puede('verSegC');
       allow write: if puede('pagos');
     }
     match /cpRes/{id} {
