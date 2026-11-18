@@ -3330,7 +3330,7 @@
   // Las 3 validaciones: física (a mano), XML (conciliada) y Lolfar (está en su reporte con el mismo total)
   const lfOk = (f) => f.lfM !== undefined && f.lfM !== null && Math.abs(Number(f.lfM) - Math.abs(Number(f.m) || 0)) <= TOL_NC;
   function lfCelda(f) {
-    if (f.lfM === undefined || f.lfM === null) return '';
+    if (f.lfM === undefined || f.lfM === null) return f.t === 'FA' && f.n && puede('pagos') ? `<button class="mini pgLfEmp" data-i="${esc(f.i)}" title="Está en LolFar con otro número (mal digitada): elegir cuál es">🔗 Empatar</button>` : '';
     if (lfOk(f)) return `<span class="est e2" title="En el reporte de Lolfar con S/ ${mil(f.lfM)}${f.lfF ? ' · comparado el ' + dia(f.lfF) : ''}">✓ Lolfar</span>` + (f.lfE ? `<div class="est alerta" style="margin-top:2px" title="En Lolfar está ingresada como ${esc(f.lfE)}; se empató a mano en Reporte Lolfar y XML">⚠ mal ingresada: ${esc(f.lfE)}</div>` : '');
     return `<span class="est alerta" title="En Lolfar figura con S/ ${mil(f.lfM)}${f.lfF ? ' · comparado el ' + dia(f.lfF) : ''}">≠ Lolfar ${mil(f.lfM)} · dif. ${mil(r2(Math.abs(Number(f.m) || 0) - Number(f.lfM)))}</span>`;
   }
@@ -3825,6 +3825,59 @@
     if (!col.length || !confirm(`¿Cambiar la fecha de ${col.length} documento(s) por la de su XML?`)) return;
     const m = new Map(col.map((c) => [c.i, c.f]));
     pgGuardar(pgPer(), (l) => { l.forEach((x) => { if (m.has(x.i)) { x.f = m.get(x.i); czFirma(x); } }); }, 'Corrigió', `Fecha según XML en ${col.length} documento(s): ${col.map((c) => c.doc).join(', ')}`.slice(0, 380)).catch(pgError);
+  });
+  $('gCuerpo').addEventListener('click', (e) => { const b = e.target.closest('.pgLfEmp'); if (b) pgLfEmpAbrir(b.dataset.i).catch((err) => alert(errorTexto(err))); });
+  // Empatar desde Ingreso de facturas: esta factura está en LolFar con otro número (mal digitada); se elige cuál del último reporte
+  let pgLE = null;
+  async function pgLfEmpAbrir(i) {
+    const f = pgFila(i); if (!f) return;
+    const emp = pgEmp(), dk = pgDist(), per = pgPer();
+    if (!(await cnTraerRep(emp))) return alert('No hay reporte de LolFar subido para esta empresa: súbelo en Reporte Lolfar y XML.');
+    if (!cn.notas[emp] || !Object.keys(cn.notas[emp]).length) { const d0 = await getDoc(doc(db, 'lolfarRep', emp + '_notas')).catch(() => null); cn.notas[emp] = (d0 && d0.exists() && d0.data().n) || {}; }
+    const notas = cn.notas[emp], mio = cnDocK(`${f.s}-${f.n}`), m0 = Math.abs(Number(f.m) || 0), dig = (v) => String(v || '').replace(/\D/g, '');
+    const reg = new Set(); pgDocs.forEach((d) => (d.filas || []).forEach((x) => { if (x.n) reg.add(cnDocK(`${x.s}-${x.n}`)); }));
+    const parecido = (a, b) => { let c = 0; const A = dig(a), B = dig(b); for (let j = 1; j <= Math.min(A.length, B.length); j += 1) { if (A[A.length - j] === B[B.length - j]) c += 1; else break; } return c; };
+    const L = [...cn.rep.docs.values()].filter((d) => !/^N/.test(d.tipo || '') && cnDestino(d.prov).k === dk && cnDocK(d.doc) !== mio)
+      .map((d) => ({ d, dm: Math.abs(Math.abs(Number(d.m) || 0) - m0), pc: parecido(d.doc, mio), ya: reg.has(cnDocK(d.doc)), em: (notas[cnDocK(d.doc)] || {}).e || '' }))
+      .sort((a, b) => (a.dm <= 0.05 ? 0 : 1) - (b.dm <= 0.05 ? 0 : 1) || b.pc - a.pc || a.dm - b.dm);
+    pgLE = { f, emp, dk, per, L, m0, mio };
+    modo = 'pgLfEmp'; abierto = null;
+    $('dTit').textContent = `Empatar ${f.s}-${f.n} con LolFar`;
+    $('dCuerpo').innerHTML = `<div id="dMsg"></div><p class="quien" style="margin:0 0 8px">Registrada <b>${esc(f.s)}-${esc(f.n)}</b> por <b>S/ ${mil(m0)}</b>. Elige cómo está en el reporte de LolFar (primero las de igual importe y número parecido).</p>` +
+      `<div class="rejilla" style="margin-bottom:8px"><div class="campo"><label for="pleBus">Buscar en el reporte (número o importe)</label><input id="pleBus" placeholder="Ej.: 2141861 o 23774"></div><div class="campo"><label for="pleMan">…o escribe cómo está en LolFar</label><input id="pleMan" placeholder="Ej.: F160-2141861" style="text-transform:uppercase"></div></div>` +
+      `<div class="tabla" id="pleTab" style="max-height:42vh;overflow:auto">${pgLfEmpFilas(L.slice(0, 25), true)}</div>` +
+      `<div class="rejilla" style="margin-top:10px"><div class="campo"><label for="pleTipo">Qué pasó</label><select id="pleTipo">${Object.entries(CN_ERR).map(([k0, v]) => `<option value="${k0}">${esc(v)}</option>`).join('')}</select></div></div>` +
+      '<button class="pri" id="pleOk">Empatar</button>';
+    if (!$('dlg').open) $('dlg').showModal();
+  }
+  function pgLfEmpFilas(L, marcar) {
+    if (!L.length) return '<div class="msg err" style="margin:8px">Nada en el reporte coincide. Escribe arriba cómo está en LolFar.</div>';
+    return `<table style="font-size:13px"><tr><th></th><th>En LolFar</th><th class="num">Importe</th><th>Fecha</th><th>Diferencia</th><th></th></tr>${L.map((c, j) => `<tr><td><input type="radio" name="pleR" value="${esc(c.d.doc)}"${marcar && j === 0 ? ' checked' : ''}></td><td><b>${esc(c.d.doc)}</b></td><td class="num">${mil(Math.abs(c.d.m))}</td><td>${esc(dia(String(c.d.f || '').slice(0, 10)))}</td><td class="${c.dm <= 0.05 ? 'sube' : 'baja'}">${c.dm <= 0.05 ? 'mismo importe' : 'S/ ' + mil(r2(Math.abs(c.d.m) - pgLE.m0))}</td><td class="quien">${c.em ? 'empatada con ' + esc(c.em) : c.ya ? 'ya registrada con este número' : ''}</td></tr>`).join('')}</table>`;
+  }
+  $('dCuerpo').addEventListener('input', (e) => {
+    if (modo !== 'pgLfEmp' || !pgLE || !['pleBus', 'pleMan'].includes(e.target.id)) return;
+    const q = e.target.value.trim().toUpperCase(), qd = q.replace(/[^0-9]/g, '');
+    const L = !q ? pgLE.L.slice(0, 25) : pgLE.L.filter((c) => String(c.d.doc).toUpperCase().includes(q) || (qd && (String(c.d.doc).replace(/\D/g, '').includes(qd) || String(r2(Math.abs(c.d.m))).replace(/\D/g, '').includes(qd)))).slice(0, 60);
+    $('pleTab').innerHTML = pgLfEmpFilas(L, L.length === 1);
+  });
+  $('dCuerpo').addEventListener('click', async (e) => {
+    if (modo !== 'pgLfEmp' || e.target.id !== 'pleOk' || !pgLE) return;
+    let man = ($('pleMan').value || '').trim().toUpperCase().replace(/\s+/g, '');
+    if (/^\d+$/.test(man)) { const s0 = unicos(pgLE.L.filter((c) => numDoc(String(c.d.doc).split('-').pop()) === numDoc(man)).map((c) => c.d.doc)); if (s0.length === 1) man = s0[0]; else return alert(s0.length ? `Hay varias en el reporte con el número ${man}: ${s0.join(', ')}. Escríbela con su serie.` : `En el reporte no hay ninguna con el número ${man}. Escríbela con su serie.`); }
+    if (man && !/^[A-Z0-9]{2,4}-0*\d+$/.test(man)) return alert('Escribe la factura como serie-número, por ejemplo F160-2141861.');
+    const r0 = $('dCuerpo').querySelector('input[name="pleR"]:checked'), lfDoc = man || (r0 && r0.value); if (!lfDoc) return alert('Elige la factura del reporte o escríbela.');
+    const { f, emp, per } = pgLE, k = cnDocK(lfDoc), tipo = $('pleTipo').value, d = [...cn.rep.docs.values()].find((x) => cnDocK(x.doc) === k);
+    e.target.disabled = true;
+    try {
+      const o = { ...(cn.notas[emp][k] || {}), e: pgLE.mio, et: tipo, eP: firma(), eF: hoy() };
+      await setDoc(doc(db, 'lolfarRep', emp + '_notas'), { n: { [k]: o } }, { merge: true });
+      cn.notas[emp][k] = o; cn.autoK = '';
+      const lfE = `${lfDoc} (${(CN_ERR[tipo] || CN_ERR.otro).replace(/ en LolFar$/, '').toLowerCase()})`, v = d ? r2(Math.abs(Number(d.m) || 0)) : pgLE.m0;
+      await pgGuardar(per, (l) => l.forEach((y) => { if (y.i === f.i) { y.lfM = v; y.lfF = hoy(); y.lfE = lfE; } }), 'Lolfar', `${f.s}-${f.n} empatada con ${lfDoc} de LolFar`);
+      $('dlg').close();
+      const otra = pgDocs.some((x) => (x.filas || []).some((y) => y.i !== f.i && y.n && cnDocK(`${y.s}-${y.n}`) === k));
+      msg('gMsg', `✓ ${f.s}-${f.n} empatada con ${lfDoc} de LolFar.${otra ? ` Ojo: ${lfDoc} también está registrada como fila aparte; si es la misma factura, elimina esa fila.` : ''}`, 'ok');
+    } catch (err) { alert(errorTexto(err)); e.target.disabled = false; }
   });
   $('gCuerpo').addEventListener('click', (e) => { // conciliar a mano, o quitar la conciliación manual
     const b = e.target.closest('.czMan, .czQuitar');
