@@ -479,6 +479,8 @@
   .scTab td { padding-top:9px; padding-bottom:9px; } .scTab tr.scFila { box-shadow:inset 4px 0 0 var(--c); } .scTab tr.scFila:hover, .scTab tr.scFila.ab { background:#fff7ed; } .scFl { color:var(--gris); width:22px; }
   .scEta i { display:inline-block; width:7px; height:7px; border-radius:50%; background:currentColor; margin-right:6px; vertical-align:1px; }
   .scEdad { display:inline-block; min-width:38px; text-align:center; padding:1px 8px; border-radius:999px; font-weight:700; font-size:12px; color:var(--e); background:color-mix(in srgb, var(--e) 13%, white); }
+  #cnCont tr:has(.cnNotaT) > td { background:#fdecea !important; } #cnCont tr:has(.cnNotaT) > td:first-child { box-shadow:inset 4px 0 0 #dc2626; }
+  .cnNotaT { color:#b91c1c !important; font-weight:600; }
   .scPasos { display:flex; gap:0; padding:14px 6px 10px; background:rgba(0,0,0,.035); border-radius:10px; overflow-x:auto; }
   .scPaso { flex:1; min-width:120px; text-align:center; position:relative; padding:0 6px; }
   .scPaso:not(:last-child)::after { content:''; position:absolute; top:15px; left:calc(50% + 17px); right:calc(-50% + 17px); height:3px; background:#cfd4dc; }
@@ -6811,7 +6813,7 @@
   }
   function cnNotaHtml(d) {
     const k = cnDocK(d), n = cnNotas()[k], ed = puede('pagos');
-    if (n && n.t) return `<div class="quien" style="margin-top:3px;white-space:normal" title="${esc(`${n.por || ''} · ${dia(n.f || '')}`)}">💬 ${esc(n.t)}${ed ? ` <button class="mini cnNota" data-d="${esc(k)}" title="Cambiar o quitar el comentario">✎</button>` : ''}</div>`;
+    if (n && n.t) return `<div class="quien cnNotaT" style="margin-top:3px;white-space:normal" title="${esc(`${n.por || ''} · ${dia(n.f || '')}`)}">💬 ${esc(n.t)}${ed ? ` <button class="mini cnNota" data-d="${esc(k)}" title="Cambiar o quitar el comentario">✎</button>` : ''}</div>`;
     return ed ? `<div><button class="mini cnNota" data-d="${esc(k)}" style="margin-top:3px">+ comentario</button></div>` : '';
   }
   // Empate a mano: una factura de Lolfar mal digitada (F160-416001 en vez de F010-416001) se une a la registrada; queda en las notas
@@ -8382,7 +8384,7 @@
   // Comentario de un XML (por qué no se registró, etc.): queda guardado y lo ven todos
   function xlNotaHtml(x) {
     if (!x.k) return '';
-    if (x.nota) return `<div class="quien" style="margin-top:3px;max-width:220px;white-space:normal" title="${esc(`${x.notaPor || ''} · ${dia(x.notaF || '')}`)}">💬 ${esc(x.nota)}${puede('xml') ? ` <button class="mini xlNota" data-k="${esc(x.k)}" title="Cambiar o quitar el comentario">✎</button>` : ''}</div>`;
+    if (x.nota) return `<div class="quien cnNotaT" style="margin-top:3px;max-width:220px;white-space:normal" title="${esc(`${x.notaPor || ''} · ${dia(x.notaF || '')}`)}">💬 ${esc(x.nota)}${puede('xml') ? ` <button class="mini xlNota" data-k="${esc(x.k)}" title="Cambiar o quitar el comentario">✎</button>` : ''}</div>`;
     return puede('xml') ? `<div><button class="mini xlNota" data-k="${esc(x.k)}" style="margin-top:3px">+ comentario</button></div>` : '';
   }
   function rgBarra(pre, xs) { // barra para llevar lo marcado a un mes de pago
