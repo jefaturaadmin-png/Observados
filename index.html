@@ -293,6 +293,7 @@
   #gSub { display:none !important; }
   body:not(.menuMin) #ctSub, body:not(.menuMin) #cpSub { display:none; }
   body.menuMin .navSub { display:none !important; }
+  @media (min-width:901px) { body.ladoFuera #lado { width:0; border:none; overflow:hidden; } }
   body.menuMin #lado { width:64px; } body.menuMin .navT, body.menuMin .navG, body.menuMin .ladoMarca b { display:none; } body.menuMin .ladoMarca { padding:0 17px; }
   body.menuMin #lado nav button { justify-content:center; padding:10px 0; position:relative; } body.menuMin #lado nav .cuenta { position:absolute; top:2px; right:4px; padding:0 5px; font-size:10px; }
   body.menuMin .navGrupo + .navGrupo { border-top:1px solid rgba(255,255,255,.1); margin-top:6px; padding-top:6px; }
@@ -446,6 +447,38 @@
   /* Seguimiento de compras: etapa actual y línea de avance */
   .scEta { display:inline-block; padding:2px 10px; border-radius:999px; font-weight:700; font-size:12px; }
   .scT { background:#fff4e5; color:#b45309; } .scR { background:#e8f0fe; color:#1d4ed8; } .scC { background:#f3e8ff; color:#7e22ce; } .scL { background:#e6f4ea; color:#15803d; } .scS { background:#fdecea; color:#b91c1c; } .scV { background:#e0f2fe; color:#0369a1; } .scX { background:#eceff1; color:#455a64; text-decoration:line-through; }
+  #vSegC { font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size:14.5px; letter-spacing:-.005em; }
+  #vSegC .herr { background:#fff; border:1px solid var(--borde); border-radius:14px; padding:10px 12px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px; }
+  .scCarga { display:flex; align-items:center; gap:10px; padding:28px; background:#fff; border-radius:14px; border:1px solid var(--borde); font-weight:600; } .scCarga small { color:var(--gris); font-weight:400; }
+  .scGira { width:18px; height:18px; border-radius:50%; border:3px solid #fed7aa; border-top-color:var(--marca); animation:scGira 1s linear infinite; } @keyframes scGira { to { transform:rotate(360deg); } }
+  .scKpis { display:grid; grid-template-columns:repeat(auto-fit, minmax(165px, 1fr)); gap:10px; margin-bottom:10px; }
+  .scK { text-align:left; cursor:pointer; background:#fff; border:1px solid var(--borde); border-radius:14px !important; padding:12px 14px 12px 16px; position:relative; overflow:hidden; display:flex; flex-direction:column; gap:2px; font:inherit; color:inherit; transition:transform .12s, box-shadow .12s; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+  .scK::before { content:''; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--c); }
+  .scK:hover { transform:translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,.08); }
+  .scK.on { border-color:var(--c); box-shadow:inset 0 0 0 2px var(--c), 0 6px 16px rgba(0,0,0,.08); }
+  .scKt { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#475569; display:flex; align-items:center; gap:6px; } .scKt i { width:9px; height:9px; border-radius:50%; background:var(--c); }
+  .scK strong { font-size:30px; font-weight:800; line-height:1.1; color:var(--c); }
+  .scKp { font-size:12.5px; font-weight:600; color:#334155; } .scK small { color:var(--gris); font-size:12px; }
+  .scBarra { display:flex; height:30px; border-radius:10px; overflow:hidden; margin:4px 0 14px; box-shadow:inset 0 0 0 1px rgba(0,0,0,.06); background:#eef0f3; }
+  .scSeg { border:none !important; border-radius:0 !important; padding:0 !important; color:#fff !important; font-weight:800; font-size:13px; cursor:pointer; min-width:4px; transition:filter .12s; } .scSeg:hover { filter:brightness(1.12); } .scSeg.on { box-shadow:inset 0 0 0 3px rgba(255,255,255,.75); }
+  .scGraf { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:12px; margin-bottom:12px; }
+  .scCaja { background:#fff; border:1px solid var(--borde); border-radius:14px; padding:12px 14px; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+  .scCaja h3 { margin:0 0 10px; font-size:14px; font-weight:700; } .scCaja h3 small { font-weight:400; color:var(--gris); font-size:12px; margin-left:4px; }
+  .scPv { display:grid; grid-template-columns:minmax(90px, 38%) 1fr 32px; align-items:center; gap:8px; width:100%; background:none; border:none !important; padding:4px !important; border-radius:8px !important; cursor:pointer; font:inherit; font-size:12.5px; color:inherit; text-align:left; }
+  .scPv:hover, .scPv.on { background:#f1f5f9; } .scPv.on .scPvN { font-weight:700; }
+  .scPvN { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .scPv b { text-align:right; }
+  .scPvB { height:14px; background:#f1f5f9; border-radius:7px; overflow:hidden; } .scPvB > span { display:flex; height:100%; border-radius:7px; overflow:hidden; } .scPvB i { display:block; height:100%; }
+  .scLey { display:flex; flex-wrap:wrap; gap:10px; margin-top:8px; font-size:11.5px; color:var(--gris); } .scLey i { display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:4px; vertical-align:-1px; }
+  .scTr { display:grid; grid-template-columns:minmax(120px, 42%) 1fr 52px; align-items:center; gap:8px; margin:9px 0; font-size:12.5px; } .scTr b { text-align:right; }
+  .scTrB { position:relative; height:14px; background:#f1f5f9; border-radius:7px; } .scTrB > span { display:block; height:100%; border-radius:7px; } .scTrB em { position:absolute; top:-3px; bottom:-3px; width:2px; background:#0f172a; }
+  .scAg { display:flex; gap:10px; align-items:flex-end; height:150px; padding-top:4px; } .scAgC { flex:1; display:flex; flex-direction:column; align-items:center; height:100%; gap:4px; }
+  .scAgB { flex:1; width:70%; display:flex; align-items:flex-end; background:#f8fafc; border-radius:8px 8px 0 0; } .scAgB > span { display:block; width:100%; border-radius:8px 8px 0 0; min-height:2px; } .scAgC small { font-size:11.5px; color:var(--gris); }
+  .scInfo { margin:0 0 10px; font-size:12.5px; color:var(--gris); } .scInfo summary { cursor:pointer; font-weight:600; } .scInfo p { margin:4px 0; }
+  .scRes { font-size:15px; margin:4px 0 8px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .scTabla { border-radius:14px; box-shadow:0 1px 3px rgba(0,0,0,.05); } .scTab th { position:sticky; top:0; z-index:1; background:#f8fafc; font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:#475569; }
+  .scTab td { padding-top:9px; padding-bottom:9px; } .scTab tr.scFila { box-shadow:inset 4px 0 0 var(--c); } .scTab tr.scFila:hover, .scTab tr.scFila.ab { background:#fff7ed; } .scFl { color:var(--gris); width:22px; }
+  .scEta i { display:inline-block; width:7px; height:7px; border-radius:50%; background:currentColor; margin-right:6px; vertical-align:1px; }
+  .scEdad { display:inline-block; min-width:38px; text-align:center; padding:1px 8px; border-radius:999px; font-weight:700; font-size:12px; color:var(--e); background:color-mix(in srgb, var(--e) 13%, white); }
   .scPasos { display:flex; gap:0; padding:14px 6px 10px; background:rgba(0,0,0,.035); border-radius:10px; overflow-x:auto; }
   .scPaso { flex:1; min-width:120px; text-align:center; position:relative; padding:0 6px; }
   .scPaso:not(:last-child)::after { content:''; position:absolute; top:15px; left:calc(50% + 17px); right:calc(-50% + 17px); height:3px; background:#cfd4dc; }
@@ -457,6 +490,7 @@
   .scPT { font-weight:700; }
   .scPF { font-weight:600; margin-top:2px; }
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -1554,6 +1588,7 @@
     if (v === 'vDash') dgPintar();
     if (v === 'vLetras') ltPintar();
     if (v === 'vSeg') sgPintar();
+    document.body.classList.toggle('ladoFuera', v === 'vSegC'); // Seguimiento usa toda la pantalla: la barra se oculta (☰ la vuelve a mostrar)
     if (v === 'vSegC') scAbrir();
     try { camCerrar(); } catch (e) { /* la cámara aún no se usó */ }
     if (v === 'vCot') ctPintar(true);
@@ -10403,46 +10438,72 @@
     if (d0) sc.ptx.set(xk, ls);
     return ls;
   }
+  const SC_COL = { T: '#d97706', R: '#2563eb', V: '#0891b2', C: '#7c3aed', L: '#16a34a', X: '#64748b' };
+  const SC_KP = [['T', 'En tránsito', 'XML emitido, aún no llega a Recepción'], ['R', 'Recepcionadas', 'falta la revisión'], ['V', 'Revisadas', 'falta la conformidad de Compras'], ['C', 'Con conformidad', 'falta ingresarlas a LolFar'], ['L', 'En LolFar', 'ya registradas en el sistema'], ['X', 'Cerradas', 'devueltas completas, duplicadas…']];
   function scPintar() {
     const caja = $('scCont'); if (!caja) return;
     const F = scFilas();
-    if (!F) { caja.innerHTML = '<p class="resumen">Leyendo XML, recepción y LolFar… (la primera vez en esta PC tarda un poco; después se abre al instante)</p>'; return; }
+    if (!F) { caja.innerHTML = '<div class="scCarga"><span class="scGira"></span> Leyendo XML, recepción y LolFar… <small>(la primera vez en esta PC tarda un poco; después se abre al instante)</small></div>'; return; }
     const snap = !sc.cargado && sc.snap[$('scEmp').value];
     const de = $('scDesde').value, ha = $('scHasta').value, est = $('scEst').value, pv = $('scProv').value, t = $('scTxt').value.trim().toLowerCase();
     const todas = F.filter((x) => { const f = x.fEmi || x.fRec; return (!de || f >= de) && (!ha || f <= ha); });
     const provs = unicos(todas.map((x) => x.prov)); $('scProv').innerHTML = '<option value="">Todos los proveedores</option>' + provs.map((v) => `<option${v === pv ? ' selected' : ''}>${esc(v)}</option>`).join('');
     const pal = t.split(/\s+/).filter(Boolean), prodHit = new Map(); // búsqueda por producto: en las líneas del XML (todas las palabras en la misma línea)
     const porProd = (x) => { if (!x.hasX || t.length < 3) return false; const ls = scProdTxt(x.xk).filter((l) => pal.every((w) => l.includes(w))); if (ls.length) prodHit.set(x.k, ls); return ls.length > 0; };
-    const L = todas.filter((x) => (!est || (est === 'S' ? !x.hasX : x.est === est)) && (!pv || x.prov === pv) && (!t || `${x.doc} ${x.prov}`.toLowerCase().includes(t) || porProd(x)))
-      .sort((a, b) => String(b.fEmi || b.fRec).localeCompare(String(a.fEmi || a.fRec)));
+    const base = todas.filter((x) => (!pv || x.prov === pv) && (!t || `${x.doc} ${x.prov}`.toLowerCase().includes(t) || porProd(x))); // cuadros y gráficos: con proveedor y búsqueda, sin filtrar la etapa
+    const L = base.filter((x) => !est || (est === 'S' ? !x.hasX : x.est === est)).sort((a, b) => String(b.fEmi || b.fRec).localeCompare(String(a.fEmi || a.fRec)));
     sc.vista = L;
-    const fuera = (snap ? snap.fuera : F.fuera) || [];
-    const n = (e) => todas.filter((x) => x.est === e).length, prom = (k) => { const v = todas.map((x) => x[k]).filter((d) => d !== null && d >= 0); return v.length ? (v.reduce((a, b) => a + b, 0) / v.length).toFixed(1) : '—'; };
-    contador('nSegC', n('T') + n('R') + n('V') + n('C'));
+    const fuera = (snap ? snap.fuera : F.fuera) || [], hoyD = hoy(), PEND = new Set(['T', 'R', 'V', 'C']);
+    const n = (e) => base.filter((x) => x.est === e).length, prom = (k) => { const v = base.map((x) => x[k]).filter((d) => d !== null && d >= 0); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+    contador('nSegC', todas.filter((x) => PEND.has(x.est)).length);
     const emp = $('scEmp').value, li = sc.lfInfo[emp] || (snap && snap.lfInfo);
     const dd = (d, lim) => (d === null ? '' : `<span class="${d > lim ? 'baja' : 'quien'}" title="días">${d} d</span>`);
     const EST = { X: ['Cerrada'], T: ['En tránsito'], R: ['Recepcionada'], V: ['Revisada'], C: ['Con conformidad'], L: ['En LolFar'], S: ['Recepcionada'] }; // S: copia guardada antigua
+    const tot = base.length || 1, edad = (x) => (PEND.has(x.est) ? diasEntre(x.fEmi || x.fRec, hoyD) : null);
+    // 1) avance: una sola barra con todas las etapas (clic = filtrar)
+    const barra = '<div class="scBarra">' + SC_KP.map(([k, a]) => { const v = n(k); return v ? `<button type="button" class="scKpi scSeg${est === k ? ' on' : ''}" data-e="${k}" style="flex:${v};background:${SC_COL[k]}" title="${esc(a)}: ${v} (${Math.round(v * 100 / tot)}%)">${v * 100 / tot >= 6 ? v : ''}</button>` : ''; }).join('') + '</div>';
+    // 2) pendientes por proveedor (los 8 con más)
+    const pp = new Map(); base.forEach((x) => { if (!PEND.has(x.est)) return; if (!pp.has(x.prov)) pp.set(x.prov, { T: 0, R: 0, V: 0, C: 0, n: 0 }); const o = pp.get(x.prov); o[x.est] += 1; o.n += 1; });
+    const top = [...pp.entries()].sort((a, b) => b[1].n - a[1].n).slice(0, 8), mx = top.length ? top[0][1].n : 1;
+    const gProv = top.length ? top.map(([pr, o]) => `<button type="button" class="scPv${pv === pr ? ' on' : ''}" data-p="${esc(pr)}" title="Filtrar por ${esc(pr)}"><span class="scPvN">${esc(pr)}</span><span class="scPvB"><span style="width:${o.n * 100 / mx}%">${['T', 'R', 'V', 'C'].map((k) => (o[k] ? `<i style="flex:${o[k]};background:${SC_COL[k]}" title="${esc(EST[k][0])}: ${o[k]}"></i>` : '')).join('')}</span></span><b>${o.n}</b></button>`).join('') : '<p class="quien" style="margin:8px 0">Sin pendientes</p>';
+    // 3) tiempo promedio por tramo, contra lo esperado
+    const tramos = [['dTr', 'Emisión → recepción', 7], ['dRev', 'Recepción → revisión', 2], ['dConf', 'Revisión → conformidad', 3], ['dLf', 'Conformidad → LolFar', 3]];
+    const mxT = Math.max(1, ...tramos.map(([k, , lim]) => Math.max(prom(k) || 0, lim)));
+    const gTiempo = tramos.map(([k, a, lim]) => { const v = prom(k); return `<div class="scTr"><span>${a}</span><span class="scTrB"><span style="width:${v === null ? 0 : v * 100 / mxT}%;background:${v !== null && v > lim ? '#dc2626' : '#16a34a'}"></span><em style="left:${lim * 100 / mxT}%" title="esperado: ${lim} d"></em></span><b>${v === null ? '—' : v.toFixed(1) + ' d'}</b></div>`; }).join('');
+    // 4) antigüedad de lo pendiente (días desde la emisión)
+    const AG = [['0–3 días', 0, 3, '#16a34a'], ['4–7 días', 4, 7, '#ca8a04'], ['8–15 días', 8, 15, '#ea580c'], ['más de 15', 16, 1e9, '#dc2626']];
+    const ages = base.map(edad).filter((d) => d !== null), mxA = Math.max(1, ...AG.map(([, a, b]) => ages.filter((d) => d >= a && d <= b).length));
+    const gEdad = '<div class="scAg">' + AG.map(([a, lo, hi, c]) => { const v = ages.filter((d) => d >= lo && d <= hi).length; return `<div class="scAgC"><b>${v}</b><span class="scAgB"><span style="height:${v * 100 / mxA}%;background:${c}"></span></span><small>${a}</small></div>`; }).join('') + '</div>';
+    const monto = (e) => r2(base.filter((x) => x.est === e).reduce((a, x) => a + (Number(x.total) || 0), 0));
     caja.innerHTML = (snap ? `<div class="msg ok">Mostrando lo calculado el ${esc(new Date(snap.t).toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' }))}${sc.cargando ? ' · actualizando…' : ''}</div>` : '') + sc.err.map((e) => `<div class="msg err">${esc(e)}</div>`).join('') +
-      '<div class="kpis">' + [['T', 'En tránsito', 'XML emitido, aún no llega a Recepción'], ['R', 'Recepcionadas', 'falta la revisión'], ['V', 'Revisadas', 'falta la conformidad de Compras'], ['C', 'Con conformidad', 'falta ingresarlas a LolFar'], ['L', 'En LolFar', 'ya registradas en el sistema'], ['X', 'Cerradas', 'devueltas completas, duplicadas…']].map(([k, a, b]) => `<button type="button" class="kpi scKpi" data-e="${k}" style="text-align:left;cursor:pointer${est === k ? ';border-color:var(--marca);background:var(--suave)' : ''}"><b>${a}</b><strong>${n(k)}</strong><small>${b}</small></button>`).join('') +
-      `<div class="kpi"><b>Días promedio</b><strong style="font-size:15px">${prom('dTr')} · ${prom('dRev')} · ${prom('dConf')} · ${prom('dLf')}</strong><small>emisión→recepción · recepción→revisión · revisión→conformidad · conformidad→LolFar</small></div></div>` +
-      `<p class="quien">Ya en LolFar según Ingreso de facturas (✓ Lolfar de reportes anteriores): ${snap ? snap.lfPgN || 0 : (sc.lfPg ? sc.lfPg.size : 0)} factura(s), todas las empresas${!snap && sc.pgN ? ` (${sc.pgN} meses a pagar revisados)` : ''}.</p>` +
-      `<p class="quien">${li ? `LolFar: ${esc(li.info)} (registros del ${esc(dia(li.desde))} al ${esc(dia(li.hasta))}). Lo registrado después de esa fecha no se ve hasta subir un reporte nuevo en Reporte Lolfar y XML.` : 'No hay reporte de LolFar subido para esta empresa: súbelo en Reporte Lolfar y XML.'}</p>` +
-      (fuera.length ? `<p class="quien" title="${esc(fuera.join(' · '))}">No se muestran los XML de ${fuera.length} emisor(es) que no están en la lista de proveedores (bancos, servicios, etc.): ${esc(fuera.slice(0, 6).join(', '))}${fuera.length > 6 ? '…' : ''}. Si alguno sí es proveedor, agrégalo en Proveedores.</p>` : '') +
-      `<p class="resumen">${L.length} factura(s) · S/ ${mil(r2(L.reduce((a, x) => a + (Number(x.total) || 0), 0)))}</p>` +
-      '<div class="tabla"><table class="scTab"><thead><tr><th></th><th>Proveedor</th><th>Factura</th><th class="num">Total</th><th>Emitida</th><th>Etapa actual</th><th>Último paso</th></tr></thead><tbody>' +
+      '<div class="scKpis">' + SC_KP.map(([k, a, b]) => `<button type="button" class="scK scKpi${est === k ? ' on' : ''}" data-e="${k}" style="--c:${SC_COL[k]}"><span class="scKt"><i></i>${a}</span><strong>${n(k)}</strong><span class="scKp">${Math.round(n(k) * 100 / tot)}% · S/ ${mil(monto(k))}</span><small>${b}</small></button>`).join('') + '</div>' +
+      barra +
+      '<div class="scGraf">' +
+      `<div class="scCaja"><h3>Pendientes por proveedor <small>clic para filtrar</small></h3>${gProv}<div class="scLey">${['T', 'R', 'V', 'C'].map((k) => `<span><i style="background:${SC_COL[k]}"></i>${EST[k][0]}</span>`).join('')}</div></div>` +
+      `<div class="scCaja"><h3>Tiempo promedio por etapa <small>la rayita = lo esperado</small></h3>${gTiempo}</div>` +
+      `<div class="scCaja"><h3>Antigüedad de lo pendiente <small>días desde la emisión</small></h3>${gEdad}</div>` +
+      '</div>' +
+      '<details class="scInfo"><summary>Fuentes de datos</summary>' +
+      `<p>Ya en LolFar según Ingreso de facturas (✓ Lolfar de reportes anteriores): ${snap ? snap.lfPgN || 0 : (sc.lfPg ? sc.lfPg.size : 0)} factura(s), todas las empresas${!snap && sc.pgN ? ` (${sc.pgN} meses a pagar revisados)` : ''}.</p>` +
+      `<p>${li ? `LolFar: ${esc(li.info)} (registros del ${esc(dia(li.desde))} al ${esc(dia(li.hasta))}). Lo registrado después de esa fecha no se ve hasta subir un reporte nuevo en Reporte Lolfar y XML.` : 'No hay reporte de LolFar subido para esta empresa: súbelo en Reporte Lolfar y XML.'}</p>` +
+      (fuera.length ? `<p title="${esc(fuera.join(' · '))}">No se muestran los XML de ${fuera.length} emisor(es) que no están en la lista de proveedores (bancos, servicios, etc.): ${esc(fuera.slice(0, 6).join(', '))}${fuera.length > 6 ? '…' : ''}. Si alguno sí es proveedor, agrégalo en Proveedores.</p>` : '') +
+      '</details>' +
+      `<div class="scRes"><span><b>${L.length}</b> factura(s) · <b>S/ ${mil(r2(L.reduce((a, x) => a + (Number(x.total) || 0), 0)))}</b></span>${est || pv || t ? ' <button type="button" class="mini scLimpiar">✕ Quitar filtros</button>' : ''}</div>` +
+      '<div class="tabla scTabla"><table class="scTab"><thead><tr><th></th><th>Proveedor</th><th>Factura</th><th class="num">Total</th><th>Emitida</th><th>Etapa actual</th><th>Antigüedad</th><th>Último paso</th></tr></thead><tbody>' +
       (L.slice(0, 600).map((x) => {
-        const ab = sc.abiertos.has(x.k), ult = x.fLf || x.fConf || x.fRev || x.fRec || x.fEmi;
-        return `<tr class="scFila${ab ? ' ab' : ''}" data-k="${esc(x.k)}" style="cursor:pointer"><td>${ab ? '▾' : '▸'}</td><td>${esc(x.prov)}</td><td><b>${esc(x.doc)}</b>${prodHit.has(x.k) ? `<div class="quien" style="color:var(--pri)">${esc(prodHit.get(x.k).slice(0, 2).map((l) => l.toUpperCase()).join(' · '))}${prodHit.get(x.k).length > 2 ? ` (+${prodHit.get(x.k).length - 2})` : ''}</div>` : ''}${x.lf && x.lf.mal ? `<div class="quien">en LolFar como ${esc(x.lf.mal)}</div>` : ''}</td><td class="num">${x.total === null ? '' : mil(x.total)}</td>` +
-          `<td>${x.fEmi ? esc(dia(x.fEmi)) : '<span class="quien">sin XML</span>'}</td><td><span class="scEta ${'sc' + x.est}">${esc(EST[x.est][0])}</span>${x.hasX ? '' : ' <span class="scEta scS" title="No se tiene el XML de esta factura">sin XML</span>'}</td>` +
+        const ab = sc.abiertos.has(x.k), ult = x.fLf || x.fConf || x.fRev || x.fRec || x.fEmi, ed = edad(x);
+        return `<tr class="scFila${ab ? ' ab' : ''}" data-k="${esc(x.k)}" style="cursor:pointer;--c:${SC_COL[x.est] || '#94a3b8'}"><td class="scFl">${ab ? '▾' : '▸'}</td><td>${esc(x.prov)}</td><td><b>${esc(x.doc)}</b>${prodHit.has(x.k) ? `<div class="quien" style="color:var(--pri)">${esc(prodHit.get(x.k).slice(0, 2).map((l) => l.toUpperCase()).join(' · '))}${prodHit.get(x.k).length > 2 ? ` (+${prodHit.get(x.k).length - 2})` : ''}</div>` : ''}${x.lf && x.lf.mal ? `<div class="quien">en LolFar como ${esc(x.lf.mal)}</div>` : ''}</td><td class="num">${x.total === null ? '' : mil(x.total)}</td>` +
+          `<td>${x.fEmi ? esc(dia(x.fEmi)) : '<span class="quien">sin XML</span>'}</td><td><span class="scEta ${'sc' + x.est}"><i></i>${esc(EST[x.est][0])}</span>${x.hasX ? '' : ' <span class="scEta scS" title="No se tiene el XML de esta factura">sin XML</span>'}</td>` +
+          `<td>${ed === null ? '' : `<span class="scEdad" style="--e:${ed > 15 ? '#dc2626' : ed > 7 ? '#ea580c' : ed > 3 ? '#ca8a04' : '#16a34a'}">${ed} d</span>`}</td>` +
           `<td>${ult ? esc(dia(ult)) : (x.lf && x.lf.pg ? '<span class="quien">reporte anterior</span>' : '')}${x.dTot !== null ? ` <span class="quien">· ${x.dTot} d de recepción a LolFar</span>` : ''}</td></tr>` +
-          (ab ? `<tr class="det"><td colspan="7">${scDetalle(x, dd)}</td></tr>` : '');
-      }).join('') || '<tr><td colspan="7" class="vacio">Nada en esta lista</td></tr>') +
-      (L.length > 600 ? `<tr><td colspan="7" class="vacio">Se muestran 600 de ${L.length}: usa los filtros.</td></tr>` : '') + '</tbody></table></div>';
+          (ab ? `<tr class="det"><td colspan="8">${scDetalle(x, dd)}</td></tr>` : '');
+      }).join('') || '<tr><td colspan="8" class="vacio">Nada en esta lista</td></tr>') +
+      (L.length > 600 ? `<tr><td colspan="8" class="vacio">Se muestran 600 de ${L.length}: usa los filtros.</td></tr>` : '') + '</tbody></table></div>';
   }
   ['scEmp', 'scDesde', 'scHasta', 'scEst', 'scProv'].forEach((id) => $(id).addEventListener('change', scPintar));
   $('scTxt').addEventListener('input', () => { clearTimeout(sc.tt); sc.tt = setTimeout(scPintar, 250); });
   $('scAct').addEventListener('click', () => { if (sc.cargando) return; sc.cargado = false; scCargar(); });
-  $('scCont').addEventListener('click', (e) => { const f = e.target.closest('tr.scFila'); if (f) { const ya = sc.abiertos.has(f.dataset.k); sc.abiertos.clear(); if (!ya) sc.abiertos.add(f.dataset.k); return scPintar(); /* solo una abierta a la vez */ } const mb = e.target.closest('.scManP, .scManQ'); if (mb) return scMarcar(mb.dataset.k, mb.classList.contains('scManP') ? mb.dataset.m : null); const b = e.target.closest('.scKpi'); if (b) { $('scEst').value = $('scEst').value === b.dataset.e ? '' : b.dataset.e; scPintar(); } });
+  $('scCont').addEventListener('click', (e) => { const f = e.target.closest('tr.scFila'); if (f) { const ya = sc.abiertos.has(f.dataset.k); sc.abiertos.clear(); if (!ya) sc.abiertos.add(f.dataset.k); return scPintar(); /* solo una abierta a la vez */ } const mb = e.target.closest('.scManP, .scManQ'); if (mb) return scMarcar(mb.dataset.k, mb.classList.contains('scManP') ? mb.dataset.m : null); const pb = e.target.closest('.scPv'); if (pb) { $('scProv').value = $('scProv').value === pb.dataset.p ? '' : pb.dataset.p; return scPintar(); } if (e.target.closest('.scLimpiar')) { $('scEst').value = ''; $('scProv').value = ''; $('scTxt').value = ''; return scPintar(); } const b = e.target.closest('.scKpi'); if (b) { $('scEst').value = $('scEst').value === b.dataset.e ? '' : b.dataset.e; scPintar(); } });
   $('scExp').addEventListener('click', () => exportar('seguimiento-compras', [['Proveedor', 'prov'], ['Factura', 'doc'], ['Total', 'total'], ['Emitida (XML)', (x) => dia(x.fEmi)], ['Recibida', (x) => dia(x.fRec)], ['Días emisión→recepción', 'dTr'], ['Revisada', (x) => dia(x.fRev)], ['Revisó', (x) => (x.ped && x.ped.resp2) || ''], ['Días recepción→revisión', 'dRev'], ['Conformidad Compras', (x) => dia(x.fConf)], ['Días revisión→conformidad', 'dConf'], ['Ingresada a LolFar', (x) => dia(x.fLf)], ['Días conformidad→LolFar', 'dLf'], ['Días recepción→LolFar', 'dTot'], ['Etapa', (x) => SC_NOM[x.est] || ''], ['XML', (x) => (x.hasX ? 'Sí' : 'No')], ['Marcada a mano', (x) => (x.man ? x.man.mo : '')], ['En LolFar como', (x) => (x.lf && x.lf.mal) || '']], sc.vista));
 
   function inPintar() {
@@ -10499,6 +10560,7 @@
   try { if (localStorage.getItem('menuMin') === '1') document.body.classList.add('menuMin'); } catch (e) { /* sin almacenamiento */ }
   $('bMenu').addEventListener('click', () => {
     if (window.matchMedia('(max-width: 900px)').matches) return document.body.classList.toggle('menuAbierto');
+    if (document.body.classList.contains('ladoFuera')) return document.body.classList.remove('ladoFuera');
     const m = document.body.classList.toggle('menuMin');
     try { localStorage.setItem('menuMin', m ? '1' : '0'); } catch (e) { /* nada */ }
   });
