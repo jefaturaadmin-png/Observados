@@ -2572,9 +2572,17 @@
   });
   $('dCuerpo').addEventListener('click', async (e) => {
     if (modo !== 'cnEmp' || e.target.id !== 'cnEmpOk') return;
-    const r0 = $('dCuerpo').querySelector('input[name="cnEmpR"]:checked'); if (!r0) return msg('dMsg', 'Elige la factura registrada.');
+    const man = ($('cnEmpMan') || {}).value ? $('cnEmpMan').value.trim().toUpperCase().replace(/\s+/g, '') : '';
+    if (man && !/^[A-Z0-9]{2,4}-0*\d+$/.test(man)) return msg('dMsg', 'Escribe la factura como serie-número, por ejemplo F001-16751.');
+    const r0 = $('dCuerpo').querySelector('input[name="cnEmpR"]:checked'), val = man ? cnDocK(man) : r0 && r0.value; if (!val) return msg('dMsg', 'Elige la factura registrada o escribe la correcta.');
     e.target.disabled = true;
-    try { await cnEmpatarGuardar(abierto, r0.value, $('cnEmpTipo').value); $('dlg').close(); } catch (err) { msg('dMsg', errorTexto(err)); e.target.disabled = false; }
+    try { await cnEmpatarGuardar(abierto, val, $('cnEmpTipo').value); $('dlg').close(); } catch (err) { msg('dMsg', errorTexto(err)); e.target.disabled = false; }
+  });
+  $('dCuerpo').addEventListener('input', (e) => { // empatar: buscar entre todas las registradas del proveedor
+    if (modo !== 'cnEmp' || e.target.id !== 'cnEmpBus' || !cn.empC) return;
+    const q = e.target.value.trim().toUpperCase(), qd = q.replace(/[^0-9.]/g, '');
+    const L = !q ? cn.empC.cands.slice(0, 25) : cn.empC.cands.filter((c) => String(c.o.doc).toUpperCase().includes(q) || (qd && (String(c.o.doc).replace(/\D/g, '').includes(qd.replace(/\./g, '')) || String(r2(c.o.m)).includes(qd)))).slice(0, 60);
+    $('cnEmpTab').innerHTML = cnEmpFilas(L, cn.empC.m0, L.length === 1);
   });
   $('dCuerpo').addEventListener('keydown', (e) => { if (modo === 'devTot' && e.key === 'Enter' && ['dtProv', 'dtSer', 'dtNum'].includes(e.target.id)) { e.preventDefault(); dtBuscar(); } });
   $('bExpPend').addEventListener('click', () => exportar($('pEst').value === 'Se queda' ? 'se-quedan' : 'por-devolver', colsObs(), pendFiltradas()));
@@ -6817,14 +6825,20 @@
     const cands = [...cn.sis.pagos.entries()].filter(([k0]) => k0.startsWith(dest + '|')).flatMap(([, v]) => v)
       .filter((o) => !enRep.has(cnDocK(o.doc)) && !usados.has(cnDocK(o.doc)))
       .map((o) => ({ o, dm: Math.abs(o.m - m0), pc: parecido(o.doc, dLf) }))
-      .sort((a, b) => (a.dm <= 0.05 ? 0 : 1) - (b.dm <= 0.05 ? 0 : 1) || b.pc - a.pc || a.dm - b.dm).slice(0, 25);
+      .sort((a, b) => (a.dm <= 0.05 ? 0 : 1) - (b.dm <= 0.05 ? 0 : 1) || b.pc - a.pc || a.dm - b.dm);
+    cn.empC = { cands, m0 };
     modo = 'cnEmp'; abierto = cnDocK(dLf);
     $('dTit').textContent = `Empatar ${dLf} de Lolfar`;
     $('dCuerpo').innerHTML = `<div id="dMsg"></div><p class="quien" style="margin:0 0 8px">En Lolfar dice <b>${esc(dLf)}</b> por <b>S/ ${mil(m0)}</b>, pero no está registrada así. Elige la factura registrada a la que corresponde (están primero las de igual importe y número parecido).</p>` +
-      (cands.length ? `<div class="tabla" style="max-height:46vh;overflow:auto"><table style="font-size:13px"><tr><th></th><th>Factura registrada</th><th class="num">Importe</th><th>Mes a pagar</th><th>Diferencia</th></tr>${cands.map((c, i) => `<tr><td><input type="radio" name="cnEmpR" value="${esc(c.o.doc)}"${i === 0 ? ' checked' : ''}></td><td><b>${esc(c.o.doc)}</b></td><td class="num">${mil(c.o.m)}</td><td>${esc(perTxt(c.o.per))}</td><td class="${c.dm <= 0.05 ? 'sube' : 'baja'}">${c.dm <= 0.05 ? 'mismo importe' : 'S/ ' + mil(r2(c.o.m - m0))}</td></tr>`).join('')}</table></div>` : '<div class="msg err">No hay facturas registradas de este proveedor sin empatar.</div>') +
+      `<div class="rejilla" style="margin-bottom:8px"><div class="campo"><label for="cnEmpBus">Buscar entre las registradas (número o importe)</label><input id="cnEmpBus" placeholder="Ej.: 16751 o 18615"></div><div class="campo"><label for="cnEmpMan">…o escribe la factura correcta</label><input id="cnEmpMan" placeholder="Ej.: F001-16751" style="text-transform:uppercase"></div></div>` +
+      `<div class="tabla" id="cnEmpTab" style="max-height:42vh;overflow:auto">${cnEmpFilas(cands.slice(0, 25), m0, true)}</div>` +
       `<div class="rejilla" style="margin-top:10px"><div class="campo"><label for="cnEmpTipo">Qué pasó</label><select id="cnEmpTipo">${Object.entries(CN_ERR).map(([k0, v]) => `<option value="${k0}">${esc(v)}</option>`).join('')}</select></div></div>` +
-      (cands.length ? '<button class="pri" id="cnEmpOk">Empatar</button>' : '');
+      '<button class="pri" id="cnEmpOk">Empatar</button>';
     if (!$('dlg').open) $('dlg').showModal();
+  }
+  function cnEmpFilas(L, m0, marcar) {
+    if (!L.length) return '<div class="msg err" style="margin:8px">No hay facturas registradas que coincidan. Escribe la factura correcta arriba.</div>';
+    return `<table style="font-size:13px"><tr><th></th><th>Factura registrada</th><th class="num">Importe</th><th>Mes a pagar</th><th>Diferencia</th></tr>${L.map((c, i) => `<tr><td><input type="radio" name="cnEmpR" value="${esc(c.o.doc)}"${marcar && i === 0 ? ' checked' : ''}></td><td><b>${esc(c.o.doc)}</b></td><td class="num">${mil(c.o.m)}</td><td>${esc(perTxt(c.o.per))}</td><td class="${c.dm <= 0.05 ? 'sube' : 'baja'}">${c.dm <= 0.05 ? 'mismo importe' : 'S/ ' + mil(r2(c.o.m - m0))}</td></tr>`).join('')}</table>`;
   }
   async function cnEmpatarGuardar(k, e, tipo) {
     const emp = cnEmp(), n0 = cnNotas()[k] || {}, o = e ? { ...n0, e, et: tipo, eP: firma(), eF: hoy() } : (() => { const { e: _e, et: _t, eP: _p, eF: _f, ...r0 } = n0; return r0; })();
