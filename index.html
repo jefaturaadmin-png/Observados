@@ -481,6 +481,16 @@
   .scEdad { display:inline-block; min-width:38px; text-align:center; padding:1px 8px; border-radius:999px; font-weight:700; font-size:12px; color:var(--e); background:color-mix(in srgb, var(--e) 13%, white); }
   #cnCont tr:has(.cnNotaT) > td { background:#fdecea !important; } #cnCont tr:has(.cnNotaT) > td:first-child { box-shadow:inset 4px 0 0 #dc2626; }
   .cnNotaT { color:#b91c1c !important; font-weight:600; }
+  .scModal { position:fixed; inset:0; z-index:60; background:rgba(15,23,42,.45); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); display:flex; align-items:flex-start; justify-content:center; padding:5vh 16px; overflow:auto; animation:scAparece .15s ease-out; }
+  @keyframes scAparece { from { opacity:0; } to { opacity:1; } }
+  .scVen { background:#fff; border-radius:18px; width:min(1100px, 100%); box-shadow:0 24px 60px rgba(0,0,0,.3); overflow:hidden; border-top:6px solid var(--c); animation:scSube .18s ease-out; }
+  @keyframes scSube { from { transform:translateY(14px); opacity:.6; } to { transform:none; opacity:1; } }
+  .scVenCab { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; padding:18px 22px 14px; border-bottom:1px solid var(--borde); }
+  .scVenProv { font-size:13px; font-weight:600; color:var(--gris); text-transform:uppercase; letter-spacing:.03em; } .scVenDoc { font-size:28px; font-weight:800; line-height:1.15; }
+  .scVenDat { display:flex; flex-wrap:wrap; gap:22px; margin-top:8px; } .scVenDat small { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--gris); } .scVenDat b { font-size:16px; }
+  .scVenX { border:none !important; background:#f1f5f9; width:38px; height:38px; border-radius:50% !important; font-size:18px; cursor:pointer; flex:none; } .scVenX:hover { background:#e2e8f0; }
+  .scVenCu { padding:14px 22px 22px; max-height:70vh; overflow:auto; }
+  body.scSinScroll { overflow:hidden; }
   .scPasos { display:flex; gap:0; padding:14px 6px 10px; background:rgba(0,0,0,.035); border-radius:10px; overflow-x:auto; }
   .scPaso { flex:1; min-width:120px; text-align:center; position:relative; padding:0 6px; }
   .scPaso:not(:last-child)::after { content:''; position:absolute; top:15px; left:calc(50% + 17px); right:calc(-50% + 17px); height:3px; background:#cfd4dc; }
@@ -1590,7 +1600,7 @@
     if (v === 'vDash') dgPintar();
     if (v === 'vLetras') ltPintar();
     if (v === 'vSeg') sgPintar();
-    document.body.classList.toggle('ladoFuera', v === 'vSegC'); // Seguimiento usa toda la pantalla: la barra se oculta (☰ la vuelve a mostrar)
+    document.body.classList.toggle('ladoFuera', v === 'vSegC'); if (v !== 'vSegC') document.body.classList.remove('scSinScroll'); // Seguimiento usa toda la pantalla: la barra se oculta (☰ la vuelve a mostrar)
     if (v === 'vSegC') scAbrir();
     try { camCerrar(); } catch (e) { /* la cámara aún no se usó */ }
     if (v === 'vCot') ctPintar(true);
@@ -10487,7 +10497,7 @@
     const rg = sc.pgReg && sc.pgReg.get(x.k), dnd = !sc.pgReg ? '' : rg && rg.length ? 'En Ingreso de facturas: ' + rg.map((r) => `${(pgCfg.empresas.find((e) => e.k === r.emp) || {}).nombre || r.emp} · ${r.prov} · ${perTxt(r.per)} ${r.lf ? '(✓ Lolfar)' : '(sin ✓ Lolfar)'}`).join(' / ') : 'No está registrada en Ingreso de facturas.';
     const btn = !puede('pagos') || (x.man && x.man.auto) ? '' : x.man
       ? ` <button type="button" class="mini scManQ" data-k="${esc(x.k)}" title="Marcada por ${esc(String(x.man.por).split(' (')[0])}">${x.man.t === 'X' ? 'Reabrir (quitar cierre)' : 'Quitar marca "ya está en LolFar"'}</button>`
-      : x.est !== 'L' ? ` <button type="button" class="mini scManP" data-k="${esc(x.k)}" data-m="X|Cerrada" title="Devuelta completa, facturación duplicada, anulada…: ya no sigue el proceso">✕ Cerrar</button> <button type="button" class="mini scManP" data-k="${esc(x.k)}" data-m="L|Marcada a mano" title="Ya está en LolFar aunque el reporte no la traiga (error de digitación u otro número)">✓ Ya está en LolFar</button>` : '';
+      : x.est !== 'L' ? ` <button type="button" class="mini scManP" data-k="${esc(x.k)}" data-m="X|Cerrada" title="Devuelta completa, facturación duplicada, anulada…: ya no sigue el proceso">⛔ Cerrar factura</button> <button type="button" class="mini scManP" data-k="${esc(x.k)}" data-m="L|Marcada a mano" title="Ya está en LolFar aunque el reporte no la traiga (error de digitación u otro número)">✓ Ya está en LolFar</button>` : '';
     const cierre = x.man && x.man.t === 'X' ? `<div class="msg" style="margin:0 0 6px;background:#eceff1;color:#37474f">${x.man.auto ? 'Cerrada automáticamente: ' + esc(x.man.mo) : 'Cerrada por ' + esc(String(x.man.por).split(' (')[0])}. No sigue el proceso.</div>` : '';
     return cierre + (dnd || btn ? `<p class="quien" style="margin:0 0 4px">${esc(dnd)}${btn}</p>` : '') + '<div class="scPasos">' + pasos.map((p0, i) => `<div class="scPaso${p0.ok ? ' ok' : ''}${i === act ? ' act' : ''}"><div class="scBola">${p0.ok ? '✓' : i + 1}</div><div class="scPT">${esc(p0.t)}</div><div class="quien">${esc(p0.s)}</div>` +
       `<div class="scPF">${p0.f ? esc(dia(p0.f)) : ''}${p0.d !== undefined && p0.d !== null ? ' ' + dd(p0.d, p0.lim) : ''}</div>${p0.sub ? `<div class="quien">${esc(p0.sub)}</div>` : ''}</div>`).join('') + '</div>' +
@@ -10570,14 +10580,24 @@
           `<td>${x.fEmi ? esc(dia(x.fEmi)) : '<span class="quien">sin XML</span>'}</td><td><span class="scEta ${'sc' + x.est}"><i></i>${esc(EST[x.est][0])}</span>${x.hasX ? '' : ' <span class="scEta scS" title="No se tiene el XML de esta factura">sin XML</span>'}</td>` +
           `<td>${ed === null ? '' : `<span class="scEdad" style="--e:${ed > 15 ? '#dc2626' : ed > 7 ? '#ea580c' : ed > 3 ? '#ca8a04' : '#16a34a'}">${ed} d</span>`}</td>` +
           `<td>${ult ? esc(dia(ult)) : (x.lf && x.lf.pg ? '<span class="quien">reporte anterior</span>' : '')}${x.dTot !== null ? ` <span class="quien">· ${x.dTot} d de recepción a LolFar</span>` : ''}</td></tr>` +
-          (ab ? `<tr class="det"><td colspan="8">${scDetalle(x, dd)}</td></tr>` : '');
+          '';
       }).join('') || '<tr><td colspan="8" class="vacio">Nada en esta lista</td></tr>') +
-      (L.length > 600 ? `<tr><td colspan="8" class="vacio">Se muestran 600 de ${L.length}: usa los filtros.</td></tr>` : '') + '</tbody></table></div>';
+      (L.length > 600 ? `<tr><td colspan="8" class="vacio">Se muestran 600 de ${L.length}: usa los filtros.</td></tr>` : '') + '</tbody></table></div>' +
+      ((x) => { // detalle en una ventana encima de todo (el resto queda borroso)
+        if (!x) return '';
+        const ed = edad(x);
+        return `<div class="scModal" role="dialog" aria-modal="true"><div class="scVen" style="--c:${SC_COL[x.est] || '#94a3b8'}"><div class="scVenCab"><div><div class="scVenProv">${esc(x.prov)}</div><div class="scVenDoc">${esc(x.doc)}</div>` +
+          `<div class="scVenDat">${x.total === null ? '' : `<span><small>Total</small><b>S/ ${mil(x.total)}</b></span>`}<span><small>Emitida</small><b>${x.fEmi ? esc(dia(x.fEmi)) : 'sin XML'}</b></span><span><small>Etapa</small><b><span class="scEta ${'sc' + x.est}"><i></i>${esc(EST[x.est][0])}</span></b></span>${ed === null ? '' : `<span><small>Antigüedad</small><b>${ed} d</b></span>`}</div></div>` +
+          '<button type="button" class="scVenX" title="Cerrar (Esc)">✕</button></div><div class="scVenCu">' + scDetalle(x, dd) + '</div></div></div>';
+      })(sc.abiertos.size ? F.find((y) => sc.abiertos.has(y.k)) : null);
+    document.body.classList.toggle('scSinScroll', !!caja.querySelector('.scModal'));
   }
   ['scEmp', 'scDesde', 'scHasta', 'scEst', 'scProv'].forEach((id) => $(id).addEventListener('change', scPintar));
   $('scTxt').addEventListener('input', () => { clearTimeout(sc.tt); sc.tt = setTimeout(scPintar, 250); });
   $('scAct').addEventListener('click', () => { if (sc.cargando) return; sc.cargado = false; scCargar(); });
-  $('scCont').addEventListener('click', (e) => { const f = e.target.closest('tr.scFila'); if (f) { const ya = sc.abiertos.has(f.dataset.k); sc.abiertos.clear(); if (!ya) sc.abiertos.add(f.dataset.k); return scPintar(); /* solo una abierta a la vez */ } const mb = e.target.closest('.scManP, .scManQ'); if (mb) return scMarcar(mb.dataset.k, mb.classList.contains('scManP') ? mb.dataset.m : null); const pb = e.target.closest('.scPv'); if (pb) { $('scProv').value = $('scProv').value === pb.dataset.p ? '' : pb.dataset.p; return scPintar(); } if (e.target.closest('.scLimpiar')) { $('scEst').value = ''; $('scProv').value = ''; $('scTxt').value = ''; return scPintar(); } const b = e.target.closest('.scKpi'); if (b) { $('scEst').value = $('scEst').value === b.dataset.e ? '' : b.dataset.e; scPintar(); } });
+  const scCerrarDet = () => { if (!sc.abiertos.size) return; sc.abiertos.clear(); scPintar(); };
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && vista === 'vSegC' && sc.abiertos.size && !$('dlg').open) scCerrarDet(); });
+  $('scCont').addEventListener('click', (e) => { if (e.target.classList.contains('scModal') || e.target.closest('.scVenX')) return scCerrarDet(); const f = e.target.closest('tr.scFila'); if (f) { const ya = sc.abiertos.has(f.dataset.k); sc.abiertos.clear(); if (!ya) sc.abiertos.add(f.dataset.k); return scPintar(); /* solo una abierta a la vez */ } const mb = e.target.closest('.scManP, .scManQ'); if (mb) return scMarcar(mb.dataset.k, mb.classList.contains('scManP') ? mb.dataset.m : null); const pb = e.target.closest('.scPv'); if (pb) { $('scProv').value = $('scProv').value === pb.dataset.p ? '' : pb.dataset.p; return scPintar(); } if (e.target.closest('.scLimpiar')) { $('scEst').value = ''; $('scProv').value = ''; $('scTxt').value = ''; return scPintar(); } const b = e.target.closest('.scKpi'); if (b) { $('scEst').value = $('scEst').value === b.dataset.e ? '' : b.dataset.e; scPintar(); } });
   $('scExp').addEventListener('click', () => exportar('seguimiento-compras', [['Proveedor', 'prov'], ['Factura', 'doc'], ['Total', 'total'], ['Emitida (XML)', (x) => dia(x.fEmi)], ['Recibida', (x) => dia(x.fRec)], ['Días emisión→recepción', 'dTr'], ['Revisada', (x) => dia(x.fRev)], ['Revisó', (x) => (x.ped && x.ped.resp2) || ''], ['Días recepción→revisión', 'dRev'], ['Conformidad Compras', (x) => dia(x.fConf)], ['Días revisión→conformidad', 'dConf'], ['Ingresada a LolFar', (x) => dia(x.fLf)], ['Días conformidad→LolFar', 'dLf'], ['Días recepción→LolFar', 'dTot'], ['Etapa', (x) => SC_NOM[x.est] || ''], ['XML', (x) => (x.hasX ? 'Sí' : 'No')], ['Marcada a mano', (x) => (x.man ? x.man.mo : '')], ['En LolFar como', (x) => (x.lf && x.lf.mal) || '']], sc.vista));
 
   function inPintar() {
