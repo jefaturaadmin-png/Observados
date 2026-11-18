@@ -2574,14 +2574,19 @@
   });
   $('dCuerpo').addEventListener('click', async (e) => {
     if (modo !== 'cnEmp' || e.target.id !== 'cnEmpOk') return;
-    const man = ($('cnEmpMan') || {}).value ? $('cnEmpMan').value.trim().toUpperCase().replace(/\s+/g, '') : '';
-    if (man && !/^[A-Z0-9]{2,4}-0*\d+$/.test(man)) return msg('dMsg', 'Escribe la factura como serie-número, por ejemplo F001-16751.');
-    const r0 = $('dCuerpo').querySelector('input[name="cnEmpR"]:checked'), val = man ? cnDocK(man) : r0 && r0.value; if (!val) return msg('dMsg', 'Elige la factura registrada o escribe la correcta.');
+    let man = ($('cnEmpMan') || {}).value ? $('cnEmpMan').value.trim().toUpperCase().replace(/\s+/g, '') : '';
+    if (/^\d+$/.test(man)) { // solo el número: se busca la serie entre las registradas del proveedor
+      const igual = ((cn.empC || {}).cands || []).filter((c) => numDoc(String(c.o.doc).split('-').pop()) === numDoc(man)), series = unicos(igual.map((c) => c.o.doc));
+      if (series.length === 1) man = series[0];
+      else return alert(series.length ? `Hay varias facturas con el número ${man}: ${series.join(', ')}. Escríbela con su serie.` : `No hay ninguna factura registrada con el número ${man}. Escríbela con su serie, por ejemplo F241-${man}.`);
+    }
+    if (man && !/^[A-Z0-9]{2,4}-0*\d+$/.test(man)) return alert('Escribe la factura como serie-número, por ejemplo F241-60676.');
+    const r0 = $('dCuerpo').querySelector('input[name="cnEmpR"]:checked'), val = man ? cnDocK(man) : r0 && r0.value; if (!val) return alert('Elige la factura registrada o escribe la correcta.');
     e.target.disabled = true;
     try { await cnEmpatarGuardar(abierto, val, $('cnEmpTipo').value); $('dlg').close(); } catch (err) { msg('dMsg', errorTexto(err)); e.target.disabled = false; }
   });
   $('dCuerpo').addEventListener('input', (e) => { // empatar: buscar entre todas las registradas del proveedor
-    if (modo !== 'cnEmp' || e.target.id !== 'cnEmpBus' || !cn.empC) return;
+    if (modo !== 'cnEmp' || !['cnEmpBus', 'cnEmpMan'].includes(e.target.id) || !cn.empC) return; // lo que se escribe en cualquiera de los dos filtra la lista
     const q = e.target.value.trim().toUpperCase(), qd = q.replace(/[^0-9.]/g, '');
     const L = !q ? cn.empC.cands.slice(0, 25) : cn.empC.cands.filter((c) => String(c.o.doc).toUpperCase().includes(q) || (qd && (String(c.o.doc).replace(/\D/g, '').includes(qd.replace(/\./g, '')) || String(r2(c.o.m)).includes(qd)))).slice(0, 60);
     $('cnEmpTab').innerHTML = cnEmpFilas(L, cn.empC.m0, L.length === 1);
