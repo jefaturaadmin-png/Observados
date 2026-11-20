@@ -4569,8 +4569,14 @@
       fila('');
       fila('tot', ['', '', '', '', 'TOTAL', R.tPagar, R.cuota === null ? '' : R.cuota]);
     } else {
-      R.normales.forEach((f) => doc1(f));
-      R.ncs.forEach((f) => doc1(f));
+      // Con NC: se aplican todas a la factura más grande que las cubre (la factura, sus NC y el subtotal), y las demás facturas van debajo
+      const ncT = R.ncs.reduce((a, n) => a + Math.abs(Number(n.m) || 0), 0), base = R.ncs.length && R.dist.pago === 'letras' ? R.normales.reduce((b, f) => ((Number(f.m) || 0) > (Number(b && b.m) || 0) ? f : b), null) : null;
+      if (base && (Number(base.m) || 0) >= ncT - 0.005) {
+        doc1(base); R.ncs.forEach((f) => doc1(f));
+        fila('res', ['', '', '', '', 'SUBTOTAL', r2((Number(base.m) || 0) - ncT)]);
+        const otras = R.normales.filter((f) => f !== base);
+        if (otras.length) { fila(''); otras.forEach((f) => doc1(f)); }
+      } else { R.normales.forEach((f) => doc1(f)); R.ncs.forEach((f) => doc1(f)); }
       fila('tot', ['', '', '', '', 'TOTAL', r2(R.tCompras + R.nCredito), R.cuota === null ? '' : R.cuota]);
     }
     fila('');
