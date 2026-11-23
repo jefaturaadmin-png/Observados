@@ -4569,8 +4569,8 @@
       fila('');
       fila('tot', ['', '', '', '', 'TOTAL', R.tPagar, R.cuota === null ? '' : R.cuota]);
     } else {
-      // Con NC: se aplican todas a la factura más grande que las cubre (la factura, sus NC y el subtotal), y las demás facturas van debajo
-      const ncT = R.ncs.reduce((a, n) => a + Math.abs(Number(n.m) || 0), 0), base = R.ncs.length && R.dist.pago === 'letras' ? R.normales.reduce((b, f) => ((Number(f.m) || 0) > (Number(b && b.m) || 0) ? f : b), null) : null;
+      // Solo si se marcó en este mes ("NC debajo de la factura más grande"): se aplican todas a la factura más grande que las cubre (la factura, sus NC y el subtotal), y las demás facturas van debajo
+      const ncT = R.ncs.reduce((a, n) => a + Math.abs(Number(n.m) || 0), 0), base = R.ncs.length && R.d.ncBajo === true ? R.normales.reduce((b, f) => ((Number(f.m) || 0) > (Number(b && b.m) || 0) ? f : b), null) : null;
       if (base && (Number(base.m) || 0) >= ncT - 0.005) {
         doc1(base); R.ncs.forEach((f) => doc1(f));
         fila('res', ['', '', '', '', 'SUBTOTAL', r2((Number(base.m) || 0) - ncT)]);
@@ -4718,7 +4718,8 @@
       `<label style="margin:0" for="rModo">Forma de pago</label><select id="rModo" style="width:auto"${edita ? '' : ' disabled'}>${MODOS.filter(([v]) => v === 'letras' || v === 'cuotas' || v === R.dist.pago).map(([v, n]) => `<option value="${v}"${R.dist.pago === v ? ' selected' : ''}>${n}</option>`).join('')}</select>` +
       (conLetras ? `<label style="margin:0" for="rLetras">N° de letras</label><input id="rLetras" type="number" min="0" max="60" style="width:80px" value="${esc(d.letras ?? '')}"${edita ? '' : ' disabled'}>` +
         `<label style="margin:0" for="rDesde">Desde</label><input id="rDesde" type="date" value="${esc(d.desde || R.desde || '')}"${edita ? '' : ' disabled'}>` +
-        (edita ? '<button id="rGuardar">Guardar programación</button>' : '') : (conCuotas ? '<span class="quien">Cada grupo (mes de emisión, o pago 2, 3… si separas facturas) se programa aparte con el botón Programar.</span>' : `<span class="quien">Este mes no va en letras: ${R.dist.pago === 'fecha' ? 'cada factura tiene su fecha de pago' : 'se paga según vencimiento'}.</span>`)) +
+        (edita ? '<button id="rGuardar">Guardar programación</button>' : '') +
+        (R.ncs.length ? `<label style="margin:0;display:inline-flex;align-items:center;gap:6px" title="Solo para este proveedor y este mes: la factura de mayor importe, debajo todas las NC con su subtotal, y luego las demás facturas"><input type="checkbox" id="rNcBajo"${d.ncBajo === true ? ' checked' : ''}${edita ? '' : ' disabled'}> NC debajo de la factura más grande (solo este mes)</label>` : '') : (conCuotas ? '<span class="quien">Cada grupo (mes de emisión, o pago 2, 3… si separas facturas) se programa aparte con el botón Programar.</span>' : `<span class="quien">Este mes no va en letras: ${R.dist.pago === 'fecha' ? 'cada factura tiene su fecha de pago' : 'se paga según vencimiento'}.</span>`)) +
       (edita ? '<button id="rFeriados">Feriados</button>' : '') +
       (R.obsAnt.length ? `<label style="margin:0;display:flex;gap:6px;align-items:center;font-weight:500;color:inherit"><input type="checkbox" id="rAnt"${resAnt ? ' checked' : ''}> Mostrar observaciones de meses anteriores sin NC (${R.obsAnt.length} · S/ ${mil(R.obsAnt.reduce((s, o) => s + (Number(o.falta) || 0), 0))})</label>` : '') +
       '<span style="flex:1"></span><button id="rExcelNc">Descargar solo notas de crédito</button><button class="pri" id="rExcel">Descargar Excel para el proveedor</button></div><div id="rMsg"></div>' +
@@ -4745,6 +4746,7 @@
   }
   $('gv_res').addEventListener('change', async (e) => {
     if (e.target.id === 'rAnt') { resAnt = e.target.checked; return pintarPagos(true); }
+    if (e.target.id === 'rNcBajo') { const d = pgDoc(); if (!d) return; try { await updateDoc(doc(db, 'pagos', d.id), { ncBajo: e.target.checked ? true : deleteField(), act: serverTimestamp(), actPor: firma() }); } catch (err) { msg('gMsg', errorTexto(err)); } return; }
     if (e.target.id === 'rModo') { const d = pgDoc(); if (!d) return; try { await updateDoc(doc(db, 'pagos', d.id), { modo: e.target.value, act: serverTimestamp(), actPor: firma() }); pgLog('Forma de pago', (MODOS.find((x) => x[0] === e.target.value) || [])[1] || e.target.value, d.per).catch(console.error); } catch (err) { msg('rMsg', errorTexto(err)); } }
   });
   $('gv_res').addEventListener('click', async (e) => {
