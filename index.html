@@ -1971,7 +1971,7 @@
       let acc = '';
       if (!p.conforme && puede('conformidad')) acc += `<button class="pri mini" data-conf="${esc(p._id)}">Dar conformidad</button> `;
       if (yo.area === 'ADMIN') acc += `<button class="pel mini" data-del="${esc(p._id)}">Eliminar</button>`;
-      return `<tr><td>${esc(dia(p.fechaRecepcion))}</td><td><b>${esc(p.factura)}</b></td><td>${esc(p.proveedor)}</td>` +
+      return `<tr><td>${esc(dia(p.fechaRecepcion))}</td><td><b>${esc(p.factura)}</b>${yo.area === 'ADMIN' ? ` <button type="button" class="mini peFac" data-id="${esc(p._id)}" title="Corregir el número de factura (solo administrador)">✎</button>` : ''}</td><td>${esc(p.proveedor)}</td>` +
         `<td class="num">${esc(p.bultos ?? '')}</td><td title="Registró: ${esc(p.recibidoPor || '')}">${p.resp || p.conforme ? esc(p.resp || '') : selR(p, 'resp')}</td>` +
         `<td>${inp(p, 'f2', p.f2, 'type="date" style="width:135px"')}</td><td>${ed ? `<button type="button" class="mini peRev" data-id="${esc(p._id)}" title="Elegir quiénes revisaron (pueden ser varios)" style="min-width:150px;text-align:left;white-space:normal">${esc(p.resp2 || 'Elegir…')}</button>` : esc(p.resp2 || '')}</td><td>${inp(p, 'oc', p.oc, 'style="width:70px"')}</td><td>${obsSel(p)}</td>` +
         `<td>${conf}</td><td>${acc}</td></tr>`;
@@ -2001,6 +2001,18 @@
     setTimeout(() => { if (pedPend && !(document.activeElement && document.activeElement.closest && document.activeElement.closest('#cuerpoPed .peIn'))) { pedPend = false; pintarPedidos(); } }, 50);
   });
   $('bExpPed').addEventListener('click', () => exportar($('fpEst').value === 'P' ? 'facturas-pendientes-compras' : 'pedidos', COLS_PED, pedidosFiltrados()));
+  // Corregir el número de factura de un pedido ya registrado: solo el administrador
+  $('cuerpoPed').addEventListener('click', async (e) => {
+    const b = e.target.closest('.peFac'); if (!b || yo.area !== 'ADMIN') return;
+    const p = pedidos.find((x) => x._id === b.dataset.id); if (!p) return;
+    const v0 = prompt(`Número de factura correcto (serie-número) para ${p.factura} de ${p.proveedor}:`, p.factura); if (v0 === null) return;
+    const v = v0.toUpperCase().replace(/\s+/g, '').replace(/^([A-Z0-9]{2,4})(\d{5,})$/, '$1-$2');
+    if (!/^[A-Z0-9]{1,4}-0*\d+$/.test(v)) return alert('Escribe la factura como serie-número, por ejemplo F201-481207.');
+    const k = refDoc(v); if (k === refDoc(p.factura)) return;
+    const otro = pedidos.find((x) => x._id !== p._id && refDoc(x.factura) === k && provClave(x.proveedor) === provClave(p.proveedor));
+    if (otro && !confirm(`Ojo: ${v} de ${otro.proveedor} ya está registrada (recepción ${dia(otro.fechaRecepcion)}). ¿Cambiar igual?`)) return;
+    try { const cam = { factura: v, act: serverTimestamp(), actPor: firma() }; await updateDoc(doc(db, 'pedidos', p._id), cam); Object.assign(p, { factura: v }); pintarPedidos(); } catch (err) { alert(errorTexto(err)); }
+  });
   // Revisión: pueden revisar varios; se eligen con casillas y se guardan juntos ("ALEX, RAUL")
   $('cuerpoPed').addEventListener('click', (e) => {
     const b = e.target.closest('.peRev'); if (!b) return;
