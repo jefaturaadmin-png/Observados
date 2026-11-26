@@ -212,6 +212,13 @@ service cloud.firestore {
     }
 
     // Ingreso de pedidos: Recepción registra la factura, Compras da la conformidad
+    // Control de ingreso: la jefa de almacén revisa lo ingresado a LolFar (bien / error por punto)
+    match /controlIng/{id} {
+      allow read: if puede('verCtrlIng') || puede('ctrlIng') || puede('indCtrlIng');
+      allow create: if puede('ctrlIng') && request.resource.data.uid == request.auth.uid;
+      allow update: if esArea('ADMIN') || (puede('ctrlIng') && soloCambia(['estado', 'corrPor', 'corrF', 'act']));
+      allow delete: if esArea('ADMIN');
+    }
     match /pedidos/{id} {
       allow read: if activo();
       allow create: if puede('pedidos')
