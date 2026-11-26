@@ -494,9 +494,11 @@
   .faltaNc { margin-top:6px; font-size:12px; background:#fff0e6; border-radius:6px; padding:6px 10px; white-space:nowrap; line-height:1.6; width:max-content; } .faltaNc mark { background:#fde047; color:inherit; padding:0 2px; border-radius:3px; }
   .kiInd { display:grid; grid-template-columns:repeat(auto-fill, minmax(330px, 1fr)); gap:6px; }
   .kiFila { display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:6px; padding:6px 10px; border:1px solid var(--borde); border-radius:10px; background:#fff; } .kiFila.mal { background:#fdecea; border-color:#f5b4ad; }
+  .kiAdd { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-start; margin-top:10px; padding:10px; background:#f8fafc; border:1px solid var(--borde); border-radius:12px; }
+  .kiTipos { display:flex; flex-wrap:wrap; gap:5px; } .kiTipo { padding:5px 10px !important; font-size:13px; border-radius:999px !important; background:#fff; } .kiTipo.on { background:#dc2626; color:#fff; border-color:#dc2626 !important; }
   .kiOk, .kiMal { padding:4px 10px !important; font-size:13px; border-radius:8px !important; background:#fff; } .kiOk.on { background:#16a34a; color:#fff; border-color:#16a34a !important; } .kiMal.on { background:#dc2626; color:#fff; border-color:#dc2626 !important; }
   .kiKpis { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin-bottom:10px; }
-  .kiGraf { display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:10px; margin-bottom:10px; } .kiGraf h3 { margin:0 0 8px; font-size:14px; }
+  .kiGraf { display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:10px; margin-bottom:10px; } .kiGraf .caja { overflow-x:auto; min-width:0; } .kiGraf h3 { margin:0 0 8px; font-size:14px; }
   .kiBar { display:grid; grid-template-columns:minmax(150px, 45%) 1fr 30px; gap:8px; align-items:center; font-size:12.5px; margin:5px 0; } .kiBar b { text-align:right; }
   .kiB { height:12px; background:#f1f5f9; border-radius:6px; overflow:hidden; } .kiB > span { display:block; height:100%; border-radius:6px; }
   .kiT { font-size:13px; width:100%; } tr.kiConErr > td:first-child { box-shadow:inset 4px 0 0 #dc2626; }
@@ -948,22 +950,27 @@
       <div class="caja" id="kiForm">
         <h2 style="margin-top:0">Revisar el ingreso de una factura</h2>
         <div class="rejilla">
-          <div class="campo"><label for="kiSer">Factura: serie y número *</label><div style="display:flex;gap:6px"><input id="kiSer" placeholder="F001" style="max-width:110px" autocomplete="off"><input id="kiNum" placeholder="Número" autocomplete="off"></div><div id="kiXml"></div></div>
+          <div class="campo"><label for="kiSer">1. Factura: serie y número *</label><div style="display:flex;gap:6px"><input id="kiSer" placeholder="F001" style="max-width:110px" autocomplete="off"><input id="kiNum" placeholder="Número" autocomplete="off"></div><div id="kiXml"></div></div>
           <div class="campo"><label for="kiProv">Proveedor *</label><input id="kiProv" list="kiProvL" placeholder="Escribe para buscar…" autocomplete="off"><datalist id="kiProvL"></datalist></div>
-          <div class="campo"><label for="kiResp">Quién la ingresó a LolFar *</label><select id="kiResp"></select></div>
         </div>
-        <p class="quien" style="margin:10px 0 6px">Marca cada punto: <b>✓ Bien</b> o <b>✗ Error</b>. Si todo está bien, solo guarda.</p>
-        <div id="kiInd" class="kiInd"></div>
-        <div class="rejilla" style="margin-top:8px">
-          <div class="campo"><label for="kiProds">Productos con error (opcional)</label><input id="kiProds" placeholder="Ej.: PARACETAMOL 500MG: lote 2311 en vez de 2313"></div>
-          <div class="campo"><label for="kiObs">Comentario (opcional)</label><input id="kiObs"></div>
+        <div class="kiAdd">
+          <div class="campo" style="flex:2;min-width:260px"><label for="kiProd">2. Producto con error</label><input id="kiProd" list="kiProdL" placeholder="Escribe el producto (si hay XML, salen sus productos)" autocomplete="off"><datalist id="kiProdL"></datalist></div>
+          <div class="campo" style="flex:3;min-width:300px"><label>3. Qué tiene mal</label><div id="kiTipos" class="kiTipos"></div></div>
+          <div class="campo" style="flex:2;min-width:200px"><label for="kiDet">Detalle (opcional)</label><input id="kiDet" placeholder="Ej.: lote 2311 en vez de 2313"></div>
+          <button type="button" id="kiAgregar" style="align-self:flex-end">+ Agregar</button>
         </div>
+        <div id="kiItems"></div>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:8px">
+          <label style="margin:0;display:inline-flex;gap:6px;align-items:center"><input type="checkbox" id="kiSinFv"> La factura no trae fecha de vencimiento <span class="quien">(proveedor)</span></label>
+          <label style="margin:0;display:inline-flex;gap:6px;align-items:center"><input type="checkbox" id="kiSinLote"> La factura no trae lote <span class="quien">(proveedor)</span></label>
+        </div>
+        <div class="campo" style="margin-top:8px"><label for="kiObs">Comentario (opcional)</label><input id="kiObs"></div>
         <div style="display:flex;gap:10px;align-items:center;margin-top:10px"><button class="pri" id="kiGuardar">Guardar: todo conforme</button><span id="kiMsg"></span></div>
       </div>
       <div class="herr">
         <input type="month" id="kiMes" style="max-width:170px" aria-label="Mes">
         <select id="kiEst" style="width:auto" aria-label="Estado"><option value="">Todos</option><option value="Pendiente">Por corregir</option><option value="Corregido">Corregidos</option><option value="Conforme">Conformes</option></select>
-        <select id="kiRespF" style="width:auto" aria-label="Quién ingresó"></select>
+        <select id="kiProvF" style="width:auto;max-width:260px" aria-label="Proveedor"></select>
         <input id="kiTxt" placeholder="Buscar factura, proveedor, producto…" style="flex:1;min-width:180px">
         <button id="kiExp">Exportar a Excel</button>
       </div>
@@ -10441,109 +10448,111 @@
     }
   });
   /* =====================  CONTROL DE INGRESO  =====================
-     La jefa de almacén revisa lo que se ingresó a LolFar de cada factura y marca, punto por punto, si está bien o tiene error
-     (producto, cantidad, lote, vencimiento, precio…). Así se miden los errores de ingreso por persona, tipo y proveedor. */
-  const KI_IND = [
-    ['prod', 'Producto / descripción', 'Producto o descripción mal ingresada', 'I'],
-    ['cant', 'Cantidad', 'Cantidad incorrecta', 'I'],
-    ['lote', 'Lote', 'Lote incorrecto', 'I'],
-    ['fv', 'Fecha de vencimiento', 'Fecha de vencimiento mal ingresada', 'I'],
-    ['precio', 'Precio / costo', 'Precio o costo incorrecto', 'I'],
-    ['noIng', 'Productos completos', 'Faltó ingresar algún producto', 'I'],
-    ['sinFv', 'Factura trae vencimiento', 'La factura no trae fecha de vencimiento', 'P'],
-    ['sinLote', 'Factura trae lote', 'La factura no trae lote', 'P'],
-    ['otro', 'Otro', 'Otro error', 'I']
-  ];
-  let ki = { chk: {}, xml: null, k: '', v: null };
-  const kiErrs = (d) => KI_IND.filter(([k]) => d.chk && d.chk[k] === true);
+     La jefa de almacén revisa lo que se ingresó a LolFar de cada factura: por cada producto con error marca qué está mal
+     (mal digitado, lote, cantidad, vencimiento, otra descripción…). Así se miden los errores de ingreso por tipo y proveedor. */
+  const KI_T = [['dig', 'Mal digitado'], ['otra', 'Producto de otra descripción'], ['lote', 'Lote'], ['cant', 'Cantidad'], ['fv', 'Fecha de vencimiento'], ['precio', 'Precio / costo'], ['noIng', 'No ingresado'], ['otro', 'Otro']];
+  const KI_P = [['sinFv', 'Factura sin fecha de vencimiento'], ['sinLote', 'Factura sin lote']]; // errores del proveedor, de toda la factura
+  const kiNom = (k) => (KI_T.find((x) => x[0] === k) || KI_P.find((x) => x[0] === k) || [k, k])[1];
+  let ki = { sel: new Set(), items: [], xml: null, k: '', v: null };
   function kiFormPintar() {
-    $('kiInd').innerHTML = KI_IND.map(([k, a, b, t]) => `<div class="kiFila${ki.chk[k] ? ' mal' : ''}"><span><b>${esc(a)}</b>${t === 'P' ? ' <span class="quien">(proveedor)</span>' : ''}</span>` +
-      `<button type="button" class="kiOk${ki.chk[k] ? '' : ' on'}" data-k="${k}">✓ Bien</button><button type="button" class="kiMal${ki.chk[k] ? ' on' : ''}" data-k="${k}" title="${esc(b)}">✗ Error</button></div>`).join('');
-    const n = KI_IND.filter(([k]) => ki.chk[k]).length;
-    $('kiGuardar').textContent = n ? `Guardar con ${n} error(es)` : 'Guardar: todo conforme';
-    $('kiGuardar').classList.toggle('pel', n > 0);
+    $('kiTipos').innerHTML = KI_T.map(([k, n]) => `<button type="button" class="kiTipo${ki.sel.has(k) ? ' on' : ''}" data-k="${k}">${esc(n)}</button>`).join('');
+    $('kiItems').innerHTML = ki.items.length ? `<table class="kiT" style="margin-top:8px"><tr><th>Producto con error</th><th>Qué tiene mal</th><th>Detalle</th><th></th></tr>${ki.items.map((it, i) => `<tr><td><b>${esc(it.p)}</b></td><td>${it.t.map((k) => `<span class="est alerta" style="margin:1px">${esc(kiNom(k))}</span>`).join(' ')}</td><td>${esc(it.d || '')}</td><td><button type="button" class="mini pel kiQuitar" data-i="${i}" title="Quitar">✕</button></td></tr>`).join('')}</table>` : '';
+    const n = ki.items.length + ($('kiSinFv').checked ? 1 : 0) + ($('kiSinLote').checked ? 1 : 0);
+    $('kiGuardar').textContent = ki.items.length ? `Guardar factura con ${ki.items.length} producto(s) con error` : (n ? 'Guardar (solo errores del proveedor)' : 'Guardar: todo conforme');
+    $('kiGuardar').classList.toggle('pel', ki.items.length > 0);
+  }
+  function kiAgregar() {
+    const p = txt($('kiProd').value, 150), t = KI_T.map((x) => x[0]).filter((k) => ki.sel.has(k));
+    if (!p) return msg('kiMsg', 'Escribe o elige el producto con error.');
+    if (!t.length) return msg('kiMsg', 'Marca qué tiene mal ese producto (mal digitado, lote, cantidad…).');
+    const l = ki.xml && (ki.xml.lineas || []).find((y) => `${y.cod ? y.cod + ' · ' : ''}${y.desc}` === p || y.desc === p);
+    ki.items.push({ p: l ? l.desc : p, cod: l ? String(l.cod || '') : '', t, d: txt($('kiDet').value, 200) });
+    $('kiProd').value = ''; $('kiDet').value = ''; ki.sel = new Set(); msg('kiMsg', ''); kiFormPintar(); $('kiProd').focus();
   }
   async function kiXmlBuscar() {
     const k = facturaDe('ki'); if (k === ki.k) return;
-    ki.k = k; ki.xml = null; if (!k) return;
+    ki.k = k; ki.xml = null; $('kiXml').innerHTML = ''; $('kiProdL').innerHTML = ''; if (!k) return;
     const [ser, num] = k.split('-');
     try {
       const v = sincros.get('xmlf'); let xs;
       if (v) { await v.listo; xs = v.docs().map((d) => d.data()).filter((x) => x.serie === ser && numDoc(x.num) === num); }
       else xs = (await getDocs(query(collection(db, 'xmlf'), where('serie', '==', ser), where('num', '==', num)))).docs.map((d) => d.data());
       if (ki.k !== k) return;
-      const x = xs.find((y) => y.tipo === 'FACTURA') || xs[0]; if (!x) return;
+      const x = xs.find((y) => y.tipo === 'FACTURA') || xs[0]; if (!x) { $('kiXml').innerHTML = '<span class="quien">Sin XML: escribe el proveedor y los productos.</span>'; return; }
       ki.xml = x;
       const pv = provDeEmisor(x.emisor && x.emisor.nom, x.emisor && x.emisor.ruc); if (pv) $('kiProv').value = pv;
       const ls = x.lineas || [];
-      if (ls.length) { // si el XML no trae lote ni vencimiento, se marca solo
-        const sinL = ls.every((l) => !l.lote), sinF = ls.every((l) => !l.fv);
-        if (sinL) ki.chk.sinLote = true; if (sinF) ki.chk.sinFv = true; kiFormPintar();
-      }
+      $('kiProdL').innerHTML = unicos(ls.map((l) => `${l.cod ? l.cod + ' · ' : ''}${l.desc}`)).map((v0) => `<option value="${esc(v0)}">`).join('');
+      if (ls.length) { $('kiSinLote').checked = ls.every((l) => !l.lote); $('kiSinFv').checked = ls.every((l) => !l.fv); kiFormPintar(); } // si el XML no trae lote ni vencimiento, se marca solo
       $('kiXml').innerHTML = `<span class="quien">XML: ${esc(x.emisor && x.emisor.nom)} · ${esc(dia(x.fecha))} · S/ ${mil(x.total)} · ${ls.length} producto(s)${ls.length && ls.every((l) => !l.lote) ? ' · <b>sin lote</b>' : ''}${ls.length && ls.every((l) => !l.fv) ? ' · <b>sin vencimiento</b>' : ''}</span>`;
     } catch (e) { /* sin permiso para leer los XML: se llena a mano */ }
   }
   async function kiGuardar() {
-    const fac = facturaDe('ki'), prov = txt($('kiProv').value, 120), resp = $('kiResp').value;
+    const fac = facturaDe('ki'), prov = txt($('kiProv').value, 120);
     if (!fac) return msg('kiMsg', 'Escribe la serie y el número de la factura.');
     if (!prov) return msg('kiMsg', 'Escribe el proveedor.');
-    if (!resp) return msg('kiMsg', 'Elige quién ingresó la factura a LolFar.');
-    const chk = {}; KI_IND.forEach(([k]) => { chk[k] = ki.chk[k] === true; });
-    const n = Object.values(chk).filter(Boolean).length, interno = KI_IND.some(([k, , , t]) => t === 'I' && chk[k]);
+    if (txt($('kiProd').value, 150) && !confirm('Escribiste un producto pero no lo agregaste con "+ Agregar". ¿Guardar sin ese producto?')) return;
+    const chk = {}; KI_T.forEach(([k]) => { chk[k] = ki.items.some((it) => it.t.includes(k)); }); chk.sinFv = $('kiSinFv').checked; chk.sinLote = $('kiSinLote').checked;
     const ya = (ki.v ? ki.v.docs() : []).map((d) => d.data()).find((d) => refDoc(d.fac) === refDoc(fac) && provClave(d.prov) === provClave(prov));
     if (ya && !confirm(`${fac} de ${prov} ya fue revisada el ${dia(ya.fRev)} por ${String(ya.rev || '').split(' (')[0]}. ¿Registrar otra revisión?`)) return;
     $('kiGuardar').disabled = true;
     try {
-      await addDoc(collection(db, 'controlIng'), { fac, prov, resp, chk, err: n, prods: txt($('kiProds').value, 300), obs: txt($('kiObs').value, 300), estado: interno ? 'Pendiente' : 'Conforme',
+      await addDoc(collection(db, 'controlIng'), { fac, prov, items: ki.items, chk, err: ki.items.length, obs: txt($('kiObs').value, 300), estado: ki.items.length ? 'Pendiente' : 'Conforme',
         fFac: (ki.xml && ki.xml.fecha) || '', fRev: hoy(), rev: firma(), uid: yo.uid, creado: serverTimestamp(), act: serverTimestamp() });
-      msg('kiMsg', n ? `Guardado: ${fac} con ${n} error(es).` : `Guardado: ${fac} conforme.`, 'ok');
-      ['kiSer', 'kiNum', 'kiProv', 'kiProds', 'kiObs'].forEach((id) => { $(id).value = ''; }); ki.chk = {}; ki.k = ''; ki.xml = null; $('kiXml').innerHTML = ''; kiFormPintar(); $('kiSer').focus();
+      msg('kiMsg', ki.items.length ? `Guardado: ${fac} con ${ki.items.length} producto(s) con error.` : `Guardado: ${fac} conforme.`, 'ok');
+      ['kiSer', 'kiNum', 'kiProv', 'kiProd', 'kiDet', 'kiObs'].forEach((id) => { $(id).value = ''; }); $('kiSinFv').checked = false; $('kiSinLote').checked = false;
+      ki.items = []; ki.sel = new Set(); ki.k = ''; ki.xml = null; $('kiXml').innerHTML = ''; $('kiProdL').innerHTML = ''; kiFormPintar(); $('kiSer').focus();
     } catch (e) { msg('kiMsg', errorTexto(e)); }
     $('kiGuardar').disabled = false;
   }
   async function kiAbrir() {
     if (!$('kiMes').value) $('kiMes').value = hoy().slice(0, 7);
     $('kiForm').classList.toggle('oculto', !puede('ctrlIng'));
-    $('kiResp').innerHTML = '<option value="">Elige…</option>' + pedResps().map((r) => `<option>${esc(r)}</option>`).join('');
     $('kiProvL').innerHTML = proveedoresConocidos().map((p) => `<option value="${esc(p)}">`).join('');
     kiFormPintar();
     if (!ki.v) { try { ki.v = await sincro('controlIng'); ki.v.cbs.add(() => { if (vista === 'vCtrlIng') kiPintar(); kiContar(); }); } catch (e) { $('kiCont').innerHTML = `<div class="msg err">${esc(errorTexto(e))}</div>`; return; } }
     kiPintar(); kiContar();
   }
   const kiContar = () => { if (ki.v) contador('nCtrl', ki.v.docs().filter((d) => d.get('estado') === 'Pendiente').length); };
+  const kiItemsDe = (d) => d.items || [];
   function kiPintar() {
     if (!ki.v) return;
-    const mes = $('kiMes').value, est = $('kiEst').value, rs = $('kiRespF').value, t = $('kiTxt').value.trim().toLowerCase();
+    const mes = $('kiMes').value, est = $('kiEst').value, pv = $('kiProvF').value, t = $('kiTxt').value.trim().toLowerCase();
     const todos = ki.v.docs().map((d) => ({ _id: d.id, ...d.data() })).filter((d) => !mes || String(d.fRev).startsWith(mes));
-    const resps = unicos(todos.map((d) => d.resp)); $('kiRespF').innerHTML = '<option value="">Todos los que ingresan</option>' + resps.map((r) => `<option${r === rs ? ' selected' : ''}>${esc(r)}</option>`).join('');
-    const L = todos.filter((d) => (!est || d.estado === est) && (!rs || d.resp === rs) && (!t || `${d.fac} ${d.prov} ${d.prods} ${d.obs}`.toLowerCase().includes(t))).sort((a, b) => String(b.fRev).localeCompare(String(a.fRev)) || msDe(b.creado) - msDe(a.creado));
+    const provs = unicos(todos.map((d) => d.prov)); $('kiProvF').innerHTML = '<option value="">Todos los proveedores</option>' + provs.map((r) => `<option${r === pv ? ' selected' : ''}>${esc(r)}</option>`).join('');
+    const L = todos.filter((d) => (!est || d.estado === est) && (!pv || d.prov === pv) && (!t || `${d.fac} ${d.prov} ${kiItemsDe(d).map((it) => it.p + ' ' + (it.d || '')).join(' ')} ${d.obs || ''}`.toLowerCase().includes(t))).sort((a, b) => String(b.fRev).localeCompare(String(a.fRev)) || msDe(b.creado) - msDe(a.creado));
     ki.vista = L;
-    const verInd = puede('indCtrlIng'), conErr = todos.filter((d) => d.err > 0), pct = (a, b) => (b ? Math.round(a * 100 / b) : 0);
-    const ind = !verInd || !todos.length ? '' : (() => {
-      const porTipo = KI_IND.map(([k, a, b, tp]) => [b, todos.filter((d) => d.chk && d.chk[k]).length, tp]).filter((x) => x[1]).sort((a, b) => b[1] - a[1]);
-      const porResp = resps.map((r) => { const ds = todos.filter((d) => d.resp === r), e = ds.filter((d) => KI_IND.some(([k, , , tp]) => tp === 'I' && d.chk && d.chk[k])).length; return [r, ds.length, e]; }).sort((a, b) => b[2] - a[2] || b[1] - a[1]);
-      const provs = unicos(todos.map((d) => d.prov)).map((p) => { const ds = todos.filter((d) => d.prov === p); return [p, ds.length, ds.filter((d) => d.chk && d.chk.sinFv).length, ds.filter((d) => d.chk && d.chk.sinLote).length]; }).filter((x) => x[2] || x[3]).sort((a, b) => (b[2] + b[3]) - (a[2] + a[3]));
-      const mx = Math.max(1, ...porTipo.map((x) => x[1]));
+    const pct = (a, b) => (b ? Math.round(a * 100 / b) : 0), conErr = todos.filter((d) => kiItemsDe(d).length);
+    const ind = !puede('indCtrlIng') || !todos.length ? '' : (() => {
+      const its = todos.flatMap((d) => kiItemsDe(d).map((it) => ({ ...it, prov: d.prov })));
+      const porTipo = KI_T.map(([k, n]) => [n, its.filter((it) => it.t.includes(k)).length, 'I']).concat(KI_P.map(([k, n]) => [n, todos.filter((d) => d.chk && d.chk[k]).length, 'P'])).filter((x) => x[1]).sort((a, b) => b[1] - a[1]);
+      const porProv = provs.map((p) => { const ds = todos.filter((d) => d.prov === p); return [p, ds.length, ds.filter((d) => kiItemsDe(d).length).length, ds.reduce((a, d) => a + kiItemsDe(d).length, 0), ds.filter((d) => d.chk && (d.chk.sinFv || d.chk.sinLote)).length]; }).sort((a, b) => b[3] - a[3] || b[1] - a[1]);
+      const porProd = new Map(); its.forEach((it) => porProd.set(it.p, (porProd.get(it.p) || 0) + 1));
+      const topP = [...porProd.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8), mx = Math.max(1, ...porTipo.map((x) => x[1]));
       return '<div class="kiKpis">' +
-        [['Facturas revisadas', todos.length, ''], ['Conformes', todos.filter((d) => !d.err).length, `${pct(todos.filter((d) => !d.err).length, todos.length)}%`], ['Con error', conErr.length, `${pct(conErr.length, todos.length)}%`], ['Por corregir', todos.filter((d) => d.estado === 'Pendiente').length, '']].map(([a, v, s]) => `<div class="kpi"><b>${a}</b><strong>${v}</strong><small>${s}</small></div>`).join('') + '</div>' +
+        [['Facturas revisadas', todos.length, ''], ['Conformes', todos.length - conErr.length, `${pct(todos.length - conErr.length, todos.length)}%`], ['Con error de ingreso', conErr.length, `${pct(conErr.length, todos.length)}% · ${its.length} producto(s)`], ['Por corregir', todos.filter((d) => d.estado === 'Pendiente').length, '']].map(([a, v, s]) => `<div class="kpi"><b>${a}</b><strong>${v}</strong><small>${s}</small></div>`).join('') + '</div>' +
         '<div class="kiGraf"><div class="caja"><h3>Errores por tipo</h3>' + (porTipo.map(([n0, v, tp]) => `<div class="kiBar"><span>${esc(n0)}${tp === 'P' ? ' <span class="quien">(proveedor)</span>' : ''}</span><span class="kiB"><span style="width:${v * 100 / mx}%;background:${tp === 'P' ? '#7c3aed' : '#dc2626'}"></span></span><b>${v}</b></div>`).join('') || '<p class="quien">Sin errores este mes.</p>') + '</div>' +
-        `<div class="caja"><h3>Por persona que ingresa</h3><table class="kiT"><tr><th>Ingresó</th><th class="num">Revisadas</th><th class="num">Con error</th><th class="num">%</th></tr>${porResp.map(([r, n0, e]) => `<tr><td>${esc(r)}</td><td class="num">${n0}</td><td class="num">${e}</td><td class="num"><b class="${pct(e, n0) > 10 ? 'baja' : ''}">${pct(e, n0)}%</b></td></tr>`).join('')}</table></div>` +
-        `<div class="caja"><h3>Facturas sin vencimiento o lote (proveedor)</h3>${provs.length ? `<table class="kiT"><tr><th>Proveedor</th><th class="num">Revisadas</th><th class="num">Sin FV</th><th class="num">Sin lote</th></tr>${provs.map(([p, n0, a, b]) => `<tr><td>${esc(p)}</td><td class="num">${n0}</td><td class="num">${a}</td><td class="num">${b}</td></tr>`).join('')}</table>` : '<p class="quien">Todas traen vencimiento y lote.</p>'}</div></div>`;
+        `<div class="caja"><h3>Por proveedor</h3><table class="kiT"><tr><th>Proveedor</th><th class="num">Revisadas</th><th class="num">Con error</th><th class="num">Productos</th><th class="num">Sin FV/lote</th></tr>${porProv.map(([p, n0, e, np, sf]) => `<tr><td>${esc(p)}</td><td class="num">${n0}</td><td class="num"><b class="${pct(e, n0) > 10 ? 'baja' : ''}">${e}</b></td><td class="num">${np}</td><td class="num">${sf}</td></tr>`).join('')}</table></div>` +
+        `<div class="caja"><h3>Productos con más errores</h3>${topP.length ? `<table class="kiT">${topP.map(([p, v]) => `<tr><td>${esc(p)}</td><td class="num"><b>${v}</b></td></tr>`).join('')}</table>` : '<p class="quien">Sin errores este mes.</p>'}</div></div>`;
     })();
     const corr = puede('ctrlIng');
-    $('kiCont').innerHTML = ind + `<p class="resumen">${L.length} revisión(es)</p><div class="tabla"><table><thead><tr><th>Revisión</th><th>Factura</th><th>Proveedor</th><th>Ingresó</th><th>Resultado</th><th>Productos / comentario</th><th>Estado</th><th>Revisó</th></tr></thead><tbody>` +
-      (L.map((d) => { const es = kiErrs(d); return `<tr class="${es.length ? 'kiConErr' : ''}"><td>${esc(dia(d.fRev))}</td><td><b>${esc(d.fac)}</b></td><td>${esc(d.prov)}</td><td>${esc(d.resp)}</td>` +
-        `<td>${es.length ? es.map(([, , b, tp]) => `<span class="est ${tp === 'P' ? 'e3' : 'alerta'}" style="margin:1px">${esc(b)}</span>`).join(' ') : '<span class="est e2">✓ Conforme</span>'}</td>` +
-        `<td style="white-space:normal;max-width:280px">${esc(d.prods || '')}${d.prods && d.obs ? '<br>' : ''}<span class="quien">${esc(d.obs || '')}</span></td>` +
+    $('kiCont').innerHTML = ind + `<p class="resumen">${L.length} revisión(es)</p><div class="tabla"><table class="kiLista"><thead><tr><th>Revisión</th><th>Factura</th><th>Proveedor</th><th>Productos con error</th><th>Comentario</th><th>Estado</th><th>Revisó</th></tr></thead><tbody>` +
+      (L.map((d) => { const its = kiItemsDe(d), pr = KI_P.filter(([k]) => d.chk && d.chk[k]); return `<tr class="${its.length ? 'kiConErr' : ''}"><td>${esc(dia(d.fRev))}</td><td><b>${esc(d.fac)}</b></td><td>${esc(d.prov)}</td>` +
+        `<td style="white-space:normal;max-width:460px">${its.length ? its.map((it) => `<div><b>${esc(it.p)}</b>: ${it.t.map((k) => `<span class="est alerta" style="margin:1px">${esc(kiNom(k))}</span>`).join(' ')}${it.d ? ` <span class="quien">${esc(it.d)}</span>` : ''}</div>`).join('') : '<span class="est e2">✓ Conforme</span>'}${pr.length ? `<div style="margin-top:2px">${pr.map(([, n]) => `<span class="est e3" style="margin:1px">${esc(n)}</span>`).join(' ')}</div>` : ''}</td>` +
+        `<td class="quien" style="white-space:normal;max-width:220px">${esc(d.obs || '')}</td>` +
         `<td>${d.estado === 'Pendiente' ? `<span class="est e0">Por corregir</span>${corr ? ` <button type="button" class="mini kiCorr" data-id="${esc(d._id)}">✓ Corregido</button>` : ''}` : d.estado === 'Corregido' ? `<span class="est e2">Corregido</span><div class="quien">${esc(String(d.corrPor || '').split(' (')[0])} · ${esc(dia(d.corrF))}</div>` : '<span class="quien">—</span>'}</td>` +
-        `<td class="quien">${esc(String(d.rev || '').split(' (')[0])}${yo.area === 'ADMIN' ? ` <button type="button" class="mini pel kiDel" data-id="${esc(d._id)}" title="Eliminar esta revisión">🗑</button>` : ''}</td></tr>`; }).join('') || '<tr><td colspan="8" class="vacio">Sin revisiones en este mes</td></tr>') + '</tbody></table></div>';
+        `<td class="quien">${esc(String(d.rev || '').split(' (')[0])}${yo.area === 'ADMIN' ? ` <button type="button" class="mini pel kiDel" data-id="${esc(d._id)}" title="Eliminar esta revisión">🗑</button>` : ''}</td></tr>`; }).join('') || '<tr><td colspan="7" class="vacio">Sin revisiones en este mes</td></tr>') + '</tbody></table></div>';
   }
-  $('kiInd').addEventListener('click', (e) => { const b = e.target.closest('.kiOk, .kiMal'); if (!b) return; ki.chk[b.dataset.k] = b.classList.contains('kiMal'); kiFormPintar(); });
+  $('kiTipos').addEventListener('click', (e) => { const b = e.target.closest('.kiTipo'); if (!b) return; if (ki.sel.has(b.dataset.k)) ki.sel.delete(b.dataset.k); else ki.sel.add(b.dataset.k); kiFormPintar(); });
+  $('kiItems').addEventListener('click', (e) => { const b = e.target.closest('.kiQuitar'); if (!b) return; ki.items.splice(Number(b.dataset.i), 1); kiFormPintar(); });
+  $('kiAgregar').addEventListener('click', kiAgregar);
+  ['kiProd', 'kiDet'].forEach((id) => $(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); kiAgregar(); } }));
+  ['kiSinFv', 'kiSinLote'].forEach((id) => $(id).addEventListener('change', kiFormPintar));
   $('kiGuardar').addEventListener('click', kiGuardar);
   ['kiSer', 'kiNum'].forEach((id) => { $(id).addEventListener('change', () => setTimeout(kiXmlBuscar, 0)); $(id).addEventListener('input', () => { clearTimeout(ki.t); ki.t = setTimeout(kiXmlBuscar, 400); }); $(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') e.preventDefault(); }); });
-  ['kiMes', 'kiEst', 'kiRespF'].forEach((id) => $(id).addEventListener('change', kiPintar));
+  ['kiMes', 'kiEst', 'kiProvF'].forEach((id) => $(id).addEventListener('change', kiPintar));
   $('kiTxt').addEventListener('input', () => { clearTimeout(ki.tt); ki.tt = setTimeout(kiPintar, 250); });
-  $('kiExp').addEventListener('click', () => exportar('control-de-ingreso', [['Revisión', (d) => dia(d.fRev)], ['Factura', 'fac'], ['Proveedor', 'prov'], ['Ingresó', 'resp'], ...KI_IND.map(([k, a]) => [a, (d) => (d.chk && d.chk[k] ? 'ERROR' : 'Bien')]), ['Errores', 'err'], ['Productos', 'prods'], ['Comentario', 'obs'], ['Estado', 'estado'], ['Corrigió', (d) => String(d.corrPor || '').split(' (')[0]], ['Fecha corrección', (d) => dia(d.corrF)], ['Revisó', (d) => String(d.rev || '').split(' (')[0]]], ki.vista || []));
+  $('kiExp').addEventListener('click', () => exportar('control-de-ingreso', [['Revisión', (d) => dia(d.fRev)], ['Factura', 'fac'], ['Proveedor', 'prov'], ['Productos con error', (d) => kiItemsDe(d).map((it) => `${it.p}: ${it.t.map(kiNom).join(', ')}${it.d ? ' (' + it.d + ')' : ''}`).join(' | ')], ...KI_T.map(([k, n]) => [n, (d) => kiItemsDe(d).filter((it) => it.t.includes(k)).length]), ...KI_P.map(([k, n]) => [n, (d) => (d.chk && d.chk[k] ? 'Sí' : '')]), ['Comentario', 'obs'], ['Estado', 'estado'], ['Corrigió', (d) => String(d.corrPor || '').split(' (')[0]], ['Fecha corrección', (d) => dia(d.corrF)], ['Revisó', (d) => String(d.rev || '').split(' (')[0]]], ki.vista || []));
   $('kiCont').addEventListener('click', async (e) => {
     const c = e.target.closest('.kiCorr'), dl = e.target.closest('.kiDel');
     try {
