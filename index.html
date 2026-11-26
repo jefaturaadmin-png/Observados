@@ -10475,6 +10475,16 @@
     ki.items.push({ p: l ? l.desc : p, cod: l ? String(l.cod || '') : '', t, d: txt($('kiDet').value, 200) });
     $('kiProd').value = ''; $('kiDet').value = ''; ki.sel = new Set(); ki.pickL = null; kiPickCerrar(); msg('kiMsg', ''); kiFormPintar(); $('kiProd').focus();
   }
+  async function kiProvRegistrado(k) { // proveedor de una factura ya registrada (sin XML)
+    try { const ps = (await sincroDocs('pedidos', (x) => refDoc(x.factura) === k)).docs.map((d) => d.data()); if (ps.length && ps[0].proveedor) return { prov: ps[0].proveedor, de: 'Ingreso de pedidos' }; } catch (e) { /* sin permiso */ }
+    if (puede('verPagos')) {
+      try {
+        const [s0, n0] = k.split('-');
+        for (const d0 of (await sincro('pagos')).docs()) { const d = datoDe(d0); if ((d.filas || []).some((f) => f.t === 'FA' && serDoc(f.s) === s0 && numDoc(f.n) === n0)) return { prov: distDe(d.dist).nombre, de: `Ingreso de facturas (${perTxt(d.per)})` }; }
+      } catch (e) { /* sin permiso */ }
+    }
+    return null;
+  }
   async function kiXmlBuscar() {
     const k = facturaDe('ki'); if (k === ki.k) return;
     ki.k = k; ki.xml = null; $('kiXml').innerHTML = ''; kiPickCerrar(); if (!k) return;
@@ -10484,7 +10494,12 @@
       if (v) { await v.listo; xs = v.docs().map((d) => d.data()).filter((x) => x.serie === ser && numDoc(x.num) === num); }
       else xs = (await getDocs(query(collection(db, 'xmlf'), where('serie', '==', ser), where('num', '==', num)))).docs.map((d) => d.data());
       if (ki.k !== k) return;
-      const x = xs.find((y) => y.tipo === 'FACTURA') || xs[0]; if (!x) { $('kiXml').innerHTML = '<span class="quien">Sin XML: escribe el proveedor y los productos.</span>'; return; }
+      const x = xs.find((y) => y.tipo === 'FACTURA') || xs[0];
+      if (!x) { // sin XML: el proveedor se busca en Ingreso de facturas (Pagos) y en Ingreso de pedidos
+        const pv = await kiProvRegistrado(k); if (ki.k !== k) return;
+        if (pv && !$('kiProv').value.trim()) $('kiProv').value = pv.prov;
+        $('kiXml').innerHTML = `<span class="quien">Sin XML${pv ? ` · proveedor tomado de ${esc(pv.de)}` : ''}: escribe los productos con error.</span>`; return;
+      }
       ki.xml = x;
       const pv = provDeEmisor(x.emisor && x.emisor.nom, x.emisor && x.emisor.ruc); if (pv) $('kiProv').value = pv;
       const ls = x.lineas || [];
