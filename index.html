@@ -7839,6 +7839,10 @@
   let ltDocs = [];
   const ltCambios = new Map(); // id del mes → campos cambiados en esta PC (null = quitado)
   const ltPoner = (id, campos) => ltCambios.set(id, { ...(ltCambios.get(id) || {}), ...campos });
+  // Orden de la hoja: primero los proveedores principales (en este orden), luego los demás por días (90, 60, 30, contado) y nombre
+  const LT_PRIO = [/DIMEXA/, /FP\s*MAYORISTA/, /\bDECO\b/, /FARMINDUSTRIA/, /PERUFARMA/, /MIDHCO/, /PERULAB/, /CASTILLO/, /ALFARO/, /DROGUERIAS\s+UNIDAS|DUPERU/, /CONTINENTAL/, /DROPESAC/];
+  const ltOrden = (r) => { const n = String(r.dist.nombre || '').toUpperCase(), i = LT_PRIO.findIndex((re) => re.test(n)); return i < 0 ? 999 : i; };
+  const ltDias = (r) => (r.dias === '' || r.dias === null || r.dias === undefined ? -1 : Number(r.dias) || 0);
   async function ltPintar() {
     if (!$('ltEmp').options.length) { $('ltEmp').innerHTML = pgCfg.empresas.map((e) => `<option value="${esc(e.k)}">${esc(e.nombre)}</option>`).join(''); { const h0 = hoy(); let y = +h0.slice(0, 4), m = +h0.slice(5, 7) + 1; if (m > 12) { m = 1; y += 1; } $('ltPer').value = `${y}-${String(m).padStart(2, '0')}`; } }
     const emp = $('ltEmp').value, per = $('ltPer').value;
@@ -7857,7 +7861,7 @@
     const filas = docs.map((d) => {
       const dist = distDe(d.dist), fs = d.filas || [];
       return { d, dist, tipo: dist.tipo === 'C' ? 'C' : 'D', dias: d.dias ?? dist.pl ?? '', nFa: fs.filter((f) => f.t === 'FA').length, nNc: fs.filter((f) => f.t === 'NC').length, neto: r2(fs.reduce((a, f) => a + (Number(f.m) || 0), 0)) };
-    }).filter((r) => (!tipo || r.tipo === tipo) && (!est || (est === 'A') === !!r.d.aprob)).sort((a, b) => a.dist.nombre.localeCompare(b.dist.nombre));
+    }).filter((r) => (!tipo || r.tipo === tipo) && (!est || (est === 'A') === !!r.d.aprob)).sort((a, b) => ltOrden(a) - ltOrden(b) || ltDias(b) - ltDias(a) || a.dist.nombre.localeCompare(b.dist.nombre));
     const ya = new Set(docs.map((d) => d.dist));
     $('ltAdd').innerHTML = '<option value="">+ Agregar proveedor a este mes</option>' + pgCfg.dists.filter((x) => !ya.has(x.k)).sort((a, b) => a.nombre.localeCompare(b.nombre)).map((x) => `<option value="${esc(x.k)}">${esc(x.nombre)}</option>`).join('');
     $('ltAdd').classList.toggle('oculto', !edita);
