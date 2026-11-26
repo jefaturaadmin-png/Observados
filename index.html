@@ -8482,8 +8482,10 @@
     const r = rgDonde(x);
     if (r) return `<button class="mini rgIr" data-mod="${r.mod}" data-emp="${esc(r.emp)}" data-k="${esc(r.k)}" data-per="${esc(r.per)}" data-i="${esc(r.i)}" title="Ir a la fila">${r.dif ? '<span class="baja">≠ total</span> · ' : '✓ '}${r.mod === 'D' ? 'Pagos' : 'CxP'} · ${esc(perTxt(r.per))}</button>`;
     const id = rgId(x);
-    return `<label class="sgChk"><input type="checkbox" class="rgCk" data-id="${esc(id)}"${rg.sel.has(id) ? ' checked' : ''}> <span class="est alerta">Falta registrar</span></label>` + xlNotaHtml(x);
+    return `<label class="sgChk"><input type="checkbox" class="rgCk" data-id="${esc(id)}"${rg.sel.has(id) ? ' checked' : ''}> <span class="est alerta">Falta registrar</span></label>` +
+      ((puede('pagos') || puede('cxp')) ? `<div style="margin-top:3px"><select class="rgMesUno" data-id="${esc(id)}" title="Llevar solo este documento a ese mes de pago" style="width:auto;padding:2px 6px;font-size:12px"><option value="">Llevar a…</option>${rgMesesOpc()}</select></div>` : '') + xlNotaHtml(x);
   }
+  const rgMesesOpc = () => { const h = hoy(); let y = +h.slice(0, 4), m = +h.slice(5, 7) - 1; if (m < 1) { m = 12; y -= 1; } const out = []; for (let i = 0; i < 6; i += 1) { out.push(`<option value="${y}-${String(m).padStart(2, '0')}">${String(m).padStart(2, '0')}/${String(y).slice(2)}</option>`); m += 1; if (m > 12) { m = 1; y += 1; } } return out.join(''); }; // del mes pasado a 4 meses adelante: 10/26, 11/26, 12/26…
   // Comentario de un XML (por qué no se registró, etc.): queda guardado y lo ven todos
   function xlNotaHtml(x) {
     if (!x.k) return '';
@@ -8501,8 +8503,8 @@
       (puedeAlgo ? `<span style="flex:1"></span><span>${sel.length} marcada(s)${sel.length ? ` · S/ ${mil(tot)}` : ''}</span><label for="${pre}Per" style="margin:0">Llevar al mes de pago</label><input type="month" id="${pre}Per" class="rgPer" value="${esc(rg.per || hoy().slice(0, 7))}" style="max-width:165px"><button class="pri rgLlevar" data-pre="${pre}"${sel.length ? '' : ' disabled'}>Agregar</button>` : '') +
       '</div><p class="quien" style="margin:6px 0 0">Cada una va a su distribuidor (Pagos a proveedores) o a su proveedor (Cuentas por pagar), con la fecha, el total y el vencimiento del XML, y queda conciliada con XML.</p></div>';
   }
-  async function rgLlevar(per) {
-    const lista = rg.vista.filter((r) => !r.reg && rg.sel.has(r.id));
+  async function rgLlevar(per, soloId) {
+    const lista = rg.vista.filter((r) => !r.reg && (soloId ? r.id === soloId : rg.sel.has(r.id)));
     if (!lista.length) return;
     if (!/^\d{4}-\d{2}$/.test(per)) return alert('Elige el mes de pago.');
     const grupos = new Map();
@@ -8608,7 +8610,7 @@
         : '<p class="quien" style="margin:0">Este XML no trae el detalle de productos.</p>') + '</td></tr>';
   }
   $('rgCuerpo').addEventListener('click', (e) => {
-    if (e.target.closest('input, button, a, tr.det')) return;
+    if (e.target.closest('input, button, select, a, tr.det')) return;
     const tr = e.target.closest('tr.rgFila');
     if (!tr) return;
     if (rg.ab.has(tr.dataset.id)) rg.ab.delete(tr.dataset.id); else rg.ab.add(tr.dataset.id);
@@ -8650,6 +8652,7 @@
       const t = e.target;
       if (t.classList.contains('rgCk')) { if (t.checked) rg.sel.add(t.dataset.id); else rg.sel.delete(t.dataset.id); repinta(); }
       else if (t.classList.contains('rgPer')) rg.per = t.value;
+      else if (t.classList.contains('rgMesUno') && t.value) { const per = t.value; t.value = ''; rgLlevar(per, t.dataset.id); } // solo esta fila, a ese mes
     });
     $(id).addEventListener('click', (e) => {
       const b = e.target.closest('.rgIr, .rgTodas, .rgLlevar');
@@ -9888,7 +9891,7 @@
     if (pb) { const x = xl.docs.find((y) => y.k === pb.dataset.k); if (!x) return; pb.disabled = true; try { await xlPdf(x); } catch (err) { alert(errorTexto(err)); } pb.disabled = false; return; }
     const b = e.target.closest('.xlBorrar');
     if (b) { const x = xl.docs.find((y) => y.k === b.dataset.k); if (!x || !confirm(`¿Eliminar ${x.tipo} ${x.id} de lo guardado?`)) return; try { await deleteDoc(doc(db, 'xmlf', x.k)); sincroQuitar('xmlf', x.k); deleteDoc(doc(db, 'xmlRaw', x.k)).catch(() => {}); xl.avisos = [`${x.id} eliminado.`]; xl.errores = []; xlCargar(); } catch (err) { xl.errores = [errorTexto(err)]; xlPintar(); } return; }
-    if (e.target.closest('input, button, .rgIr')) return;
+    if (e.target.closest('input, button, select, .rgIr')) return;
     const tr = e.target.closest('tr.xlFila'); if (!tr) return; const k = tr.dataset.k; if (xl.abiertos.has(k)) xl.abiertos.delete(k); else xl.abiertos.add(k); xlPintar();
   });
   $('xlExpDoc').addEventListener('click', () => exportar('xml-documentos', [['Tipo', 'tipo'], ['Serie', 'serie'], ['Número', 'num'], ['Documento', 'id'], ['Fecha emisión', (x) => dia(x.fecha)], ['RUC emisor', (x) => x.emisor.ruc], ['Emisor', (x) => x.emisor.nom], ['RUC cliente', (x) => x.cliente.ruc], ['Cliente', (x) => x.cliente.nom], ['Moneda', 'moneda'], ['Valor venta', 'base'], ['IGV', 'igv'], ['Total', 'total'], ['Forma de pago', 'forma'], ['Vence', (x) => dia(x.vence)], ['Afecta a', 'ref'], ['Motivo', 'motivo'], ['Ítems', (x) => x.lineas.length], ['Archivo', 'arch']], xl.vista || []));
