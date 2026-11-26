@@ -492,6 +492,14 @@
   .scVenCu { padding:14px 22px 22px; max-height:70vh; overflow:auto; }
   body.scSinScroll { overflow:hidden; }
   .faltaNc { margin-top:6px; font-size:12px; background:#fff0e6; border-radius:6px; padding:6px 10px; white-space:nowrap; line-height:1.6; width:max-content; } .faltaNc mark { background:#fde047; color:inherit; padding:0 2px; border-radius:3px; }
+  .kiInd { display:grid; grid-template-columns:repeat(auto-fill, minmax(330px, 1fr)); gap:6px; }
+  .kiFila { display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:6px; padding:6px 10px; border:1px solid var(--borde); border-radius:10px; background:#fff; } .kiFila.mal { background:#fdecea; border-color:#f5b4ad; }
+  .kiOk, .kiMal { padding:4px 10px !important; font-size:13px; border-radius:8px !important; background:#fff; } .kiOk.on { background:#16a34a; color:#fff; border-color:#16a34a !important; } .kiMal.on { background:#dc2626; color:#fff; border-color:#dc2626 !important; }
+  .kiKpis { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin-bottom:10px; }
+  .kiGraf { display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:10px; margin-bottom:10px; } .kiGraf h3 { margin:0 0 8px; font-size:14px; }
+  .kiBar { display:grid; grid-template-columns:minmax(150px, 45%) 1fr 30px; gap:8px; align-items:center; font-size:12.5px; margin:5px 0; } .kiBar b { text-align:right; }
+  .kiB { height:12px; background:#f1f5f9; border-radius:6px; overflow:hidden; } .kiB > span { display:block; height:100%; border-radius:6px; }
+  .kiT { font-size:13px; width:100%; } tr.kiConErr > td:first-child { box-shadow:inset 4px 0 0 #dc2626; }
   .scPasos { display:flex; gap:0; padding:14px 6px 10px; background:rgba(0,0,0,.035); border-radius:10px; overflow-x:auto; }
   .scPaso { flex:1; min-width:120px; text-align:center; position:relative; padding:0 6px; }
   .scPaso:not(:last-child)::after { content:''; position:absolute; top:15px; left:calc(50% + 17px); right:calc(-50% + 17px); height:3px; background:#cfd4dc; }
@@ -564,7 +572,7 @@
     <div class="ladoMarca"><img src="logo.png" alt="" onerror="this.remove()"><b>Farmacia Socorro</b></div>
     <nav>
       <div class="navGrupo"><button data-v="vInicio" title="Inicio"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span class="navT">Inicio</span></button></div>
-      <div class="navGrupo"><div class=navG>Recepción</div><button data-v="vPedidos" title="Ingreso de pedidos"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><span class="navT">Ingreso de pedidos</span><span class="cuenta oculto" id="nPed"></span></button><button data-v="vNuevo" id="tabNuevo" title="Observar productos"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span class="navT">Observar productos</span></button><button data-v="vPend" title="Por devolver"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg><span class="navT">Por devolver</span><span class="cuenta oculto" id="nPend"></span></button><button data-v="vDev" title="Devueltos y NC"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="navT">Devueltos y NC</span><span class="cuenta oculto" id="nDev"></span></button><button data-v="vSeg" id="tabSeg" title="Seguimiento de devoluciones"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg><span class="navT">Seguimiento de devoluciones</span></button></div>
+      <div class="navGrupo"><div class=navG>Recepción</div><button data-v="vPedidos" title="Ingreso de pedidos"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><span class="navT">Ingreso de pedidos</span><span class="cuenta oculto" id="nPed"></span></button><button data-v="vCtrlIng" title="Control de ingreso: la jefa de almacén revisa lo ingresado a LolFar"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/><line x1="7" y1="8" x2="7" y2="8"/></svg><span class="navT">Control de ingreso</span><span class="cuenta oculto" id="nCtrl"></span></button><button data-v="vNuevo" id="tabNuevo" title="Observar productos"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span class="navT">Observar productos</span></button><button data-v="vPend" title="Por devolver"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg><span class="navT">Por devolver</span><span class="cuenta oculto" id="nPend"></span></button><button data-v="vDev" title="Devueltos y NC"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="navT">Devueltos y NC</span><span class="cuenta oculto" id="nDev"></span></button><button data-v="vSeg" id="tabSeg" title="Seguimiento de devoluciones"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg><span class="navT">Seguimiento de devoluciones</span></button></div>
       <div class="navGrupo"><div class=navG>Compras</div><button data-v="vCot" id="tabCot" title="Cotizaciones"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span class="navT">Cotizaciones</span></button><button data-v="vSegC" title="Seguimiento de compras: de la factura emitida (XML) a la recepción, la conformidad de Compras y el ingreso a LolFar, con los días de cada paso"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><line x1="7" y1="12" x2="10" y2="12"/><line x1="14" y1="12" x2="17" y2="12"/></svg><span class="navT">Seguimiento de compras</span><span class="cuenta oculto" id="nSegC"></span></button></div>
       <div class="navGrupo"><div class=navG>Pagos</div><button data-v="vPagos" id="tabPagos" title="Ingreso de facturas y NC de cada proveedor"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg><span class="navT">Ingreso de facturas y NC</span></button><button data-v="vPagosLf" id="tabPagosLf" class="navHijo" title="Reporte de Lolfar: qué facturas de TODOS los proveedores están en Lolfar pero no registradas aquí"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="navT">Reporte Lolfar y XML</span></button><button data-v="vPagosRes" id="tabPagosRes" title="Resumen de pago de cada proveedor y mes"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg><span class="navT">Resumen de pago</span></button><button data-v="vLetras" id="tabLetras" title="Aprobación de la programación de letras de cada mes"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><polyline points="8 15 11 18 16 12"/></svg><span class="navT">Letras aprobadas</span></button><button data-v="vPagosObs" id="tabPagosObs" title="Facturas observadas y sus notas de crédito"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span class="navT">Observaciones</span></button><button data-v="vResPag" id="tabResPag" title="Resumen de pagos del mes: créditos, distribuidores, proveedores y otros pagos"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg><span class="navT">Resumen general</span></button></div>
       <div class="navGrupo"><div class=navG>Análisis de datos</div><button data-v="vDash" id="tabDash" title="Dashboard"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="navT">Dashboard</span></button></div>
@@ -935,6 +943,32 @@
       </div>
       <div id="scCont"></div>
     </div>
+    <!-- ===== CONTROL DE INGRESO: errores al ingresar las facturas a LolFar ===== -->
+    <div id="vCtrlIng" class="oculto">
+      <div class="caja" id="kiForm">
+        <h2 style="margin-top:0">Revisar el ingreso de una factura</h2>
+        <div class="rejilla">
+          <div class="campo"><label for="kiSer">Factura: serie y número *</label><div style="display:flex;gap:6px"><input id="kiSer" placeholder="F001" style="max-width:110px" autocomplete="off"><input id="kiNum" placeholder="Número" autocomplete="off"></div><div id="kiXml"></div></div>
+          <div class="campo"><label for="kiProv">Proveedor *</label><input id="kiProv" list="kiProvL" placeholder="Escribe para buscar…" autocomplete="off"><datalist id="kiProvL"></datalist></div>
+          <div class="campo"><label for="kiResp">Quién la ingresó a LolFar *</label><select id="kiResp"></select></div>
+        </div>
+        <p class="quien" style="margin:10px 0 6px">Marca cada punto: <b>✓ Bien</b> o <b>✗ Error</b>. Si todo está bien, solo guarda.</p>
+        <div id="kiInd" class="kiInd"></div>
+        <div class="rejilla" style="margin-top:8px">
+          <div class="campo"><label for="kiProds">Productos con error (opcional)</label><input id="kiProds" placeholder="Ej.: PARACETAMOL 500MG: lote 2311 en vez de 2313"></div>
+          <div class="campo"><label for="kiObs">Comentario (opcional)</label><input id="kiObs"></div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:10px"><button class="pri" id="kiGuardar">Guardar: todo conforme</button><span id="kiMsg"></span></div>
+      </div>
+      <div class="herr">
+        <input type="month" id="kiMes" style="max-width:170px" aria-label="Mes">
+        <select id="kiEst" style="width:auto" aria-label="Estado"><option value="">Todos</option><option value="Pendiente">Por corregir</option><option value="Corregido">Corregidos</option><option value="Conforme">Conformes</option></select>
+        <select id="kiRespF" style="width:auto" aria-label="Quién ingresó"></select>
+        <input id="kiTxt" placeholder="Buscar factura, proveedor, producto…" style="flex:1;min-width:180px">
+        <button id="kiExp">Exportar a Excel</button>
+      </div>
+      <div id="kiCont"></div>
+    </div>
     <div id="vCot" class="oculto">
       <div class="subnav" id="ctSub"><button data-tv="lista">Cotizaciones</button><button data-tv="ped">Pedidos aprobados</button><button data-tv="prov">Proveedores y códigos</button></div>
       <input type="file" id="ctArch" accept=".xls,.xlsx" class="oculto"><input type="file" id="ctArchR" accept=".xls,.xlsx" class="oculto">
@@ -1117,6 +1151,7 @@
     ['Resumen de pagos', [['verCxp', 'Ver el resumen de pagos, cierre y documentos por proveedor'], ['cxp', 'Llenar créditos bancarios y otros pagos del resumen; configurar la retención']]],
     ['Dashboard', [['verDash', 'Ver el dashboard general de compras (todas las empresas)']]],
     ['Seguimiento de devoluciones', [['verEnt', 'Ver las facturas observadas y si ya se entregaron'], ['ent', 'Marcar entregado / falta entregar']]],
+    ['Control de ingreso', [['verCtrlIng', 'Ver la lista de revisiones del ingreso a LolFar'], ['ctrlIng', 'Revisar el ingreso de facturas (jefa de almacén) y marcar corregido'], ['indCtrlIng', 'Ver los indicadores del control de ingreso']]],
     ['Seguimiento de compras', [['verSegC', 'Ver el seguimiento de facturas: XML, recepción, conformidad e ingreso a LolFar']]],
     ['Cotizaciones', [['verCot', 'Ver las cotizaciones y los pedidos aprobados'], ['cot', 'Crear cotizaciones, registrar respuestas y decisiones'], ['cotAprobar', 'Aprobar, observar o rechazar (Gerencia)'], ['cotRec', 'Marcar la llegada de los pedidos (Recepción)']]],
     ['Lector de XML', [['verXml', 'Ver la información guardada de los XML de facturas'], ['xml', 'Subir XML y eliminar documentos guardados']]],
@@ -1279,6 +1314,7 @@
     pagos: { campos: ['act'], margen: 600000 },
     observaciones: { campos: ['actFecha', 'creado'], margen: 600000 },
     pedidos: { campos: ['creado', 'conformeFecha', 'act'], margen: 600000 },
+    controlIng: { campos: ['act'], margen: 600000 },
     xmlf: { campos: ['subT', 'subido'], texto: ['subido'], margen: 600000 } // subT = hora del servidor; subido = hora de la PC (los guardados antes)
   };
   const sincros = new Map();
@@ -1502,7 +1538,7 @@
   }
   function aplicarPermisos() {
     const admin = yo.area === 'ADMIN';
-    const tabs = { vInicio: true, vSegC: puede('verSegC'), vPedidos: puede('verPedidos'), vNuevo: puede('observar'), vPend: puede('verPend'), vDev: puede('verDev'), vPagos: puede('verPagos'), vPagosRes: puede('verPagos'), vPagosObs: puede('verPagos') || puede('verObs'), vPagosLf: puede('verPagos'), vLetras: puede('verPagos'), vCxp: false, vResPag: puede('verPagos') || puede('verCxp'), vCierre: false, vProvDocs: false, vRegFac: false, vDash: puede('verDash'), vSeg: puede('verEnt'), vCot: puede('verCot'), vXml: puede('verXml'), vReb: puede('verReb'),
+    const tabs = { vInicio: true, vSegC: puede('verSegC'), vCtrlIng: puede('verCtrlIng') || puede('ctrlIng') || puede('indCtrlIng'), vPedidos: puede('verPedidos'), vNuevo: puede('observar'), vPend: puede('verPend'), vDev: puede('verDev'), vPagos: puede('verPagos'), vPagosRes: puede('verPagos'), vPagosObs: puede('verPagos') || puede('verObs'), vPagosLf: puede('verPagos'), vLetras: puede('verPagos'), vCxp: false, vResPag: puede('verPagos') || puede('verCxp'), vCierre: false, vProvDocs: false, vRegFac: false, vDash: puede('verDash'), vSeg: puede('verEnt'), vCot: puede('verCot'), vXml: puede('verXml'), vReb: puede('verReb'),
       vUsuarios: admin, vCat: admin, vListas: admin };
     $('quien').textContent = `${yo.nombre} · ${yo.area}`;
     // Se ve toda la interfaz; lo que el usuario no tiene habilitado queda con candado y al entrar dice "No tienes acceso"
@@ -1579,7 +1615,7 @@
 
   /* ---------- Navegación ---------- */
   const NAV_DE = { vRegFac: 'vCierre' }; // vistas que comparten un mismo botón del menú
-  const VISTAS = ['vInicio', 'vPedidos', 'vNuevo', 'vPend', 'vDev', 'vPagos', 'vCxp', 'vProvDocs', 'vResPag', 'vLetras', 'vCierre', 'vRegFac', 'vDash', 'vSeg', 'vSegC', 'vCot', 'vXml', 'vReb', 'vUsuarios', 'vCat', 'vListas', 'vNada'];
+  const VISTAS = ['vInicio', 'vPedidos', 'vNuevo', 'vPend', 'vDev', 'vPagos', 'vCxp', 'vProvDocs', 'vResPag', 'vLetras', 'vCierre', 'vRegFac', 'vDash', 'vSeg', 'vSegC', 'vCtrlIng', 'vCot', 'vXml', 'vReb', 'vUsuarios', 'vCat', 'vListas', 'vNada'];
   document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => { ver(b.dataset.v); if (b.dataset.v === 'vPagos' && vista === 'vPagos') pgVer('grid'); }));
   // Pagos a proveedores se abre en tres ventanas del menú (antes eran pestañas dentro del módulo)
   const PG_ALIAS = { vPagosRes: 'res', vPagosObs: 'cruce', vPagosLf: 'lf' };
@@ -1603,6 +1639,7 @@
     if (v === 'vSeg') sgPintar();
     document.body.classList.toggle('ladoFuera', v === 'vSegC'); if (v !== 'vSegC') document.body.classList.remove('scSinScroll'); // Seguimiento usa toda la pantalla: la barra se oculta (☰ la vuelve a mostrar)
     if (v === 'vSegC') scAbrir();
+    if (v === 'vCtrlIng') kiAbrir();
     try { camCerrar(); } catch (e) { /* la cámara aún no se usó */ }
     if (v === 'vCot') ctPintar(true);
     if (v === 'vXml') xlAbrirVista();
@@ -1720,7 +1757,7 @@
     const s = serDoc($(pre + 'Ser').value), n = numDoc($(pre + 'Num').value);
     return (/^[A-Z0-9]{2,6}$/.test(s) && /^\d{1,10}$/.test(n)) ? `${s}-${n}` : '';
   }
-  ['pe', 'n'].forEach((pre) => {
+  ['pe', 'n', 'ki'].forEach((pre) => {
     $(pre + 'Ser').addEventListener('change', () => { // si pegan "F140-009187" en la serie, se reparte sola
       const m = $(pre + 'Ser').value.toUpperCase().match(/^\s*([A-Z]{1,3}\d{1,4})\s*[- ]\s*0*(\d+)\s*$/);
       if (m) { $(pre + 'Ser').value = m[1]; $(pre + 'Num').value = m[2]; $(pre + 'Num').dispatchEvent(new Event('change', { bubbles: true })); } else $(pre + 'Ser').value = serDoc($(pre + 'Ser').value);
@@ -10402,6 +10439,117 @@
       if (!c || !rb.porC.has(c)) { msg('rbMsg', 'Elige un producto del catálogo (de la lista o búscalo por código o nombre).'); return; }
       rb.verAuto = !!tr.closest('#rbAutoD'); rbGuardar(rb.prov, { [tr.dataset.k]: c });
     }
+  });
+  /* =====================  CONTROL DE INGRESO  =====================
+     La jefa de almacén revisa lo que se ingresó a LolFar de cada factura y marca, punto por punto, si está bien o tiene error
+     (producto, cantidad, lote, vencimiento, precio…). Así se miden los errores de ingreso por persona, tipo y proveedor. */
+  const KI_IND = [
+    ['prod', 'Producto / descripción', 'Producto o descripción mal ingresada', 'I'],
+    ['cant', 'Cantidad', 'Cantidad incorrecta', 'I'],
+    ['lote', 'Lote', 'Lote incorrecto', 'I'],
+    ['fv', 'Fecha de vencimiento', 'Fecha de vencimiento mal ingresada', 'I'],
+    ['precio', 'Precio / costo', 'Precio o costo incorrecto', 'I'],
+    ['noIng', 'Productos completos', 'Faltó ingresar algún producto', 'I'],
+    ['sinFv', 'Factura trae vencimiento', 'La factura no trae fecha de vencimiento', 'P'],
+    ['sinLote', 'Factura trae lote', 'La factura no trae lote', 'P'],
+    ['otro', 'Otro', 'Otro error', 'I']
+  ];
+  let ki = { chk: {}, xml: null, k: '', v: null };
+  const kiErrs = (d) => KI_IND.filter(([k]) => d.chk && d.chk[k] === true);
+  function kiFormPintar() {
+    $('kiInd').innerHTML = KI_IND.map(([k, a, b, t]) => `<div class="kiFila${ki.chk[k] ? ' mal' : ''}"><span><b>${esc(a)}</b>${t === 'P' ? ' <span class="quien">(proveedor)</span>' : ''}</span>` +
+      `<button type="button" class="kiOk${ki.chk[k] ? '' : ' on'}" data-k="${k}">✓ Bien</button><button type="button" class="kiMal${ki.chk[k] ? ' on' : ''}" data-k="${k}" title="${esc(b)}">✗ Error</button></div>`).join('');
+    const n = KI_IND.filter(([k]) => ki.chk[k]).length;
+    $('kiGuardar').textContent = n ? `Guardar con ${n} error(es)` : 'Guardar: todo conforme';
+    $('kiGuardar').classList.toggle('pel', n > 0);
+  }
+  async function kiXmlBuscar() {
+    const k = facturaDe('ki'); if (k === ki.k) return;
+    ki.k = k; ki.xml = null; if (!k) return;
+    const [ser, num] = k.split('-');
+    try {
+      const v = sincros.get('xmlf'); let xs;
+      if (v) { await v.listo; xs = v.docs().map((d) => d.data()).filter((x) => x.serie === ser && numDoc(x.num) === num); }
+      else xs = (await getDocs(query(collection(db, 'xmlf'), where('serie', '==', ser), where('num', '==', num)))).docs.map((d) => d.data());
+      if (ki.k !== k) return;
+      const x = xs.find((y) => y.tipo === 'FACTURA') || xs[0]; if (!x) return;
+      ki.xml = x;
+      const pv = provDeEmisor(x.emisor && x.emisor.nom, x.emisor && x.emisor.ruc); if (pv) $('kiProv').value = pv;
+      const ls = x.lineas || [];
+      if (ls.length) { // si el XML no trae lote ni vencimiento, se marca solo
+        const sinL = ls.every((l) => !l.lote), sinF = ls.every((l) => !l.fv);
+        if (sinL) ki.chk.sinLote = true; if (sinF) ki.chk.sinFv = true; kiFormPintar();
+      }
+      $('kiXml').innerHTML = `<span class="quien">XML: ${esc(x.emisor && x.emisor.nom)} · ${esc(dia(x.fecha))} · S/ ${mil(x.total)} · ${ls.length} producto(s)${ls.length && ls.every((l) => !l.lote) ? ' · <b>sin lote</b>' : ''}${ls.length && ls.every((l) => !l.fv) ? ' · <b>sin vencimiento</b>' : ''}</span>`;
+    } catch (e) { /* sin permiso para leer los XML: se llena a mano */ }
+  }
+  async function kiGuardar() {
+    const fac = facturaDe('ki'), prov = txt($('kiProv').value, 120), resp = $('kiResp').value;
+    if (!fac) return msg('kiMsg', 'Escribe la serie y el número de la factura.');
+    if (!prov) return msg('kiMsg', 'Escribe el proveedor.');
+    if (!resp) return msg('kiMsg', 'Elige quién ingresó la factura a LolFar.');
+    const chk = {}; KI_IND.forEach(([k]) => { chk[k] = ki.chk[k] === true; });
+    const n = Object.values(chk).filter(Boolean).length, interno = KI_IND.some(([k, , , t]) => t === 'I' && chk[k]);
+    const ya = (ki.v ? ki.v.docs() : []).map((d) => d.data()).find((d) => refDoc(d.fac) === refDoc(fac) && provClave(d.prov) === provClave(prov));
+    if (ya && !confirm(`${fac} de ${prov} ya fue revisada el ${dia(ya.fRev)} por ${String(ya.rev || '').split(' (')[0]}. ¿Registrar otra revisión?`)) return;
+    $('kiGuardar').disabled = true;
+    try {
+      await addDoc(collection(db, 'controlIng'), { fac, prov, resp, chk, err: n, prods: txt($('kiProds').value, 300), obs: txt($('kiObs').value, 300), estado: interno ? 'Pendiente' : 'Conforme',
+        fFac: (ki.xml && ki.xml.fecha) || '', fRev: hoy(), rev: firma(), uid: yo.uid, creado: serverTimestamp(), act: serverTimestamp() });
+      msg('kiMsg', n ? `Guardado: ${fac} con ${n} error(es).` : `Guardado: ${fac} conforme.`, 'ok');
+      ['kiSer', 'kiNum', 'kiProv', 'kiProds', 'kiObs'].forEach((id) => { $(id).value = ''; }); ki.chk = {}; ki.k = ''; ki.xml = null; $('kiXml').innerHTML = ''; kiFormPintar(); $('kiSer').focus();
+    } catch (e) { msg('kiMsg', errorTexto(e)); }
+    $('kiGuardar').disabled = false;
+  }
+  async function kiAbrir() {
+    if (!$('kiMes').value) $('kiMes').value = hoy().slice(0, 7);
+    $('kiForm').classList.toggle('oculto', !puede('ctrlIng'));
+    $('kiResp').innerHTML = '<option value="">Elige…</option>' + pedResps().map((r) => `<option>${esc(r)}</option>`).join('');
+    $('kiProvL').innerHTML = proveedoresConocidos().map((p) => `<option value="${esc(p)}">`).join('');
+    kiFormPintar();
+    if (!ki.v) { try { ki.v = await sincro('controlIng'); ki.v.cbs.add(() => { if (vista === 'vCtrlIng') kiPintar(); kiContar(); }); } catch (e) { $('kiCont').innerHTML = `<div class="msg err">${esc(errorTexto(e))}</div>`; return; } }
+    kiPintar(); kiContar();
+  }
+  const kiContar = () => { if (ki.v) contador('nCtrl', ki.v.docs().filter((d) => d.get('estado') === 'Pendiente').length); };
+  function kiPintar() {
+    if (!ki.v) return;
+    const mes = $('kiMes').value, est = $('kiEst').value, rs = $('kiRespF').value, t = $('kiTxt').value.trim().toLowerCase();
+    const todos = ki.v.docs().map((d) => ({ _id: d.id, ...d.data() })).filter((d) => !mes || String(d.fRev).startsWith(mes));
+    const resps = unicos(todos.map((d) => d.resp)); $('kiRespF').innerHTML = '<option value="">Todos los que ingresan</option>' + resps.map((r) => `<option${r === rs ? ' selected' : ''}>${esc(r)}</option>`).join('');
+    const L = todos.filter((d) => (!est || d.estado === est) && (!rs || d.resp === rs) && (!t || `${d.fac} ${d.prov} ${d.prods} ${d.obs}`.toLowerCase().includes(t))).sort((a, b) => String(b.fRev).localeCompare(String(a.fRev)) || msDe(b.creado) - msDe(a.creado));
+    ki.vista = L;
+    const verInd = puede('indCtrlIng'), conErr = todos.filter((d) => d.err > 0), pct = (a, b) => (b ? Math.round(a * 100 / b) : 0);
+    const ind = !verInd || !todos.length ? '' : (() => {
+      const porTipo = KI_IND.map(([k, a, b, tp]) => [b, todos.filter((d) => d.chk && d.chk[k]).length, tp]).filter((x) => x[1]).sort((a, b) => b[1] - a[1]);
+      const porResp = resps.map((r) => { const ds = todos.filter((d) => d.resp === r), e = ds.filter((d) => KI_IND.some(([k, , , tp]) => tp === 'I' && d.chk && d.chk[k])).length; return [r, ds.length, e]; }).sort((a, b) => b[2] - a[2] || b[1] - a[1]);
+      const provs = unicos(todos.map((d) => d.prov)).map((p) => { const ds = todos.filter((d) => d.prov === p); return [p, ds.length, ds.filter((d) => d.chk && d.chk.sinFv).length, ds.filter((d) => d.chk && d.chk.sinLote).length]; }).filter((x) => x[2] || x[3]).sort((a, b) => (b[2] + b[3]) - (a[2] + a[3]));
+      const mx = Math.max(1, ...porTipo.map((x) => x[1]));
+      return '<div class="kiKpis">' +
+        [['Facturas revisadas', todos.length, ''], ['Conformes', todos.filter((d) => !d.err).length, `${pct(todos.filter((d) => !d.err).length, todos.length)}%`], ['Con error', conErr.length, `${pct(conErr.length, todos.length)}%`], ['Por corregir', todos.filter((d) => d.estado === 'Pendiente').length, '']].map(([a, v, s]) => `<div class="kpi"><b>${a}</b><strong>${v}</strong><small>${s}</small></div>`).join('') + '</div>' +
+        '<div class="kiGraf"><div class="caja"><h3>Errores por tipo</h3>' + (porTipo.map(([n0, v, tp]) => `<div class="kiBar"><span>${esc(n0)}${tp === 'P' ? ' <span class="quien">(proveedor)</span>' : ''}</span><span class="kiB"><span style="width:${v * 100 / mx}%;background:${tp === 'P' ? '#7c3aed' : '#dc2626'}"></span></span><b>${v}</b></div>`).join('') || '<p class="quien">Sin errores este mes.</p>') + '</div>' +
+        `<div class="caja"><h3>Por persona que ingresa</h3><table class="kiT"><tr><th>Ingresó</th><th class="num">Revisadas</th><th class="num">Con error</th><th class="num">%</th></tr>${porResp.map(([r, n0, e]) => `<tr><td>${esc(r)}</td><td class="num">${n0}</td><td class="num">${e}</td><td class="num"><b class="${pct(e, n0) > 10 ? 'baja' : ''}">${pct(e, n0)}%</b></td></tr>`).join('')}</table></div>` +
+        `<div class="caja"><h3>Facturas sin vencimiento o lote (proveedor)</h3>${provs.length ? `<table class="kiT"><tr><th>Proveedor</th><th class="num">Revisadas</th><th class="num">Sin FV</th><th class="num">Sin lote</th></tr>${provs.map(([p, n0, a, b]) => `<tr><td>${esc(p)}</td><td class="num">${n0}</td><td class="num">${a}</td><td class="num">${b}</td></tr>`).join('')}</table>` : '<p class="quien">Todas traen vencimiento y lote.</p>'}</div></div>`;
+    })();
+    const corr = puede('ctrlIng');
+    $('kiCont').innerHTML = ind + `<p class="resumen">${L.length} revisión(es)</p><div class="tabla"><table><thead><tr><th>Revisión</th><th>Factura</th><th>Proveedor</th><th>Ingresó</th><th>Resultado</th><th>Productos / comentario</th><th>Estado</th><th>Revisó</th></tr></thead><tbody>` +
+      (L.map((d) => { const es = kiErrs(d); return `<tr class="${es.length ? 'kiConErr' : ''}"><td>${esc(dia(d.fRev))}</td><td><b>${esc(d.fac)}</b></td><td>${esc(d.prov)}</td><td>${esc(d.resp)}</td>` +
+        `<td>${es.length ? es.map(([, , b, tp]) => `<span class="est ${tp === 'P' ? 'e3' : 'alerta'}" style="margin:1px">${esc(b)}</span>`).join(' ') : '<span class="est e2">✓ Conforme</span>'}</td>` +
+        `<td style="white-space:normal;max-width:280px">${esc(d.prods || '')}${d.prods && d.obs ? '<br>' : ''}<span class="quien">${esc(d.obs || '')}</span></td>` +
+        `<td>${d.estado === 'Pendiente' ? `<span class="est e0">Por corregir</span>${corr ? ` <button type="button" class="mini kiCorr" data-id="${esc(d._id)}">✓ Corregido</button>` : ''}` : d.estado === 'Corregido' ? `<span class="est e2">Corregido</span><div class="quien">${esc(String(d.corrPor || '').split(' (')[0])} · ${esc(dia(d.corrF))}</div>` : '<span class="quien">—</span>'}</td>` +
+        `<td class="quien">${esc(String(d.rev || '').split(' (')[0])}${yo.area === 'ADMIN' ? ` <button type="button" class="mini pel kiDel" data-id="${esc(d._id)}" title="Eliminar esta revisión">🗑</button>` : ''}</td></tr>`; }).join('') || '<tr><td colspan="8" class="vacio">Sin revisiones en este mes</td></tr>') + '</tbody></table></div>';
+  }
+  $('kiInd').addEventListener('click', (e) => { const b = e.target.closest('.kiOk, .kiMal'); if (!b) return; ki.chk[b.dataset.k] = b.classList.contains('kiMal'); kiFormPintar(); });
+  $('kiGuardar').addEventListener('click', kiGuardar);
+  ['kiSer', 'kiNum'].forEach((id) => { $(id).addEventListener('change', () => setTimeout(kiXmlBuscar, 0)); $(id).addEventListener('input', () => { clearTimeout(ki.t); ki.t = setTimeout(kiXmlBuscar, 400); }); $(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') e.preventDefault(); }); });
+  ['kiMes', 'kiEst', 'kiRespF'].forEach((id) => $(id).addEventListener('change', kiPintar));
+  $('kiTxt').addEventListener('input', () => { clearTimeout(ki.tt); ki.tt = setTimeout(kiPintar, 250); });
+  $('kiExp').addEventListener('click', () => exportar('control-de-ingreso', [['Revisión', (d) => dia(d.fRev)], ['Factura', 'fac'], ['Proveedor', 'prov'], ['Ingresó', 'resp'], ...KI_IND.map(([k, a]) => [a, (d) => (d.chk && d.chk[k] ? 'ERROR' : 'Bien')]), ['Errores', 'err'], ['Productos', 'prods'], ['Comentario', 'obs'], ['Estado', 'estado'], ['Corrigió', (d) => String(d.corrPor || '').split(' (')[0]], ['Fecha corrección', (d) => dia(d.corrF)], ['Revisó', (d) => String(d.rev || '').split(' (')[0]]], ki.vista || []));
+  $('kiCont').addEventListener('click', async (e) => {
+    const c = e.target.closest('.kiCorr'), dl = e.target.closest('.kiDel');
+    try {
+      if (c && puede('ctrlIng')) { await updateDoc(doc(db, 'controlIng', c.dataset.id), { estado: 'Corregido', corrPor: firma(), corrF: hoy(), act: serverTimestamp() }); }
+      if (dl && yo.area === 'ADMIN' && confirm('¿Eliminar esta revisión?')) { await deleteDoc(doc(db, 'controlIng', dl.dataset.id)); sincroQuitar('controlIng', dl.dataset.id); }
+    } catch (err) { alert(errorTexto(err)); }
   });
   /* =====================  SEGUIMIENTO DE COMPRAS  =====================
      Cada factura por sus etapas: emitida (XML) → recibida (Ingreso de pedidos) → conformidad de Compras → ingresada a LolFar
