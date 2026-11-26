@@ -10483,8 +10483,8 @@
       const pv = provDeEmisor(x.emisor && x.emisor.nom, x.emisor && x.emisor.ruc); if (pv) $('kiProv').value = pv;
       const ls = x.lineas || [];
       $('kiProdL').innerHTML = unicos(ls.map((l) => `${l.cod ? l.cod + ' · ' : ''}${l.desc}`)).map((v0) => `<option value="${esc(v0)}">`).join('');
-      if (ls.length) { $('kiSinLote').checked = ls.every((l) => !l.lote); $('kiSinFv').checked = ls.every((l) => !l.fv); kiFormPintar(); } // si el XML no trae lote ni vencimiento, se marca solo
-      $('kiXml').innerHTML = `<span class="quien">XML: ${esc(x.emisor && x.emisor.nom)} · ${esc(dia(x.fecha))} · S/ ${mil(x.total)} · ${ls.length} producto(s)${ls.length && ls.every((l) => !l.lote) ? ' · <b>sin lote</b>' : ''}${ls.length && ls.every((l) => !l.fv) ? ' · <b>sin vencimiento</b>' : ''}</span>`;
+      // lote y vencimiento: muchos proveedores no los ponen en el XML aunque sí en la factura impresa; se marcan a mano viendo la factura
+      $('kiXml').innerHTML = `<span class="quien">XML: ${esc(x.emisor && x.emisor.nom)} · ${esc(dia(x.fecha))} · S/ ${mil(x.total)} · ${ls.length} producto(s)${ls.length && ls.every((l) => !l.lote) ? ' · el XML no trae lote' : ''}${ls.length && ls.every((l) => !l.fv) ? ' · el XML no trae vencimiento' : ''} <span class="quien">(revisa la factura impresa)</span></span>`;
     } catch (e) { /* sin permiso para leer los XML: se llena a mano */ }
   }
   async function kiGuardar() {
