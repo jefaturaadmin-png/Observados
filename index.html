@@ -496,6 +496,12 @@
   .kiFila { display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:6px; padding:6px 10px; border:1px solid var(--borde); border-radius:10px; background:#fff; } .kiFila.mal { background:#fdecea; border-color:#f5b4ad; }
   .kiAdd { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-start; margin-top:10px; padding:10px; background:#f8fafc; border:1px solid var(--borde); border-radius:12px; }
   .kiTipos { display:flex; flex-wrap:wrap; gap:5px; } .kiTipo { padding:5px 10px !important; font-size:13px; border-radius:999px !important; background:#fff; } .kiTipo.on { background:#dc2626; color:#fff; border-color:#dc2626 !important; }
+  .kiPick { position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:40; background:#fff; border:1px solid var(--borde); border-radius:12px; box-shadow:0 12px 30px rgba(0,0,0,.15); max-height:340px; overflow:auto; min-width:min(560px, 92vw); }
+  .kiPickCab { padding:8px 12px; font-size:12px; color:var(--gris); border-bottom:1px solid #f1f5f9; position:sticky; top:0; background:#fff; }
+  .kiPickI { display:flex; gap:10px; align-items:center; width:100%; text-align:left; background:#fff; border:none !important; border-bottom:1px solid #f1f5f9 !important; border-radius:0 !important; padding:8px 12px !important; cursor:pointer; font:inherit; color:inherit; }
+  .kiPickI:hover, .kiPickI.act { background:#fff7ed; }
+  .kiPickCod { flex:none; min-width:58px; text-align:center; font-size:12px; font-weight:700; color:#9a3412; background:#ffedd5; border-radius:6px; padding:2px 6px; }
+  .kiPickTx { flex:1; display:flex; flex-direction:column; min-width:0; } .kiPickTx b { font-size:13.5px; font-weight:600; } .kiPickTx small { color:var(--gris); font-size:12px; }
   .kiOk, .kiMal { padding:4px 10px !important; font-size:13px; border-radius:8px !important; background:#fff; } .kiOk.on { background:#16a34a; color:#fff; border-color:#16a34a !important; } .kiMal.on { background:#dc2626; color:#fff; border-color:#dc2626 !important; }
   .kiKpis { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin-bottom:10px; }
   .kiGraf { display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:10px; margin-bottom:10px; } .kiGraf .caja { overflow-x:auto; min-width:0; } .kiGraf h3 { margin:0 0 8px; font-size:14px; }
@@ -954,7 +960,7 @@
           <div class="campo"><label for="kiProv">Proveedor *</label><input id="kiProv" list="kiProvL" placeholder="Escribe para buscar…" autocomplete="off"><datalist id="kiProvL"></datalist></div>
         </div>
         <div class="kiAdd">
-          <div class="campo" style="flex:2;min-width:260px"><label for="kiProd">2. Producto con error</label><input id="kiProd" list="kiProdL" placeholder="Escribe el producto (si hay XML, salen sus productos)" autocomplete="off"><datalist id="kiProdL"></datalist></div>
+          <div class="campo" style="flex:2;min-width:260px"><label for="kiProd">2. Producto con error</label><div style="position:relative"><input id="kiProd" placeholder="🔍 Busca por nombre o código (si hay XML, salen sus productos)" autocomplete="off"><div id="kiPick" class="kiPick oculto"></div></div></div>
           <div class="campo" style="flex:3;min-width:300px"><label>3. Qué tiene mal</label><div id="kiTipos" class="kiTipos"></div></div>
           <div class="campo" style="flex:2;min-width:200px"><label for="kiDet">Detalle (opcional)</label><input id="kiDet" placeholder="Ej.: lote 2311 en vez de 2313"></div>
           <button type="button" id="kiAgregar" style="align-self:flex-end">+ Agregar</button>
@@ -10465,13 +10471,13 @@
     const p = txt($('kiProd').value, 150), t = KI_T.map((x) => x[0]).filter((k) => ki.sel.has(k));
     if (!p) return msg('kiMsg', 'Escribe o elige el producto con error.');
     if (!t.length) return msg('kiMsg', 'Marca qué tiene mal ese producto (mal digitado, lote, cantidad…).');
-    const l = ki.xml && (ki.xml.lineas || []).find((y) => `${y.cod ? y.cod + ' · ' : ''}${y.desc}` === p || y.desc === p);
+    const l = ki.pickL && ki.pickL.desc === p ? ki.pickL : ki.xml && (ki.xml.lineas || []).find((y) => y.desc === p);
     ki.items.push({ p: l ? l.desc : p, cod: l ? String(l.cod || '') : '', t, d: txt($('kiDet').value, 200) });
-    $('kiProd').value = ''; $('kiDet').value = ''; ki.sel = new Set(); msg('kiMsg', ''); kiFormPintar(); $('kiProd').focus();
+    $('kiProd').value = ''; $('kiDet').value = ''; ki.sel = new Set(); ki.pickL = null; kiPickCerrar(); msg('kiMsg', ''); kiFormPintar(); $('kiProd').focus();
   }
   async function kiXmlBuscar() {
     const k = facturaDe('ki'); if (k === ki.k) return;
-    ki.k = k; ki.xml = null; $('kiXml').innerHTML = ''; $('kiProdL').innerHTML = ''; if (!k) return;
+    ki.k = k; ki.xml = null; $('kiXml').innerHTML = ''; kiPickCerrar(); if (!k) return;
     const [ser, num] = k.split('-');
     try {
       const v = sincros.get('xmlf'); let xs;
@@ -10482,7 +10488,6 @@
       ki.xml = x;
       const pv = provDeEmisor(x.emisor && x.emisor.nom, x.emisor && x.emisor.ruc); if (pv) $('kiProv').value = pv;
       const ls = x.lineas || [];
-      $('kiProdL').innerHTML = unicos(ls.map((l) => `${l.cod ? l.cod + ' · ' : ''}${l.desc}`)).map((v0) => `<option value="${esc(v0)}">`).join('');
       // lote y vencimiento: muchos proveedores no los ponen en el XML aunque sí en la factura impresa; se marcan a mano viendo la factura
       $('kiXml').innerHTML = `<span class="quien">XML: ${esc(x.emisor && x.emisor.nom)} · ${esc(dia(x.fecha))} · S/ ${mil(x.total)} · ${ls.length} producto(s)${ls.length && ls.every((l) => !l.lote) ? ' · el XML no trae lote' : ''}${ls.length && ls.every((l) => !l.fv) ? ' · el XML no trae vencimiento' : ''} <span class="quien">(revisa la factura impresa)</span></span>`;
     } catch (e) { /* sin permiso para leer los XML: se llena a mano */ }
@@ -10501,7 +10506,7 @@
         fFac: (ki.xml && ki.xml.fecha) || '', fRev: hoy(), rev: firma(), uid: yo.uid, creado: serverTimestamp(), act: serverTimestamp() });
       msg('kiMsg', ki.items.length ? `Guardado: ${fac} con ${ki.items.length} producto(s) con error.` : `Guardado: ${fac} conforme.`, 'ok');
       ['kiSer', 'kiNum', 'kiProv', 'kiProd', 'kiDet', 'kiObs'].forEach((id) => { $(id).value = ''; }); $('kiSinFv').checked = false; $('kiSinLote').checked = false;
-      ki.items = []; ki.sel = new Set(); ki.k = ''; ki.xml = null; $('kiXml').innerHTML = ''; $('kiProdL').innerHTML = ''; kiFormPintar(); $('kiSer').focus();
+      ki.items = []; ki.sel = new Set(); ki.k = ''; ki.xml = null; ki.pickL = null; $('kiXml').innerHTML = ''; kiPickCerrar(); kiFormPintar(); $('kiSer').focus();
     } catch (e) { msg('kiMsg', errorTexto(e)); }
     $('kiGuardar').disabled = false;
   }
@@ -10545,6 +10550,29 @@
   }
   $('kiTipos').addEventListener('click', (e) => { const b = e.target.closest('.kiTipo'); if (!b) return; if (ki.sel.has(b.dataset.k)) ki.sel.delete(b.dataset.k); else ki.sel.add(b.dataset.k); kiFormPintar(); });
   $('kiItems').addEventListener('click', (e) => { const b = e.target.closest('.kiQuitar'); if (!b) return; ki.items.splice(Number(b.dataset.i), 1); kiFormPintar(); });
+  // Buscador de productos del XML: tarjetas con código, descripción, lote, vencimiento y cantidad; filtra mientras se escribe
+  const kiPickCerrar = () => { $('kiPick').classList.add('oculto'); ki.pickV = []; ki.pickA = -1; };
+  function kiPickPintar() {
+    const ls = (ki.xml && ki.xml.lineas) || [];
+    if (!ls.length) return kiPickCerrar();
+    const pal = soloAlfa($('kiProd').value).split(/\s+/).filter(Boolean);
+    const L = ls.map((l, i) => ({ l, i })).filter(({ l }) => { const t = soloAlfa(`${l.cod || ''} ${l.desc || ''}`); return pal.every((w) => t.includes(w)); });
+    ki.pickV = L; if (ki.pickA >= L.length) ki.pickA = L.length - 1;
+    const usados = new Set(ki.items.map((it) => it.p));
+    $('kiPick').innerHTML = `<div class="kiPickCab">${L.length} de ${ls.length} producto(s) del XML</div>` + (L.map(({ l, i }, j) => `<button type="button" class="kiPickI${j === ki.pickA ? ' act' : ''}" data-i="${i}"><span class="kiPickCod">${esc(l.cod || '—')}</span><span class="kiPickTx"><b>${esc(l.desc || '')}</b><small>${[l.lote ? 'Lote ' + l.lote : '', l.fv ? 'Vence ' + l.fv : '', l.cant !== undefined && l.cant !== null ? 'Cant. ' + l.cant + (l.um ? ' ' + l.um : '') : '', l.total ? 'S/ ' + mil(l.total) : ''].filter(Boolean).map(esc).join(' · ')}</small></span>${usados.has(l.desc) ? '<span class="est alerta">ya agregado</span>' : ''}</button>`).join('') || '<div class="kiPickCab">Ningún producto del XML coincide: puedes escribirlo tal cual.</div>');
+    $('kiPick').classList.remove('oculto');
+  }
+  function kiPickElegir(i) { const l = ((ki.xml && ki.xml.lineas) || [])[i]; if (!l) return; ki.pickL = l; $('kiProd').value = l.desc; kiPickCerrar(); const b = $('kiTipos').querySelector('.kiTipo'); if (b) b.focus(); }
+  $('kiProd').addEventListener('focus', () => { ki.pickA = -1; kiPickPintar(); });
+  $('kiProd').addEventListener('input', () => { ki.pickL = null; ki.pickA = -1; kiPickPintar(); });
+  $('kiProd').addEventListener('keydown', (e) => {
+    const abierto = !$('kiPick').classList.contains('oculto') && ki.pickV && ki.pickV.length;
+    if (abierto && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) { e.preventDefault(); ki.pickA = Math.max(0, Math.min(ki.pickV.length - 1, ki.pickA + (e.key === 'ArrowDown' ? 1 : -1))); kiPickPintar(); const a = $('kiPick').querySelector('.kiPickI.act'); if (a) a.scrollIntoView({ block: 'nearest' }); }
+    else if (abierto && e.key === 'Enter' && ki.pickA >= 0) { e.preventDefault(); e.stopImmediatePropagation(); kiPickElegir(ki.pickV[ki.pickA].i); }
+    else if (e.key === 'Escape') kiPickCerrar();
+  });
+  $('kiPick').addEventListener('mousedown', (e) => { const b = e.target.closest('.kiPickI'); if (b) { e.preventDefault(); kiPickElegir(Number(b.dataset.i)); } });
+  $('kiProd').addEventListener('blur', () => setTimeout(kiPickCerrar, 150));
   $('kiAgregar').addEventListener('click', kiAgregar);
   ['kiProd', 'kiDet'].forEach((id) => $(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); kiAgregar(); } }));
   ['kiSinFv', 'kiSinLote'].forEach((id) => $(id).addEventListener('change', kiFormPintar));
