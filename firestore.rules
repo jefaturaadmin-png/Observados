@@ -216,7 +216,7 @@ service cloud.firestore {
     match /controlIng/{id} {
       allow read: if puede('verCtrlIng') || puede('ctrlIng') || puede('indCtrlIng');
       allow create: if puede('ctrlIng') && request.resource.data.uid == request.auth.uid;
-      allow update: if esArea('ADMIN') || (puede('ctrlIng') && soloCambia(['estado', 'corrPor', 'corrF', 'act']));
+      allow update: if esArea('ADMIN') || (puede('ctrlIng') && soloCambia(['estado', 'corrPor', 'corrF', 'act', 'items', 'chk', 'err']));
       allow delete: if esArea('ADMIN');
     }
     match /pedidos/{id} {
